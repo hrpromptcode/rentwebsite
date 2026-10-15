@@ -242,7 +242,7 @@ export function ThemeEditor(props: {
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
       {/* Editor */}
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         {warnings.length > 0 && (
           <div role="alert" className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" aria-hidden />
@@ -434,7 +434,7 @@ export function ThemeEditor(props: {
       </div>
 
       {/* Live preview */}
-      <div className="xl:sticky xl:top-20 xl:self-start">
+      <div className="min-w-0 xl:sticky xl:top-20 xl:self-start">
         <div className="card overflow-hidden py-0">
           <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
             <p className="truncate text-xs text-muted-foreground">

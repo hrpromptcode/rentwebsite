@@ -50,7 +50,7 @@ export function TopupFeedClient({ initial, limit = 10, pollMs = 10_000, classNam
       <div className="flex items-center justify-between gap-3 border-b border-border/60 px-5 py-3">
         <span className="inline-flex items-center gap-2 text-sm font-medium">
           <span className="relative flex size-2.5">
-            <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/70" />
+            <span className="absolute inset-0 motion-safe:animate-ping rounded-full bg-emerald-400/70" />
             <span className="relative size-2.5 rounded-full bg-emerald-400" />
           </span>
           LIVE · อัปเดตทุก {Math.round(pollMs / 1000)} วินาที
@@ -66,10 +66,10 @@ export function TopupFeedClient({ initial, limit = 10, pollMs = 10_000, classNam
               <motion.li
                 key={r.id}
                 layout={!reduce}
-                initial={reduce ? false : { opacity: 0, y: -14, backgroundColor: "color-mix(in oklab, var(--primary) 18%, transparent)" }}
+                initial={{ opacity: 0, y: -14, backgroundColor: "color-mix(in oklab, var(--primary) 18%, transparent)" }}
                 animate={{ opacity: 1, y: 0, backgroundColor: "rgba(0,0,0,0)" }}
-                exit={reduce ? undefined : { opacity: 0, height: 0 }}
-                transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: reduce ? 0 : 0.45, ease: [0.22, 1, 0.36, 1] }}
                 className="flex items-center gap-3 px-4 py-3 md:px-5"
               >
                 {r.gameImage ? (

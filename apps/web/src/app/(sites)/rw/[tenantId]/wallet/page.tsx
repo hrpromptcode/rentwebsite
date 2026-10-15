@@ -9,7 +9,7 @@ import { Counter, Reveal } from "@rentweb/ui/motion";
 import { PaymentPanel, type PaymentMethodOption } from "@rentweb/storefront/payments";
 import { enabledMethods, getPayment, paymentSettings, promptpayQrDataUrl } from "@rentweb/core/payments";
 import { thb } from "@rentweb/core/money";
-import { getOrCreateWallet, getWalletTopup, listTransactions, topupConfig } from "@rentweb/module-topup/services";
+import { getOrCreateWallet, getWallet, getWalletTopup, listTransactions, reconcileWalletTopup, topupConfig } from "@rentweb/module-topup/services";
 import { WalletTopupForm, dateTimeTh } from "@rentweb/module-topup/components";
 import { WALLET_REASON_LABEL } from "@rentweb/module-topup/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -32,11 +32,14 @@ export default async function WalletPage({ params, searchParams }: { params: Pro
   if (!cfg.walletEnabled) notFound();
 
   const { wallet, transactions, pending, payment } = await tenantTx(tenantId, async (tx) => {
-    const wallet = await getOrCreateWallet(tx, tenantId, customer.id);
+    const base = await getOrCreateWallet(tx, tenantId, customer.id);
+    const found = topupId ? await getWalletTopup(tx, tenantId, topupId) : null;
+    // credits a paid-but-uncredited top-up before reading the balance (idempotent)
+    const pending = found && found.walletId === base.id ? await reconcileWalletTopup(tx, tenantId, found) : null;
+    const wallet = pending ? ((await getWallet(tx, tenantId, customer.id)) ?? base) : base;
     const transactions = await listTransactions(tx, tenantId, wallet.id, { limit: 30 });
-    const pending = topupId ? await getWalletTopup(tx, tenantId, topupId) : null;
-    const payment = pending?.paymentId && pending.walletId === wallet.id ? await getPayment(tx, tenantId, pending.paymentId) : null;
-    return { wallet, transactions, pending: pending && pending.walletId === wallet.id ? pending : null, payment };
+    const payment = pending?.paymentId ? await getPayment(tx, tenantId, pending.paymentId) : null;
+    return { wallet, transactions, pending, payment };
   });
 
   const settings = paymentSettings(runtime.config.settings);

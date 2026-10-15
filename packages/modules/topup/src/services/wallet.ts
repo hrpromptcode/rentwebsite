@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { payments, walletTopups, walletTransactions, wallets, type Tx } from "@rentweb/db";
 import { audit, emitEvent, fail, ok, percentOf, type Result } from "@rentweb/core";
-import { createPayment, resolvePromptpayId, type PaymentMethod } from "@rentweb/core/payments";
+import { createPayment, getPayment, resolvePromptpayId, type PaymentMethod } from "@rentweb/core/payments";
 
 export type Wallet = typeof wallets.$inferSelect;
 export type WalletTransaction = typeof walletTransactions.$inferSelect;
@@ -193,7 +193,12 @@ export async function listWalletTopups(tx: Tx, tenantId: string, walletId: strin
  */
 export async function onWalletTopupPaid(tx: Tx, payment: typeof payments.$inferSelect): Promise<void> {
   const tenantId = payment.tenantId;
-  const topup = await getWalletTopup(tx, tenantId, payment.refId);
+  // row lock so two concurrent paid / reconcile calls cannot both credit
+  const [topup] = await tx
+    .select()
+    .from(walletTopups)
+    .where(and(eq(walletTopups.tenantId, tenantId), eq(walletTopups.id, payment.refId)))
+    .for("update");
   if (!topup) return;
   if (topup.status === "credited") return;
   const [wallet] = await tx.select().from(wallets).where(and(eq(wallets.tenantId, tenantId), eq(wallets.id, topup.walletId))).limit(1);
@@ -223,4 +228,16 @@ export async function onWalletTopupPaid(tx: Tx, payment: typeof payments.$inferS
   }
   await tx.update(walletTopups).set({ status: "credited", creditedAt: new Date() }).where(eq(walletTopups.id, topup.id));
   await emitEvent(tx, { tenantId, type: "wallet.credited", payload: { walletTopupId: topup.id, walletId: wallet.id, customerId: wallet.customerId, amount: topup.amount, bonus: topup.bonus } });
+}
+
+/**
+ * Self-healing read: a wallet top-up whose payment is already paid but that was never credited
+ * (paid handler not registered where the slip was verified) is credited now. Idempotent.
+ */
+export async function reconcileWalletTopup(tx: Tx, tenantId: string, topup: WalletTopup): Promise<WalletTopup> {
+  if (topup.status === "credited" || !topup.paymentId) return topup;
+  const payment = await getPayment(tx, tenantId, topup.paymentId);
+  if (!payment || payment.status !== "paid") return topup;
+  await onWalletTopupPaid(tx, payment);
+  return (await getWalletTopup(tx, tenantId, topup.id)) ?? topup;
 }

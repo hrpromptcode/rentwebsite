@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { and, codeStock, eq } from "@rentweb/db";
+import { and, codeStock, eq, payments } from "@rentweb/db";
 import { getPayment, markPaid } from "@rentweb/core/payments";
 import {
   addToBlacklist,
@@ -13,6 +13,7 @@ import {
   listCustomerOrders,
   onTopupPaid,
   recentFeed,
+  reconcileTopupOrder,
   revealDeliveredCode,
   type CreateTopupOrderInput,
 } from "../src/services";
@@ -272,5 +273,25 @@ describe("rate limit", () => {
     const guest = await g.tx((tx) => createTopupOrder(tx, g.tenantId, { ...input(), customer: null, paymentMethod: "promptpay_qr", contact: "0877777777" }));
     expect(guest.ok).toBe(false);
     if (!guest.ok) expect(guest.error).toBe("rate_limited");
+  });
+});
+
+describe("reconcile (payment paid without the handler)", () => {
+  it("fulfils a pending order whose payment row is already paid, and is a no-op afterwards", async () => {
+    const r = await f.tx((tx) => createTopupOrder(tx, f.tenantId, base({ paymentMethod: "promptpay_qr", playerFields: { uid: "555000111", server: "EU" } })));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const { order, payment } = r.value;
+    // untouched while the payment is still pending
+    const same = await f.tx((tx) => reconcileTopupOrder(tx, f.tenantId, order));
+    expect(same.status).toBe("pending_payment");
+    // simulate a slip verified in a process without this module's handler: payment paid, order not progressed
+    await f.tx((tx) => tx.update(payments).set({ status: "paid", paidAt: new Date() }).where(eq(payments.id, payment!.id)));
+    const fixed = await f.tx((tx) => reconcileTopupOrder(tx, f.tenantId, order));
+    expect(fixed.status).toBe("fulfilled");
+    expect(fixed.supplierRef).toMatch(/^SIM-/);
+    const again = await f.tx((tx) => reconcileTopupOrder(tx, f.tenantId, fixed));
+    expect(again.supplierRef).toBe(fixed.supplierRef);
+    expect(again.fulfilledAt?.getTime()).toBe(fixed.fulfilledAt?.getTime());
   });
 });

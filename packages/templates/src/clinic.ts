@@ -27,6 +27,13 @@ export const clinic: TemplateDefinition = {
     },
     header: { cta: { label: "นัดปรึกษาฟรี", href: "/book" } },
     clinic: { licenseNo: "10101234567" },
+    payments: {
+      promptpayId: "0891112222",
+      promptpayName: "Lumière Clinic",
+      bankAccounts: [{ bank: "ไทยพาณิชย์", name: "Lumière Clinic Co., Ltd.", number: "987-6-54321-0" }],
+      enabled: { promptpay: true, bankTransfer: true },
+      autoApproveSlips: true,
+    },
   },
   moduleConfig: {
     booking: { slotMinutes: 30, maxAdvanceDays: 60, minNoticeHours: 2, cancelHours: 24, depositEnabled: true, reminderHours: [24, 2] },

@@ -33,7 +33,16 @@ type Avail = { state: "idle" | "loading" | "ok" | "full" | "error"; remaining?: 
 
 export function ReserveForm({ hours, zones, deposit, methods, today, nowIso, initial, action }: ReserveFormProps) {
   const [state, formAction, pending] = useActionState(action, {} as ReserveState);
-  const [date, setDate] = React.useState(initial.date && initial.date >= today ? initial.date : today);
+  // default to the first day that still has a round (today after closing time → tomorrow)
+  const [date, setDate] = React.useState(() => {
+    if (initial.date && initial.date >= today) return initial.date;
+    const now = new Date(nowIso);
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(today, i);
+      if (reservationSlots({ hours, ymd: d, now }).length) return d;
+    }
+    return today;
+  });
   const slots = React.useMemo(() => reservationSlots({ hours, ymd: date, now: new Date(nowIso) }), [hours, date, nowIso]);
   const [time, setTime] = React.useState(initial.time && slots.includes(initial.time) ? initial.time : "");
   const [size, setSize] = React.useState(Math.min(40, Math.max(1, initial.size ?? 2)));

@@ -3,7 +3,7 @@ import { and, desc, eq, gt, inArray, or, sql } from "drizzle-orm";
 import { codeStock, gamePackages, games, nextCounter, payments, topupOrders, type Tx } from "@rentweb/db";
 import { audit, decryptFromString, emitEvent, fail, normalizeThaiPhone, ok, randomToken, safeEqual, type Result } from "@rentweb/core";
 import { upsertGuestCustomer } from "@rentweb/core/customer";
-import { createPayment, markPaid, refundPayment, resolvePromptpayId } from "@rentweb/core/payments";
+import { createPayment, getPayment, markPaid, refundPayment, resolvePromptpayId } from "@rentweb/core/payments";
 import { maskPlayerId, randomRef, rowsOf, type Fulfillment, type TopupModuleConfig, type TopupOrderStatus, type TopupPaymentMethod, DEFAULT_TOPUP_CONFIG } from "./_shared";
 import { blacklistChecksFor, findBlacklisted } from "./blacklist";
 import { getPackage, priceFor, validatePlayerFields, countAvailableStock } from "./catalog";
@@ -147,6 +147,7 @@ export async function createTopupOrder(tx: Tx, tenantId: string, input: CreateTo
       packageName: pkg.name,
       playerFields,
       status: "pending_payment",
+      placedAt: new Date(), // same clock as paidAt / fulfilledAt (DB now() may be skewed)
       price,
       costPrice: pkg.costPrice ?? null,
       paymentMethod: input.paymentMethod,
@@ -196,7 +197,12 @@ export async function getOrderById(tx: Tx, tenantId: string, id: string): Promis
  */
 export async function onTopupPaid(tx: Tx, payment: Payment): Promise<void> {
   const tenantId = payment.tenantId;
-  const order = await getOrderById(tx, tenantId, payment.refId);
+  // row lock: concurrent markPaid / reconcile calls serialise here and the later one sees "paid"
+  const [order] = await tx
+    .select()
+    .from(topupOrders)
+    .where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.id, payment.refId)))
+    .for("update");
   if (!order) return;
   if (order.status !== "pending_payment") return;
   await tx
@@ -416,4 +422,17 @@ export async function recentFeed(tx: Tx, tenantId: string, limit = 10): Promise<
     status: order.status as TopupOrderStatus,
     at: order.fulfilledAt ?? order.paidAt ?? order.placedAt,
   }));
+}
+
+/**
+ * Self-healing read: when the order is still pending_payment but its payment row is already paid
+ * (e.g. the slip was verified in a process where this module's paid handler was not registered),
+ * run the paid handler now. Idempotent – returns the order unchanged when there is nothing to do.
+ */
+export async function reconcileTopupOrder(tx: Tx, tenantId: string, order: TopupOrder): Promise<TopupOrder> {
+  if (order.status !== "pending_payment" || !order.paymentId) return order;
+  const payment = await getPayment(tx, tenantId, order.paymentId);
+  if (!payment || payment.status !== "paid") return order;
+  await onTopupPaid(tx, payment);
+  return (await getOrderById(tx, tenantId, order.id)) ?? order;
 }

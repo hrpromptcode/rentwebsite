@@ -85,7 +85,7 @@ export function OrderTracker({ initial, pollUrl, pollMs = 5000, estimatedMinutes
           aria-hidden
           className={cn("absolute top-5 left-[12.5%] -z-0 h-1 origin-left rounded-full", failed ? "bg-destructive" : "bg-gradient-to-r from-primary to-accent shadow-[0_0_18px_-2px_var(--glow)]")}
           style={{ width: "75%" }}
-          initial={reduce ? { scaleX: progress } : { scaleX: 0 }}
+          initial={{ scaleX: 0 }}
           animate={{ scaleX: progress }}
           transition={{ duration: reduce ? 0 : 0.9, ease: [0.22, 1, 0.36, 1] }}
         />
@@ -98,16 +98,16 @@ export function OrderTracker({ initial, pollUrl, pollMs = 5000, estimatedMinutes
           return (
             <li key={s.key} className="relative z-10 flex flex-col items-center text-center">
               <motion.span
-                initial={reduce ? false : { scale: 0.6, opacity: 0 }}
+                initial={{ scale: 0.6, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: reduce ? 0 : 0.15 * i, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ delay: reduce ? 0 : 0.15 * i, duration: reduce ? 0 : 0.4, ease: [0.22, 1, 0.36, 1] }}
                 className={cn(
                   "flex size-10 items-center justify-center rounded-full border-2 bg-background transition-colors",
                   reached ? (failed && isLast ? "border-destructive bg-destructive text-destructive-foreground" : "border-primary bg-primary text-primary-foreground shadow-[0_0_22px_-4px_var(--glow)]") : "border-border text-muted-foreground",
-                  current && !reduce && "animate-pulse-glow",
+                  current && "motion-safe:animate-pulse-glow",
                 )}
               >
-                <Icon className={cn("size-5", current && i > 0 && !reduce && "animate-spin")} />
+                <Icon className={cn("size-5", current && i > 0 && "motion-safe:animate-spin")} />
               </motion.span>
               <span className={cn("mt-2 text-[11px] leading-tight font-medium md:text-sm", reached ? "text-foreground" : "text-muted-foreground")}>{label}</span>
             </li>

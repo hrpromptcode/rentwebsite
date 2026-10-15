@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Gamepad2, Wallet, Zap } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
 import { Reveal, Stagger, StaggerItem } from "@rentweb/ui/motion";
 import { thb } from "@rentweb/core/money";
-import { listCustomerOrders, maskPlayerId } from "@rentweb/module-topup/services";
+import { listCustomerOrders, maskPlayerId, reconcileTopupOrder } from "@rentweb/module-topup/services";
 import { StatusBadge, dateTimeTh } from "@rentweb/module-topup/components";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
@@ -19,7 +19,12 @@ export default async function AccountTopupsPage({ params }: { params: Promise<{ 
   if (!runtime || !runtime.config.modules.includes("topup")) notFound();
   const customer = await getCurrentCustomer(tenantId);
   if (!customer) redirect(`/account/login?next=${encodeURIComponent("/account/topups")}`);
-  const orders = await tenantTx(tenantId, (tx) => listCustomerOrders(tx, tenantId, customer.id, { limit: 100 }));
+  const orders = await tenantTx(tenantId, async (tx) => {
+    const list = await listCustomerOrders(tx, tenantId, customer.id, { limit: 100 });
+    const out: typeof list = [];
+    for (const o of list) out.push(o.status === "pending_payment" ? await reconcileTopupOrder(tx, tenantId, o) : o);
+    return out;
+  });
   const spent = orders.filter((o) => o.status === "fulfilled" || o.status === "processing" || o.status === "paid").reduce((s, o) => s + o.price, 0);
 
   return (

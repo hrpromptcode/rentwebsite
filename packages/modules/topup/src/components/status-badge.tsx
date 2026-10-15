@@ -19,7 +19,7 @@ export function StatusBadge({ status, className, size = "sm" }: { status: string
   const tone = ORDER_STATUS_TONE[status] ?? "muted";
   return (
     <Badge variant={tone} className={cn("gap-1.5", size === "md" && "px-3 py-1 text-sm [&>svg]:size-4", className)}>
-      <Icon className={cn(status === "processing" && "animate-spin")} />
+      <Icon className={cn(status === "processing" && "motion-safe:animate-spin")} />
       {ORDER_STATUS_LABEL[status] ?? status}
     </Badge>
   );

@@ -18,6 +18,13 @@ export const cafe: TemplateDefinition = {
     tagline: "เบเกอรี่โฮมเมด อบใหม่ทุกเช้า",
     contact: { phone: "095-555-1212", lineId: "@sugarpuff", address: "12 ถ.เจริญกรุง 43 บางรัก กรุงเทพฯ", hours: [{ day: "อังคาร – อาทิตย์", time: "08:00 – 18:00" }, { day: "จันทร์", time: "ปิด" }], instagram: "https://instagram.com" },
     header: { cta: { label: "สั่งเค้กล่วงหน้า", href: "/products" } },
+    payments: {
+      promptpayId: "0812345678",
+      promptpayName: "Sugar Puff Bakery",
+      bankAccounts: [{ bank: "กสิกรไทย", name: "Sugar Puff Bakery จำกัด", number: "123-4-56789-0" }],
+      enabled: { promptpay: true, bankTransfer: true, cod: true },
+      autoApproveSlips: true,
+    },
   },
   moduleConfig: { commerce: { currency: "THB", allowGuestCheckout: true, pickupDateRequired: true, payments: { promptpay: true, bankTransfer: true } } },
   navigation: {

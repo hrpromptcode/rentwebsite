@@ -120,3 +120,30 @@ export function toSessionDto(s: SessionSummary, qrDataUrl?: string | null): Sess
     payment: paymentPanelData(s.payment, qrDataUrl),
   };
 }
+
+/* ---------- server-side loaders (pages + API routes) ---------- */
+
+import type { Tx } from "@rentweb/db";
+import { promptpayQrDataUrl } from "@rentweb/core/payments";
+import { sessionSummary } from "./services/tables";
+
+async function qrFor(p: { method: string; status: string; qrPayload?: string | null } | null | undefined): Promise<string | null> {
+  if (!p || p.method !== "promptpay_qr" || p.status !== "pending" || !p.qrPayload) return null;
+  try {
+    return await promptpayQrDataUrl(p.qrPayload);
+  } catch {
+    return null;
+  }
+}
+
+/** Order DTO with the PromptPay QR rendered when the payment is still pending. */
+export async function loadOrderDto(found: OrderWithItems): Promise<OrderDto> {
+  return toOrderDto(found, await qrFor(found.payment));
+}
+
+/** Session DTO (round history, totals, bill payment) for a session id. */
+export async function loadSessionDto(tx: Tx, tenantId: string, sessionId: string): Promise<SessionDto | null> {
+  const s = await sessionSummary(tx, tenantId, sessionId);
+  if (!s) return null;
+  return toSessionDto(s, await qrFor(s.payment));
+}

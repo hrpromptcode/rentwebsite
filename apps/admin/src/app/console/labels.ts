@@ -1,0 +1,50 @@
+/** Thai labels for audit actions shown in the console. */
+export const AUDIT_LABEL: Record<string, string> = {
+  "settings.update": "อัปเดตการตั้งค่า",
+  "theme.update": "เปลี่ยนดีไซน์",
+  "page.create": "สร้างหน้าเว็บ",
+  "page.update": "แก้ไขหน้าเว็บ",
+  "page.publish": "เผยแพร่หน้าเว็บ",
+  "page.delete": "ลบหน้าเว็บ",
+  "navigation.update": "แก้ไขเมนูนำทาง",
+  "media.upload": "อัปโหลดสื่อ",
+  "media.delete": "ลบสื่อ",
+  "customer.update": "แก้ไขข้อมูลลูกค้า",
+  "domain.add": "เพิ่มโดเมน",
+  "domain.remove": "ลบโดเมน",
+  "domain.verify.ok": "ยืนยันโดเมนสำเร็จ",
+  "domain.verify.failed": "ยืนยันโดเมนไม่ผ่าน",
+  "member.invite": "เชิญสมาชิก",
+  "member.invite.accept": "สมาชิกตอบรับคำเชิญ",
+  "member.role.change": "เปลี่ยนบทบาทสมาชิก",
+  "member.remove": "นำสมาชิกออก",
+  "tenant.self.suspend": "เจ้าของระงับเว็บไซต์",
+  "tenant.self.reactivate": "เจ้าของเปิดใช้งานเว็บไซต์",
+  "tenant.self.cancel": "เจ้าของยกเลิกเว็บไซต์",
+  "tenant.provision": "สร้างร้านใหม่",
+  "tenant.plan.change": "เปลี่ยนแพ็กเกจ",
+  "tenant.status.change": "เปลี่ยนสถานะร้าน",
+  "tenant.trial.extend": "ขยายระยะทดลองใช้",
+  "superadmin.impersonate.start": "ผู้ดูแลเข้าดูหลังบ้าน",
+  "superadmin.impersonate.stop": "ผู้ดูแลออกจากหลังบ้าน",
+};
+
+export const PLAN_LIMIT_LABEL: Record<string, string> = {
+  products: "สินค้า",
+  pages: "หน้าเว็บ",
+  storage_bytes: "พื้นที่เก็บไฟล์",
+  members: "สมาชิกทีม",
+  orders_month: "ออเดอร์/เดือน",
+  customers: "ลูกค้า",
+  domains: "โดเมนส่วนตัว",
+  sms_month: "SMS/เดือน",
+};
+
+export const TEMPLATE_CATEGORY_LABEL: Record<string, string> = {
+  commerce: "ขายสินค้า",
+  booking: "จองคิว/บริการ",
+  hospitality: "ร้านอาหาร/ที่พัก",
+  digital: "ดิจิทัล/เติมเงิน",
+  content: "เนื้อหา/องค์กร",
+  health: "สุขภาพ/คลินิก",
+};

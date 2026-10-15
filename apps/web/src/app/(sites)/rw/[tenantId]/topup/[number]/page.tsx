@@ -8,7 +8,7 @@ import { PaymentPanel } from "@rentweb/storefront/payments";
 import { getPayment, paymentSettings, promptpayQrDataUrl } from "@rentweb/core/payments";
 import { thb } from "@rentweb/core/money";
 import { eq, gamePackages, games } from "@rentweb/db";
-import { getOrderByNumber, getOrderForCustomer, revealDeliveredCode, toPublicOrder } from "@rentweb/module-topup/services";
+import { getOrderByNumber, getOrderForCustomer, reconcileTopupOrder, revealDeliveredCode, toPublicOrder } from "@rentweb/module-topup/services";
 import { CodeReveal, OrderTracker, StatusBadge, dateTimeTh } from "@rentweb/module-topup/components";
 import { FULFILLMENT_LABEL, PAYMENT_METHOD_LABEL } from "@rentweb/module-topup/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -30,7 +30,8 @@ export default async function TopupOrderPage({ params, searchParams }: { params:
   const customer = await getCurrentCustomer(tenantId);
 
   const data = await tenantTx(tenantId, async (tx) => {
-    const full = await getOrderForCustomer(tx, tenantId, { number, customerId: customer?.id, accessKey: k ?? null });
+    const found = await getOrderForCustomer(tx, tenantId, { number, customerId: customer?.id, accessKey: k ?? null });
+    const full = found ? await reconcileTopupOrder(tx, tenantId, found) : null;
     const pub = full ? null : await getOrderByNumber(tx, tenantId, number);
     if (!full && !pub) return null;
     const payment = full?.paymentId ? await getPayment(tx, tenantId, full.paymentId) : null;

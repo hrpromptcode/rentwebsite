@@ -64,7 +64,7 @@ export function TopupForm({ game, packages, methods, loggedIn, walletBalance, ti
   const canSubmit = !!selected && !pending && !walletShort && (selected.available === null || selected.available > 0);
 
   return (
-    <form action={submit} id="topup-form" className="grid gap-8 pb-28 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:pb-0 xl:grid-cols-[minmax(0,1fr)_400px]">
+    <form action={submit} id="topup-form" className="grid gap-8 pb-44 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:pb-0 xl:grid-cols-[minmax(0,1fr)_400px]">
       <div className="grid gap-6">
         {/* 1. player */}
         <Reveal as="section" className="card p-5 md:p-7" aria-labelledby="step-player">
@@ -224,8 +224,8 @@ export function TopupForm({ game, packages, methods, loggedIn, walletBalance, ti
         <Summary game={game.name} selected={selected} method={method} walletBalance={walletBalance} total={total} canSubmit={canSubmit} pending={pending} />
       </aside>
 
-      {/* mobile bottom sheet */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/85 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl lg:hidden">
+      {/* mobile summary: floats above the storefront chat button (bottom-4, h-13) so the CTA is never covered */}
+      <div className="fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 rounded-[var(--radius-xl)] border border-border/70 bg-background/90 px-4 py-3 shadow-[0_16px_48px_-12px_rgba(0,0,0,0.65)] backdrop-blur-xl lg:hidden">
         <div className="mx-auto flex max-w-xl items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs text-muted-foreground">{selected ? `${game.name} · ${selected.name}` : "เลือกแพ็กเกจ"}</p>

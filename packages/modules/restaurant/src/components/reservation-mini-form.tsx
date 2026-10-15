@@ -14,7 +14,14 @@ const select = "h-full w-full min-w-0 appearance-none bg-transparent text-base o
 /** Date / time / party mini form on the home page → /reserve?date&time&size */
 export function ReservationMiniForm({ hours, today, nowIso, className, dark }: { hours: HoursRange; today: string; nowIso: string; className?: string; dark?: boolean }) {
   const router = useRouter();
-  const [date, setDate] = React.useState(today);
+  const [date, setDate] = React.useState(() => {
+    const now = new Date(nowIso);
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(today, i);
+      if (reservationSlots({ hours, ymd: d, now }).length) return d;
+    }
+    return today;
+  });
   const slots = React.useMemo(() => reservationSlots({ hours, ymd: date, now: new Date(nowIso) }), [hours, date, nowIso]);
   const [time, setTime] = React.useState("");
   const [size, setSize] = React.useState(2);

@@ -10,7 +10,9 @@
     "reset-demo": "tsx reset-demo.ts",
     "screenshot": "tsx screenshot.ts",
     "worker": "tsx worker.ts",
-    "smoke": "tsx smoke.ts"
+    "smoke": "tsx smoke.ts",
+    "create-admin": "tsx create-admin.ts",
+    "admin-screenshot": "tsx admin-screenshot.ts"
   },
   "dependencies": {
     "@rentweb/core": "workspace:*",

@@ -26,6 +26,13 @@ export const restaurant: TemplateDefinition = {
       mapUrl: "https://www.google.com/maps?q=Ari+Bangkok&output=embed",
     },
     header: { cta: { label: "จองโต๊ะ", href: "/reserve" } },
+    payments: {
+      promptpayId: "0829876543",
+      promptpayName: "บ้านริม",
+      bankAccounts: [{ bank: "กรุงเทพ", name: "บ้านริม", number: "222-3-44444-5" }],
+      enabled: { promptpay: true, bankTransfer: true, cash: true },
+      autoApproveSlips: true,
+    },
   },
   moduleConfig: { restaurant: { serviceChargePercent: 0, dineIn: true, pickup: true, delivery: false, reservationDeposit: 0, prepMinutesDefault: 15 } },
   navigation: {

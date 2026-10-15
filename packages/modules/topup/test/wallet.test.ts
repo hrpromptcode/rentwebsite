@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { eq, walletTransactions, wallets } from "@rentweb/db";
+import { eq, payments, walletTransactions, wallets } from "@rentweb/db";
 import { markPaid } from "@rentweb/core/payments";
-import { createWalletTopup, creditWallet, debitWallet, getOrCreateWallet, getWallet, getWalletTopup, listTransactions } from "../src/services";
+import { createWalletTopup, creditWallet, debitWallet, getOrCreateWallet, getWallet, getWalletTopup, listTransactions, reconcileWalletTopup } from "../src/services";
 import { makeFixture, type Fixture } from "./_fixture";
 
 let f: Fixture;
@@ -110,5 +110,25 @@ describe("wallet top-up via payment", () => {
     const r = await f.tx((tx) => createWalletTopup(tx, f.tenantId, { customerId: f.customerId, amount: 1000, method: "slip", settings: f.settings, minAmount: 2000 }));
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toBe("min_amount");
+  });
+});
+
+describe("reconcile (payment paid without the handler)", () => {
+  it("credits amount + bonus once for a paid-but-uncredited top-up", async () => {
+    const before = (await f.tx((tx) => getOrCreateWallet(tx, f.tenantId, f.customerId))).balance;
+    const created = await f.tx((tx) => createWalletTopup(tx, f.tenantId, { customerId: f.customerId, amount: 10000, method: "slip", settings: f.settings, bonusPercent: 2, minAmount: 2000 }));
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const untouched = await f.tx((tx) => reconcileWalletTopup(tx, f.tenantId, created.value.topup));
+    expect(untouched.status).toBe("pending");
+    expect((await f.tx((tx) => getWallet(tx, f.tenantId, f.customerId)))!.balance).toBe(before);
+
+    await f.tx((tx) => tx.update(payments).set({ status: "paid", paidAt: new Date() }).where(eq(payments.id, created.value.payment.id)));
+    const credited = await f.tx((tx) => reconcileWalletTopup(tx, f.tenantId, created.value.topup));
+    expect(credited.status).toBe("credited");
+    expect((await f.tx((tx) => getWallet(tx, f.tenantId, f.customerId)))!.balance).toBe(before + 10000 + 200);
+    await f.tx((tx) => reconcileWalletTopup(tx, f.tenantId, credited));
+    await f.tx((tx) => reconcileWalletTopup(tx, f.tenantId, created.value.topup)); // stale row, same key → no double credit
+    expect((await f.tx((tx) => getWallet(tx, f.tenantId, f.customerId)))!.balance).toBe(before + 10000 + 200);
   });
 });

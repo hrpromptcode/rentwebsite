@@ -41,7 +41,8 @@ export function createAuth(db: Db = getAdminDb()) {
     },
     advanced: {
       cookiePrefix: "rentweb",
-      database: { generateId: "uuid" },
+      // user/session/account ids are text columns without a DB default → generate them here
+      database: { generateId: () => crypto.randomUUID() },
     },
     plugins: [nextCookies()],
   });

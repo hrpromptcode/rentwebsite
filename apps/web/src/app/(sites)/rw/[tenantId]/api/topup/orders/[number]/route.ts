@@ -1,4 +1,4 @@
-import { getOrderByNumber, getOrderForCustomer, toPublicOrder } from "@rentweb/module-topup/services";
+import { getOrderByNumber, getOrderForCustomer, reconcileTopupOrder, toPublicOrder } from "@rentweb/module-topup/services";
 import { tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
 
@@ -11,8 +11,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ tenantId
   const key = new URL(req.url).searchParams.get("k");
   const customer = await getCurrentCustomer(tenantId);
   const data = await tenantTx(tenantId, async (tx) => {
-    const full = await getOrderForCustomer(tx, tenantId, { number, customerId: customer?.id, accessKey: key });
-    if (full) return { authorised: true, order: toPublicOrder(full) };
+    const found = await getOrderForCustomer(tx, tenantId, { number, customerId: customer?.id, accessKey: key });
+    if (found) return { authorised: true, order: toPublicOrder(await reconcileTopupOrder(tx, tenantId, found)) };
     const pub = await getOrderByNumber(tx, tenantId, number);
     return pub ? { authorised: false, order: pub } : null;
   });

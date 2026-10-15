@@ -6,9 +6,15 @@
   "exports": {
     ".": "./src/index.ts",
     "./register": "./src/register.ts",
-    "./services": "./src/services/index.ts"
+    "./services": "./src/services/index.ts",
+    "./components": "./src/components/index.ts",
+    "./labels": "./src/labels.ts",
+    "./lib": "./src/lib/index.ts"
   },
-  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run --passWithNoTests" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
   "dependencies": {
     "@rentweb/core": "workspace:*",
     "@rentweb/db": "workspace:*",
@@ -20,7 +26,11 @@
     "motion": "catalog:",
     "zod": "catalog:"
   },
-  "peerDependencies": { "next": "catalog:", "react": "catalog:", "react-dom": "catalog:" },
+  "peerDependencies": {
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
   "devDependencies": {
     "@rentweb/config": "workspace:*",
     "@types/node": "catalog:",
