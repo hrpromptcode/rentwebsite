@@ -27,3 +27,5 @@ test-results/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+tooling/screenshots/
+apps/web/public/uploads/

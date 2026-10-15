@@ -7,7 +7,7 @@ loadEnv({ path: path.resolve(process.cwd(), "../../.env") });
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["@rentweb/core", "@rentweb/db", "@rentweb/ui", "@rentweb/storefront", "@rentweb/templates", "@rentweb/i18n"],
+  transpilePackages: ["@rentweb/core", "@rentweb/db", "@rentweb/ui", "@rentweb/storefront", "@rentweb/templates", "@rentweb/i18n", "@rentweb/module-commerce", "@rentweb/module-booking", "@rentweb/module-topup", "@rentweb/module-restaurant"],
   serverExternalPackages: ["postgres"],
   images: {
     remotePatterns: [{ protocol: "https", hostname: "**" }, { protocol: "http", hostname: "localhost" }],

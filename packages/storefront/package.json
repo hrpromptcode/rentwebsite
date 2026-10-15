@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./definitions": "./src/definitions/index.ts",
-    "./ctx": "./src/ctx.ts"
+    "./ctx": "./src/ctx.ts",
+    "./payments": "./src/payments/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

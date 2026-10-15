@@ -23,8 +23,8 @@ export function MobileNav({ items, title, cta, extra }: { items: NavItem[]; titl
           <SheetTitle className="text-left">{title}</SheetTitle>
         </SheetHeader>
         <nav className="flex flex-1 flex-col overflow-y-auto px-3 py-2">
-          {items.map((it) => (
-            <div key={it.href + it.label} className="border-b border-border/60 last:border-0">
+          {items.map((it, i) => (
+            <div key={`${it.href}-${i}`} className="border-b border-border/60 last:border-0">
               {it.children?.length ? (
                 <>
                   <button
@@ -37,8 +37,8 @@ export function MobileNav({ items, title, cta, extra }: { items: NavItem[]; titl
                   </button>
                   {expanded === it.label && (
                     <div className="mb-3 ml-3 flex flex-col border-l pl-3">
-                      {it.children.map((c) => (
-                        <Link key={c.href} href={c.href} onClick={() => setOpen(false)} className="py-2.5 text-base text-muted-foreground">
+                      {it.children.map((c, j) => (
+                        <Link key={`${c.href}-${j}`} href={c.href} onClick={() => setOpen(false)} className="py-2.5 text-base text-muted-foreground">
                           {c.label}
                         </Link>
                       ))}

@@ -13,8 +13,8 @@ import { ThemeToggle } from "./theme-toggle";
 function NavLinks({ items, className, itemClass }: { items: NavItem[]; className?: string; itemClass?: string }) {
   return (
     <nav className={cn("hidden items-center gap-1 md:flex", className)}>
-      {items.map((it) => (
-        <div key={it.href + it.label} className="group relative">
+      {items.map((it, i) => (
+        <div key={`${it.href}-${i}`} className="group relative">
           <Link
             href={it.href}
             className={cn(
@@ -28,8 +28,8 @@ function NavLinks({ items, className, itemClass }: { items: NavItem[]; className
           {it.children?.length ? (
             <div className="invisible absolute top-full left-0 z-50 min-w-56 translate-y-2 pt-2 opacity-0 transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
               <div className="card flex flex-col gap-0.5 p-2 text-foreground">
-                {it.children.map((c) => (
-                  <Link key={c.href} href={c.href} className="rounded-[var(--radius-md)] px-3 py-2 text-sm hover:bg-muted">
+                {it.children.map((c, j) => (
+                  <Link key={`${c.href}-${j}`} href={c.href} className="rounded-[var(--radius-md)] px-3 py-2 text-sm hover:bg-muted">
                     {c.label}
                   </Link>
                 ))}

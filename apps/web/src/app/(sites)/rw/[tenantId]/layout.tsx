@@ -7,6 +7,7 @@ import { fontClassNames } from "@/fonts";
 import { getNavigation, getRuntime, listNavPages } from "@/lib/tenant";
 import { buildCtx } from "@/lib/storefront-ctx";
 import "../../../globals.css";
+import "@/modules";
 
 type Params = Promise<{ tenantId: string }>;
 

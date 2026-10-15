@@ -92,8 +92,8 @@ export function SiteFooter({ ctx, nav, legal }: { ctx: StorefrontCtx; nav: NavIt
         © {year} {ctx.tenant.name}. สงวนลิขสิทธิ์
       </p>
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        {legal.map((l) => (
-          <Link key={l.href} href={l.href} className="hover:text-foreground">
+        {legal.map((l, i) => (
+          <Link key={`${l.href}-${i}`} href={l.href} className="hover:text-foreground">
             {l.label}
           </Link>
         ))}
@@ -113,8 +113,8 @@ export function SiteFooter({ ctx, nav, legal }: { ctx: StorefrontCtx; nav: NavIt
           <div className="flex flex-col gap-6 pb-6 md:flex-row md:items-center md:justify-between">
             <Logo ctx={ctx} />
             <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-              {flat.map((n) => (
-                <Link key={n.href} href={n.href} className="text-muted-foreground hover:text-foreground">
+              {flat.map((n, i) => (
+                <Link key={`${n.href}-${i}`} href={n.href} className="text-muted-foreground hover:text-foreground">
                   {n.label}
                 </Link>
               ))}
@@ -136,8 +136,8 @@ export function SiteFooter({ ctx, nav, legal }: { ctx: StorefrontCtx; nav: NavIt
           </div>
           {tagline && <p className="mx-auto mt-4 max-w-md text-muted-foreground">{tagline}</p>}
           <nav className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm font-medium">
-            {flat.map((n) => (
-              <Link key={n.href} href={n.href} className="hover:text-primary">
+            {flat.map((n, i) => (
+              <Link key={`${n.href}-${i}`} href={n.href} className="hover:text-primary">
                 {n.label}
               </Link>
             ))}
@@ -167,8 +167,8 @@ export function SiteFooter({ ctx, nav, legal }: { ctx: StorefrontCtx; nav: NavIt
               <div>
                 <h4 className="mb-4 text-xs font-semibold tracking-widest text-background/60 uppercase">{ctx.t("common.menu")}</h4>
                 <ul className="space-y-2.5 text-sm">
-                  {flat.map((n) => (
-                    <li key={n.href}>
+                  {flat.map((n, i) => (
+                    <li key={`${n.href}-${i}`}>
                       <Link href={n.href} className="text-background/85 hover:text-background">
                         {n.label}
                       </Link>
@@ -180,8 +180,8 @@ export function SiteFooter({ ctx, nav, legal }: { ctx: StorefrontCtx; nav: NavIt
                 <div key={g.label}>
                   <h4 className="mb-4 text-xs font-semibold tracking-widest text-background/60 uppercase">{g.label}</h4>
                   <ul className="space-y-2.5 text-sm">
-                    {g.children!.map((c) => (
-                      <li key={c.href}>
+                    {g.children!.map((c, j) => (
+                      <li key={`${c.href}-${j}`}>
                         <Link href={c.href} className="text-background/85 hover:text-background">
                           {c.label}
                         </Link>
@@ -216,8 +216,8 @@ export function SiteFooter({ ctx, nav, legal }: { ctx: StorefrontCtx; nav: NavIt
           <div className="md:col-span-3">
             <h4 className="mb-4 text-xs font-semibold tracking-widest text-muted-foreground uppercase">{ctx.t("common.menu")}</h4>
             <ul className="space-y-2.5 text-sm">
-              {flat.map((n) => (
-                <li key={n.href}>
+              {flat.map((n, i) => (
+                <li key={`${n.href}-${i}`}>
                   <Link href={n.href} className="hover:text-primary">
                     {n.label}
                   </Link>
@@ -229,8 +229,8 @@ export function SiteFooter({ ctx, nav, legal }: { ctx: StorefrontCtx; nav: NavIt
             <div className="md:col-span-2">
               <h4 className="mb-4 text-xs font-semibold tracking-widest text-muted-foreground uppercase">{groups[0].label}</h4>
               <ul className="space-y-2.5 text-sm">
-                {groups[0].children!.map((c) => (
-                  <li key={c.href}>
+                {groups[0].children!.map((c, j) => (
+                  <li key={`${c.href}-${j}`}>
                     <Link href={c.href} className="hover:text-primary">
                       {c.label}
                     </Link>

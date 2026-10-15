@@ -6,7 +6,9 @@
   "scripts": {
     "seed": "tsx seed.ts",
     "create-tenant": "tsx create-tenant.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "reset-demo": "tsx reset-demo.ts",
+    "screenshot": "tsx screenshot.ts"
   },
   "dependencies": {
     "@rentweb/core": "workspace:*",
@@ -15,6 +17,7 @@
     "dotenv": "catalog:"
   },
   "devDependencies": {
+    "@playwright/test": "catalog:",
     "@rentweb/config": "workspace:*",
     "@types/node": "catalog:",
     "tsx": "catalog:",

@@ -1,0 +1,35 @@
+{
+  "name": "@rentweb/module-restaurant",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./register": "./src/register.ts",
+    "./services": "./src/services/index.ts"
+  },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run --passWithNoTests" },
+  "dependencies": {
+    "@rentweb/core": "workspace:*",
+    "@rentweb/db": "workspace:*",
+    "@rentweb/i18n": "workspace:*",
+    "@rentweb/storefront": "workspace:*",
+    "@rentweb/ui": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "lucide-react": "catalog:",
+    "motion": "catalog:",
+    "zod": "catalog:"
+  },
+  "peerDependencies": { "next": "catalog:", "react": "catalog:", "react-dom": "catalog:" },
+  "devDependencies": {
+    "@rentweb/config": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

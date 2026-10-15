@@ -1,3 +1,4 @@
 @import "@rentweb/ui/styles.css";
 @source "../../../../packages/storefront/src";
 @source "../../../../packages/templates/src";
+@source "../../../../packages/modules";
