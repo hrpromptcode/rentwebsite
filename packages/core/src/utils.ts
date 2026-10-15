@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 export function slugify(input: string, { allowUnicode = true }: { allowUnicode?: boolean } = {}): string {
   let s = input.trim().toLowerCase();
   s = s.replace(/[\s_]+/g, "-");
-  s = allowUnicode ? s.replace(/[^\p{L}\p{N}-]+/gu, "") : s.replace(/[^a-z0-9-]+/g, "");
+  s = allowUnicode ? s.replace(/[^\p{L}\p{M}\p{N}-]+/gu, "") : s.replace(/[^a-z0-9-]+/g, "");
   s = s.replace(/-+/g, "-").replace(/^-|-$/g, "");
   return s || randomSlug();
 }
