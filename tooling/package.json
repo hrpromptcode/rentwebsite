@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "reset-demo": "tsx reset-demo.ts",
     "screenshot": "tsx screenshot.ts",
-    "worker": "tsx worker.ts"
+    "worker": "tsx worker.ts",
+    "smoke": "tsx smoke.ts"
   },
   "dependencies": {
     "@rentweb/core": "workspace:*",

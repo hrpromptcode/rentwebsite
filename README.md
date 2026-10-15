@@ -39,6 +39,23 @@ packages/i18n     th/en messages
 tooling           seed / create-tenant scripts
 ```
 
+## Background jobs & notifications
+
+Domain events are written to `events_outbox`; `packages/integrations` turns them into LINE / email / SMS notifications, booking reminders and custom-domain DNS checks.
+
+```bash
+pnpm --filter @rentweb/tooling worker            # dev worker: drains the outbox every 5s
+curl -X POST http://localhost:3000/api/internal/outbox   # or trigger one batch (cron-friendly)
+```
+
+## QA tooling
+
+```bash
+pnpm --filter @rentweb/tooling screenshot -- demo-shop --path /products   # PNGs in tooling/screenshots/
+pnpm --filter @rentweb/tooling smoke                                       # browser smoke test of every demo route
+pnpm --filter @rentweb/tooling reset-demo -- --template shop               # re-provision a demo tenant
+```
+
 ## Tests
 
 ```bash
