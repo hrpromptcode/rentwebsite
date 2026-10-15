@@ -3,8 +3,7 @@ import { ArrowRight, ArrowUpRight, Check, Palette, ShieldCheck, Sparkles, Zap } 
 import { getPreset } from "@rentweb/core/theme";
 import { env, rootHost } from "@rentweb/core/env";
 import { thb } from "@rentweb/core/money";
-import { getAdminDb, plans as plansTable } from "@rentweb/db";
-import { asc } from "drizzle-orm";
+import { asc, getAdminDb, plans as plansTable } from "@rentweb/db";
 import { listTemplates } from "@rentweb/templates";
 import { Button } from "@rentweb/ui/components/button";
 import { Badge } from "@rentweb/ui/components/badge";
