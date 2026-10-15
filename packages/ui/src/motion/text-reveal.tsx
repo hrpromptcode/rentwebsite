@@ -6,7 +6,7 @@ import { cn } from "../lib/utils";
 
 /**
  * Word-by-word (Thai-aware via Intl.Segmenter) mask reveal for headlines.
- * Falls back to plain text when reduced motion is requested.
+ * SSR-safe: hidden start state is CSS-only under `motion-safe:`; reduced-motion users see the text immediately.
  */
 export interface TextRevealProps {
   text: string;
@@ -36,8 +36,6 @@ export function TextReveal({ text, as = "h2", className, delay = 0, stagger = 0.
   const Tag = as;
   const parts = React.useMemo(() => segment(text, granularity), [text, granularity]);
 
-  if (reduce) return <Tag className={className}>{text}</Tag>;
-
   return (
     <Tag className={cn("inline-block", className)} aria-label={text}>
       {parts.map((part, i) => {
@@ -45,9 +43,9 @@ export function TextReveal({ text, as = "h2", className, delay = 0, stagger = 0.
         return (
           <span key={i} className="inline-block overflow-hidden align-bottom pb-[0.08em] -mb-[0.08em]">
             <motion.span
-              className="inline-block will-change-transform"
-              initial={{ y: "110%", opacity: 0, rotate: 2 }}
-              whileInView={{ y: "0%", opacity: 1, rotate: 0 }}
+              className="inline-block will-change-transform motion-safe:translate-y-[110%] motion-safe:opacity-0"
+              initial={false}
+              whileInView={reduce ? undefined : { y: ["110%", "0%"], opacity: [0, 1], rotate: [2, 0] }}
               viewport={{ once }}
               transition={{ duration: 0.7, delay: delay + i * stagger, ease: [0.22, 1, 0.36, 1] }}
             >
