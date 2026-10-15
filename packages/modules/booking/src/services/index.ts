@@ -1,2 +1,7 @@
-// booking module services (pure functions over drizzle Tx). Filled in by the module implementation.
-export {};
+// booking module services – pure functions over a drizzle Tx. No React, no next imports.
+export * from "./config";
+export * from "./time";
+export * from "./catalog";
+export * from "./availability";
+export * from "./bookings";
+export * from "./clinic";

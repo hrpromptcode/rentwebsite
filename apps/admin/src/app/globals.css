@@ -1,0 +1,47 @@
+@import "@rentweb/ui/styles.css";
+@source "../../../../packages/ui/src";
+@source "../../../../packages/storefront/src";
+
+/* Admin shell tokens: quartz-like light defaults from @rentweb/ui, plus a soft surface for the workspace */
+:root {
+  --radius: 0.75rem;
+  --sidebar-width: 17rem;
+  --sidebar-width-collapsed: 4.5rem;
+}
+
+body {
+  background: var(--surface);
+}
+
+/* Compact tables on small screens */
+@media (max-width: 640px) {
+  [data-slot="table-container"] table {
+    font-size: 0.8125rem;
+  }
+}
+
+/* Thin scrollbars for sidebars/panels */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--foreground) 18%, transparent) transparent;
+}
+
+/* Native color input: make it a round swatch */
+input[type="color"].swatch {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="color"].swatch::-webkit-color-swatch-wrapper {
+  padding: 3px;
+}
+input[type="color"].swatch::-webkit-color-swatch {
+  border: none;
+  border-radius: 9999px;
+}

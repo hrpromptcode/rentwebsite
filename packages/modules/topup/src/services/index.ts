@@ -1,2 +1,7 @@
-// topup module services (pure functions over drizzle Tx). Filled in by the module implementation.
-export {};
+// Top-up module services: pure functions over a drizzle Tx (no React / Next imports).
+export * from "./_shared";
+export * from "./catalog";
+export * from "./blacklist";
+export * from "./wallet";
+export * from "./orders";
+export * from "./handlers";

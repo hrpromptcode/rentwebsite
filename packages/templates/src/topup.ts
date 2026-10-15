@@ -1,5 +1,6 @@
 import type { TemplateDefinition } from "@rentweb/core/tenant";
-import { games, gamePackages, topupSuppliers } from "@rentweb/db";
+import { codeStock, games, gamePackages, topupBlacklist, topupSuppliers } from "@rentweb/db";
+import { encryptToString } from "@rentweb/core/crypto";
 import { section, hero, marquee, gameGrid, topupFeed, steps, features, faq, cta, stats, testimonials } from "@rentweb/storefront/definitions";
 import { aboutPage, contactPage, legalPages, u, avatar } from "./shared";
 
@@ -18,6 +19,13 @@ export const topup: TemplateDefinition = {
     tagline: "เติมเกมไว ราคาดี เปิดตลอด 24 ชั่วโมง",
     contact: { lineId: "@gamehub", facebook: "https://facebook.com", email: "support@gamehub.gg", hours: [{ day: "ทุกวัน", time: "24 ชั่วโมง (ระบบอัตโนมัติ)" }, { day: "แอดมิน", time: "09:00 – 02:00" }] },
     header: { cta: { label: "เติมเงินเข้ากระเป๋า", href: "/wallet" } },
+    payments: {
+      promptpayId: "0899998888",
+      promptpayName: "GameHub",
+      bankAccounts: [{ bank: "กรุงไทย", name: "GameHub Co., Ltd.", number: "111-2-33333-4" }],
+      enabled: { promptpay: true, bankTransfer: true, wallet: true },
+      autoApproveSlips: true,
+    },
   },
   moduleConfig: { topup: { walletEnabled: true, walletBonusPercent: 2, minWalletTopup: 2000, otpRequiredFirstOrder: true, maxOrdersPerHour: 10 } },
   navigation: {
@@ -138,26 +146,72 @@ export const topup: TemplateDefinition = {
       { name: "Steam Wallet (TH)", slug: "steam-wallet", publisher: "Valve", img: u("1550745165-9bc0b252726f", 600), cat: "voucher", fields: [{ key: "contact", label: "LINE ID / อีเมลสำหรับรับโค้ด", type: "text", required: true }], pk: [["฿100", 10900, 10500], ["฿300", 31900, 30900], ["฿500", 52900, 51000], ["฿1,000", 104900, 101500]] },
     ] as const;
 
+    const instructions: Record<string, string> = {
+      rov: "เปิดเกม RoV → แตะรูปโปรไฟล์มุมซ้ายบน → ดูเลข Open ID ใต้ชื่อตัวละคร → แตะเพื่อคัดลอก",
+      "free-fire": "เปิดเกม → แตะโปรไฟล์มุมซ้ายบน → Player ID อยู่ใต้ชื่อ (ตัวเลข 9–12 หลัก)",
+      genshin: "เปิดเมนู Paimon → มุมล่างซ้ายจะแสดง UID 9 หลัก → เลือก Server ให้ตรงกับที่เล่น",
+      valorant: "เปิด Riot Client → มุมขวาบนคลิกชื่อ → คัดลอก Riot ID พร้อม #Tag เช่น Player#TH1",
+      "pubg-mobile": "เปิดเกม → แตะโปรไฟล์ → Character ID อยู่ใต้ชื่อตัวละคร",
+      roblox: "ใช้ Username ที่ใช้ล็อกอิน (ไม่ใช่ Display name) ตรวจสอบตัวพิมพ์เล็ก-ใหญ่ให้ถูกต้อง",
+      mlbb: "เปิดเกม → แตะโปรไฟล์ → จะเห็น User ID (Zone ID) เช่น 12345678 (1234) กรอกแยกช่อง",
+      "steam-wallet": "ไม่ต้องใช้ ID เกม ระบบจะส่งโค้ด Steam Wallet ให้ที่หน้ารายการ และช่องทางติดต่อที่กรอก",
+    };
+
     for (const [i, d] of defs.entries()) {
       const [g] = await tx
         .insert(games)
-        .values({ tenantId, name: d.name, slug: d.slug, publisher: d.publisher, image: d.img, banner: d.img, fields: d.fields as any, category: d.cat, featured: i < 4, sort: i, instructions: "เปิดเกม → โปรไฟล์ → คัดลอก ID" })
-        .returning({ id: games.id });
-      await tx.insert(gamePackages).values(
-        d.pk.map(([name, price, cost], j) => ({
+        .values({
           tenantId,
-          gameId: g!.id,
-          name,
-          price,
-          costPrice: cost,
-          tierPrices: { vip: Math.round(price * 0.98), agent: Math.round(price * 0.95) },
-          fulfillment: d.cat === "voucher" ? "stock" : j % 2 === 0 ? "api" : "manual",
-          supplierId: manual!.id,
-          estimatedMinutes: j % 2 === 0 ? 1 : 15,
-          badge: j === 1 ? "ขายดี" : j === d.pk.length - 1 ? "คุ้มสุด" : null,
-          sort: j,
-        })),
-      );
+          name: d.name,
+          slug: d.slug,
+          publisher: d.publisher,
+          image: d.img,
+          banner: d.img,
+          fields: d.fields as any,
+          category: d.cat,
+          featured: i < 4,
+          sort: i,
+          description: `เติม ${d.name} ราคาถูก ${d.cat === "voucher" ? "รับโค้ดทันทีหลังชำระเงิน" : "เข้าภายในไม่กี่วินาที"} ปลอดภัย ไม่ต้องให้รหัสผ่าน`,
+          instructions: instructions[d.slug] ?? "เปิดเกม → โปรไฟล์ → คัดลอก ID",
+        })
+        .returning({ id: games.id });
+      const pkgs = await tx
+        .insert(gamePackages)
+        .values(
+          d.pk.map(([name, price, cost], j) => ({
+            tenantId,
+            gameId: g!.id,
+            name,
+            price,
+            costPrice: cost,
+            tierPrices: { vip: Math.round(price * 0.98), agent: Math.round(price * 0.95) },
+            fulfillment: d.cat === "voucher" ? "stock" : j % 2 === 0 ? "api" : "manual",
+            supplierId: manual!.id,
+            estimatedMinutes: j % 2 === 0 ? 1 : 15,
+            badge: j === 1 ? "ขายดี" : j === d.pk.length - 1 ? "คุ้มสุด" : null,
+            sort: j,
+          })),
+        )
+        .returning({ id: gamePackages.id, name: gamePackages.name });
+
+      // demo code stock: ~5 encrypted Steam Wallet codes per package (Roblox stays empty to show the sold-out state)
+      if (d.slug === "steam-wallet") {
+        const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        const seg = () => Array.from({ length: 4 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
+        await tx.insert(codeStock).values(
+          pkgs.flatMap((p) =>
+            Array.from({ length: 5 }, (_, n) => ({
+              tenantId,
+              packageId: p.id,
+              codeEncrypted: encryptToString(`STEAM-${seg()}-${seg()}-${seg()}`),
+              serial: `SW${p.name.replace(/[^0-9]/g, "")}-${String(n + 1).padStart(3, "0")}`,
+              addedBy: "seed",
+            })),
+          ),
+        );
+      }
     }
+
+    await tx.insert(topupBlacklist).values({ tenantId, kind: "phone", value: "0800000000", reason: "ตัวอย่าง: แจ้งโกงซ้ำหลายครั้ง (เบอร์ทดสอบ)", createdBy: "seed" });
   },
 };
