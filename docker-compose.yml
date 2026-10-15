@@ -1,0 +1,51 @@
+# Local/self-host stack. For development against Neon/Supabase you only need `pnpm dev:web`.
+#   docker compose up -d postgres redis      # local database + cache
+#   docker compose --profile app up --build  # full stack (web + worker)
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: rentweb
+      POSTGRES_PASSWORD: rentweb
+      POSTGRES_DB: rentweb
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rentweb"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  web:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://rentweb:rentweb@postgres:5432/rentweb
+      DATABASE_ADMIN_URL: postgresql://rentweb:rentweb@postgres:5432/rentweb
+    ports: ["3000:3000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    profiles: ["app"]
+    image: node:22-alpine
+    working_dir: /repo
+    command: sh -c "corepack enable && pnpm install --frozen-lockfile --filter @rentweb/tooling... && pnpm --filter @rentweb/tooling worker"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://rentweb:rentweb@postgres:5432/rentweb
+      DATABASE_ADMIN_URL: postgresql://rentweb:rentweb@postgres:5432/rentweb
+    volumes: [".:/repo"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

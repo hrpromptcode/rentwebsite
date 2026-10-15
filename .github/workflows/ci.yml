@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NODE_ENV: test
+      PLATFORM_ROOT_DOMAIN: localhost:3000
+      BETTER_AUTH_SECRET: ci-secret-0123456789abcdef0123456789abcdef
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm -r --filter "./packages/**" --filter @rentweb/tooling typecheck
+      - name: Unit & isolation tests (PGlite)
+        run: pnpm -r --filter "./packages/**" test
+      - name: Build web (type-safe routes)
+        run: pnpm --filter @rentweb/web typecheck

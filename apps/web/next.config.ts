@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react", "motion"],
   },
   poweredByHeader: false,
+  output: process.env.DOCKER_BUILD ? "standalone" : undefined,
+  outputFileTracingRoot: path.resolve(process.cwd(), "../../"),
 };
 
 export default nextConfig;
