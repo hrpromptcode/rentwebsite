@@ -1,0 +1,31 @@
+{
+  "name": "@rentweb/integrations",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./email": "./src/email.ts",
+    "./line": "./src/line.ts",
+    "./sms": "./src/sms.ts",
+    "./notify": "./src/notify.ts",
+    "./outbox": "./src/outbox.ts",
+    "./domains": "./src/domains.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@rentweb/core": "workspace:*",
+    "@rentweb/db": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@rentweb/config": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -4,7 +4,7 @@ import { isPlatformHost, resolveTenantByHost } from "@rentweb/core/tenant";
 export const config = {
   matcher: [
     // everything except static assets and Next internals
-    "/((?!_next/|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:png|jpg|jpeg|gif|webp|avif|svg|ico|css|js|map|txt|woff2?|ttf|otf|mp4|webm|json)$).*)",
+    "/((?!_next/|favicon.ico|uploads/|.*\.(?:png|jpg|jpeg|gif|webp|avif|svg|ico|css|js|map|woff2?|ttf|otf|mp4|webm)$).*)",
   ],
 };
 

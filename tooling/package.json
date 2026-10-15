@@ -8,13 +8,15 @@
     "create-tenant": "tsx create-tenant.ts",
     "typecheck": "tsc --noEmit",
     "reset-demo": "tsx reset-demo.ts",
-    "screenshot": "tsx screenshot.ts"
+    "screenshot": "tsx screenshot.ts",
+    "worker": "tsx worker.ts"
   },
   "dependencies": {
     "@rentweb/core": "workspace:*",
     "@rentweb/db": "workspace:*",
     "@rentweb/templates": "workspace:*",
-    "dotenv": "catalog:"
+    "dotenv": "catalog:",
+    "@rentweb/integrations": "workspace:*"
   },
   "devDependencies": {
     "@playwright/test": "catalog:",

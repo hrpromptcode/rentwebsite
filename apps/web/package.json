@@ -14,6 +14,7 @@
     "@rentweb/core": "workspace:*",
     "@rentweb/db": "workspace:*",
     "@rentweb/i18n": "workspace:*",
+    "@rentweb/integrations": "workspace:*",
     "@rentweb/module-booking": "workspace:*",
     "@rentweb/module-commerce": "workspace:*",
     "@rentweb/module-restaurant": "workspace:*",
