@@ -1,0 +1,23 @@
+{
+  "name": "@rentweb/tooling",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "tsx seed.ts",
+    "create-tenant": "tsx create-tenant.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rentweb/core": "workspace:*",
+    "@rentweb/db": "workspace:*",
+    "@rentweb/templates": "workspace:*",
+    "dotenv": "catalog:"
+  },
+  "devDependencies": {
+    "@rentweb/config": "workspace:*",
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
+  }
+}

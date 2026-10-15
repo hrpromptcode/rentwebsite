@@ -1,0 +1,38 @@
+{
+  "name": "@rentweb/storefront",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./definitions": "./src/definitions/index.ts",
+    "./ctx": "./src/ctx.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rentweb/core": "workspace:*",
+    "@rentweb/db": "workspace:*",
+    "@rentweb/i18n": "workspace:*",
+    "@rentweb/ui": "workspace:*",
+    "lucide-react": "catalog:",
+    "motion": "catalog:",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@rentweb/config": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:"
+  }
+}

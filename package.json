@@ -1,0 +1,29 @@
+{
+  "name": "rentweb",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:web": "pnpm --filter @rentweb/web dev",
+    "dev:admin": "pnpm --filter @rentweb/admin dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "db:generate": "pnpm --filter @rentweb/db generate",
+    "db:migrate": "pnpm --filter @rentweb/db migrate",
+    "db:seed": "pnpm --filter @rentweb/tooling seed",
+    "tenant:create": "pnpm --filter @rentweb/tooling create-tenant --",
+    "db:studio": "pnpm --filter @rentweb/db studio",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json,css}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "turbo": "^2.11.8",
+    "typescript": "^5.9.0"
+  }
+}

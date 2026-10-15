@@ -1,0 +1,36 @@
+{
+  "name": "@rentweb/core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./theme": "./src/theme/index.ts",
+    "./tenant": "./src/tenant/index.ts",
+    "./modules": "./src/modules/index.ts",
+    "./sections": "./src/sections/index.ts",
+    "./cache": "./src/cache.ts",
+    "./crypto": "./src/crypto.ts",
+    "./money": "./src/money.ts",
+    "./env": "./src/env.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rentweb/db": "workspace:*",
+    "@upstash/redis": "catalog:",
+    "culori": "catalog:",
+    "drizzle-orm": "catalog:",
+    "uuid": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@rentweb/config": "workspace:*",
+    "@types/culori": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

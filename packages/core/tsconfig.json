@@ -1,0 +1,4 @@
+{
+  "extends": "@rentweb/config/tsconfig/library.json",
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

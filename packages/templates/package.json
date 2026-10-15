@@ -1,0 +1,23 @@
+{
+  "name": "@rentweb/templates",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rentweb/core": "workspace:*",
+    "@rentweb/db": "workspace:*",
+    "@rentweb/storefront": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@rentweb/config": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}
