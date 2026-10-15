@@ -9,6 +9,7 @@ import { StaffCard } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
+import { cmsFallback } from "@/lib/cms-fallback";
 
 export const metadata: Metadata = { title: "ทีมผู้ให้บริการ" };
 
@@ -16,7 +17,8 @@ export const metadata: Metadata = { title: "ทีมผู้ให้บริ
 export default async function StaffPage({ params }: { params: Promise<{ tenantId: string }> }) {
   const { tenantId } = await params;
   const runtime = await getRuntime(tenantId);
-  if (!runtime || !runtime.config.modules.includes("booking")) notFound();
+  if (!runtime) notFound();
+  if (!runtime.config.modules.includes("booking")) return cmsFallback(runtime, "staff");
   const team = await tenantTx(tenantId, (tx) => listStaff(tx, tenantId, { onlineOnly: true }));
 
   return (

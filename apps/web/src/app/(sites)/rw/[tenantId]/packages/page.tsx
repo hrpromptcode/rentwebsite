@@ -9,6 +9,7 @@ import { PackageCard } from "@rentweb/module-booking/ui";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
 import { PageBody } from "@/components/page-body";
+import { cmsFallback } from "@/lib/cms-fallback";
 
 export const metadata: Metadata = { title: "คอร์สและแพ็กเกจ" };
 
@@ -16,7 +17,8 @@ export const metadata: Metadata = { title: "คอร์สและแพ็ก
 export default async function PackagesPage({ params }: { params: Promise<{ tenantId: string }> }) {
   const { tenantId } = await params;
   const runtime = await getRuntime(tenantId);
-  if (!runtime || !runtime.config.modules.includes("clinic")) notFound();
+  if (!runtime) notFound();
+  if (!runtime.config.modules.includes("clinic")) return cmsFallback(runtime, "packages");
   const customer = await getCurrentCustomer(tenantId);
   const { packages, sessionsLeft } = await tenantTx(tenantId, async (tx) => ({
     packages: await listClinicPackages(tx, tenantId, { limit: 100 }),

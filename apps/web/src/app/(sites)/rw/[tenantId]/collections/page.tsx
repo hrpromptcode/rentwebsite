@@ -9,13 +9,15 @@ import { CategoryTiles, PageHeader } from "@rentweb/module-commerce/components";
 import { L } from "@rentweb/module-commerce/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
+import { cmsFallback } from "@/lib/cms-fallback";
 
 export const metadata: Metadata = { title: L.collections };
 
 export default async function CollectionsPage({ params }: { params: Promise<{ tenantId: string }> }) {
   const { tenantId } = await params;
   const runtime = await getRuntime(tenantId);
-  if (!runtime || !runtime.config.modules.includes("commerce")) notFound();
+  if (!runtime) notFound();
+  if (!runtime.config.modules.includes("commerce")) return cmsFallback(runtime, "collections");
   const categories = await tenantTx(tenantId, (tx) => listCategories(tx, tenantId));
 
   return (

@@ -5,6 +5,7 @@ import { CatalogListing, cardStyleForPreset, parseCatalogParams } from "@rentweb
 import { L } from "@rentweb/module-commerce/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
+import { cmsFallback } from "@/lib/cms-fallback";
 
 export const metadata: Metadata = { title: L.products };
 
@@ -13,7 +14,8 @@ type Props = { params: Promise<{ tenantId: string }>; searchParams: Promise<Reco
 export default async function ProductsPage({ params, searchParams }: Props) {
   const { tenantId } = await params;
   const runtime = await getRuntime(tenantId);
-  if (!runtime || !runtime.config.modules.includes("commerce")) notFound();
+  if (!runtime) notFound();
+  if (!runtime.config.modules.includes("commerce")) return cmsFallback(runtime, "products");
   const q = parseCatalogParams(await searchParams);
 
   const [result, categories] = await tenantTx(tenantId, (tx) =>

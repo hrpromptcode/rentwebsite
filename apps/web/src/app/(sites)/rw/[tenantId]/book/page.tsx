@@ -9,6 +9,7 @@ import { L } from "@rentweb/module-booking/labels";
 import { getRuntime } from "@/lib/tenant";
 import { buildCtx } from "@/lib/storefront-ctx";
 import { PageBody } from "@/components/page-body";
+import { cmsFallback } from "@/lib/cms-fallback";
 
 export const metadata: Metadata = { title: "จองคิว" };
 
@@ -20,7 +21,8 @@ export default async function BookPage({ params, searchParams }: { params: Param
   const { tenantId } = await params;
   const { service, staff } = await searchParams;
   const runtime = await getRuntime(tenantId);
-  if (!runtime || !runtime.config.modules.includes("booking")) notFound();
+  if (!runtime) notFound();
+  if (!runtime.config.modules.includes("booking")) return cmsFallback(runtime, "book");
   const ctx = await buildCtx(runtime);
   const config = bookingConfig(runtime.config.moduleConfig);
   const props = bookingWidget.schema.parse({});

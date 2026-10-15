@@ -4,7 +4,10 @@ import * as React from "react";
 import { motion, useMotionTemplate, useMotionValue, useReducedMotion, useSpring } from "motion/react";
 import { cn } from "../lib/utils";
 
-/** 3D tilt + glare following the pointer. Wrap any card. */
+/**
+ * 3D tilt + glare following the pointer. Wrap any card.
+ * The glare layer is always rendered (hidden via CSS under reduced motion) so server and client trees match.
+ */
 export function TiltCard({ children, className, max = 10, glare = true }: { children: React.ReactNode; className?: string; max?: number; glare?: boolean }) {
   const ref = React.useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
@@ -41,8 +44,12 @@ export function TiltCard({ children, className, max = 10, glare = true }: { chil
       className={cn("relative will-change-transform", className)}
     >
       {children}
-      {glare && !reduce && (
-        <motion.div aria-hidden className="pointer-events-none absolute inset-0 rounded-[inherit] mix-blend-overlay" style={{ background: glareBg }} />
+      {glare && (
+        <motion.div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-[inherit] mix-blend-overlay opacity-0 transition-opacity duration-300 motion-safe:group-hover:opacity-100 motion-safe:hover:opacity-100"
+          style={{ background: glareBg }}
+        />
       )}
     </motion.div>
   );

@@ -11,6 +11,7 @@ import { L } from "@rentweb/module-restaurant/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
 import { placePickupOrder } from "./actions";
+import { cmsFallback } from "@/lib/cms-fallback";
 
 type Params = Promise<{ tenantId: string }>;
 type Search = Promise<{ item?: string }>;
@@ -22,7 +23,8 @@ export default async function PickupPage({ params, searchParams }: { params: Par
   const { tenantId } = await params;
   const { item } = await searchParams;
   const runtime = await getRuntime(tenantId);
-  if (!runtime || !runtime.config.modules.includes("restaurant")) notFound();
+  if (!runtime) notFound();
+  if (!runtime.config.modules.includes("restaurant")) return cmsFallback(runtime, "order");
   const cfg = restaurantConfigOf(runtime.config);
   const settings = runtime.config.settings;
   const contact = (settings.contact as { hours?: Array<{ day?: string; time?: string }>; address?: string } | undefined) ?? {};

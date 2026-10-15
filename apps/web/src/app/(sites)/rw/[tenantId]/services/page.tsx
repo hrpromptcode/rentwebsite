@@ -10,6 +10,7 @@ import { ServiceCard } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
+import { cmsFallback } from "@/lib/cms-fallback";
 
 export const metadata: Metadata = { title: "บริการทั้งหมด" };
 
@@ -21,7 +22,8 @@ export default async function ServicesPage({ params, searchParams }: { params: P
   const { tenantId } = await params;
   const { category } = await searchParams;
   const runtime = await getRuntime(tenantId);
-  if (!runtime || !runtime.config.modules.includes("booking")) notFound();
+  if (!runtime) notFound();
+  if (!runtime.config.modules.includes("booking")) return cmsFallback(runtime, "services");
 
   const { categories, services } = await tenantTx(tenantId, async (tx) => ({
     categories: await listServiceCategories(tx, tenantId),

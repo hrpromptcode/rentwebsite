@@ -9,6 +9,7 @@ import { MenuBrowser } from "@rentweb/module-restaurant/components";
 import { L } from "@rentweb/module-restaurant/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
+import { cmsFallback } from "@/lib/cms-fallback";
 
 type Params = Promise<{ tenantId: string }>;
 type Search = Promise<{ item?: string }>;
@@ -20,7 +21,8 @@ export default async function MenuPage({ params, searchParams }: { params: Param
   const { tenantId } = await params;
   const { item } = await searchParams;
   const runtime = await getRuntime(tenantId);
-  if (!runtime || !runtime.config.modules.includes("restaurant")) notFound();
+  if (!runtime) notFound();
+  if (!runtime.config.modules.includes("restaurant")) return cmsFallback(runtime, "menu");
   const cfg = restaurantConfigOf(runtime.config);
   const menu = await tenantTx(tenantId, (tx) => getActiveMenu(tx, tenantId));
 

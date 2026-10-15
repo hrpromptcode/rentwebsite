@@ -16,6 +16,7 @@ import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
 import { PageBody } from "@/components/page-body";
 import { createWalletTopupAction } from "./actions";
+import { cmsFallback } from "@/lib/cms-fallback";
 
 export const metadata: Metadata = { title: "กระเป๋าเงิน" };
 
@@ -25,7 +26,8 @@ export default async function WalletPage({ params, searchParams }: { params: Pro
   const { tenantId } = await params;
   const { topup: topupId } = await searchParams;
   const runtime = await getRuntime(tenantId);
-  if (!runtime || !runtime.config.modules.includes("topup")) notFound();
+  if (!runtime) notFound();
+  if (!runtime.config.modules.includes("topup")) return cmsFallback(runtime, "wallet");
   const customer = await getCurrentCustomer(tenantId);
   if (!customer) redirect(`/account/login?next=${encodeURIComponent("/wallet")}`);
   const cfg = topupConfig(runtime.config.moduleConfig.topup);

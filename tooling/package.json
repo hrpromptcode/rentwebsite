@@ -12,7 +12,9 @@
     "worker": "tsx worker.ts",
     "smoke": "tsx smoke.ts",
     "create-admin": "tsx create-admin.ts",
-    "admin-screenshot": "tsx admin-screenshot.ts"
+    "admin-screenshot": "tsx admin-screenshot.ts",
+    "overflow": "tsx overflow.ts",
+    "hydration": "tsx hydration.ts"
   },
   "dependencies": {
     "@rentweb/core": "workspace:*",

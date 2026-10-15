@@ -7,6 +7,7 @@ import { listGames } from "@rentweb/module-topup/services";
 import { GameGridClient } from "@rentweb/module-topup/components";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
+import { cmsFallback } from "@/lib/cms-fallback";
 
 export const metadata: Metadata = { title: "เติมเกม" };
 
@@ -14,7 +15,8 @@ export default async function GamesPage({ params, searchParams }: { params: Prom
   const { tenantId } = await params;
   const { q = "", cat } = await searchParams;
   const runtime = await getRuntime(tenantId);
-  if (!runtime || !runtime.config.modules.includes("topup")) notFound();
+  if (!runtime) notFound();
+  if (!runtime.config.modules.includes("topup")) return cmsFallback(runtime, "games");
   const games = await tenantTx(tenantId, (tx) => listGames(tx, tenantId, { limit: 200 }));
   const tab = cat === "mobile" || cat === "pc" || cat === "voucher" ? cat : "all";
 

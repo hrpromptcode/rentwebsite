@@ -10,13 +10,15 @@ import { getCurrentCustomer } from "@/lib/customer";
 import { PageBody } from "@/components/page-body";
 import { getCartToken } from "../cart/cookie";
 import { placeOrderAction } from "./actions";
+import { cmsFallback } from "@/lib/cms-fallback";
 
 export const metadata: Metadata = { title: L.checkoutTitle, robots: { index: false } };
 
 export default async function CheckoutPage({ params }: { params: Promise<{ tenantId: string }> }) {
   const { tenantId } = await params;
   const runtime = await getRuntime(tenantId);
-  if (!runtime || !runtime.config.modules.includes("commerce")) notFound();
+  if (!runtime) notFound();
+  if (!runtime.config.modules.includes("commerce")) return cmsFallback(runtime, "checkout");
   const [token, customer] = await Promise.all([getCartToken(), getCurrentCustomer(tenantId)]);
 
   const data = await tenantTx(tenantId, async (tx) => {
