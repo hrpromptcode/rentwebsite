@@ -1,3 +1,4 @@
+import "@/modules"; // module payment handlers + sections
 import "server-only";
 import { cache } from "react";
 import { notFound, redirect } from "next/navigation";

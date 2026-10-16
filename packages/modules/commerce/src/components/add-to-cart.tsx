@@ -216,7 +216,7 @@ export function AddToCart({ product, variants, className }: { product: BuyBoxPro
       </div>
 
       {/* sticky bottom bar on phones */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden">
+      <div data-sticky-bar="sm" className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden">
         <div className="flex items-center gap-2 px-4 py-3">
           <div className="min-w-0 flex-1">
             <Price amount={price} compareAt={compareAt} className="leading-tight" />

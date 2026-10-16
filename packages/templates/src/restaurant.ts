@@ -31,7 +31,6 @@ export const restaurant: TemplateDefinition = {
       promptpayName: "บ้านริม",
       bankAccounts: [{ bank: "กรุงเทพ", name: "บ้านริม", number: "222-3-44444-5" }],
       enabled: { promptpay: true, bankTransfer: true, cash: true },
-      autoApproveSlips: true,
     },
   },
   moduleConfig: { restaurant: { serviceChargePercent: 0, dineIn: true, pickup: true, delivery: false, reservationDeposit: 0, prepMinutesDefault: 15 } },

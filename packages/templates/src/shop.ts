@@ -31,7 +31,6 @@ export const shop: TemplateDefinition = {
       promptpayName: "Siam Atelier",
       bankAccounts: [{ bank: "กสิกรไทย", name: "Siam Atelier จำกัด", number: "123-4-56789-0" }],
       enabled: { promptpay: true, bankTransfer: true, cod: true },
-      autoApproveSlips: true,
     },
   },
   moduleConfig: { commerce: { currency: "THB", lowStockThreshold: 5, allowGuestCheckout: true, payments: { bankTransfer: true, promptpay: true, cod: true } } },

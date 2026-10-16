@@ -271,7 +271,7 @@ export function CheckoutForm({ cart, shipping, methods, customer, provinces, log
       </Reveal>
 
       {/* mobile sticky bar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+      <div data-sticky-bar="lg" className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
         <div className="flex items-center gap-3 px-4 py-3">
           <div className="min-w-0 flex-1">
             <p className="text-xs text-muted-foreground">

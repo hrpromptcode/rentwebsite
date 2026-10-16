@@ -12,6 +12,7 @@ export function FloatingChat({ ctx }: { ctx: StorefrontCtx }) {
       href={href}
       target="_blank"
       rel="noreferrer"
+      data-floating-chat
       aria-label={ctx.t("common.lineChat")}
       className="group fixed right-4 bottom-4 z-40 flex h-13 items-center gap-2 rounded-full bg-[#06C755] pr-5 pl-3.5 text-white shadow-lg shadow-black/20 transition hover:scale-105 hover:shadow-xl md:right-6 md:bottom-6"
     >

@@ -15,6 +15,7 @@ export function CartBar({ count, total, label, onClick, pulseKey, className }: {
         <motion.div
           key="cart-bar"
           data-rw-cartbar
+          data-sticky-bar="all"
           initial={reduce ? false : { y: 96, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={reduce ? { opacity: 0 } : { y: 96, opacity: 0 }}

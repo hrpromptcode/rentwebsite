@@ -321,3 +321,10 @@
 }
 .preset-aurora h1, .preset-aurora h2 { letter-spacing: -0.04em; }
 .preset-studio h1, .preset-studio h2 { text-transform: uppercase; letter-spacing: -0.02em; }
+
+/* Lift the floating chat button above mobile sticky bars.
+   A bar sets data-sticky-bar to the Tailwind breakpoint below which it is visible ("all" = every width). */
+@media (width < 40rem) { body:has([data-sticky-bar="sm"]) [data-floating-chat] { bottom: calc(5.5rem + env(safe-area-inset-bottom)); } }
+@media (width < 48rem) { body:has([data-sticky-bar="md"]) [data-floating-chat] { bottom: calc(5.5rem + env(safe-area-inset-bottom)); } }
+@media (width < 64rem) { body:has([data-sticky-bar="lg"]) [data-floating-chat] { bottom: calc(5.5rem + env(safe-area-inset-bottom)); } }
+body:has([data-sticky-bar="all"]) [data-floating-chat] { bottom: calc(5.75rem + env(safe-area-inset-bottom)); }

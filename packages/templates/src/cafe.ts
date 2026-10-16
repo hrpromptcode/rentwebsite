@@ -23,7 +23,6 @@ export const cafe: TemplateDefinition = {
       promptpayName: "Sugar Puff Bakery",
       bankAccounts: [{ bank: "กสิกรไทย", name: "Sugar Puff Bakery จำกัด", number: "123-4-56789-0" }],
       enabled: { promptpay: true, bankTransfer: true, cod: true },
-      autoApproveSlips: true,
     },
   },
   moduleConfig: { commerce: { currency: "THB", allowGuestCheckout: true, pickupDateRequired: true, payments: { promptpay: true, bankTransfer: true } } },

@@ -29,3 +29,8 @@ test-results/
 !.vscode/extensions.json
 tooling/screenshots/
 apps/web/public/uploads/
+tooling/qa/*.png
+apps/admin/public/uploads/
+tooling/qa/_*
+tooling/qa/*.log
+tooling/qa/*-results.json

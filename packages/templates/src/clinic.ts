@@ -32,7 +32,6 @@ export const clinic: TemplateDefinition = {
       promptpayName: "Lumière Clinic",
       bankAccounts: [{ bank: "ไทยพาณิชย์", name: "Lumière Clinic Co., Ltd.", number: "987-6-54321-0" }],
       enabled: { promptpay: true, bankTransfer: true },
-      autoApproveSlips: true,
     },
   },
   moduleConfig: {

@@ -143,6 +143,18 @@ importers:
       '@rentweb/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@rentweb/module-booking':
+        specifier: workspace:*
+        version: link:../../packages/modules/booking
+      '@rentweb/module-commerce':
+        specifier: workspace:*
+        version: link:../../packages/modules/commerce
+      '@rentweb/module-restaurant':
+        specifier: workspace:*
+        version: link:../../packages/modules/restaurant
+      '@rentweb/module-topup':
+        specifier: workspace:*
+        version: link:../../packages/modules/topup
       '@rentweb/storefront':
         specifier: workspace:*
         version: link:../../packages/storefront

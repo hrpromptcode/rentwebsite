@@ -29,7 +29,6 @@ export const salon: TemplateDefinition = {
       promptpayName: "Sabai Sabai Spa",
       bankAccounts: [{ bank: "ไทยพาณิชย์", name: "Sabai Sabai Spa Co., Ltd.", number: "987-6-54321-0" }],
       enabled: { promptpay: true, bankTransfer: true },
-      autoApproveSlips: true,
     },
   },
   moduleConfig: { booking: { slotMinutes: 30, maxAdvanceDays: 30, minNoticeHours: 1, cancelHours: 12, depositEnabled: true, reminderHours: [24, 2] } },

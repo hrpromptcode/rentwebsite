@@ -1,4 +1,5 @@
 import "server-only";
+import "@/modules"; // registers module sections + payment handlers for every server entry point
 import { cache } from "react";
 import { headers } from "next/headers";
 import { and, desc, eq, getDb, navigation, pages, withTenant, type NavItem, type SectionJson, type Tx } from "@rentweb/db";

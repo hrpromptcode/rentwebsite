@@ -13,6 +13,10 @@
   "dependencies": {
     "@rentweb/core": "workspace:*",
     "@rentweb/db": "workspace:*",
+    "@rentweb/module-booking": "workspace:*",
+    "@rentweb/module-commerce": "workspace:*",
+    "@rentweb/module-restaurant": "workspace:*",
+    "@rentweb/module-topup": "workspace:*",
     "@rentweb/storefront": "workspace:*",
     "@rentweb/templates": "workspace:*",
     "@rentweb/ui": "workspace:*",

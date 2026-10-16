@@ -24,7 +24,6 @@ export const topup: TemplateDefinition = {
       promptpayName: "GameHub",
       bankAccounts: [{ bank: "กรุงไทย", name: "GameHub Co., Ltd.", number: "111-2-33333-4" }],
       enabled: { promptpay: true, bankTransfer: true, wallet: true },
-      autoApproveSlips: true,
     },
   },
   moduleConfig: { topup: { walletEnabled: true, walletBonusPercent: 2, minWalletTopup: 2000, otpRequiredFirstOrder: true, maxOrdersPerHour: 10 } },

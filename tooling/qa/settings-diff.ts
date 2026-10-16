@@ -1,0 +1,11 @@
+import "../load-env";
+import { eq, getAdminDb, media, tenants } from "@rentweb/db";
+const db = getAdminDb();
+const [t] = await db.select({ settings: tenants.settings, theme: tenants.theme }).from(tenants).where(eq(tenants.slug, "demo-shop"));
+const s = t!.settings as Record<string, unknown>;
+console.log("tagline:", s.tagline);
+console.log("payments:", JSON.stringify(s.payments));
+console.log("theme.preset:", (t!.theme as { preset?: string }).preset, "colors:", JSON.stringify((t!.theme as { colors?: unknown }).colors));
+const rows = await db.select({ id: media.id, url: media.url, alt: media.alt }).from(media).where(eq(media.tenantId, "01a14029-0480-768b-9665-6161a17c1ff0"));
+console.log("media rows:", rows.length, rows.filter((r) => r.alt?.startsWith("qa-upload")).map((r) => `${r.id} ${r.url}`).join("; ") || "no qa-upload leftovers");
+process.exit(0);
