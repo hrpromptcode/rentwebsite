@@ -60,10 +60,10 @@ export default async function DiscountsPage({ params }: { params: Promise<{ slug
                 <TableHead>โค้ด</TableHead>
                 <TableHead>ส่วนลด</TableHead>
                 <TableHead className="hidden md:table-cell">เงื่อนไข</TableHead>
-                <TableHead className="text-right">ใช้แล้ว</TableHead>
+                <TableHead className="hidden text-right sm:table-cell">ใช้แล้ว</TableHead>
                 <TableHead className="hidden lg:table-cell">ช่วงเวลา</TableHead>
-                <TableHead>สถานะ</TableHead>
-                {canWrite && <TableHead className="w-24 text-right">จัดการ</TableHead>}
+                <TableHead className="hidden md:table-cell">สถานะ</TableHead>
+                {canWrite && <TableHead className="text-right sm:w-24">จัดการ</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -76,6 +76,10 @@ export default async function DiscountsPage({ params }: { params: Promise<{ slug
                         {d.code}
                       </Link>
                       {d.name && <span className="block text-xs text-muted-foreground">{d.name}</span>}
+                      <span className="mt-1 block md:hidden">
+                        <ToneBadge tone={st.tone}>{st.label}</ToneBadge>
+                        <span className="ml-2 text-xs text-muted-foreground sm:hidden">ใช้แล้ว {fmtNumber(d.usedCount)}</span>
+                      </span>
                     </TableCell>
                     <TableCell>
                       <span className="font-medium">{discountValueLabel(d)}</span>
@@ -85,14 +89,14 @@ export default async function DiscountsPage({ params }: { params: Promise<{ slug
                       {d.minSubtotal > 0 ? `ขั้นต่ำ ${thb(d.minSubtotal)}` : "ไม่มีขั้นต่ำ"}
                       {d.perCustomerLimit ? ` · ${d.perCustomerLimit} ครั้ง/คน` : ""}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">
+                    <TableCell className="hidden text-right tabular-nums sm:table-cell">
                       {fmtNumber(d.usedCount)}
                       {d.maxUses ? <span className="text-muted-foreground"> / {fmtNumber(d.maxUses)}</span> : ""}
                     </TableCell>
                     <TableCell className="hidden text-xs text-muted-foreground lg:table-cell">
                       {d.startsAt || d.endsAt ? `${d.startsAt ? fmtDate(d.startsAt) : "ตอนนี้"} – ${d.endsAt ? fmtDate(d.endsAt) : "ไม่กำหนด"}` : "ไม่จำกัดเวลา"}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <ToneBadge tone={st.tone}>{st.label}</ToneBadge>
                     </TableCell>
                     {canWrite && (

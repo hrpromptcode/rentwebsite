@@ -7,7 +7,8 @@ import { listAdminCategories } from "@rentweb/module-commerce/admin";
 import { PageHeader } from "@/components/ui/page-header";
 import { assetUrl } from "@/lib/format";
 import { getTenantCtx, hasRole, tenantTx } from "@/lib/tenant";
-import { EMPTY_PRODUCT, ProductForm } from "../product-form";
+import { EMPTY_PRODUCT } from "../form-values";
+import { ProductForm } from "../product-form";
 
 export const metadata: Metadata = { title: "เพิ่มสินค้า" };
 

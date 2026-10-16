@@ -4,6 +4,7 @@ import { audit, emitEvent, fail, normalizeThaiPhone, ok, randomToken, type Resul
 import { upsertGuestCustomer } from "@rentweb/core/customer";
 import { createPayment, markFailed, markPaid, refundPayment, resolvePromptpayId, paymentSettings, type PaymentMethod, type PaymentProvider } from "@rentweb/core/payments";
 import { getShippingMethod, toQuote } from "../services/shipping";
+import { qualified } from "./sql";
 import { formatOrderNumber, type OrderItemRow, type OrderRow, type PaymentRow, type ShipmentRow } from "../services/orders";
 import { trackingUrlFor, type OrderTab } from "./labels";
 import type { manualOrderSchema, shipOrderSchema } from "./schemas";
@@ -57,7 +58,7 @@ export interface OrderListResult {
 
 const pendingSlipSub = (tenantId: string) =>
   exists(
-    sql`(select 1 from ${payments} where ${payments.tenantId} = ${tenantId} and ${payments.refType} = 'order' and ${payments.refId} = ${orders.id} and ${payments.status} = 'pending_verification')`,
+    sql`(select 1 from ${payments} where ${payments.tenantId} = ${tenantId} and ${payments.refType} = 'order' and ${payments.refId} = ${qualified(orders.id)} and ${payments.status} = 'pending_verification')`,
   );
 
 function bangkokDay(d: string, endExclusive = false): Date | null {
@@ -115,7 +116,7 @@ export async function listAdminOrders(tx: Tx, tenantId: string, f: OrderListFilt
   const perPage = Math.min(100, Math.max(1, f.perPage ?? 20));
   const page = Math.max(1, f.page ?? 1);
   const where = listWhere(tenantId, f);
-  const itemCountSub = sql<number>`(select coalesce(sum(${orderItems.quantity}), 0)::int from ${orderItems} where ${orderItems.orderId} = ${orders.id})`;
+  const itemCountSub = sql<number>`(select coalesce(sum(${orderItems.quantity}), 0)::int from ${orderItems} where ${orderItems.orderId} = ${qualified(orders.id)})`;
   const [rows, [c]] = await Promise.all([
     tx
       .select({

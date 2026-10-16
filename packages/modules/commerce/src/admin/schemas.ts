@@ -43,7 +43,7 @@ export const slugField = z
   .trim()
   .min(1, "กรุณากรอก slug")
   .max(120)
-  .regex(/^[\p{L}\p{N}-]+$/u, "slug ใช้ได้เฉพาะตัวอักษร ตัวเลข และขีดกลาง");
+  .regex(/^[\p{L}\p{M}\p{N}-]+$/u, "slug ใช้ได้เฉพาะตัวอักษร ตัวเลข และขีดกลาง");
 
 /** Plain textarea text → HTML paragraphs. Existing HTML is passed through. */
 export function descriptionToHtml(text: string | null | undefined): string | null {

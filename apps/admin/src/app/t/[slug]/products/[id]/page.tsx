@@ -11,7 +11,8 @@ import { ConfirmButton } from "@/components/ui/confirm-button";
 import { assetUrl, fmtDate, fmtNumber } from "@/lib/format";
 import { getTenantCtx, hasRole, tenantTx } from "@/lib/tenant";
 import { archiveProductAction } from "../actions";
-import { ProductForm, toFormValues } from "../product-form";
+import { toFormValues } from "../form-values";
+import { ProductForm } from "../product-form";
 
 export const metadata: Metadata = { title: "แก้ไขสินค้า" };
 

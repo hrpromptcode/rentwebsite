@@ -13,82 +13,14 @@ import { Switch } from "@rentweb/ui/components/switch";
 import { Textarea } from "@rentweb/ui/components/textarea";
 import { toast } from "@rentweb/ui/components/sonner";
 import { PRODUCT_TYPE } from "@rentweb/module-commerce/admin/labels";
-import { fieldErrors, generateVariantCombos, productSchema, satangToBaht, type ProductInput } from "@rentweb/module-commerce/admin/schemas";
+import { fieldErrors, generateVariantCombos, productSchema, type ProductInput } from "@rentweb/module-commerce/admin/schemas";
 import { MoneyInput, NativeSelect } from "@rentweb/module-commerce/admin/ui";
 import { Field } from "@/components/ui/form";
 import { quickCreateCategoryAction, saveProductAction, uploadProductImageAction } from "./actions";
+import { autoSlug, normalizeSlug, type ProductFormValues, type VariantRowVM } from "./form-values";
 
-export interface ProductFormValues {
-  name: string;
-  slug: string;
-  shortDescription: string;
-  description: string;
-  categoryId: string;
-  images: Array<{ url: string; alt?: string; mediaId?: string }>;
-  price: string;
-  compareAtPrice: string;
-  costPrice: string;
-  type: "physical" | "digital" | "service" | "preorder";
-  status: "draft" | "active" | "archived";
-  trackInventory: boolean;
-  stock: string;
-  lowStockThreshold: string;
-  weightGrams: string;
-  sku: string;
-  tags: string[];
-  featured: boolean;
-  seoTitle: string;
-  seoDescription: string;
-  options: Array<{ name: string; values: string[] }>;
-  variants: VariantRowVM[];
-}
+export type { ProductFormValues, VariantRowVM } from "./form-values";
 
-export interface VariantRowVM {
-  id?: string;
-  title: string;
-  optionValues: Record<string, string>;
-  sku: string;
-  price: string;
-  compareAtPrice: string;
-  stock: string;
-  active: boolean;
-}
-
-export const EMPTY_PRODUCT: ProductFormValues = {
-  name: "",
-  slug: "",
-  shortDescription: "",
-  description: "",
-  categoryId: "",
-  images: [],
-  price: "",
-  compareAtPrice: "",
-  costPrice: "",
-  type: "physical",
-  status: "draft",
-  trackInventory: true,
-  stock: "0",
-  lowStockThreshold: "5",
-  weightGrams: "0",
-  sku: "",
-  tags: [],
-  featured: false,
-  seoTitle: "",
-  seoDescription: "",
-  options: [],
-  variants: [],
-};
-
-/** Client-side slug (same rules as core slugify, without the random fallback). */
-function slugifyClient(input: string): string {
-  return input
-    .trim()
-    .toLowerCase()
-    .replace(/[\s_]+/g, "-")
-    .replace(/[^\p{L}\p{M}\p{N}-]+/gu, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 export function ProductForm({ slug, productId, initial, categories: initialCategories, assetBase }: { slug: string; productId: string | null; initial: ProductFormValues; categories: Array<{ id: string; name: string }>; assetBase: string }) {
   const router = useRouter();
@@ -176,7 +108,7 @@ export function ProductForm({ slug, productId, initial, categories: initialCateg
   function toInput(status: ProductFormValues["status"]): ProductInput {
     return {
       name: v.name,
-      slug: v.slug || slugifyClient(v.name),
+      slug: v.slug || autoSlug(v.name),
       shortDescription: v.shortDescription,
       description: v.description,
       categoryId: v.categoryId || null,
@@ -206,6 +138,12 @@ export function ProductForm({ slug, productId, initial, categories: initialCateg
       const fe = fieldErrors(parsed.error);
       setErrors(fe);
       toast.error(parsed.error.issues[0]?.message ?? "กรุณาตรวจสอบข้อมูล");
+      // bring the first invalid field into view — the save bar sits at the bottom, errors may be far above
+      requestAnimationFrame(() => {
+        const el = document.querySelector<HTMLElement>('[aria-invalid="true"]');
+        el?.scrollIntoView({ block: "center", behavior: "smooth" });
+        el?.focus({ preventScroll: true });
+      });
       return;
     }
     setErrors({});
@@ -238,7 +176,7 @@ export function ProductForm({ slug, productId, initial, categories: initialCateg
         e.preventDefault();
         submit(v.status === "archived" ? "draft" : v.status);
       }}
-      className="grid gap-6 pb-24 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
+      className="grid grid-cols-1 gap-6 pb-24 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
     >
       <div className="space-y-6">
         <Card>
@@ -252,7 +190,7 @@ export function ProductForm({ slug, productId, initial, categories: initialCateg
                 value={v.name}
                 onChange={(e) => {
                   const name = e.target.value;
-                  setV((s) => ({ ...s, name, slug: slugTouched ? s.slug : slugifyClient(name) }));
+                  setV((s) => ({ ...s, name, slug: slugTouched ? s.slug : autoSlug(name) }));
                 }}
                 placeholder="เช่น เสื้อลินินสีทราย"
                 aria-invalid={!!err("name")}
@@ -267,7 +205,7 @@ export function ProductForm({ slug, productId, initial, categories: initialCateg
                   setSlugTouched(true);
                   set("slug", e.target.value);
                 }}
-                onBlur={() => set("slug", slugifyClient(v.slug))}
+                onBlur={() => set("slug", normalizeSlug(v.slug))}
                 aria-invalid={!!err("slug")}
               />
             </Field>
@@ -410,7 +348,7 @@ export function ProductForm({ slug, productId, initial, categories: initialCateg
               </Button>
             )}
             {hasVariants && (
-              <div className="-mx-6 overflow-x-auto px-6">
+              <div className="relative -mx-6 overflow-x-auto px-6">
                 <table className="w-full min-w-[40rem] text-sm">
                   <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
                     <tr>
@@ -648,53 +586,4 @@ function OptionEditor({ option, onChange, onRemove, error }: { option: { name: s
       </Button>
     </div>
   );
-}
-
-/** Row → form values (server passes raw rows). */
-export function toFormValues(p: {
-  name: string;
-  slug: string;
-  shortDescription: string | null;
-  description: string | null;
-  categoryId: string | null;
-  images: Array<{ url: string; alt?: string; mediaId?: string }>;
-  price: number;
-  compareAtPrice: number | null;
-  costPrice: number | null;
-  type: string;
-  status: string;
-  trackInventory: boolean;
-  stock: number;
-  lowStockThreshold: number;
-  weightGrams: number;
-  sku: string | null;
-  tags: string[];
-  featured: boolean;
-  seo: Record<string, unknown>;
-  options: Array<{ name: string; values: string[] }>;
-}, variants: Array<{ id: string; title: string; optionValues: Record<string, string>; sku: string | null; price: number; compareAtPrice: number | null; stock: number; active: boolean }>, descriptionText: string): ProductFormValues {
-  return {
-    name: p.name,
-    slug: p.slug,
-    shortDescription: p.shortDescription ?? "",
-    description: descriptionText,
-    categoryId: p.categoryId ?? "",
-    images: p.images ?? [],
-    price: satangToBaht(p.price),
-    compareAtPrice: satangToBaht(p.compareAtPrice),
-    costPrice: satangToBaht(p.costPrice),
-    type: p.type as ProductFormValues["type"],
-    status: p.status as ProductFormValues["status"],
-    trackInventory: p.trackInventory,
-    stock: String(p.stock),
-    lowStockThreshold: String(p.lowStockThreshold),
-    weightGrams: String(p.weightGrams),
-    sku: p.sku ?? "",
-    tags: p.tags ?? [],
-    featured: p.featured,
-    seoTitle: typeof p.seo?.title === "string" ? p.seo.title : "",
-    seoDescription: typeof p.seo?.description === "string" ? p.seo.description : "",
-    options: p.options ?? [],
-    variants: variants.map((x) => ({ id: x.id, title: x.title, optionValues: x.optionValues ?? {}, sku: x.sku ?? "", price: satangToBaht(x.price), compareAtPrice: satangToBaht(x.compareAtPrice), stock: String(x.stock), active: x.active })),
-  };
 }

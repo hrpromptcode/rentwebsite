@@ -25,7 +25,7 @@ export function DiscountRowActions({ slug, id, code, active }: { slug: string; i
     }
   }
   return (
-    <span className="inline-flex items-center gap-1">
+    <span className="inline-flex flex-col items-end gap-0.5 sm:flex-row sm:items-center sm:gap-1">
       <Switch checked={active} onCheckedChange={toggle} disabled={busy} aria-label={`เปิดใช้ ${code}`} />
       <ConfirmButton variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive" title={`ลบคูปอง ${code}?`} description="ลูกค้าจะใช้โค้ดนี้ไม่ได้อีก ออเดอร์เก่าไม่ได้รับผลกระทบ" confirmLabel="ลบคูปอง" action={() => deleteDiscountAction(slug, id)} aria-label={`ลบ ${code}`}>
         <Trash2 aria-hidden />

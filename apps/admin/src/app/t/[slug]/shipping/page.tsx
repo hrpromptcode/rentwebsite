@@ -64,32 +64,35 @@ export default async function ShippingPage({ params }: { params: Promise<{ slug:
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-12">ลำดับ</TableHead>
+                <TableHead className="hidden w-12 sm:table-cell">ลำดับ</TableHead>
                 <TableHead>วิธีจัดส่ง</TableHead>
                 <TableHead className="hidden sm:table-cell">ประเภท</TableHead>
                 <TableHead>ค่าส่ง</TableHead>
                 <TableHead className="hidden md:table-cell">ระยะเวลา</TableHead>
-                <TableHead>สถานะ</TableHead>
-                {canWrite && <TableHead className="w-24 text-right">จัดการ</TableHead>}
+                <TableHead className="hidden md:table-cell">สถานะ</TableHead>
+                {canWrite && <TableHead className="text-right sm:w-24">จัดการ</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((m) => (
                 <TableRow key={m.id}>
-                  <TableCell className="text-center text-xs tabular-nums text-muted-foreground">{m.sort}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden text-center text-xs tabular-nums text-muted-foreground sm:table-cell">{m.sort}</TableCell>
+                  <TableCell className="whitespace-normal">
                     <Link href={`${base}/${m.id}`} className="font-medium text-primary">
                       {m.name}
                     </Link>
                     {m.description && <span className="block max-w-[18rem] truncate text-xs text-muted-foreground">{m.description}</span>}
                     <span className="mt-1 block text-xs text-muted-foreground sm:hidden">{SHIPPING_TYPE[m.type]?.label ?? m.type}</span>
+                    <span className="mt-1 block md:hidden">
+                      <Badge variant={m.active ? "success" : "muted"}>{m.active ? "เปิดใช้" : "ปิดใช้"}</Badge>
+                    </span>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     <Badge variant="outline">{SHIPPING_TYPE[m.type]?.label ?? m.type}</Badge>
                   </TableCell>
-                  <TableCell className="text-sm tabular-nums">{configSummary(m.type, (m.config ?? {}) as Record<string, unknown>)}</TableCell>
+                  <TableCell className="whitespace-normal text-sm tabular-nums">{configSummary(m.type, (m.config ?? {}) as Record<string, unknown>)}</TableCell>
                   <TableCell className="hidden text-sm text-muted-foreground md:table-cell">{m.estimatedDays ?? "—"}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <Badge variant={m.active ? "success" : "muted"}>{m.active ? "เปิดใช้" : "ปิดใช้"}</Badge>
                   </TableCell>
                   {canWrite && (

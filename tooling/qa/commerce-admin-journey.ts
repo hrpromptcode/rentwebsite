@@ -69,8 +69,9 @@ async function dbOrderByNumber(tenantId: string, number: string) {
 
 async function createManualOrder(page: Page, opts: { payment: "cash" | "slip"; markPaid: boolean }): Promise<{ number: string; id: string }> {
   await goto(page, "/orders/new");
-  // add first product in the picker (choose a variant when present)
-  const addBtn = page.getByRole("button", { name: /^เพิ่ม / }).first();
+  // add a seeded in-stock product (searching keeps the run independent of leftover QA products whose variants may be sold out)
+  await page.getByLabel("ค้นหาสินค้า").fill(process.env.QA_ORDER_PRODUCT ?? "ปลอกหมอน");
+  const addBtn = page.getByRole("button", { name: new RegExp(`^เพิ่ม .*${process.env.QA_ORDER_PRODUCT ?? "ปลอกหมอน"}`) }).first();
   await addBtn.waitFor({ state: "visible", timeout: 20_000 });
   await addBtn.click();
   await page.fill("#c-name", "QA ลูกค้าหลังบ้าน");
@@ -116,6 +117,7 @@ async function main() {
   let orderId = "";
   let orderNumber = "";
   let productSlug = "";
+  let productId = "";
   const productName = `QA เสื้อยืดทดสอบ ${stamp}`;
   const couponCode = `QA${stamp}`;
 
@@ -208,6 +210,7 @@ async function main() {
     await page.fill("#p-price", "350");
     await page.fill("#p-sku", `QA-${stamp}`);
     await page.getByRole("button", { name: "เพิ่มชุดตัวเลือก" }).click();
+    await page.getByPlaceholder(/ไซ/).first().fill("ไซส์");
     const valueInput = page.getByPlaceholder("S, M, L แล้วกด Enter");
     await valueInput.fill("S, M");
     await valueInput.press("Enter");
@@ -216,6 +219,7 @@ async function main() {
     await page.getByLabel("สต็อก M").fill("7");
     await page.getByRole("button", { name: "บันทึกและเผยแพร่" }).click();
     await page.waitForURL(/\/products\/[0-9a-f-]{36}$/, { timeout: 60_000 });
+    productId = page.url().split("/").pop()!;
     const db = await withTenant(getDb(), tenantId, async (tx) => {
       const [p] = await tx.select().from(products).where(and(eq(products.tenantId, tenantId), eq(products.slug, productSlug))).limit(1);
       return p;
@@ -335,6 +339,7 @@ async function main() {
       ["order-new", "/orders/new"],
       ["products", "/products"],
       ["product-new", "/products/new"],
+      ["product-detail", `/products/${productId}`],
       ["categories", "/products/categories"],
       ["discounts", "/discounts"],
       ["discount-new", "/discounts/new"],

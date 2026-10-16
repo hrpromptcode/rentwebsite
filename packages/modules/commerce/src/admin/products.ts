@@ -6,6 +6,7 @@ import type { Actor } from "./orders";
 import { descriptionToHtml, type ProductValues } from "./schemas";
 import type { z } from "zod";
 import type { categorySchema } from "./schemas";
+import { qualified } from "./sql";
 
 // ---------------------------------------------------------------------------
 // list
@@ -51,13 +52,13 @@ export async function listAdminProducts(tx: Tx, tenantId: string, f: ProductList
   const q = f.q?.trim();
   if (q) {
     const like = `%${q.replace(/[%_]/g, "")}%`;
-    conds.push(or(ilike(products.name, like), ilike(products.sku, like), ilike(products.slug, like), sql`exists (select 1 from ${productVariants} v where v.product_id = ${products.id} and v.sku ilike ${like})`)!);
+    conds.push(or(ilike(products.name, like), ilike(products.sku, like), ilike(products.slug, like), sql`exists (select 1 from ${productVariants} v where v.product_id = ${qualified(products.id)} and v.sku ilike ${like})`)!);
   }
   const where = and(...conds)!;
-  const vstock = sql<number>`coalesce((select sum(greatest(v.stock,0)) from ${productVariants} v where v.product_id = ${products.id} and v.active = true), 0)::int`;
-  const vcount = sql<number>`(select count(*) from ${productVariants} v where v.product_id = ${products.id})::int`;
-  const vmin = sql<number>`coalesce((select min(v.price) from ${productVariants} v where v.product_id = ${products.id} and v.active = true), ${products.price})::int`;
-  const vmax = sql<number>`coalesce((select max(v.price) from ${productVariants} v where v.product_id = ${products.id} and v.active = true), ${products.price})::int`;
+  const vstock = sql<number>`coalesce((select sum(greatest(v.stock,0)) from ${productVariants} v where v.product_id = ${qualified(products.id)} and v.active = true), 0)::int`;
+  const vcount = sql<number>`(select count(*) from ${productVariants} v where v.product_id = ${qualified(products.id)})::int`;
+  const vmin = sql<number>`coalesce((select min(v.price) from ${productVariants} v where v.product_id = ${qualified(products.id)} and v.active = true), ${products.price})::int`;
+  const vmax = sql<number>`coalesce((select max(v.price) from ${productVariants} v where v.product_id = ${qualified(products.id)} and v.active = true), ${products.price})::int`;
   const [rows, [c]] = await Promise.all([
     tx
       .select({
@@ -287,7 +288,7 @@ export interface AdminCategory extends CategoryRow {
 
 export async function listAdminCategories(tx: Tx, tenantId: string): Promise<AdminCategory[]> {
   const rows = await tx
-    .select({ cat: categories, productCount: sql<number>`(select count(*) from ${products} p where p.category_id = ${categories.id})::int` })
+    .select({ cat: categories, productCount: sql<number>`(select count(*) from ${products} p where p.category_id = ${qualified(categories.id)})::int` })
     .from(categories)
     .where(eq(categories.tenantId, tenantId))
     .orderBy(asc(categories.sort), asc(categories.name));

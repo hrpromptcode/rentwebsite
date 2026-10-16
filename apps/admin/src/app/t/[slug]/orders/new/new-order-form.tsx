@@ -68,10 +68,13 @@ export function NewOrderForm({ slug, catalog, methods }: { slug: string; catalog
     return list.slice(0, 30);
   }, [q, catalog]);
 
+  // first variant that still has stock (or untracked); the picker must not pre-select a sold-out option
+  const defaultVariantId = (p: CatalogProduct) => p.variants.find((v) => v.stock === null || v.stock > 0)?.id ?? p.variants[0]?.id;
+  const overStock = lines.some((l) => l.stock !== null && l.quantity > l.stock);
   function addProduct(p: CatalogProduct) {
     let variant: CatalogVariant | null = null;
     if (p.hasVariants) {
-      const vid = variantPick[p.id] ?? p.variants[0]?.id;
+      const vid = variantPick[p.id] ?? defaultVariantId(p);
       variant = p.variants.find((v) => v.id === vid) ?? null;
       if (!variant) return toast.error("กรุณาเลือกตัวเลือกสินค้า");
     }
@@ -131,7 +134,7 @@ export function NewOrderForm({ slug, catalog, methods }: { slug: string; catalog
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <div className="space-y-6">
         <Card>
           <CardHeader>
@@ -146,9 +149,9 @@ export function NewOrderForm({ slug, catalog, methods }: { slug: string; catalog
             <ul className="max-h-80 divide-y overflow-y-auto rounded-xl border">
               {results.length === 0 && <li className="p-4 text-sm text-muted-foreground">ไม่พบสินค้า</li>}
               {results.map((p) => (
-                <li key={p.id} className="flex items-center gap-3 p-2.5">
+                <li key={p.id} className="flex flex-wrap items-center gap-3 p-2.5">
                   <span className="size-11 shrink-0 overflow-hidden rounded-lg border bg-muted">{p.image && <img src={p.image} alt="" className="size-full object-cover" />}</span>
-                  <span className="min-w-0 flex-1">
+                  <span className="min-w-0 flex-1 basis-40">
                     <span className="block truncate text-sm font-medium">{p.name}</span>
                     <span className="block text-xs text-muted-foreground">
                       {thb(p.price)}
@@ -156,7 +159,7 @@ export function NewOrderForm({ slug, catalog, methods }: { slug: string; catalog
                     </span>
                   </span>
                   {p.hasVariants && (
-                    <NativeSelect value={variantPick[p.id] ?? p.variants[0]?.id ?? ""} onChange={(e) => setVariantPick((s) => ({ ...s, [p.id]: e.target.value }))} className="w-36" aria-label={`ตัวเลือกของ ${p.name}`}>
+                    <NativeSelect value={variantPick[p.id] ?? defaultVariantId(p) ?? ""} onChange={(e) => setVariantPick((s) => ({ ...s, [p.id]: e.target.value }))} className="w-36" aria-label={`ตัวเลือกของ ${p.name}`}>
                       {p.variants.map((v) => (
                         <option key={v.id} value={v.id} disabled={v.stock !== null && v.stock <= 0}>
                           {v.title} · {thb(v.price)}
@@ -341,9 +344,10 @@ export function NewOrderForm({ slug, catalog, methods }: { slug: string; catalog
             </div>
           </CardContent>
         </Card>
-        <Button size="lg" className="w-full" onClick={submit} disabled={pending || lines.length === 0}>
+        <Button size="lg" className="w-full" onClick={submit} disabled={pending || lines.length === 0 || overStock}>
           {pending ? <Loader2 className="animate-spin" aria-hidden /> : <ShoppingCart aria-hidden />} สร้างออเดอร์{total !== null && lines.length ? ` · ${thb(total)}` : ""}
         </Button>
+        {overStock && <p className="text-center text-xs text-destructive">มีรายการเกินสต็อก กรุณาลดจำนวนก่อนสร้างออเดอร์</p>}
       </div>
     </div>
   );
