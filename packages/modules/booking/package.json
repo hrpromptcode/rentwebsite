@@ -10,7 +10,11 @@
     "./ui": "./src/ui.ts",
     "./client": "./src/client.ts",
     "./actions": "./src/actions.ts",
-    "./labels": "./src/labels.ts"
+    "./labels": "./src/labels.ts",
+    "./admin": "./src/admin/index.ts",
+    "./admin/labels": "./src/admin/labels.ts",
+    "./admin/schemas": "./src/admin/schemas.ts",
+    "./admin/ui": "./src/admin/ui/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

@@ -8,7 +8,11 @@
     "./register": "./src/register.ts",
     "./services": "./src/services/index.ts",
     "./components": "./src/components/index.ts",
-    "./labels": "./src/labels.ts"
+    "./labels": "./src/labels.ts",
+    "./admin": "./src/admin/index.ts",
+    "./admin/labels": "./src/admin/labels.ts",
+    "./admin/schemas": "./src/admin/schemas.ts",
+    "./admin/ui": "./src/admin/ui/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
