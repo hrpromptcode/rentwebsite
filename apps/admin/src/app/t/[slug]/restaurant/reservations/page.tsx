@@ -12,7 +12,7 @@ import { KpiCard } from "@/components/ui/kpi-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { fmtNumber, thb } from "@/lib/format";
 import { getTenantCtx, hasRole, tenantTx } from "@/lib/tenant";
-import { fmtTime, todayYmd } from "../_components/elapsed";
+import { fmtTime, todayYmd } from "../_components/time";
 import { absolutizeReservations } from "../_components/urls";
 import { DateJump, NewReservationDialog } from "./reservation-dialog";
 import { ReservationActions } from "./row-actions";
@@ -98,8 +98,8 @@ export default async function ReservationsPage({ params, searchParams }: { param
         </ol>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-4">
-        <KpiCard label="การจองวันนี้" value={fmtNumber(live.length)} hint={rows.length !== live.length ? `+${rows.length - live.length} ยกเลิก/ไม่มา` : undefined} icon={CalendarCheck} tone="primary" />
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <KpiCard label="การจอง" value={fmtNumber(live.length)} hint={rows.length !== live.length ? `+${rows.length - live.length} ยกเลิก/ไม่มา` : undefined} icon={CalendarCheck} tone="primary" />
         <KpiCard label="รอยืนยัน" value={fmtNumber(live.filter((r) => r.status === "pending").length)} icon={Clock} tone={live.some((r) => r.status === "pending") ? "accent" : "default"} />
         <KpiCard label="นั่งแล้ว" value={fmtNumber(live.filter((r) => r.status === "seated").length)} icon={Users} tone="success" />
         <KpiCard label="แขกทั้งหมด" value={fmtNumber(live.reduce((s, r) => s + r.partySize, 0))} hint="คน" icon={CalendarDays} />

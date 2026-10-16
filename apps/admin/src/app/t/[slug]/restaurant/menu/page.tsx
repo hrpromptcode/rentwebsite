@@ -86,19 +86,19 @@ export default async function MenuPage({ params, searchParams }: { params: Promi
         <EmptyState icon={BookOpen} title="ยังไม่มีชุดเมนู" description="สร้างชุดเมนูแรก (เช่น เมนูหลัก) แล้วเพิ่มหมวดและรายการอาหาร" action={<MenuSetsManager slug={slug} menus={data.menus} canEdit={canEdit} />} />
       ) : (
         <>
-          <section className="grid gap-3 sm:grid-cols-3">
-            <KpiCard label="รายการทั้งหมด" value={fmtNumber(totalItems)} icon={BookOpen} tone="primary" />
-            <KpiCard label="หมดชั่วคราว (ในมุมมองนี้)" value={fmtNumber(soldOut)} icon={Flame} tone={soldOut ? "accent" : "default"} />
+          <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <KpiCard label="รายการ" value={fmtNumber(totalItems)} icon={BookOpen} tone="primary" />
+            <KpiCard label="หมดชั่วคราว" value={fmtNumber(soldOut)} icon={Flame} tone={soldOut ? "accent" : "default"} />
             <KpiCard label="เมนูแนะนำ" value={fmtNumber(data.items.filter((i) => i.featured).length)} icon={Star} tone="success" />
           </section>
 
           <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-            <aside className="space-y-2">
+            <aside className="min-w-0 space-y-2">
               <div className="flex items-center justify-between">
                 <h2 className="font-heading text-sm font-semibold">หมวด</h2>
                 {canEdit && <CategoryManager slug={slug} menuId={data.menu.id} categories={data.categories} canEdit={canEdit} />}
               </div>
-              <nav aria-label="หมวดเมนู" className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-col lg:px-0">
+              <nav aria-label="หมวดเมนู" className="-mx-4 flex max-w-[100vw] gap-1 overflow-x-auto px-4 pb-1 lg:mx-0 lg:max-w-none lg:flex-col lg:px-0">
                 <Link href={link({ category: "" })} aria-current={!data.categoryId ? "page" : undefined} className={cn("flex h-11 shrink-0 items-center justify-between gap-3 rounded-xl px-3 text-sm font-medium", !data.categoryId ? "bg-primary-soft text-primary" : "hover:bg-muted")}>
                   ทั้งหมด <span className="text-xs tabular-nums text-muted-foreground">{totalItems}</span>
                 </Link>

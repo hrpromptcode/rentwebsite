@@ -52,3 +52,17 @@ export const RESERVATION_STATUS_LABEL: Record<string, string> = {
 export const TAG_SUGGESTIONS = ["recommended", "new", "spicy", "vegan", "vegetarian", "halal", "bestseller"];
 export const TAG_LABEL: Record<string, string> = { recommended: "แนะนำ", new: "ใหม่", spicy: "เผ็ด", vegan: "วีแกน", vegetarian: "มังสวิรัติ", halal: "ฮาลาล", bestseller: "ขายดี" };
 export const ALLERGEN_SUGGESTIONS = ["ถั่ว", "นม", "ไข่", "กลูเตน", "อาหารทะเล", "ถั่วเหลือง", "งา"];
+
+/** Allowed next statuses for a reservation (pure, safe for client components). */
+export type ReservationNext = "confirmed" | "seated" | "completed" | "no_show" | "cancelled";
+const RESERVATION_NEXT: Record<string, ReservationNext[]> = {
+  pending: ["confirmed", "seated", "no_show", "cancelled"],
+  confirmed: ["seated", "completed", "no_show", "cancelled"],
+  seated: ["completed"],
+  completed: [],
+  cancelled: [],
+  no_show: [],
+};
+export function reservationTransitions(status: string): ReservationNext[] {
+  return RESERVATION_NEXT[status] ?? [];
+}

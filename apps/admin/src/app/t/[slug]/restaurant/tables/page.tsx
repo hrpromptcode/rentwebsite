@@ -52,7 +52,7 @@ export default async function TablesPage({ params }: { params: Promise<{ slug: s
         }
       />
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <KpiCard label="โต๊ะทั้งหมด" value={fmtNumber(active.length)} hint={tables.length !== active.length ? `${tables.length - active.length} โต๊ะปิดใช้งาน` : undefined} icon={Armchair} tone="primary" />
         <KpiCard label="กำลังใช้งาน" value={fmtNumber(sessions.length)} hint={sessions.length ? `ยอดรวม ${thb(sessions.reduce((s, x) => s + x.total, 0))}` : "ไม่มีโต๊ะเปิดอยู่"} icon={Users} tone="accent" />
         <KpiCard label="ขอบิลแล้ว" value={fmtNumber(sessions.filter((s) => s.status === "bill_requested").length)} icon={Receipt} tone={sessions.some((s) => s.status === "bill_requested") ? "success" : "default"} />

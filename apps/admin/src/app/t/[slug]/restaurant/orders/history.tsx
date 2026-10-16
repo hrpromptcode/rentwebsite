@@ -11,7 +11,7 @@ import { KpiCard } from "@/components/ui/kpi-card";
 import { fmtDate, fmtNumber, thb } from "@/lib/format";
 import { tenantTx, type TenantCtx } from "@/lib/tenant";
 import { PaymentBadge } from "../_components/payment-badge";
-import { todayYmd } from "../_components/elapsed";
+import { todayYmd } from "../_components/time";
 
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
 const STATUS_TONE: Record<string, "success" | "warning" | "destructive" | "muted" | "soft"> = { received: "soft", preparing: "warning", ready: "success", served: "success", completed: "muted", cancelled: "destructive" };
@@ -40,7 +40,7 @@ export async function OrdersHistory({ slug, ctx, sp }: { slug: string; ctx: Tena
 
   return (
     <div className="space-y-6">
-      <section aria-label="สรุปช่วงเวลา" className="grid gap-3 sm:grid-cols-3">
+      <section aria-label="สรุปช่วงเวลา" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <KpiCard label="ออเดอร์ทั้งหมด" value={fmtNumber(summary.orders)} hint={from === to ? fmtDate(fromDate, { style: "long" }) : `${fmtDate(fromDate)} – ${fmtDate(toDate)}`} icon={ClipboardList} tone="primary" />
         <KpiCard label="ยอดขาย (ชำระแล้ว)" value={thb(summary.revenue)} hint={`${fmtNumber(summary.paid)} ออเดอร์ชำระแล้ว`} icon={Wallet} tone="success" />
         <KpiCard label="ยกเลิก" value={fmtNumber(summary.cancelled)} icon={XCircle} />

@@ -6,6 +6,7 @@ import { upsertGuestCustomer } from "@rentweb/core/customer";
 import { cancelReservation, checkAvailability, type Reservation } from "../services/reservations";
 import { addDays, bangkokDate, bangkokParts } from "../services/time";
 import { toPaymentInfo, type AdminPaymentInfo } from "./orders";
+import { reservationTransitions, type ReservationNext } from "./labels";
 
 export interface ReservationRow {
   id: string;
@@ -94,20 +95,6 @@ export async function reservationDayCounts(tx: Tx, tenantId: string, fromYmd: st
   return [...out.values()];
 }
 
-export type ReservationNext = "confirmed" | "seated" | "completed" | "no_show" | "cancelled";
-
-const NEXT: Record<string, ReservationNext[]> = {
-  pending: ["confirmed", "seated", "no_show", "cancelled"],
-  confirmed: ["seated", "completed", "no_show", "cancelled"],
-  seated: ["completed"],
-  completed: [],
-  cancelled: [],
-  no_show: [],
-};
-
-export function reservationTransitions(status: string): ReservationNext[] {
-  return NEXT[status] ?? [];
-}
 
 export async function setReservationStatus(tx: Tx, tenantId: string, id: string, next: ReservationNext, reason?: string | null): Promise<Result<Reservation>> {
   if (next === "cancelled") return cancelReservation(tx, tenantId, id, reason);

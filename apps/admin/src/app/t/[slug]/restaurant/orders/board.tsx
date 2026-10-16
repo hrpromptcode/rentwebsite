@@ -105,11 +105,11 @@ export function OrdersBoard({ slug, initial, canWrite, canMoney }: { slug: strin
 
   return (
     <div className="space-y-6">
-      <section aria-label="สรุป" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="สรุป" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <KpiCard label="กำลังทำอยู่" value={active.length} hint={active.length ? `รอนานสุด ${Math.floor(oldest / 60_000)} นาที` : "ครัวว่าง"} icon={ChefHat} tone="primary" />
-        <KpiCard label="พร้อมเสิร์ฟ / พร้อมรับ" value={ready.length} icon={UtensilsCrossed} tone="success" />
+        <KpiCard label="พร้อมเสิร์ฟ" value={ready.length} icon={UtensilsCrossed} tone="success" />
         <KpiCard label="โต๊ะที่เปิดอยู่" value={snap.sessions.length} hint={snap.sessions.filter((s) => s.status === "bill_requested").length ? `${snap.sessions.filter((s) => s.status === "bill_requested").length} โต๊ะขอบิล` : "ไม่มีโต๊ะขอบิล"} icon={Armchair} tone="accent" />
-        <KpiCard label="สลิปรอตรวจ" value={slips} icon={Receipt} tone={slips ? "accent" : "default"} />
+        <KpiCard label="ตรวจสลิป" value={slips} icon={Receipt} tone={slips ? "accent" : "default"} />
       </section>
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center">

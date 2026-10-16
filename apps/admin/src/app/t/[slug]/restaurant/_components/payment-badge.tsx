@@ -1,5 +1,5 @@
 import { Badge } from "@rentweb/ui/components/badge";
-import { PAYMENT_METHOD_LABEL } from "@rentweb/module-restaurant/admin";
+import { PAYMENT_METHOD_LABEL } from "@rentweb/module-restaurant/admin/labels";
 import type { AdminPaymentInfo } from "@rentweb/module-restaurant/admin";
 
 /** Order-level payment chip: combines order.paymentStatus with the live payment row. */
