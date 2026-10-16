@@ -1,0 +1,60 @@
+◇ injected env (10) from ..\.env // tip: ◈ secrets for agents [www.dotenvx.com]
+[demo-shop] mobile header buttons: [ 'เปิดเมนู' ]
+[demo-shop] mobile nav links: /products /collections /collections/apparel /collections/bags /collections/home /about /contact /products /about /contact /products
+200 /products <- home:header | สินค้าทั้งหมด · Siam Atelier
+200 /collections <- home:header | หมวดหมู่สินค้า · Siam Atelier
+200 /collections/apparel <- home:header | เสื้อผ้า · Siam Atelier
+200 /collections/bags <- home:header | กระเป๋า · Siam Atelier
+200 /collections/home <- home:header | ของแต่งบ้าน · Siam Atelier
+200 /about <- home:header | เกี่ยวกับเรา · Siam Atelier
+200 /contact <- home:header | ติดต่อเรา · Siam Atelier
+200 /account <- home:header | เข้าสู่ระบบ · Siam Atelier
+200 /cart <- home:header | ตะกร้าสินค้า · Siam Atelier
+200 /refund <- home:footer | นโยบายการคืนเงิน · Siam Atelier
+200 /privacy <- home:footer | นโยบายความเป็นส่วนตัว · Siam Atelier
+200 /terms <- home:footer | เงื่อนไขการใช้บริการ · Siam Atelier
+200 /products/qa-cor-stock-yhs9c <- home:main | QA correctness stock2 YHS9C · Siam Atelier
+200 /products/%E0%B9%80%E0%B8%AA%E0%B8%B7%E0%B9%89%E0%B8%AD-%E0%B8%97%E0%B8%94%E0%B8%AA%E0%B8%AD%E0%B8%9A-qa <- home:main | QA เสื้อยืดทดสอบ OIS4U · Siam Atelier
+200 /products/qa-o87tv <- home:main | QA เสื้อยืดทดสอบ O87TV · Siam Atelier
+200 /products/qa-nzey6 <- home:main | QA เสื้อยืดทดสอบ NZEY6 · Siam Atelier
+200 /products/qa-nsdkx <- home:main | QA เสื้อยืดทดสอบ NSDKX · Siam Atelier
+200 /products/qa-%E0%B9%80%E0%B8%AA%E0%B8%B7%E0%B9%89%E0%B8%AD%E0%B8%A2%E0%B8%B7%E0%B8%94%E0%B8%97%E0%B8%94%E0%B8%AA%E0%B8%AD%E0%B8%9A-nkovy <- home:main | QA เสื้อยืดทดสอบ NKOVY · Siam Atelier
+200 /products/sofa-throw <- home:main | ผ้าคลุมโซฟาทอมือ · Siam Atelier
+200 /products/cushion-cover <- home:main | ปลอกหมอนผ้าฝ้ายทอ (คู่) · Siam Atelier
+200 /products/organic-tee <- home:main | เสื้อยืดคอกลม ฝ้ายออร์แกนิก · Siam Atelier
+200 /products/linen-shirt-sand <- home:main | เสื้อเชิ้ตลินินแขนยาว สีทราย · Siam Atelier
+200 /products/tote-pikul <- home:main | กระเป๋าสะพายผ้าทอ ลายดอกพิกุล · Siam Atelier
+200 /products/leather-clutch <- /products | กระเป๋าคลัตช์หนังแท้ สีน้ำตาลเข้ม · Siam Atelier
+200 /products/wide-pants <- /products | กางเกงขากว้าง ผ้าฝ้ายซักนุ่ม · Siam Atelier
+200 /products/indigo-dress <- /products | เดรสฝ้ายทอมือ ย้อมคราม · Siam Atelier
+[demo-cafe] mobile header buttons: [ 'เปิดเมนู' ]
+[demo-cafe] mobile nav links: /products /collections/cakes /about /contact /products /collections/cakes /contact /products /collections/cakes /about /contact /products
+200 /account <- home:header | เข้าสู่ระบบ · Sugar Puff
+200 /cart <- home:header | ตะกร้าสินค้า · Sugar Puff
+200 /products <- home:header | สินค้าทั้งหมด · Sugar Puff
+200 /collections/cakes <- home:header | เค้ก · Sugar Puff
+200 /about <- home:header | เกี่ยวกับเรา · Sugar Puff
+200 /contact <- home:header | ติดต่อเรา · Sugar Puff
+200 /privacy <- home:footer | นโยบายความเป็นส่วนตัว · Sugar Puff
+200 /terms <- home:footer | เงื่อนไขการใช้บริการ · Sugar Puff
+200 /products/croissant <- home:main | ครัวซองต์เนยฝรั่งเศส · Sugar Puff
+200 /products/almond-croissant <- home:main | แอลมอนด์ครัวซองต์ · Sugar Puff
+200 /products/cookies <- home:main | คุกกี้ช็อกโกแลตชิป (3 ชิ้น) · Sugar Puff
+200 /products/jp-cheesecake <- home:main | ชีสเค้กญี่ปุ่น 1 ปอนด์ · Sugar Puff
+200 /products/coconut-cake <- home:main | เค้กมะพร้าวอ่อน 1 ปอนด์ · Sugar Puff
+200 /products/custom-cake <- home:main | เค้กวันเกิดสั่งทำ (เริ่มต้น) · Sugar Puff
+200 /collections/pastry <- /products | เบเกอรี่ · Sugar Puff
+200 /collections/drinks <- /products | เครื่องดื่ม · Sugar Puff
+200 /products/gf-brownie <- /products | บราวนี่ไม่มีกลูเตน · Sugar Puff
+200 /products/latte <- /products | ลาเต้คั่วเอง (เย็น) · Sugar Puff
+200 /collections <- /collections/cakes | หมวดหมู่สินค้า · Sugar Puff
+[demo-corporate] mobile header buttons: [ 'เปิดเมนู' ]
+[demo-corporate] mobile nav links: /services /work /blog /about /contact /services /work /blog /about /contact /contact
+200 /services <- home:header | บริการทั้งหมด · Northstar Studio
+200 /work <- home:header | ผลงาน · Northstar Studio
+404 /blog <- home:header | Northstar Studio | ERR Failed to load resource: the server responded with a status of 404 (Not Found)
+200 /about <- home:header | เกี่ยวกับเรา · Northstar Studio
+200 /contact <- home:header | ติดต่อเรา · Northstar Studio
+200 /careers <- home:footer | ร่วมงานกับเรา · Northstar Studio
+200 /privacy <- home:footer | นโยบายความเป็นส่วนตัว · Northstar Studio
+200 /terms <- home:footer | เงื่อนไขการใช้บริการ · Northstar Studio

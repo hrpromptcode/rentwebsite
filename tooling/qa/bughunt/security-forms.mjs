@@ -1,0 +1,13 @@
+import { db, WEB } from "./security-http.mjs";
+const sql = db(); const host = "sec-a.localhost:3000";
+const post = (slug, body) => fetch(`${WEB}/api/forms/${slug}`, { method: "POST", headers: { "x-forwarded-host": host, "content-type": "application/json" }, body: JSON.stringify(body) });
+const slug = "sec-probe-" + Date.now().toString(36);
+const r = await post(slug, { name: "x", message: "y", extraBlob: "A".repeat(200_000) });
+console.log("POST new slug:", r.status, await r.text());
+const [t] = await sql`select id from tenants where slug='sec-a'`;
+console.log("forms row created:", await sql`select slug, name, active from forms where tenant_id=${t.id} and slug=${slug}`);
+console.log("stored submission size:", await sql`select length(data::text) as len, (data ? 'extraBlob') as has_extra from form_submissions where tenant_id=${t.id} order by created_at desc limit 1`);
+await sql`update forms set active=false where tenant_id=${t.id} and slug=${slug}`;
+const r2 = await post(slug, { name: "x", message: "y" });
+console.log("POST to inactive form:", r2.status, (await r2.text()).slice(0, 80));
+process.exit(0);

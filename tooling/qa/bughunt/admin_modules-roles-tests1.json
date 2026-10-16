@@ -1,0 +1,5 @@
+[
+ ["staff","demo-shop","/products","toggleFeaturedAction","products/actions",["demo-shop","$BOGUS",true]],
+ ["manager","demo-shop","/products","toggleFeaturedAction","products/actions",["demo-shop","$BOGUS",true]],
+ ["viewer","demo-shop","/orders","saveInternalNoteAction","orders/actions",["demo-shop","$BOGUS","x"]]
+]

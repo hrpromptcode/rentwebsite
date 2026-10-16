@@ -1,0 +1,18 @@
+import { actionId, callWebAction, db, WEB } from "./security-http.mjs";
+const sql = db(); const host = "sec-u1shop.localhost:3000";
+const [t] = await sql`select id from tenants where slug='sec-u1shop'`;
+const [p] = await sql`select id from products where tenant_id=${t.id} and status='active' and has_variants=false order by created_at limit 1`;
+const [m] = await sql`select id, type from shipping_methods where tenant_id=${t.id} and active=true order by type='pickup' desc limit 1`;
+console.log("tenant", t.id, "product", p?.id, "shipping", m);
+const add = await fetch(`${WEB}/api/cart`, { method: "POST", headers: { "x-forwarded-host": host, "content-type": "application/json" }, body: JSON.stringify({ productId: p.id, quantity: 1 }) });
+const cartCookie = (add.headers.getSetCookie() ?? []).map((c) => c.split(";")[0]).join("; ");
+console.log("cart add", add.status, cartCookie ? "cookie" : "no cookie");
+const form = { name: "SEC Probe", phone: "0899990010", email: "", shippingMethodId: m.id, paymentMethod: "slip", note: "", line1: "1 Test Rd", subdistrict: "x", district: "x", province: "กรุงเทพมหานคร", postalCode: "10110" };
+const o = await callWebAction(host, cartCookie, actionId("placeOrderAction", "checkout"), [t.id, {}, "$K1"], "/checkout", form);
+console.log("place order", o.status, o.location, o.text.slice(-200).replace(/\n/g, " | "));
+const orderId = o.location?.match(/\/orders\/([0-9a-f-]{36})/)?.[1];
+const [pay] = await sql`select id, status, amount from payments where tenant_id=${t.id} and ref_id=${orderId} order by created_at desc limit 1`;
+console.log("payment", pay);
+const out = { tenantId: t.id, orderId, paymentId: pay?.id, cartCookie, accessKey: decodeURIComponent(o.location?.match(/k=([^;&]+)/)?.[1] ?? "") };
+(await import("node:fs")).writeFileSync(new URL("./security-order.json", import.meta.url), JSON.stringify(out));
+process.exit(0);

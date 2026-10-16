@@ -35,3 +35,7 @@ tooling/qa/_*
 tooling/qa/*.log
 tooling/qa/*-results.json
 tooling/_*
+tooling/qa/bughunt/*-creds.json
+tooling/qa/bughunt/*-state-*.json
+tooling/qa/bughunt/*.log
+tooling/qa/bughunt/*.png

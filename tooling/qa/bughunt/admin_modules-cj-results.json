@@ -1,0 +1,215 @@
+{
+  "slug": "demo-shop",
+  "stamp": "ZQJAP",
+  "results": [
+    {
+      "step": "1 orders list renders with storefront orders",
+      "ok": true,
+      "note": "20 rows · tabs: ทั้งหมด41 | รอตรวจสลิป0 | รอจัดส่ง17 | สำเร็จ7 | ยกเลิก6"
+    },
+    {
+      "step": "1b filters: tab รอจัดส่ง + search by number",
+      "ok": true,
+      "note": "found #1001"
+    },
+    {
+      "step": "2 create manual order (cash, paid) via /orders/new",
+      "ok": true,
+      "note": "#1042 paid/confirmed · total 63500"
+    },
+    {
+      "step": "3 order detail shows items, payment, timeline, actions",
+      "ok": true,
+      "note": "ok"
+    },
+    {
+      "step": "3b internal note saves",
+      "ok": true
+    },
+    {
+      "step": "4 ship with tracking → status shipped + shipment row + event",
+      "ok": true,
+      "note": "shipped · trackingUrl https://th.kerryexpress.com/th/track/?tr…"
+    },
+    {
+      "step": "4b complete order",
+      "ok": true
+    },
+    {
+      "step": "4c print page renders",
+      "ok": true
+    },
+    {
+      "step": "5 /products/new creates product with 2 variants and publishes",
+      "ok": true,
+      "note": "slug qa-zqjap · 1 option(s)"
+    },
+    {
+      "step": "5b product appears on storefront /products and detail page",
+      "ok": true,
+      "note": "listing found · detail ok · variant chip S shown"
+    },
+    {
+      "step": "5c products list: search + bulk hide/publish",
+      "ok": true
+    },
+    {
+      "step": "5d categories page + inline create",
+      "ok": true
+    },
+    {
+      "step": "6 /discounts create percent code",
+      "ok": true,
+      "note": "QAZQJAP"
+    },
+    {
+      "step": "7 /shipping create flat method + toggle",
+      "ok": true
+    },
+    {
+      "step": "8 slip queue: slip order → attachSlip → /payments approve → order paid",
+      "ok": true,
+      "note": "#1043 paid · verifiedBy user"
+    },
+    {
+      "step": "8b /payments paid tab lists it; order verify tab in /orders works",
+      "ok": true
+    },
+    {
+      "step": "9 /reviews renders",
+      "ok": true,
+      "note": "no pending reviews"
+    },
+    {
+      "step": "shot orders desktop",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-orders-desktop.png"
+    },
+    {
+      "step": "shot order-detail desktop",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-order-detail-desktop.png"
+    },
+    {
+      "step": "shot order-new desktop",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-order-new-desktop.png"
+    },
+    {
+      "step": "shot products desktop",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-products-desktop.png"
+    },
+    {
+      "step": "shot product-new desktop",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-product-new-desktop.png"
+    },
+    {
+      "step": "shot product-detail desktop",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-product-detail-desktop.png"
+    },
+    {
+      "step": "shot categories desktop",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-categories-desktop.png"
+    },
+    {
+      "step": "shot discounts desktop",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-discounts-desktop.png"
+    },
+    {
+      "step": "shot discount-new desktop",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-discount-new-desktop.png"
+    },
+    {
+      "step": "shot shipping desktop",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-shipping-desktop.png"
+    },
+    {
+      "step": "shot shipping-new desktop",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-shipping-new-desktop.png"
+    },
+    {
+      "step": "shot reviews desktop",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-reviews-desktop.png"
+    },
+    {
+      "step": "shot payments desktop",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-payments-desktop.png"
+    },
+    {
+      "step": "shot orders mobile",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-orders-mobile.png"
+    },
+    {
+      "step": "shot order-detail mobile",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-order-detail-mobile.png"
+    },
+    {
+      "step": "shot order-new mobile",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-order-new-mobile.png"
+    },
+    {
+      "step": "shot products mobile",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-products-mobile.png"
+    },
+    {
+      "step": "shot product-new mobile",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-product-new-mobile.png"
+    },
+    {
+      "step": "shot product-detail mobile",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-product-detail-mobile.png"
+    },
+    {
+      "step": "shot categories mobile",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-categories-mobile.png"
+    },
+    {
+      "step": "shot discounts mobile",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-discounts-mobile.png"
+    },
+    {
+      "step": "shot discount-new mobile",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-discount-new-mobile.png"
+    },
+    {
+      "step": "shot shipping mobile",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-shipping-mobile.png"
+    },
+    {
+      "step": "shot shipping-new mobile",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-shipping-new-mobile.png"
+    },
+    {
+      "step": "shot reviews mobile",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-reviews-mobile.png"
+    },
+    {
+      "step": "shot payments mobile",
+      "ok": true,
+      "note": "screenshots\\bughunt-admin_modules-cj-payments-mobile.png"
+    }
+  ],
+  "pageErrors": []
+}

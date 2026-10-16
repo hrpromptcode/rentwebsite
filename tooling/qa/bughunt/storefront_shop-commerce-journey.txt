@@ -1,0 +1,65 @@
+◇ injected env (10) from ..\.env // tip: ◈ encrypted .env [www.dotenvx.com]
+
+===== demo-shop =====
+PASS  [demo-shop] 1a /products lists real products — 13 cards, "13 รายการ", broken images=0 (11522ms)
+PASS  [demo-shop] 1b category chips navigate — /collections/bags -> 2 รายการ (3508ms)
+FAIL  [demo-shop] 1c sort select auto-submits (price_asc) — first card after price_asc is "ใหม่QA เสื้อยืดทดสอบ NSDKX฿350"
+      screenshot -> screenshots\qa-fail-demo-shop-1c-sort-select-auto-submits-price-asc-.png
+PASS  [demo-shop] 1d search filters — 1 รายการ, 1 card(s) (5208ms)
+PASS  [demo-shop] 1e pagination / out-of-range page — 13 รายการ, pagination nav rendered=false (expected none for <=24 items); ?page=2 shows "ยังไม่มีสินค้าในร้าน"=true (3539ms)
+PASS  [demo-shop] 2a product page renders buy box — "เสื้อเชิ้ตลินินแขนยาว สีทราย", S/M/L/XL present (5457ms)
+PASS  [demo-shop] 2b pick variant + qty 2 + add -> toast + badge — toast shown, header badge = 2 (6472ms)
+FAIL  [demo-shop] 3a /cart shows line + qty stepper works — locator.click: Timeout 30000ms exceeded.
+      screenshot -> screenshots\qa-fail-demo-shop-3a-cart-shows-line-qty-stepper-works.png
+PASS  [demo-shop] 3b coupon WELCOME10 applies (10%, cap 300) — discount row "ส่วนลด−฿298", removed again OK (2144ms)
+PASS  [demo-shop] 3c coupon FREESHIP applies (shipping = free) — shipping row shows ส่งฟรี, removed again OK (1726ms)
+PASS  [demo-shop] 3d invalid coupon shows error — "โค้ดส่วนลดไม่ถูกต้องหรือหมดอายุ" (929ms)
+PASS  [demo-shop] 3e leave WELCOME10 applied for checkout (1331ms)
+PASS  [demo-shop] 4a /checkout renders contact + address + shipping quotes — 12 shipping options all priced; 77 provinces (1023ms)
+PASS  [demo-shop] 4b choose shipping + PromptPay + submit -> /orders/[id]?k= — summary total ฿2,742 -> /orders/01a144b6-380e-7781-8369-42025cb6921e?k=... (5799ms)
+PASS  [demo-shop] 5a order page: timeline + PaymentPanel QR — #1025, amount ฿2,742, countdown=true, WELCOME10 shown (81ms)
+PASS  [demo-shop] 5b upload PNG slip -> paid -> order confirmed — paid banner + ชำระแล้ว shown, QR gone (4551ms)
+PASS  [demo-shop] 6 /orders/track finds order by number + phone — -> #1025 (3231ms)
+PASS  [demo-shop] 6b access control: order URL without ?k is not readable — shows ไม่พบคำสั่งซื้อ (1787ms)
+PASS  [demo-shop] 6c tenant isolation: same order id + key on another tenant host — demo-cafe -> 200 / ไม่พบคำสั่งซื้อ (1681ms)
+PASS  [demo-shop] 7a COD order: add again, FREESHIP, choose COD shipping — payment locked to cod, notice=true; summary: ยอดรวมสินค้า฿1,490ค่าจัดส่งส่งฟรีค่าธรรมเนียมเก็บเงินปลายทาง฿30ยอดสุทธิ฿1,520 (9405ms)
+PASS  [demo-shop] 7b COD submit -> order created, no QR, COD notice — #1026, status ยืนยันแล้ว=true, fee row present (3308ms)
+PASS  [demo-shop] 8 stock decremented for bought variant/product — LINEN-SHIRT-SAND-M 2->0; LINEN-SHIRT-SAND-L 7->6; soldCount +2 (paid qty 2, COD unpaid not counted) (1395ms)
+FAIL  [demo-shop] M mobile 390px: sticky add bar + checkout sticky submit — page.waitForResponse: Timeout 15000ms exceeded while waiting for event "response"
+      screenshot -> screenshots\qa-fail-demo-shop-m-mobile-390px-sticky-add-bar-checkout-sticky-submit.png
+WARN  [demo-shop] console errors: 1
+      Failed to load resource: the server responded with a status of 400 (Bad Request)
+
+===== demo-cafe =====
+PASS  [demo-cafe] 1a /products lists real products — 8 cards, "8 รายการ", broken images=0 (3586ms)
+PASS  [demo-cafe] 1b category chips navigate — /collections/cakes -> 3 รายการ (1371ms)
+PASS  [demo-cafe] 1c sort select auto-submits (price_asc) — first card = ครัวซองต์เนยฝรั่งเศส (6256ms)
+PASS  [demo-cafe] 1d search filters — 2 รายการ, 2 card(s) (7642ms)
+PASS  [demo-cafe] 1e pagination / out-of-range page — 8 รายการ, pagination nav rendered=false (expected none for <=24 items); ?page=2 shows "ยังไม่มีสินค้าในร้าน"=true (6237ms)
+PASS  [demo-cafe] 2a product page renders buy box — "ครัวซองต์เนยฝรั่งเศส" (2364ms)
+PASS  [demo-cafe] 2b pick variant + qty 2 + add -> toast + badge — toast shown, header badge = 2 (2464ms)
+PASS  [demo-cafe] 3a /cart shows line + qty stepper works — line qty 2->3->2 OK; summary: ยอดรวมสินค้า (2 ชิ้น)฿150ค่าจัดส่งคำนวณในขั้นตอนถัดไปยอดสุทธิ฿150 (3563ms)
+PASS  [demo-cafe] 3b coupon WELCOME10 applies (10%, cap 300) — N/A — not seeded for demo-cafe; UI error shown: "โค้ดส่วนลดไม่ถูกต้องหรือหมดอายุ" (8310ms)
+PASS  [demo-cafe] 3c coupon FREESHIP applies (shipping = free) — N/A — not seeded for demo-cafe; UI error shown: "โค้ดส่วนลดไม่ถูกต้องหรือหมดอายุ" (8376ms)
+PASS  [demo-cafe] 3d invalid coupon shows error — "โค้ดส่วนลดไม่ถูกต้องหรือหมดอายุ" (908ms)
+PASS  [demo-cafe] 4a /checkout renders contact + address + shipping quotes — 2 shipping options all priced; pickup selected by default (address hidden) (1219ms)
+PASS  [demo-cafe] 4b choose shipping + PromptPay + submit -> /orders/[id]?k= — summary total ฿230 -> /orders/01a144b7-c9ff-772b-971f-f29e68a1c645?k=... (4563ms)
+PASS  [demo-cafe] 5a order page: timeline + PaymentPanel QR — #1005, amount ฿230, countdown=true (136ms)
+PASS  [demo-cafe] 5b upload PNG slip -> paid -> order confirmed — paid banner + ชำระแล้ว shown, QR gone (5785ms)
+PASS  [demo-cafe] 6 /orders/track finds order by number + phone — -> #1005 (4868ms)
+PASS  [demo-cafe] 6b access control: order URL without ?k is not readable — shows ไม่พบคำสั่งซื้อ (1797ms)
+PASS  [demo-cafe] 6c tenant isolation: same order id + key on another tenant host — demo-shop -> 200 / ไม่พบคำสั่งซื้อ (1964ms)
+SKIP  [demo-cafe] 7 COD order — N/A (no cod shipping method seeded)
+PASS  [demo-cafe] 8 stock decremented for bought variant/product — croissant 32->30; soldCount +2 (paid qty 2) (924ms)
+PASS  [demo-cafe] M mobile 390px: sticky add bar + checkout sticky submit — add 136x44 tappable, submit 192x48 tappable, no overflow (6005ms)
+WARN  [demo-cafe] console errors: 1
+      Failed to load resource: the server responded with a status of 400 (Bad Request)
+
+SUMMARY: 41/46 passed
+  FAIL [demo-shop] 1c sort select auto-submits (price_asc) — first card after price_asc is "ใหม่QA เสื้อยืดทดสอบ NSDKX฿350"
+  FAIL [demo-shop] 3a /cart shows line + qty stepper works — locator.click: Timeout 30000ms exceeded.
+  FAIL [demo-shop] M mobile 390px: sticky add bar + checkout sticky submit — page.waitForResponse: Timeout 15000ms exceeded while waiting for event "response"
+  FAIL [demo-shop] console errors during journey — Failed to load resource: the server responded with a status of 400 (Bad Request)
+  FAIL [demo-cafe] console errors during journey — Failed to load resource: the server responded with a status of 400 (Bad Request)
+undefined
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: tsx qa/commerce-journey.ts

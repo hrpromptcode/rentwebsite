@@ -1,0 +1,80 @@
+{
+  "at": "2026-10-16T13:24:06.681Z",
+  "table": "G4",
+  "shared": {
+    "dineIn": "R-1021",
+    "pickup": "R-1022",
+    "pickupPaymentId": "01a144de-d0b0-70d2-bfbb-aade6b045251",
+    "webReservation": "RS-QA00QH4"
+  },
+  "results": [
+    {
+      "step": "1 storefront: dine-in order from /t/<qrToken>",
+      "ok": true,
+      "note": "R-1021 on โต๊ะ G4"
+    },
+    {
+      "step": "1b storefront: pickup order (PromptPay, slip not uploaded)",
+      "ok": true,
+      "note": "R-1022 (payment → pending_verification)"
+    },
+    {
+      "step": "2 board shows both orders in รับออเดอร์",
+      "ok": true
+    },
+    {
+      "step": "3 advance dine-in: เริ่มทำ → พร้อมเสิร์ฟ",
+      "ok": true
+    },
+    {
+      "step": "4 KDS shows pickup ticket; per-item done → ticket becomes ready",
+      "ok": true,
+      "note": "1 item(s) ticked"
+    },
+    {
+      "step": "4b KDS station tabs + screenshots (1440 / 820 / 390)",
+      "ok": true
+    },
+    {
+      "step": "5 ปิดโต๊ะ/รับชำระ (cash) closes the session, dine-in order paid",
+      "ok": true,
+      "note": "session closed, order paid (cash)"
+    },
+    {
+      "step": "6 pickup: อนุมัติสลิป → ชำระแล้ว",
+      "ok": true
+    },
+    {
+      "step": "6b board at 390 + history tab",
+      "ok": true
+    },
+    {
+      "step": "7 menu: toggle หมดชั่วคราว → storefront /menu shows หมด",
+      "ok": true
+    },
+    {
+      "step": "7b menu: toggle back → storefront sells it again",
+      "ok": false,
+      "note": "expect(locator).toBeVisible() failed |  | Locator: locator('[data-sonner-toast]').filter({ hasText: /หมด|บันทึก|กลับมา/ }).first() | Expected: visible | Timeout: 15000ms | Error: element(s) not found"
+    },
+    {
+      "step": "8 /tables/print renders QR cards",
+      "ok": true,
+      "note": "21 cards"
+    },
+    {
+      "step": "9 reservations: create manual reservation",
+      "ok": true
+    },
+    {
+      "step": "9 (cont.) manual reservation is created already confirmed (phone booking)",
+      "ok": true
+    },
+    {
+      "step": "9b pending (deposit) reservation → admin ยืนยัน → ยืนยันแล้ว",
+      "ok": true,
+      "note": "RS-QA00QH4 confirmed"
+    }
+  ],
+  "adminErrors": []
+}

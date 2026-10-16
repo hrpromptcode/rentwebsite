@@ -1,0 +1,142 @@
+{
+  "at": "2026-10-16T13:31:37.396Z",
+  "shared": {
+    "number": "BK-1027",
+    "bookingId": "01a144e3-2148-765d-8b41-9c3867378573",
+    "date": "2026-10-17",
+    "serviceId": "01a144e3-afd0-71a0-ac2b-5f7753013521",
+    "serviceName": "คิวเอ ทรีตเมนต์ 2024",
+    "staffId": "01a1401b-ad75-764e-84ca-ba9856520582",
+    "serviceIdForSlots": "01a1401b-ad12-7546-8f7f-bb020e71d441",
+    "monday": "2026-10-19",
+    "staffHadOwn": true,
+    "monRule": {
+      "start": "13:00",
+      "end": "22:00"
+    },
+    "patientId": "01a144e4-a725-70cf-909c-a98e5cdd6433",
+    "hn": "LM-0013",
+    "visitId": "01a144e4-f5e8-74fd-b601-6642c084917f"
+  },
+  "results": [
+    {
+      "step": "1 walk-in booking via /bookings/new",
+      "ok": true,
+      "note": "BK-1027 นวดไทยโบราณ 60 นาที on 2026-10-17 (source walk_in, booking.confirmed emitted)"
+    },
+    {
+      "step": "2 calendar day view shows the chip",
+      "ok": true,
+      "note": "5 columns incl. ไม่ระบุ"
+    },
+    {
+      "step": "3 open chip → check-in → complete",
+      "ok": true,
+      "note": "completed with checkedInAt + completedAt"
+    },
+    {
+      "step": "4 create service → visible on storefront /services",
+      "ok": true,
+      "note": "คิวเอ ทรีตเมนต์ 2024 (01a144e3-afd0-71a0-ac2b-5f7753013521)"
+    },
+    {
+      "step": "5 staff: close Monday → /api/booking/slots empty on Monday",
+      "ok": true,
+      "note": "พี่โบว์: Monday 2026-10-19 slots 17 → 0"
+    },
+    {
+      "step": "5b restore staff schedule + delete test service",
+      "ok": true,
+      "note": "Monday re-opened 13:00–22:00 (verified in availability_rules)"
+    },
+    {
+      "step": "6 salon pages render (staff list, week, new)",
+      "ok": true
+    },
+    {
+      "step": "7 clinic module gate on salon",
+      "ok": true
+    },
+    {
+      "step": "8 clinic: create patient",
+      "ok": true,
+      "note": "LM-0013 (access logs 1)"
+    },
+    {
+      "step": "9 clinic: create visit with encrypted notes",
+      "ok": true,
+      "note": "visit 01a144e4-f5e8-74fd-b601-6642c084917f notes ciphertext v1.MzxBF6pU/fsIj…"
+    },
+    {
+      "step": "10 reopen visit → notes decrypt",
+      "ok": true,
+      "note": "plain text restored"
+    },
+    {
+      "step": "10b visit: add procedure → complete with cash → payment paid",
+      "ok": true,
+      "note": "total ฿50 → payment invoice/cash paid 50 THB"
+    },
+    {
+      "step": "10c packages: create a 2-session package",
+      "ok": true,
+      "note": "คิวเอ คอร์ส 2024 2 ครั้ง ฿1,000"
+    },
+    {
+      "step": "10d patient: consent toggle + sell package + ใช้ 1 ครั้ง ×2 → exhausted",
+      "ok": true,
+      "note": "consent stored, package exhausted (2/2 used), access logs 21"
+    },
+    {
+      "step": "10e packages: close sale of the test package (sold → delete refused)",
+      "ok": true,
+      "note": "delete refused (owned), sale closed"
+    },
+    {
+      "step": "10f clinic: walk-in booking → queue “รับเข้าตรวจ” → visit linked (then cancel visit)",
+      "ok": true,
+      "note": "BK-1010 (Botox ลดกราม / ริ้วรอย) → new patient LM-0014 0872024340, procedure prefilled 1, booking checked_in; visit cancelled"
+    },
+    {
+      "step": "11 clinic packages + visits list render",
+      "ok": true
+    },
+    {
+      "step": "12 phone 390 screenshots + overflow check",
+      "ok": true,
+      "note": "12 pages, no page-level overflow"
+    },
+    {
+      "step": "13 cleanup QA packages",
+      "ok": true,
+      "note": "removed 1 QA package(s)"
+    }
+  ],
+  "shots": [
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-walkin-1440.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-calendar-day-1440.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-calendar-week-1440.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-booking-detail-1440.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-services-1440.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-staff-detail-1440.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-staff-1440.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-patient-1440.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-visit-1440.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-packages-1440.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-visits-1440.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-patients-1440.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-calendar-day-390.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-calendar-week-390.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-walkin-390.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-booking-detail-390.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-services-390.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-staff-390.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-staff-detail-390.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-patients-390.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-patient-390.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-visits-390.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-visit-390.png",
+    "D:\\Projects\\promptcode_rentweb\\tooling\\screenshots\\bughunt-admin_modules-bj-packages-390.png"
+  ],
+  "adminErrors": []
+}
