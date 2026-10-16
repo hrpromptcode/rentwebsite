@@ -1,11 +1,9 @@
 "use server";
 
-import { existsSync } from "node:fs";
-import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { media } from "@rentweb/db";
 import { isUuid } from "@rentweb/core";
-import { getStorage, IMAGE_MIMES, MAX_UPLOAD_BYTES, objectKey } from "@rentweb/core/storage";
+import { getStorage, MAX_UPLOAD_BYTES, objectKey, sniffImage } from "@rentweb/core/storage";
 import { deleteCategory, deleteService, saveCategory, saveService, setServiceFlags, uniqueServiceSlug, type Actor } from "@rentweb/module-booking/admin";
 import { categorySchema, fieldErrors, serviceSchema, type CategoryInput, type FormResult, type ServiceInput } from "@rentweb/module-booking/admin/schemas";
 import { assertRole, getTenantCtx, tenantTx, type TenantCtx } from "@/lib/tenant";
@@ -80,29 +78,30 @@ export async function deleteCategoryAction(slug: string, id: string): Promise<Fo
   return { ok: true, message: "ลบหมวดหมู่แล้ว (บริการในหมวดยังอยู่)" };
 }
 
-/** In dev the admin and storefront are separate Next apps; local uploads must land in the storefront's public dir to be served. */
-function pointLocalStorageAtWeb() {
-  if (process.env.R2_BUCKET || process.env.LOCAL_UPLOAD_DIR) return;
-  const webDir = path.resolve(process.cwd(), "../web/public/uploads");
-  if (existsSync(path.dirname(webDir))) process.env.LOCAL_UPLOAD_DIR = webDir;
-}
+const UPLOAD_FOLDERS = new Set(["services", "staff", "clinic", "booking"]);
 
-/** Shared by services / staff / clinic forms (folder = "services" | "staff" | "clinic"). */
+/**
+ * Shared by services / staff / clinic forms (folder = "services" | "staff" | "clinic"). The bytes decide the type
+ * (sniffImage: JPG / PNG / WebP / GIF / AVIF, never SVG / HTML) – not the client's file.type / file.name – and the
+ * object is stored with the sniffed extension + MIME. Local uploads land in the storefront's uploads dir (core storage, AC-01).
+ */
 export async function uploadBookingImageAction(slug: string, fd: FormData): Promise<FormResult<{ url: string; mediaId: string }>> {
   const ctx = await getTenantCtx(slug);
   assertRole(ctx, "staff");
   const file = fd.get("file");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "กรุณาเลือกรูปภาพ" };
-  if (!IMAGE_MIMES.has(file.type)) return { ok: false, error: "รองรับเฉพาะไฟล์รูปภาพ (JPG, PNG, WebP, GIF, AVIF)" };
   if (file.size > MAX_UPLOAD_BYTES) return { ok: false, error: "ไฟล์ใหญ่เกิน 10 MB" };
-  const folder = String(fd.get("folder") ?? "booking").replace(/[^a-z0-9-]/gi, "") || "booking";
-  pointLocalStorageAtWeb();
-  const key = objectKey(ctx.tenant.id, folder, file.name);
-  const stored = await getStorage().put(key, Buffer.from(await file.arrayBuffer()), file.type);
+  const buf = Buffer.from(await file.arrayBuffer());
+  const sniffed = sniffImage(buf);
+  if (!sniffed) return { ok: false, error: "รองรับเฉพาะไฟล์รูปภาพ (JPG, PNG, WebP, GIF, AVIF)" };
+  const wanted = String(fd.get("folder") ?? "booking").replace(/[^a-z0-9-]/gi, "");
+  const folder = UPLOAD_FOLDERS.has(wanted) ? wanted : "booking";
+  const key = objectKey(ctx.tenant.id, folder, `${folder}.${sniffed.ext}`);
+  const stored = await getStorage().put(key, buf, sniffed.mime);
   const [row] = await tenantTx(ctx.tenant.id, (tx) =>
     tx
       .insert(media)
-      .values({ tenantId: ctx.tenant.id, key: stored.key, url: stored.url, mime: stored.mime, size: stored.size, folder: `/${folder}`, alt: file.name.replace(/\.[^.]+$/, ""), createdBy: ctx.userId })
+      .values({ tenantId: ctx.tenant.id, key: stored.key, url: stored.url, mime: sniffed.mime, size: stored.size, folder: `/${folder}`, alt: file.name.replace(/\.[^.]+$/, "").slice(0, 200), createdBy: ctx.userId })
       .returning({ id: media.id }),
   );
   revalidatePath(`/t/${slug}/media`);

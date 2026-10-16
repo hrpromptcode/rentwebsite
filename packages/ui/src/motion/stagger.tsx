@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { motion, useReducedMotion, type HTMLMotionProps, type Variants } from "motion/react";
-import { cn } from "../lib/utils";
 
 export interface StaggerProps extends HTMLMotionProps<"div"> {
   stagger?: number;
@@ -25,9 +24,10 @@ const item: Variants = {
   show: { opacity: [0, 1], y: [22, 0], scale: [0.98, 1], transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } },
 };
 
-export function StaggerItem({ children, className, ...rest }: HTMLMotionProps<"div">) {
+/** Hidden start state: CSS on `[data-reveal-item]` (globals.css), transform-based so motion's end state clears it. */
+export function StaggerItem({ children, ...rest }: HTMLMotionProps<"div">) {
   return (
-    <motion.div variants={item} initial={false} className={cn("motion-safe:opacity-0 motion-safe:translate-y-5", className)} {...rest}>
+    <motion.div data-reveal-item="" variants={item} initial={false} {...rest}>
       {children}
     </motion.div>
   );

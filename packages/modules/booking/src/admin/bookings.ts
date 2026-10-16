@@ -1,11 +1,11 @@
 import { qualified } from "./sql";
 import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, lt, or, sql, type SQL } from "drizzle-orm";
 import { bookings, customers, nextCounter, payments, serviceCategories, services, staff, staffServices, type Tx } from "@rentweb/db";
-import { audit, emitEvent, fail, ok, randomToken, type Result } from "@rentweb/core";
+import { audit, emitEvent, fail, isUuid, ok, randomToken, type Result } from "@rentweb/core";
 import { upsertGuestCustomer } from "@rentweb/core/customer";
-import { createPayment, listPaymentsFor, markFailed, markPaid, refundPayment, type PaymentMethod } from "@rentweb/core/payments";
-import { computeSlots, freeStaffAt, isGroupService, loadAvailabilityData, pickLeastBookedStaff, toSlotService, type Slot, type SlotEngineInput } from "../services/availability";
-import { cancelBooking, type BookingRow } from "../services/bookings";
+import { createPayment, listPaymentsFor, markFailed, markPaid, paymentRefundRequired, refundPayment, type PaymentMethod } from "@rentweb/core/payments";
+import { assignStaff, computeSlots, isGroupService, isPerPersonService, loadAvailabilityData, partySizeFor, toSlotService, type Slot, type SlotEngineInput } from "../services/availability";
+import { answersOf, cancelBooking, carryPaymentsOnReschedule, lockBookingPayments, lockTenantBookings, voidBookingPayments, type BookingRow } from "../services/bookings";
 import { getServiceById, type ServiceWithCategory } from "../services/catalog";
 import type { BookingConfig } from "../services/config";
 import { bkkDateString, bkkDayStart, DAY_MS, parseHm, parseYmd, weekdayOf } from "../services/time";
@@ -34,6 +34,8 @@ export interface CalendarBooking {
   staffId: string | null;
   staffName: string | null;
   staffColor: string | null;
+  /** further staff serving the party (staffed group bookings) – the booking shows in their columns too */
+  extraStaffIds: string[];
   price: number;
   depositAmount: number;
   paymentStatus: string;
@@ -53,7 +55,7 @@ export interface CalendarFilters {
 export async function listBookingsBetween(tx: Tx, tenantId: string, f: CalendarFilters): Promise<CalendarBooking[]> {
   const conds: SQL[] = [eq(bookings.tenantId, tenantId), lt(bookings.startsAt, f.to), gte(bookings.endsAt, f.from)];
   if (f.staffId === "none") conds.push(isNull(bookings.staffId));
-  else if (f.staffId) conds.push(eq(bookings.staffId, f.staffId));
+  else if (f.staffId && isUuid(f.staffId)) conds.push(or(eq(bookings.staffId, f.staffId), sql`${f.staffId}::uuid = any(${bookings.extraStaffIds})`)!);
   if (f.status && f.status !== "all") {
     if (f.status === "active") conds.push(inArray(bookings.status, ["pending", "confirmed", "checked_in", "in_progress"]));
     else conds.push(eq(bookings.status, f.status));
@@ -78,6 +80,7 @@ export async function listBookingsBetween(tx: Tx, tenantId: string, f: CalendarF
       staffId: bookings.staffId,
       staffName: staff.name,
       staffColor: staff.color,
+      extraStaffIds: bookings.extraStaffIds,
       price: bookings.price,
       depositAmount: bookings.depositAmount,
       paymentStatus: bookings.paymentStatus,
@@ -85,8 +88,8 @@ export async function listBookingsBetween(tx: Tx, tenantId: string, f: CalendarF
       note: bookings.note,
     })
     .from(bookings)
-    .innerJoin(services, eq(bookings.serviceId, services.id))
-    .leftJoin(staff, eq(bookings.staffId, staff.id))
+    .innerJoin(services, and(eq(bookings.serviceId, services.id), eq(services.tenantId, tenantId)))
+    .leftJoin(staff, and(eq(bookings.staffId, staff.id), eq(staff.tenantId, tenantId)))
     .where(and(...conds))
     .orderBy(asc(bookings.startsAt), asc(bookings.number))
     .limit(1000);
@@ -153,6 +156,8 @@ export interface AdminBookingDetail {
   booking: BookingRow;
   service: ServiceWithCategory | null;
   staff: typeof staff.$inferSelect | null;
+  /** further staff serving the party (staffed group bookings) */
+  extraStaff: Array<{ id: string; name: string; color: string }>;
   customer: { id: string; name: string | null; phone: string | null; email: string | null; tier: string; ordersCount: number; totalSpent: number } | null;
   payments: PaymentRow[];
   /** latest deposit payment */
@@ -166,8 +171,10 @@ export interface AdminBookingDetail {
 }
 
 export async function getBookingAdmin(tx: Tx, tenantId: string, id: string): Promise<AdminBookingDetail | null> {
+  if (!isUuid(id)) return null;
   const [b] = await tx.select().from(bookings).where(and(eq(bookings.tenantId, tenantId), eq(bookings.id, id))).limit(1);
   if (!b) return null;
+  const extraStaff = b.extraStaffIds.length ? await tx.select({ id: staff.id, name: staff.name, color: staff.color }).from(staff).where(and(eq(staff.tenantId, tenantId), inArray(staff.id, b.extraStaffIds))) : [];
   const [service, st, cust, pays, from, to, history] = await Promise.all([
     getServiceById(tx, tenantId, b.serviceId),
     b.staffId ? tx.select().from(staff).where(and(eq(staff.tenantId, tenantId), eq(staff.id, b.staffId))).limit(1).then((r) => r[0] ?? null) : Promise.resolve(null),
@@ -188,7 +195,7 @@ export async function getBookingAdmin(tx: Tx, tenantId: string, id: string): Pro
       ? tx
           .select({ id: bookings.id, number: bookings.number, startsAt: bookings.startsAt, status: bookings.status, price: bookings.price, serviceName: services.name })
           .from(bookings)
-          .innerJoin(services, eq(bookings.serviceId, services.id))
+          .innerJoin(services, and(eq(bookings.serviceId, services.id), eq(services.tenantId, tenantId)))
           .where(and(eq(bookings.tenantId, tenantId), eq(bookings.customerId, b.customerId), sql`${bookings.id} <> ${b.id}`))
           .orderBy(desc(bookings.startsAt))
           .limit(8)
@@ -202,12 +209,15 @@ export async function getBookingAdmin(tx: Tx, tenantId: string, id: string): Pro
   for (const p of sorted) {
     if (p.paidAt) timeline.push({ at: p.paidAt, label: `รับชำระ ${p.method === "cash" ? "เงินสด" : p.method === "slip" ? "โอนเงิน" : p.method === "promptpay_qr" ? "PromptPay" : p.method}`, tone: "success" });
     if (p.status === "failed") timeline.push({ at: p.updatedAt, label: `ปฏิเสธการชำระ${p.failureReason ? `: ${p.failureReason}` : ""}`, tone: "destructive" });
+    if (p.status === "cancelled" || p.status === "expired") timeline.push({ at: p.updatedAt, label: `${p.status === "expired" ? "QR หมดอายุ" : "ยกเลิกรายการชำระ"}${p.failureReason ? `: ${p.failureReason}` : ""}`, tone: "muted" });
+    const refund = paymentRefundRequired(p);
+    if (refund) timeline.push({ at: p.paidAt ?? p.updatedAt, label: `ต้องคืนเงินลูกค้า: ${refund}`, tone: "warning" });
   }
   if (b.checkedInAt) timeline.push({ at: b.checkedInAt, label: "เช็กอิน", tone: "default" });
   if (b.completedAt) timeline.push({ at: b.completedAt, label: "ให้บริการเสร็จสิ้น", tone: "success" });
   if (b.cancelledAt) timeline.push({ at: b.cancelledAt, label: b.status === "no_show" ? "ไม่มาตามนัด" : `ยกเลิก (${b.cancelledBy ?? "-"})${b.cancelReason ? `: ${b.cancelReason}` : ""}`, tone: "destructive" });
   timeline.sort((a, c) => a.at.getTime() - c.at.getTime());
-  return { booking: b, service, staff: st, customer: cust, payments: sorted, payment, rescheduledFrom: from, rescheduledTo: to, timeline, customerHistory: history };
+  return { booking: b, service, staff: st, extraStaff, customer: cust, payments: sorted, payment, rescheduledFrom: from, rescheduledTo: to, timeline, customerHistory: history };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -225,6 +235,9 @@ const TRANSITIONS: Record<BookingAction, { from: string[]; to: string }> = {
 export async function transitionBooking(tx: Tx, tenantId: string, id: string, action: BookingAction, actor: Actor): Promise<Result<{ status: string }, string>> {
   const t = TRANSITIONS[action];
   if (!t) return fail("คำสั่งไม่ถูกต้อง");
+  if (!isUuid(id)) return fail("ไม่พบการจอง");
+  // lock order payments → booking (same as markPaid → onBookingPaid)
+  const pays = action === "no_show" ? await lockBookingPayments(tx, tenantId, id) : [];
   const [b] = await tx.select().from(bookings).where(and(eq(bookings.tenantId, tenantId), eq(bookings.id, id))).limit(1).for("update");
   if (!b) return fail("ไม่พบการจอง");
   if (!t.from.includes(b.status)) return fail(`สถานะปัจจุบัน (${b.status}) เปลี่ยนเป็นขั้นนี้ไม่ได้`);
@@ -245,7 +258,8 @@ export async function transitionBooking(tx: Tx, tenantId: string, id: string, ac
     patch.cancelledBy = "admin";
     patch.cancelReason = "no_show";
   }
-  await tx.update(bookings).set(patch).where(eq(bookings.id, b.id));
+  await tx.update(bookings).set(patch).where(and(eq(bookings.tenantId, tenantId), eq(bookings.id, b.id)));
+  if (action === "no_show") await voidBookingPayments(tx, tenantId, pays, `ไม่มาตามนัด ${b.number}`);
   const payload = { bookingId: b.id, number: b.number, startsAt: b.startsAt.toISOString(), customerId: b.customerId, staffId: b.staffId, serviceId: b.serviceId, by: actor.userId };
   const eventType = action === "confirm" ? "booking.confirmed" : action === "check_in" ? "booking.checked_in" : action === "start" ? "booking.started" : action === "complete" ? "booking.completed" : "booking.no_show";
   await emitEvent(tx, { tenantId, type: eventType, payload });
@@ -254,18 +268,13 @@ export async function transitionBooking(tx: Tx, tenantId: string, id: string, ac
 }
 
 export async function adminCancelBooking(tx: Tx, tenantId: string, id: string, reason: string, config: BookingConfig, actor: Actor): Promise<Result<null, string>> {
+  if (!isUuid(id)) return fail("ไม่พบการจอง");
   const [b] = await tx.select({ status: bookings.status }).from(bookings).where(and(eq(bookings.tenantId, tenantId), eq(bookings.id, id))).limit(1);
   if (!b) return fail("ไม่พบการจอง");
   if (!(CANCELLABLE_STATUSES as readonly string[]).includes(b.status)) return fail("การจองนี้อยู่ในสถานะที่ยกเลิกไม่ได้แล้ว");
-  if (b.status === "checked_in") {
-    // the shared service only cancels pending/confirmed; a checked-in customer that leaves is cancelled by the admin directly
-    const now = new Date();
-    await tx.update(bookings).set({ status: "cancelled", cancelledAt: now, cancelledBy: "admin", cancelReason: reason }).where(eq(bookings.id, id));
-    await emitEvent(tx, { tenantId, type: "booking.cancelled", payload: { bookingId: id, by: "admin", reason } });
-  } else {
-    const r = await cancelBooking(tx, tenantId, id, { by: "admin", reason, config });
-    if (!r.ok) return fail(r.error === "already_cancelled" ? "การจองนี้ถูกยกเลิกไปแล้ว" : "การจองนี้ยกเลิกไม่ได้");
-  }
+  // shared service: voids the unpaid deposit (COR-08) and gives a course session back; a checked-in customer that leaves is allowed for staff
+  const r = await cancelBooking(tx, tenantId, id, { by: "admin", reason, config, allowCheckedIn: true });
+  if (!r.ok) return fail(r.error === "already_cancelled" ? "การจองนี้ถูกยกเลิกไปแล้ว" : "การจองนี้ยกเลิกไม่ได้");
   await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "booking.cancel", targetType: "booking", targetId: id, diff: { reason } });
   return ok(null);
 }
@@ -285,8 +294,10 @@ export async function approveDeposit(tx: Tx, tenantId: string, bookingId: string
   if (!p) return fail("ไม่พบรายการชำระเงินของการจองนี้");
   if (p.status === "paid") return fail("รายการนี้ยืนยันแล้ว");
   if (!["pending", "pending_verification"].includes(p.status)) return fail(`รายการอยู่ในสถานะ ${p.status} ยืนยันไม่ได้`);
-  await markPaid(tx, tenantId, p.id, { verifiedBy: actor.userId });
-  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "booking.deposit.approve", targetType: "payment", targetId: p.id, diff: { bookingId, amount: p.amount, method: p.method } });
+  const paid = await markPaid(tx, tenantId, p.id, { verifiedBy: actor.userId });
+  const refund = paymentRefundRequired(paid);
+  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "booking.deposit.approve", targetType: "payment", targetId: p.id, diff: { bookingId, amount: p.amount, method: p.method, refundRequired: refund } });
+  if (refund) return fail(`บันทึกรับเงินแล้ว แต่ต้องคืนเงินลูกค้า: ${refund}`);
   return ok(null);
 }
 
@@ -309,16 +320,21 @@ export async function refundDeposit(tx: Tx, tenantId: string, bookingId: string,
   return ok(null);
 }
 
-/** Records a deposit paid at the counter (cash) for a pending booking without a usable payment row. */
+/** Records a deposit paid at the counter (cash) for a pending booking; the open QR / rejected slip is voided first. */
 export async function recordCashDeposit(tx: Tx, tenantId: string, bookingId: string, actor: Actor): Promise<Result<null, string>> {
-  const [b] = await tx.select().from(bookings).where(and(eq(bookings.tenantId, tenantId), eq(bookings.id, bookingId))).limit(1);
+  if (!isUuid(bookingId)) return fail("ไม่พบการจอง");
+  const pays = await lockBookingPayments(tx, tenantId, bookingId);
+  const [b] = await tx.select().from(bookings).where(and(eq(bookings.tenantId, tenantId), eq(bookings.id, bookingId))).limit(1).for("update");
   if (!b) return fail("ไม่พบการจอง");
+  if (b.status === "cancelled" || b.status === "no_show") return fail("การจองนี้ถูกยกเลิกแล้ว");
   if (b.paymentStatus !== "unpaid" || b.depositAmount <= 0) return fail("การจองนี้ไม่มีมัดจำค้างชำระ");
+  if (pays.some((x) => x.status === "pending_verification")) return fail("มีสลิปรอตรวจสอบอยู่ — อนุมัติหรือปฏิเสธสลิปก่อน");
+  await voidBookingPayments(tx, tenantId, pays, "รับมัดจำเป็นเงินสดที่ร้าน");
   const p = await createPayment(tx, tenantId, { refType: "booking", refId: b.id, amount: b.depositAmount, provider: "cash", method: "cash" as PaymentMethod, customerId: b.customerId, metadata: { bookingNumber: b.number, by: actor.userId } });
   await tx
     .update(bookings)
     .set({ answers: { ...((b.answers ?? {}) as Record<string, unknown>), paymentId: p.id } })
-    .where(eq(bookings.id, b.id));
+    .where(and(eq(bookings.tenantId, tenantId), eq(bookings.id, b.id)));
   await markPaid(tx, tenantId, p.id, { verifiedBy: actor.userId });
   await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "booking.deposit.cash", targetType: "payment", targetId: p.id, diff: { bookingId, amount: b.depositAmount } });
   return ok(null);
@@ -369,38 +385,39 @@ function isExclusionViolation(err: unknown): boolean {
 }
 
 /**
- * Back-office booking: validated against the same slot engine (no notice period, offline staff allowed),
- * status "confirmed" immediately (walk-ins pay at the counter – no deposit payment is opened).
+ * Back-office booking: validated against the same slot engine (no notice period, offline staff allowed) under the
+ * tenant booking lock, status "confirmed" immediately (walk-ins pay at the counter – no deposit payment is opened).
+ * Staffed group services get one staff per guest (SBR-004); per-person services are priced per guest.
  */
 export async function createAdminBooking(tx: Tx, tenantId: string, input: AdminCreateInput, config: BookingConfig, actor: Actor): Promise<Result<BookingRow, string>> {
   const now = new Date();
+  if (!isUuid(input.serviceId)) return fail("ไม่พบบริการ");
   const service = await getServiceById(tx, tenantId, input.serviceId);
   if (!service) return fail("ไม่พบบริการ");
   const start = new Date(input.start);
   if (Number.isNaN(start.getTime())) return fail("เวลาไม่ถูกต้อง");
   const date = bkkDateString(start);
-  const group = isGroupService(service);
-  if (group) await tx.execute(sql`select id from ${services} where ${services.id} = ${service.id} for update`);
-  const engine = await adminEngine(tx, tenantId, service, date, input.staffId, config, now);
+  const slotService = toSlotService(service);
+  const group = isGroupService(slotService);
+  const prev = input.rescheduleOf ?? null;
+  const partySize = partySizeFor(slotService, input.partySize);
+  await lockTenantBookings(tx, tenantId);
+  const engine = { ...(await adminEngine(tx, tenantId, service, date, input.staffId, config, now)), partySize };
   const iso = start.toISOString();
-  let staffId: string | null = null;
-  if (group) {
-    const slot = computeSlots(engine).find((s) => s.start === iso);
-    if (!slot) return fail("เวลานี้อยู่นอกเวลาทำการ");
-    if (!slot.available || slot.remaining < input.partySize) return fail("เวลานี้เต็มแล้ว");
-  } else if (input.staffId) {
-    if (!engine.eligibleStaffIds.includes(input.staffId)) return fail("พนักงานคนนี้ไม่ได้ให้บริการนี้ (เพิ่มในหน้า พนักงาน ก่อน)");
-    const slot = computeSlots(engine).find((s) => s.start === iso);
-    if (!slot) return fail("เวลานี้อยู่นอกตารางงานของพนักงาน");
-    if (!slot.available) return fail("พนักงานไม่ว่างในเวลานี้");
-    staffId = input.staffId;
-  } else {
-    if (!engine.eligibleStaffIds.length) return fail("ยังไม่มีพนักงานที่ให้บริการนี้");
-    const slot = computeSlots({ ...engine, staffId: null }).find((s) => s.start === iso);
-    if (!slot) return fail("เวลานี้อยู่นอกเวลาทำการ");
-    staffId = pickLeastBookedStaff(engine, freeStaffAt(engine, iso));
-    if (!staffId) return fail("ไม่มีพนักงานว่างในเวลานี้");
-  }
+  if (input.staffId && slotService.requiresStaff && !engine.eligibleStaffIds.includes(input.staffId)) return fail("พนักงานคนนี้ไม่ได้ให้บริการนี้ (เพิ่มในหน้า พนักงาน ก่อน)");
+  if (slotService.requiresStaff && !engine.eligibleStaffIds.length) return fail("ยังไม่มีพนักงานที่ให้บริการนี้");
+  const slot = computeSlots(engine).find((s) => s.start === iso);
+  if (!slot) return fail(input.staffId && !group ? "เวลานี้อยู่นอกตารางงานของพนักงาน" : "เวลานี้อยู่นอกเวลาทำการ");
+  if (group && (!slot.available || slot.remaining < partySize)) return fail(slotService.requiresStaff && slot.remaining > 0 ? "ผู้ให้บริการว่างไม่พอสำหรับจำนวนผู้ใช้บริการ" : "เวลานี้เต็มแล้ว");
+  if (!group && input.staffId && !slot.available) return fail("พนักงานไม่ว่างในเวลานี้");
+  const pickStaff = (exclude: ReadonlySet<string>): string[] | null => {
+    if (!slotService.requiresStaff) return [];
+    if (group) return assignStaff(engine, iso, partySize, input.staffId, exclude);
+    if (input.staffId) return exclude.has(input.staffId) ? null : [input.staffId];
+    return assignStaff(engine, iso, 1, null, exclude);
+  };
+  let staffIds = pickStaff(new Set());
+  if (!staffIds) return fail("ไม่มีพนักงานว่างในเวลานี้");
 
   let customerId = input.customer.id;
   if (!customerId && (input.customer.phone || input.customer.email)) {
@@ -408,68 +425,93 @@ export async function createAdminBooking(tx: Tx, tenantId: string, input: AdminC
     customerId = guest?.id ?? null;
   }
 
-  let price = service.price;
-  if (staffId) {
-    const [link] = await tx.select({ priceOverride: staffServices.priceOverride }).from(staffServices).where(and(eq(staffServices.tenantId, tenantId), eq(staffServices.staffId, staffId), eq(staffServices.serviceId, service.id))).limit(1);
-    if (link?.priceOverride != null) price = link.priceOverride;
-  }
-  const prev = input.rescheduleOf ?? null;
+  const perPerson = isPerPersonService(slotService);
+  const priceFor = async (ids: string[]): Promise<number> => {
+    if (prev) return prev.price;
+    let unit = service.price;
+    if (!group && ids[0]) {
+      const [link] = await tx.select({ priceOverride: staffServices.priceOverride }).from(staffServices).where(and(eq(staffServices.tenantId, tenantId), eq(staffServices.staffId, ids[0]), eq(staffServices.serviceId, service.id))).limit(1);
+      if (link?.priceOverride != null) unit = link.priceOverride;
+    }
+    return perPerson ? unit * partySize : unit;
+  };
   const end = new Date(start.getTime() + service.durationMin * 60_000);
   const number = `BK-${await nextCounter(tx, tenantId, "booking", 1000)}`;
-  const prevAnswers = (prev?.answers ?? {}) as Record<string, unknown>;
+  const prevAnswers = prev ? answersOf(prev) : null;
   const answers: Record<string, unknown> = { accessKey: randomToken(16), createdBy: actor.userId };
-  if (prev?.answers && prevAnswers.paymentId) answers.paymentId = prevAnswers.paymentId;
-  const status = prev && prev.status === "pending" ? "pending" : "confirmed";
-  let row: BookingRow;
-  try {
-    row = await tx.transaction(async (inner) => {
-      const [r] = await inner
-        .insert(bookings)
-        .values({
-          tenantId,
-          number,
-          customerId,
-          serviceId: service.id,
-          staffId,
-          startsAt: start,
-          endsAt: end,
-          status,
-          source: prev ? prev.source : input.source,
-          customerName: input.customer.name.trim(),
-          customerPhone: input.customer.phone,
-          customerEmail: input.customer.email,
-          partySize: input.partySize,
-          price: prev ? prev.price : price,
-          depositAmount: prev ? prev.depositAmount : 0,
-          paymentStatus: prev ? prev.paymentStatus : "unpaid",
-          note: input.note,
-          internalNote: prev?.internalNote ?? null,
-          answers,
-          confirmedAt: status === "confirmed" ? now : null,
-          rescheduledFromId: prev?.id ?? null,
-        })
-        .returning();
-      return r!;
-    });
-  } catch (err) {
-    if (isExclusionViolation(err)) return fail("เวลานี้เพิ่งถูกจองไป กรุณาเลือกเวลาอื่น");
-    throw err;
+  if (group) answers.preferredStaffId = input.staffId;
+  if (prevAnswers?.patientPackageId) {
+    answers.patientPackageId = prevAnswers.patientPackageId;
+    answers.packageName = prevAnswers.packageName;
+    answers.packageUsageId = prevAnswers.packageUsageId;
   }
-  await emitEvent(tx, { tenantId, type: "booking.created", payload: { bookingId: row.id, number, serviceId: service.id, staffId, startsAt: iso, customerId, status, source: row.source, rescheduledFromId: prev?.id ?? null } });
-  if (status === "confirmed") await emitEvent(tx, { tenantId, type: "booking.confirmed", payload: { bookingId: row.id, number, startsAt: iso, customerId } });
-  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: prev ? "booking.reschedule" : "booking.create", targetType: "booking", targetId: row.id, diff: { number, serviceId: service.id, staffId, startsAt: iso, price: row.price, source: row.source } });
+  const status = prev && prev.status === "pending" ? "pending" : "confirmed";
+  let row: BookingRow | null = null;
+  const excluded = new Set<string>();
+  for (let attempt = 0; attempt < 10 && staffIds && !row; attempt++) {
+    const ids: string[] = staffIds;
+    const price = await priceFor(ids);
+    try {
+      row = await tx.transaction(async (inner) => {
+        const [r] = await inner
+          .insert(bookings)
+          .values({
+            tenantId,
+            number,
+            customerId,
+            serviceId: service.id,
+            staffId: ids[0] ?? null,
+            extraStaffIds: ids.slice(1),
+            startsAt: start,
+            endsAt: end,
+            status,
+            source: prev ? prev.source : input.source,
+            customerName: input.customer.name.trim(),
+            customerPhone: input.customer.phone,
+            customerEmail: input.customer.email,
+            partySize,
+            price,
+            depositAmount: prev ? prev.depositAmount : 0,
+            paymentStatus: prev ? prev.paymentStatus : "unpaid",
+            note: input.note,
+            internalNote: prev?.internalNote ?? null,
+            answers,
+            confirmedAt: status === "confirmed" ? now : null,
+            rescheduledFromId: prev?.id ?? null,
+          })
+          .returning();
+        return r!;
+      });
+    } catch (err) {
+      if (!isExclusionViolation(err)) throw err;
+      if (!ids[0] || (input.staffId && !group)) return fail("เวลานี้เพิ่งถูกจองไป กรุณาเลือกเวลาอื่น");
+      excluded.add(ids[0]);
+      staffIds = pickStaff(excluded);
+    }
+  }
+  if (!row) return fail("เวลานี้เพิ่งถูกจองไป กรุณาเลือกเวลาอื่น");
+  await emitEvent(tx, { tenantId, type: "booking.created", payload: { bookingId: row.id, number, serviceId: service.id, serviceName: service.name, staffId: row.staffId, extraStaffIds: row.extraStaffIds, partySize, startsAt: iso, customerId, customerName: row.customerName, customerPhone: row.customerPhone, customerEmail: row.customerEmail, accessKey: answers.accessKey, status, source: row.source, rescheduledFromId: prev?.id ?? null } });
+  if (status === "confirmed") await emitEvent(tx, { tenantId, type: "booking.confirmed", payload: { bookingId: row.id, number, startsAt: iso, customerId, serviceId: service.id, staffId: row.staffId, customerName: row.customerName, customerPhone: row.customerPhone, customerEmail: row.customerEmail, accessKey: answers.accessKey } });
+  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: prev ? "booking.reschedule" : "booking.create", targetType: "booking", targetId: row.id, diff: { number, serviceId: service.id, staffId: row.staffId, extraStaffIds: row.extraStaffIds, partySize, startsAt: iso, price: row.price, source: row.source } });
   return ok(row);
 }
 
-/** Admin reschedule: cancels the old booking and books the new slot in one savepoint. */
-export async function adminReschedule(tx: Tx, tenantId: string, id: string, input: { start: string; staffId?: string | null }, config: BookingConfig, actor: Actor): Promise<Result<BookingRow, string>> {
+/**
+ * Admin reschedule: cancels the old booking and books the new slot in one savepoint. Payments follow the booking
+ * (COR-09): the unpaid QR is voided and – when the tenant settings are passed – a fresh deposit payment is opened
+ * for a booking that still owes it; money / a slip under review is moved to the new booking.
+ */
+export async function adminReschedule(tx: Tx, tenantId: string, id: string, input: { start: string; staffId?: string | null }, config: BookingConfig, actor: Actor, opts: { settings?: Record<string, unknown> | null } = {}): Promise<Result<BookingRow, string>> {
+  if (!isUuid(id)) return fail("ไม่พบการจอง");
+  await lockTenantBookings(tx, tenantId);
+  const oldPayments = await lockBookingPayments(tx, tenantId, id);
   const [old] = await tx.select().from(bookings).where(and(eq(bookings.tenantId, tenantId), eq(bookings.id, id))).limit(1).for("update");
   if (!old) return fail("ไม่พบการจอง");
   if (!(RESCHEDULABLE_STATUSES as readonly string[]).includes(old.status)) return fail("เลื่อนนัดได้เฉพาะการจองที่รอยืนยันหรือยืนยันแล้ว");
   class Fail extends Error {}
   try {
     const created = await tx.transaction(async (inner) => {
-      await inner.update(bookings).set({ status: "cancelled", cancelledAt: new Date(), cancelledBy: "admin", cancelReason: "rescheduled" }).where(eq(bookings.id, old.id));
+      await inner.update(bookings).set({ status: "cancelled", cancelledAt: new Date(), cancelledBy: "admin", cancelReason: "rescheduled" }).where(and(eq(bookings.tenantId, tenantId), eq(bookings.id, old.id)));
       const r = await createAdminBooking(
         inner,
         tenantId,
@@ -487,8 +529,9 @@ export async function adminReschedule(tx: Tx, tenantId: string, id: string, inpu
         actor,
       );
       if (!r.ok) throw new Fail(r.error);
-      await emitEvent(inner, { tenantId, type: "booking.rescheduled", payload: { fromBookingId: old.id, toBookingId: r.value.id, number: r.value.number, startsAt: input.start, by: "admin" } });
-      return r.value;
+      const carried = await carryPaymentsOnReschedule(inner, tenantId, old, r.value, oldPayments, { settings: opts.settings ?? null });
+      await emitEvent(inner, { tenantId, type: "booking.rescheduled", payload: { fromBookingId: old.id, toBookingId: carried.booking.id, number: carried.booking.number, startsAt: input.start, by: "admin" } });
+      return carried.booking;
     });
     return ok(created);
   } catch (err) {

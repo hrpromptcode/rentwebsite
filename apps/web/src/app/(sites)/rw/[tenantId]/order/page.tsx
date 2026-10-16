@@ -29,7 +29,7 @@ export default async function PickupPage({ params, searchParams }: { params: Par
   const settings = runtime.config.settings;
   const contact = (settings.contact as { hours?: Array<{ day?: string; time?: string }>; address?: string } | undefined) ?? {};
   const hours = parseHours(contact.hours);
-  const slots = pickupSlots({ hours, leadMinutes: cfg.pickupLeadMinutes, stepMinutes: 15, dayLabels: [L.today, L.tomorrow] });
+  const slots = pickupSlots({ hours, leadMinutes: cfg.pickupLeadMinutes, stepMinutes: 15, prepMinutes: cfg.prepMinutesDefault, dayLabels: [L.today, L.tomorrow] });
   const methods = restaurantPaymentOptions(settings, "pickup");
   const menu = cfg.pickup ? await tenantTx(tenantId, (tx) => getActiveMenu(tx, tenantId)) : null;
   const place = placePickupOrder.bind(null, tenantId);

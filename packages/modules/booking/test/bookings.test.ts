@@ -89,13 +89,18 @@ describe("createBooking", () => {
     expect(r.svcOk).toBe(true);
   });
 
-  it("capacity-2 service accepts two bookings at the same time, then refuses", async () => {
+  it("capacity-2 per-person staffed service accepts two single-guest bookings (each with its own staff), then refuses", async () => {
     const mk = () => s.tx((tx) => createBooking(tx, s.tenantId, { serviceId: s.services.couple, start: at(DAY, "19:00"), customer: guest }, opts));
     const a = await mk();
     const b = await mk();
     const c = await mk();
     expect(a.ok && b.ok).toBe(true);
-    if (a.ok) expect(a.value.booking.staffId).toBeNull();
+    // SBR-004: staffed group bookings reserve a staff member per guest (they used to be stored without staff)
+    if (a.ok && b.ok) {
+      expect(a.value.booking.staffId).toBeTruthy();
+      expect(b.value.booking.staffId).toBeTruthy();
+      expect(a.value.booking.staffId).not.toBe(b.value.booking.staffId);
+    }
     expect(c).toMatchObject({ ok: false, error: "slot_taken" });
     const slots = await s.tx(async (tx) => getSlotsForDate(tx, s.tenantId, { service: toSlotService((await getServiceById(tx, s.tenantId, s.services.couple))!), date: DAY, config: CONFIG, now: NOW }));
     expect(slots.find((x) => formatBkkTime(x.start) === "19:00")?.remaining).toBe(0);

@@ -11,6 +11,7 @@
     "./client": "./src/client.ts",
     "./actions": "./src/actions.ts",
     "./labels": "./src/labels.ts",
+    "./time": "./src/services/time.ts",
     "./admin": "./src/admin/index.ts",
     "./admin/labels": "./src/admin/labels.ts",
     "./admin/schemas": "./src/admin/schemas.ts",

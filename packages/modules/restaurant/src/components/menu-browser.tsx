@@ -74,7 +74,7 @@ function Browser({ menu, mode, serviceChargePercent = 0, initialItemId, hideChat
       const it = itemsById.get(l.menuItemId);
       if (!it) continue;
       const mods = l.modifierIds.map((id) => modsById.get(id)).filter(Boolean) as Array<{ name: string; priceDelta: number }>;
-      const unit = it.price + mods.reduce((s, m) => s + m.priceDelta, 0);
+      const unit = Math.max(0, it.price + mods.reduce((s, m) => s + m.priceDelta, 0));
       out.push({ key: l.key, name: it.name, nameEn: it.nameEn, image: it.image, qty: l.qty, unitPrice: unit, lineTotal: unit * l.qty, modifiers: mods.map((m) => m.name), note: l.note });
     }
     return out;
@@ -132,7 +132,18 @@ function Browser({ menu, mode, serviceChargePercent = 0, initialItemId, hideChat
     document.getElementById(`cat-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  // sheets are opened programmatically (no Radix trigger) → remember the opener and hand focus back on close (RA-05)
+  const itemOpener = React.useRef<HTMLElement | null>(null);
+  const cartOpener = React.useRef<HTMLElement | null>(null);
+  const focusable = (el: HTMLElement | null | undefined) => (el && el.isConnected && !(el as HTMLButtonElement).disabled ? el : null);
+  const itemReturnFocus = React.useCallback(
+    () => focusable(itemOpener.current) ?? (selected ? focusable(document.querySelector<HTMLElement>(`[data-item-id="${selected.id}"]`)) : null),
+    [selected],
+  );
+  const cartReturnFocus = React.useCallback(() => focusable(document.querySelector<HTMLElement>("[data-rw-cartbar] button")) ?? focusable(cartOpener.current), []);
+
   const openItem = (it: MenuItemData) => {
+    itemOpener.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
     setSelected(it);
     setSheetOpen(true);
   };
@@ -246,9 +257,29 @@ function Browser({ menu, mode, serviceChargePercent = 0, initialItemId, hideChat
         ))}
       </div>
 
-      <CartBar count={count} total={totals.total} label={L.yourOrder} pulseKey={cart.lastAdded} onClick={() => setCartOpen(true)} />
-      <ModifierSheet item={selected} open={sheetOpen} onOpenChange={setSheetOpen} onAdd={onAdd} />
-      <CartSheet open={cartOpen} onOpenChange={closeCart} title={L.yourOrder} lines={displayLines} totals={totals} onQty={cart.setQty} onRemove={cart.remove} replace={replace}>
+      <CartBar
+        count={count}
+        total={totals.total}
+        label={L.yourOrder}
+        pulseKey={cart.lastAdded}
+        onClick={() => {
+          cartOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          setCartOpen(true);
+        }}
+      />
+      <ModifierSheet item={selected} open={sheetOpen} onOpenChange={setSheetOpen} onAdd={onAdd} returnFocus={itemReturnFocus} />
+      <CartSheet
+        open={cartOpen}
+        onOpenChange={closeCart}
+        title={L.yourOrder}
+        lines={displayLines}
+        totals={totals}
+        onQty={cart.setQty}
+        onRemove={cart.remove}
+        replace={replace}
+        returnFocus={cartReturnFocus}
+        notice={cart.persistError ? <p className="rounded-[var(--radius-lg)] bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">เบราว์เซอร์นี้จำออเดอร์ยาวขนาดนี้ไม่ได้ หากรีเฟรชหรือเปลี่ยนหน้า รายการอาจหาย กรุณาสั่งให้เสร็จในหน้านี้</p> : undefined}
+      >
         {footer}
       </CartSheet>
     </div>

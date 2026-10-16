@@ -37,7 +37,9 @@ export default async function AccountPackagePage({ params }: { params: Params })
   const now = new Date();
   const paymentExpired = !!payment && payment.status === "pending" && !!payment.expiresAt && payment.expiresAt < now;
   const pending = item.status === "pending";
-  const showPayment = pending && !!payment && payment.status !== "paid" && !paymentExpired;
+  const paymentLive = !!payment && (payment.status === "pending_verification" || (payment.status === "pending" && !paymentExpired));
+  const showPayment = pending && paymentLive;
+  const cancelled = item.status === "cancelled";
   const usable = item.status === "active" && !item.isExpired;
   const pct = item.sessionsTotal > 0 ? Math.round((item.sessionsLeft / item.sessionsTotal) * 100) : 0;
   const selfHref = `/account/packages/${item.id}`;
@@ -61,8 +63,8 @@ export default async function AccountPackagePage({ params }: { params: Params })
             <div className="flex items-start gap-3 bg-primary-soft px-5 py-4 md:px-7">
               {usable ? <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" /> : <Sparkles className="mt-0.5 size-5 shrink-0 text-primary" />}
               <div>
-                <p className="font-heading text-lg font-semibold">{pending ? "ชำระเงินเพื่อเปิดใช้งานคอร์ส" : usable ? "คอร์สพร้อมใช้งาน จองคิวเพื่อใช้สิทธิ์ได้เลย" : item.isExpired ? "คอร์สนี้หมดอายุแล้ว" : item.status === "exhausted" ? "ใช้สิทธิ์ครบแล้ว ขอบคุณที่ไว้วางใจ" : "รายละเอียดคอร์ส"}</p>
-                <p className="text-sm text-muted-foreground">{pending ? "คอร์สจะเปิดใช้งานและเริ่มนับอายุทันทีเมื่อยืนยันการชำระ" : item.expiresAt ? `${item.isExpired ? "หมดอายุเมื่อ" : "ใช้ได้ถึง"} ${formatThaiDate(item.expiresAt, { weekday: true })}` : ""}</p>
+                <p className="font-heading text-lg font-semibold">{pending ? "ชำระเงินเพื่อเปิดใช้งานคอร์ส" : cancelled ? "รายการสั่งซื้อนี้ถูกยกเลิก" : usable ? "คอร์สพร้อมใช้งาน จองคิวเพื่อใช้สิทธิ์ได้เลย" : item.isExpired ? "คอร์สนี้หมดอายุแล้ว" : item.status === "exhausted" ? "ใช้สิทธิ์ครบแล้ว ขอบคุณที่ไว้วางใจ" : "รายละเอียดคอร์ส"}</p>
+                <p className="text-sm text-muted-foreground">{pending ? "คอร์สจะเปิดใช้งานและเริ่มนับอายุทันทีเมื่อยืนยันการชำระ" : cancelled ? "ไม่ได้ชำระเงินภายในเวลาที่กำหนด สั่งซื้อใหม่ได้จากหน้าแพ็กเกจ" : item.expiresAt ? `${item.isExpired ? "หมดอายุเมื่อ" : "ใช้ได้ถึง"} ${formatThaiDate(item.expiresAt, { weekday: true })}` : ""}</p>
               </div>
             </div>
             <div className="grid gap-5 p-5 md:grid-cols-[auto_1fr] md:p-7">
@@ -96,7 +98,7 @@ export default async function AccountPackagePage({ params }: { params: Params })
             </Reveal>
           )}
 
-          {pending && (!payment || paymentExpired) && (
+          {pending && !paymentLive && (
             <Reveal delay={0.1} className="card mt-5 flex flex-col items-start gap-3 p-5 md:flex-row md:items-center md:justify-between md:p-6">
               <div>
                 <p className="font-heading text-lg font-semibold">QR ชำระเงินหมดอายุแล้ว</p>
@@ -125,9 +127,9 @@ export default async function AccountPackagePage({ params }: { params: Params })
           </Reveal>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            {usable && (
+            {usable && item.sessionsLeft > 0 && (
               <Button asChild size="lg">
-                <Link href="/book">
+                <Link href={`/book?${new URLSearchParams({ ...(item.serviceSlug ? { service: item.serviceSlug } : {}), package: item.id }).toString()}`}>
                   <CalendarDays className="size-4" /> จองคิวใช้สิทธิ์
                 </Link>
               </Button>

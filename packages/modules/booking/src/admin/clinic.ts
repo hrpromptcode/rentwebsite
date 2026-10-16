@@ -158,7 +158,7 @@ export async function setConsent(tx: Tx, tenantId: string, patientId: string, ke
   const consents = { ...(p.consents ?? {}) };
   if (granted) consents[key] = { at: new Date().toISOString(), version: opts.version, by: opts.by };
   else delete consents[key];
-  await tx.update(patients).set({ consents }).where(eq(patients.id, patientId));
+  await tx.update(patients).set({ consents }).where(and(eq(patients.tenantId, tenantId), eq(patients.id, patientId)));
   await audit(tx, { tenantId, actorType: "user", actorId: opts.by, action: granted ? "patient.consent.grant" : "patient.consent.revoke", targetType: "patient", targetId: patientId, diff: { key, version: opts.version } });
   return ok(consents);
 }
@@ -257,17 +257,17 @@ export async function usePackageSession(tx: Tx, tenantId: string, patientPackage
   if (!pp) return fail("ไม่พบแพ็กเกจของผู้ป่วย");
   if (pp.status !== "active") return fail(pp.status === "pending" ? "แพ็กเกจนี้ยังไม่ได้ชำระเงิน" : "แพ็กเกจนี้ใช้ครบ/หมดอายุแล้ว");
   if (pp.expiresAt && pp.expiresAt < new Date()) {
-    await tx.update(patientPackages).set({ status: "expired" }).where(eq(patientPackages.id, pp.id));
+    await tx.update(patientPackages).set({ status: "expired" }).where(and(eq(patientPackages.tenantId, tenantId), eq(patientPackages.id, pp.id)));
     return fail("แพ็กเกจนี้หมดอายุแล้ว");
   }
   if (sessionsLeft(pp) <= 0) {
-    await tx.update(patientPackages).set({ status: "exhausted" }).where(eq(patientPackages.id, pp.id));
+    await tx.update(patientPackages).set({ status: "exhausted" }).where(and(eq(patientPackages.tenantId, tenantId), eq(patientPackages.id, pp.id)));
     return fail("แพ็กเกจนี้ใช้ครบแล้ว");
   }
   const used = pp.sessionsUsed + 1;
   const status = used >= pp.sessionsTotal ? "exhausted" : "active";
   await tx.insert(packageUsages).values({ tenantId, patientPackageId: pp.id, visitId: opts.visitId ?? null, byStaffId: opts.byStaffId ?? null, note: opts.note ?? null });
-  await tx.update(patientPackages).set({ sessionsUsed: used, status }).where(eq(patientPackages.id, pp.id));
+  await tx.update(patientPackages).set({ sessionsUsed: used, status }).where(and(eq(patientPackages.tenantId, tenantId), eq(patientPackages.id, pp.id)));
   await emitEvent(tx, { tenantId, type: "patient_package.used", payload: { patientPackageId: pp.id, patientId: pp.patientId, sessionsUsed: used, sessionsTotal: pp.sessionsTotal, status, visitId: opts.visitId ?? null } });
   await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "patient_package.use", targetType: "patient_package", targetId: pp.id, diff: { sessionsUsed: used, status } });
   return ok({ sessionsLeft: pp.sessionsTotal - used, status });
@@ -292,7 +292,7 @@ export async function sellPackage(tx: Tx, tenantId: string, input: { patientId: 
     .returning({ id: patientPackages.id });
   const m = PROVIDER_FOR[input.method];
   const pay = await createPayment(tx, tenantId, { refType: "patient_package", refId: pp!.id, amount: pkg.price, provider: m.provider, method: m.method, customerId: p.customerId, metadata: { packageId: pkg.id, packageName: pkg.name, hn: p.hn, by: actor.userId } });
-  await tx.update(patientPackages).set({ paymentId: pay.id }).where(eq(patientPackages.id, pp!.id));
+  await tx.update(patientPackages).set({ paymentId: pay.id }).where(and(eq(patientPackages.tenantId, tenantId), eq(patientPackages.id, pp!.id)));
   // markPaid runs onPatientPackagePaid only for "pending" packages – ours is already active, so it is a no-op there
   await markPaid(tx, tenantId, pay.id, { verifiedBy: actor.userId });
   await emitEvent(tx, { tenantId, type: "patient_package.purchased", payload: { patientPackageId: pp!.id, patientId: p.id, packageId: pkg.id, amount: pkg.price, paymentId: pay.id, source: "admin" } });
@@ -412,19 +412,22 @@ export async function createVisit(tx: Tx, tenantId: string, input: { patientId: 
   if (!p) return fail("ไม่พบผู้ป่วย");
   let doctorId = input.doctorId;
   let procedures: Array<{ serviceId?: string; name: string; price: number; staffId?: string }> = [];
+  let pendingUsageId: string | null = null;
   if (input.bookingId) {
     const [b] = await tx
-      .select({ id: bookings.id, staffId: bookings.staffId, status: bookings.status, serviceId: bookings.serviceId, serviceName: services.name, price: bookings.price })
+      .select({ id: bookings.id, staffId: bookings.staffId, status: bookings.status, serviceId: bookings.serviceId, serviceName: services.name, price: bookings.price, answers: bookings.answers })
       .from(bookings)
-      .innerJoin(services, eq(bookings.serviceId, services.id))
+      .innerJoin(services, and(eq(bookings.serviceId, services.id), eq(services.tenantId, tenantId)))
       .where(and(eq(bookings.tenantId, tenantId), eq(bookings.id, input.bookingId)))
       .limit(1);
     if (!b) return fail("ไม่พบการจอง");
     const [dup] = await tx.select({ id: clinicVisits.id }).from(clinicVisits).where(and(eq(clinicVisits.tenantId, tenantId), eq(clinicVisits.bookingId, b.id))).limit(1);
     if (dup) return ok({ id: dup.id });
     doctorId = doctorId ?? b.staffId;
-    procedures = [{ serviceId: b.serviceId, name: b.serviceName, price: b.price, staffId: b.staffId ?? undefined }];
-    if (b.status === "pending" || b.status === "confirmed") await tx.update(bookings).set({ status: "checked_in", checkedInAt: new Date() }).where(eq(bookings.id, b.id));
+    const course = (b.answers ?? {}) as { patientPackageId?: string; packageName?: string; packageUsageId?: string };
+    procedures = [{ serviceId: b.serviceId, name: course.packageName ? `${b.serviceName} (ใช้สิทธิ์คอร์ส ${course.packageName})` : b.serviceName, price: course.patientPackageId ? 0 : b.price, staffId: b.staffId ?? undefined }];
+    if (b.status === "pending" || b.status === "confirmed") await tx.update(bookings).set({ status: "checked_in", checkedInAt: new Date() }).where(and(eq(bookings.tenantId, tenantId), eq(bookings.id, b.id)));
+    pendingUsageId = course.packageUsageId ?? null;
   }
   if (doctorId) {
     const [d] = await tx.select({ id: staff.id }).from(staff).where(and(eq(staff.tenantId, tenantId), eq(staff.id, doctorId))).limit(1);
@@ -435,6 +438,8 @@ export async function createVisit(tx: Tx, tenantId: string, input: { patientId: 
     .insert(clinicVisits)
     .values({ tenantId, patientId: input.patientId, bookingId: input.bookingId, doctorId, chiefComplaint: input.chiefComplaint, procedures, subtotal: totals.subtotal, total: totals.total, status: "open" })
     .returning({ id: clinicVisits.id });
+  // the session was spent when the course booking was made online – attach that usage to this visit
+  if (pendingUsageId) await tx.update(packageUsages).set({ visitId: row!.id }).where(and(eq(packageUsages.tenantId, tenantId), eq(packageUsages.id, pendingUsageId), sql`${packageUsages.visitId} is null`));
   await emitEvent(tx, { tenantId, type: "clinic_visit.opened", payload: { visitId: row!.id, patientId: input.patientId, bookingId: input.bookingId, doctorId } });
   await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "clinic_visit.create", targetType: "clinic_visit", targetId: row!.id, diff: { patientId: input.patientId, bookingId: input.bookingId } });
   await logRecordAccess(tx, tenantId, { patientId: input.patientId, userId: actor.userId, action: "edit", resource: "visit", resourceId: row!.id });
@@ -478,34 +483,53 @@ export async function getVisitAdmin(tx: Tx, tenantId: string, id: string): Promi
   return { visit: v, notes, patient: p, doctor, booking, payment, packages: pkgs.map((x) => ({ id: x.id, packageName: x.packageName, sessionsLeft: sessionsLeft(x), status: x.status, expiresAt: x.expiresAt })) };
 }
 
+/** True when the visit's bill is final: completed, or already paid / waived (its invoice payment carries the amount). */
+export function isVisitBillingLocked(v: { status: string; paymentStatus: string }): boolean {
+  return v.status === "completed" || v.paymentStatus === "paid" || v.paymentStatus === "waived";
+}
+
 export async function saveVisit(tx: Tx, tenantId: string, id: string, v: VisitValues, actor: Actor): Promise<Result<{ total: number }, string>> {
-  const [cur] = await tx.select({ id: clinicVisits.id, status: clinicVisits.status, patientId: clinicVisits.patientId }).from(clinicVisits).where(and(eq(clinicVisits.tenantId, tenantId), eq(clinicVisits.id, id))).limit(1).for("update");
+  const [cur] = await tx
+    .select({ id: clinicVisits.id, status: clinicVisits.status, patientId: clinicVisits.patientId, paymentStatus: clinicVisits.paymentStatus, subtotal: clinicVisits.subtotal, discount: clinicVisits.discount, total: clinicVisits.total })
+    .from(clinicVisits)
+    .where(and(eq(clinicVisits.tenantId, tenantId), eq(clinicVisits.id, id)))
+    .limit(1)
+    .for("update");
   if (!cur) return fail("ไม่พบการตรวจ");
   if (cur.status === "cancelled") return fail("การตรวจนี้ถูกยกเลิกแล้ว");
   const totals = visitTotals(v);
+  const discount = Math.min(v.discount, totals.subtotal);
+  const locked = isVisitBillingLocked(cur);
+  // COR-11: the lock is enforced here, not only in the form – a completed / paid visit keeps its bill
+  if (locked && (totals.subtotal !== cur.subtotal || totals.total !== cur.total || discount !== cur.discount)) {
+    return fail("การตรวจนี้เสร็จสิ้น/ชำระเงินแล้ว แก้ไขรายการค่าใช้จ่ายไม่ได้ (แก้ได้เฉพาะข้อมูลการรักษาและรูปภาพ)");
+  }
   const vitals: Record<string, string> = {};
   for (const [k, val] of Object.entries(v.vitals ?? {})) if (val) vitals[k] = val;
+  const clinical = {
+    doctorId: v.doctorId,
+    chiefComplaint: v.chiefComplaint,
+    vitals: Object.keys(vitals).length ? vitals : null,
+    notesEncrypted: v.notes ? encryptToString(v.notes) : null,
+    diagnosis: v.diagnosis,
+    photosBefore: v.photosBefore,
+    photosAfter: v.photosAfter,
+    nextVisitNote: v.nextVisitNote,
+  };
+  const billing = {
+    procedures: v.procedures.map((p) => ({ serviceId: p.serviceId ?? undefined, name: p.name, price: p.price, staffId: p.staffId ?? undefined })),
+    prescriptions: v.prescriptions.map((p) => ({ name: p.name, dose: p.dose ?? undefined, qty: p.qty, price: p.price })),
+    subtotal: totals.subtotal,
+    discount,
+    total: totals.total,
+  };
   await tx
     .update(clinicVisits)
-    .set({
-      doctorId: v.doctorId,
-      chiefComplaint: v.chiefComplaint,
-      vitals: Object.keys(vitals).length ? vitals : null,
-      notesEncrypted: v.notes ? encryptToString(v.notes) : null,
-      diagnosis: v.diagnosis,
-      procedures: v.procedures.map((p) => ({ serviceId: p.serviceId ?? undefined, name: p.name, price: p.price, staffId: p.staffId ?? undefined })),
-      prescriptions: v.prescriptions.map((p) => ({ name: p.name, dose: p.dose ?? undefined, qty: p.qty, price: p.price })),
-      photosBefore: v.photosBefore,
-      photosAfter: v.photosAfter,
-      subtotal: totals.subtotal,
-      discount: Math.min(v.discount, totals.subtotal),
-      total: totals.total,
-      nextVisitNote: v.nextVisitNote,
-    })
-    .where(eq(clinicVisits.id, id));
-  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "clinic_visit.update", targetType: "clinic_visit", targetId: id, diff: { total: totals.total, procedures: v.procedures.length, prescriptions: v.prescriptions.length } });
+    .set(locked ? clinical : { ...clinical, ...billing })
+    .where(and(eq(clinicVisits.tenantId, tenantId), eq(clinicVisits.id, id)));
+  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "clinic_visit.update", targetType: "clinic_visit", targetId: id, diff: locked ? { billingLocked: true } : { total: totals.total, procedures: v.procedures.length, prescriptions: v.prescriptions.length } });
   await logRecordAccess(tx, tenantId, { patientId: cur.patientId, userId: actor.userId, action: "edit", resource: "visit", resourceId: id });
-  return ok({ total: totals.total });
+  return ok({ total: locked ? cur.total : totals.total });
 }
 
 /** Completes the visit; cash / transfer creates an "invoice" payment and marks it paid at once. */
@@ -518,7 +542,7 @@ export async function completeVisit(tx: Tx, tenantId: string, id: string, method
   let paymentStatus = v.paymentStatus;
   let paymentId = v.paymentId;
   if (v.total > 0 && method !== "none" && v.paymentStatus !== "paid") {
-    const [p] = await tx.select({ customerId: patients.customerId, hn: patients.hn }).from(patients).where(eq(patients.id, v.patientId)).limit(1);
+    const [p] = await tx.select({ customerId: patients.customerId, hn: patients.hn }).from(patients).where(and(eq(patients.tenantId, tenantId), eq(patients.id, v.patientId))).limit(1);
     const m = PROVIDER_FOR[method];
     const pay = await createPayment(tx, tenantId, { refType: "invoice", refId: v.id, amount: v.total, provider: m.provider, method: m.method, customerId: p?.customerId ?? null, metadata: { kind: "clinic_visit", visitId: v.id, hn: p?.hn, by: actor.userId } });
     await markPaid(tx, tenantId, pay.id, { verifiedBy: actor.userId });
@@ -526,7 +550,7 @@ export async function completeVisit(tx: Tx, tenantId: string, id: string, method
     paymentId = pay.id;
     await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "clinic_visit.payment", targetType: "payment", targetId: pay.id, diff: { visitId: v.id, amount: v.total, method } });
   } else if (v.total === 0) paymentStatus = "waived";
-  await tx.update(clinicVisits).set({ status: "completed", completedAt: now, paymentStatus, paymentId }).where(eq(clinicVisits.id, v.id));
+  await tx.update(clinicVisits).set({ status: "completed", completedAt: now, paymentStatus, paymentId }).where(and(eq(clinicVisits.tenantId, tenantId), eq(clinicVisits.id, v.id)));
   if (v.bookingId) {
     await tx.update(bookings).set({ status: "completed", completedAt: now }).where(and(eq(bookings.tenantId, tenantId), eq(bookings.id, v.bookingId), inArray(bookings.status, ["pending", "confirmed", "checked_in", "in_progress"])));
   }
@@ -539,7 +563,7 @@ export async function cancelVisit(tx: Tx, tenantId: string, id: string, actor: A
   const [v] = await tx.select({ status: clinicVisits.status, paymentStatus: clinicVisits.paymentStatus }).from(clinicVisits).where(and(eq(clinicVisits.tenantId, tenantId), eq(clinicVisits.id, id))).limit(1);
   if (!v) return fail("ไม่พบการตรวจ");
   if (v.status === "completed") return fail("การตรวจที่เสร็จสิ้นแล้วยกเลิกไม่ได้");
-  await tx.update(clinicVisits).set({ status: "cancelled" }).where(eq(clinicVisits.id, id));
+  await tx.update(clinicVisits).set({ status: "cancelled" }).where(and(eq(clinicVisits.tenantId, tenantId), eq(clinicVisits.id, id)));
   await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "clinic_visit.cancel", targetType: "clinic_visit", targetId: id });
   return ok(null);
 }

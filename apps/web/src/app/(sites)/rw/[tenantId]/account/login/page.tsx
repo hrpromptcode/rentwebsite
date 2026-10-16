@@ -3,12 +3,14 @@ import { getRuntime, makeT } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
 import { requestOtpAction, verifyOtpAction } from "../actions";
 import { OtpForm } from "./otp-form";
+import { safeNext } from "../safe-next";
 
 export const metadata = { title: "เข้าสู่ระบบ" };
 
-export default async function LoginPage({ params, searchParams }: { params: Promise<{ tenantId: string }>; searchParams: Promise<{ next?: string }> }) {
+export default async function LoginPage({ params, searchParams }: { params: Promise<{ tenantId: string }>; searchParams: Promise<{ next?: string | string[] }> }) {
   const { tenantId } = await params;
-  const { next = "/account" } = await searchParams;
+  const raw = (await searchParams).next;
+  const next = safeNext(Array.isArray(raw) ? raw[0] : raw);
   const customer = await getCurrentCustomer(tenantId);
   if (customer) redirect(next);
   const runtime = await getRuntime(tenantId);

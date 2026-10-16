@@ -37,7 +37,7 @@ export function ServiceCard({ s, className, variant = "card" }: { s: ServiceCard
           {s.image ? <Img src={s.image} alt={s.name} className="size-20 rounded-[var(--radius-lg)] object-cover sm:size-24" /> : <span className="flex size-20 items-center justify-center rounded-[var(--radius-lg)] bg-primary-soft text-primary sm:size-24"><Sparkles className="size-6" /></span>}
         </Link>
         <div className="min-w-0 flex-1">
-          <Link href={`/services/${s.slug}`} className="font-heading text-lg font-semibold leading-snug hover:text-primary">
+          <Link href={`/services/${s.slug}`} className="inline-flex min-h-11 items-center font-heading text-lg font-semibold leading-snug hover:text-primary">
             {s.name}
           </Link>
           {s.description && <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{s.description}</p>}
@@ -49,10 +49,10 @@ export function ServiceCard({ s, className, variant = "card" }: { s: ServiceCard
             {s.depositRequired && s.depositAmount > 0 && <span className="text-xs text-muted-foreground">{L.deposit} {thb(s.depositAmount)}</span>}
           </p>
         </div>
-        <Button asChild size="sm" className="hidden shrink-0 sm:inline-flex">
+        <Button asChild size="sm" className="hidden min-h-11 shrink-0 sm:inline-flex">
           <Link href={`/book?service=${s.slug}`}>{L.bookNow}</Link>
         </Button>
-        <Button asChild size="icon" className="shrink-0 sm:hidden" aria-label={L.bookNow}>
+        <Button asChild size="icon" className="size-11 shrink-0 sm:hidden" aria-label={L.bookNow}>
           <Link href={`/book?service=${s.slug}`}>
             <ArrowRight className="size-5" />
           </Link>
@@ -75,7 +75,7 @@ export function ServiceCard({ s, className, variant = "card" }: { s: ServiceCard
       </Link>
       <div className="flex flex-1 flex-col p-5">
         {s.categoryName && <p className="mb-1 text-xs font-semibold tracking-[0.15em] text-primary uppercase">{s.categoryName}</p>}
-        <Link href={`/services/${s.slug}`} className="font-heading text-lg font-semibold leading-snug hover:text-primary">
+        <Link href={`/services/${s.slug}`} className="inline-flex min-h-11 items-center font-heading text-lg font-semibold leading-snug hover:text-primary">
           {s.name}
         </Link>
         {s.description && <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">{s.description}</p>}
@@ -84,7 +84,7 @@ export function ServiceCard({ s, className, variant = "card" }: { s: ServiceCard
             <p className="font-heading text-xl font-semibold">{servicePriceLabel(s)}</p>
             {s.depositRequired && s.depositAmount > 0 && <p className="text-xs text-muted-foreground">{L.deposit} {thb(s.depositAmount)}</p>}
           </div>
-          <Button asChild size="sm">
+          <Button asChild size="sm" className="min-h-11">
             <Link href={`/book?service=${s.slug}`}>{L.bookNow}</Link>
           </Button>
         </div>
@@ -116,13 +116,13 @@ export function StaffCard({ s, className }: { s: StaffCardData; className?: stri
         )}
         <span aria-hidden className="absolute right-1 bottom-1 size-4 rounded-full border-2 border-background" style={{ background: s.color }} />
       </Link>
-      <Link href={`/staff/${s.slug}`} className="mt-4 font-heading text-lg font-semibold hover:text-primary">
+      <Link href={`/staff/${s.slug}`} className="mt-3 inline-flex min-h-11 items-center font-heading text-lg font-semibold hover:text-primary">
         {s.name}
       </Link>
       {s.title && <p className="mt-0.5 text-sm text-primary">{s.title}</p>}
       {s.bio && <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{s.bio}</p>}
       {typeof s.serviceCount === "number" && s.serviceCount > 0 && <p className="mt-2 text-xs text-muted-foreground">{L.staffServices} {s.serviceCount} รายการ</p>}
-      <Button asChild variant="outline" size="sm" className="mt-5">
+      <Button asChild variant="outline" size="sm" className="mt-5 min-h-11">
         <Link href={`/book?staff=${s.slug}`}>
           <CalendarDays className="size-4" /> {L.bookWith(s.name)}
         </Link>
@@ -156,7 +156,7 @@ export function PackageCard({ p, className }: { p: PackageCardData; className?: 
         )}
       </Link>
       <div className="flex flex-1 flex-col p-5">
-        <Link href={`/packages/${p.id}/buy`} className="font-heading text-lg font-semibold leading-snug hover:text-primary">
+        <Link href={`/packages/${p.id}/buy`} className="inline-flex min-h-11 items-center font-heading text-lg font-semibold leading-snug hover:text-primary">
           {p.name}
         </Link>
         {p.description && <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">{p.description}</p>}
@@ -173,7 +173,7 @@ export function PackageCard({ p, className }: { p: PackageCardData; className?: 
               {thb(Math.round(p.price / p.sessions))} {L.perSession}
             </p>
           </div>
-          <Button asChild size="sm">
+          <Button asChild size="sm" className="min-h-11">
             <Link href={`/packages/${p.id}/buy`}>{L.buyPackage}</Link>
           </Button>
         </div>

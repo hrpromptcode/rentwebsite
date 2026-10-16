@@ -14,9 +14,12 @@ export interface SlotService {
   durationMin: number;
   bufferBeforeMin: number;
   bufferAfterMin: number;
-  /** >1 = class / group – bookings share the slot and are stored without staff */
+  /** max guests served at the same time (>1 = class / group / room – bookings share the slot) */
   capacity: number;
+  /** true = every guest is served by one staff member (a party of 2 needs 2 free staff) */
   requiresStaff: boolean;
+  /** fixed guests per booking (package "for 2"); null = per person (party size chosen by the customer) */
+  seatsPerBooking?: number | null;
 }
 
 export interface RuleInput {
@@ -36,6 +39,8 @@ export interface OverrideInput {
 
 export interface BookingInput {
   staffId: string | null;
+  /** further staff serving the party (staffed group bookings) */
+  extraStaffIds?: string[] | null;
   serviceId: string;
   startsAt: Date;
   endsAt: Date;
@@ -57,6 +62,8 @@ export interface SlotEngineInput {
   overrides: OverrideInput[];
   /** non-cancelled bookings that touch the day (± buffers) */
   bookings: BookingInput[];
+  /** guests in the booking being planned (per-person group services); fixed packages ignore it */
+  partySize?: number | null;
   now?: Date;
 }
 
@@ -76,9 +83,45 @@ interface Interval {
   end: number;
 }
 
-/** True when the service is booked as a shared resource (class, couple room…) instead of per staff. */
+/*
+ * Capacity × staff model (SBR-001 / SBR-004):
+ *  - requiresStaff && capacity 1  → classic 1:1 appointment, one staff per booking (bookings_no_overlap guards it).
+ *  - requiresStaff && capacity >1 → staffed group (couple massage, group treatment): capacity = guests served at
+ *    the same time and EVERY guest needs one eligible staff free for the whole slot. The booking stores the first
+ *    staff in staffId and the others in extraStaffIds; all of them are busy for other services.
+ *  - !requiresStaff              → class / room / court: seats only (capacity), business hours.
+ *  Party size per booking = seatsPerBooking (fixed package, priced per booking) or, when null, the guests the
+ *  customer asks for (1..capacity, priced per guest). Writers serialise per tenant (lockTenantBookings) because
+ *  seat counts and extra staff cannot be guarded by a DB constraint.
+ */
+
+/** True when the service is booked as a shared slot (class, couple room…) with seats instead of one staff. */
 export function isGroupService(service: Pick<SlotService, "capacity" | "requiresStaff">): boolean {
   return service.capacity > 1 || !service.requiresStaff;
+}
+
+/** Staffed group service: seats AND one staff per guest. */
+export function isStaffedGroupService(service: Pick<SlotService, "capacity" | "requiresStaff">): boolean {
+  return service.requiresStaff && service.capacity > 1;
+}
+
+/** Group service priced per guest (no fixed package size). */
+export function isPerPersonService(service: Pick<SlotService, "capacity" | "requiresStaff" | "seatsPerBooking">): boolean {
+  return service.capacity > 1 && !service.seatsPerBooking;
+}
+
+/** Guests one booking takes: the fixed package size, else the requested party clamped to 1..capacity. */
+export function partySizeFor(service: Pick<SlotService, "capacity" | "seatsPerBooking">, requested?: number | null): number {
+  const cap = Math.max(1, service.capacity);
+  if (service.seatsPerBooking && service.seatsPerBooking > 0) return Math.min(service.seatsPerBooking, cap);
+  const n = typeof requested === "number" && Number.isFinite(requested) ? Math.floor(requested) : 1;
+  return Math.min(Math.max(1, n), cap);
+}
+
+/** Every staff member a booking occupies (staffId + extraStaffIds). */
+export function bookingStaffIds(b: Pick<BookingInput, "staffId" | "extraStaffIds">): string[] {
+  const extra = b.extraStaffIds ?? [];
+  return b.staffId ? [b.staffId, ...extra.filter((id) => id !== b.staffId)] : [...extra];
 }
 
 function overlaps(a: Interval, b: Interval): boolean {
@@ -182,7 +225,7 @@ export function computeStaffSlots(input: SlotEngineInput, staffId: string): Slot
   const durationMs = service.durationMin * 60_000;
   const stepMs = input.config.slotMinutes * 60_000;
   const windows = workingWindows(input, staffId, ctx);
-  const own = input.bookings.filter((b) => b.staffId === staffId).map(bookingOccupied);
+  const own = input.bookings.filter((b) => bookingStaffIds(b).includes(staffId)).map(bookingOccupied);
   const out: Slot[] = [];
   for (const s of candidateStarts(windows, durationMs, stepMs)) {
     if (s < ctx.earliest) continue; // min notice / past → hidden
@@ -194,25 +237,53 @@ export function computeStaffSlots(input: SlotEngineInput, staffId: string): Slot
   return out;
 }
 
-/** Slots for a shared-capacity service (class / room): business hours, seats = capacity − overlapping bookings. */
+type DayCtx = NonNullable<ReturnType<typeof dayContext>>;
+
+/** Is `staffId` free for the whole occupied interval of a slot starting at startMs (working window + own bookings)? */
+function staffFreeFor(input: SlotEngineInput, ctx: DayCtx, staffId: string, startMs: number): boolean {
+  if (startMs < ctx.earliest) return false;
+  const { service } = input;
+  const end = startMs + service.durationMin * 60_000;
+  if (!workingWindows(input, staffId, ctx).some((w) => w.start <= startMs && end <= w.end)) return false;
+  const occ: Interval = { start: startMs - service.bufferBeforeMin * 60_000, end: end + service.bufferAfterMin * 60_000 };
+  return !input.bookings.some((b) => bookingStaffIds(b).includes(staffId) && overlaps(occ, bookingOccupied(b)));
+}
+
+/**
+ * Slots for a shared-capacity service. Seats = capacity − guests of overlapping bookings of this service.
+ * Classes / rooms (no staff) use business hours; staffed groups use the eligible staff schedules and are also
+ * limited by the number of eligible staff free for the whole slot (one per guest).
+ */
 export function computeGroupSlots(input: SlotEngineInput): Slot[] {
   const ctx = dayContext(input);
   if (!ctx) return [];
   const { service } = input;
+  const staffed = service.requiresStaff;
+  const needed = partySizeFor(service, input.partySize);
   const durationMs = service.durationMin * 60_000;
   const stepMs = input.config.slotMinutes * 60_000;
-  let windows = workingWindows(input, null, ctx);
-  // no business-hours rules → union of eligible staff schedules
-  if (!input.rules.some((r) => r.staffId === null)) windows = mergeIntervals(input.eligibleStaffIds.flatMap((id) => workingWindows(input, id, ctx)));
-  const taken = input.bookings.filter((b) => b.serviceId === service.id && b.staffId === null);
+  let windows: Interval[];
+  if (staffed) windows = mergeIntervals(input.eligibleStaffIds.flatMap((id) => workingWindows(input, id, ctx)));
+  else {
+    windows = workingWindows(input, null, ctx);
+    // no business-hours rules → union of eligible staff schedules
+    if (!input.rules.some((r) => r.staffId === null)) windows = mergeIntervals(input.eligibleStaffIds.flatMap((id) => workingWindows(input, id, ctx)));
+  }
+  const taken = input.bookings.filter((b) => b.serviceId === service.id && (staffed || b.staffId === null));
   const out: Slot[] = [];
   for (const s of candidateStarts(windows, durationMs, stepMs)) {
     if (s < ctx.earliest) continue;
     const e = s + durationMs;
     const occ: Interval = { start: s - service.bufferBeforeMin * 60_000, end: e + service.bufferAfterMin * 60_000 };
     const used = taken.filter((b) => overlaps(occ, bookingOccupied(b))).reduce((n, b) => n + (b.partySize ?? 1), 0);
-    const remaining = Math.max(0, service.capacity - used);
-    out.push({ start: new Date(s).toISOString(), end: new Date(e).toISOString(), staffId: null, available: remaining > 0, remaining });
+    let remaining = Math.max(0, service.capacity - used);
+    let available = remaining >= needed;
+    if (staffed) {
+      const free = input.eligibleStaffIds.filter((id) => staffFreeFor(input, ctx, id, s));
+      remaining = Math.min(remaining, free.length);
+      available = remaining >= needed && (!input.staffId || free.includes(input.staffId));
+    }
+    out.push({ start: new Date(s).toISOString(), end: new Date(e).toISOString(), staffId: null, available, remaining });
   }
   return out;
 }
@@ -237,28 +308,55 @@ export function computeSlots(input: SlotEngineInput): Slot[] {
     .sort((a, b) => a.start.localeCompare(b.start));
 }
 
-/** Eligible staff who are free for a slot starting at `startIso` (used to pick a staff for "any" bookings). */
+/** Eligible staff who are free for a slot starting at `startIso` (used to pick staff for "any" / group bookings). */
 export function freeStaffAt(input: SlotEngineInput, startIso: string): string[] {
   const startMs = new Date(startIso).getTime();
+  if (isStaffedGroupService(input.service)) {
+    const ctx = dayContext(input);
+    if (!ctx) return [];
+    return input.eligibleStaffIds.filter((id) => staffFreeFor(input, ctx, id, startMs));
+  }
   return input.eligibleStaffIds.filter((id) => computeStaffSlots(input, id).some((s) => new Date(s.start).getTime() === startMs && s.available));
 }
 
-/** Least-booked staff on that day among `candidates` (ties → first in display order). */
-export function pickLeastBookedStaff(input: SlotEngineInput, candidates: string[]): string | null {
-  if (!candidates.length) return null;
+/** `candidates` ordered least-booked first on that day (ties keep display order). */
+export function rankStaffByLoad(input: SlotEngineInput, candidates: string[]): string[] {
   const ymd = parseYmd(input.date);
-  if (!ymd) return candidates[0]!;
+  if (!ymd) return [...candidates];
   const dayStart = bkkDayStart(ymd).getTime();
   const dayEnd = dayStart + DAY_MS;
   const counts = new Map<string, number>();
   for (const b of input.bookings) {
-    if (!b.staffId) continue;
     const t = b.startsAt.getTime();
-    if (t >= dayStart && t < dayEnd) counts.set(b.staffId, (counts.get(b.staffId) ?? 0) + 1);
+    if (t < dayStart || t >= dayEnd) continue;
+    for (const id of bookingStaffIds(b)) counts.set(id, (counts.get(id) ?? 0) + 1);
   }
-  let best = candidates[0]!;
-  for (const id of candidates) if ((counts.get(id) ?? 0) < (counts.get(best) ?? 0)) best = id;
-  return best;
+  return candidates
+    .map((id, i) => ({ id, i, n: counts.get(id) ?? 0 }))
+    .sort((a, b) => a.n - b.n || a.i - b.i)
+    .map((x) => x.id);
+}
+
+/** Least-booked staff on that day among `candidates` (ties → first in display order). */
+export function pickLeastBookedStaff(input: SlotEngineInput, candidates: string[]): string | null {
+  return rankStaffByLoad(input, candidates)[0] ?? null;
+}
+
+/**
+ * Staff for a booking of `partySize` guests starting at `startIso`: the preferred staff first (must be free),
+ * then the least-booked free ones. null when not enough eligible staff are free. `exclude` drops staff that
+ * turned out to be taken (exclusion-constraint retry).
+ */
+export function assignStaff(input: SlotEngineInput, startIso: string, partySize: number, preferred?: string | null, exclude?: ReadonlySet<string>): string[] | null {
+  const free = freeStaffAt(input, startIso).filter((id) => !exclude?.has(id));
+  const n = Math.max(1, partySize);
+  if (preferred) {
+    if (!free.includes(preferred)) return null;
+    const ids = [preferred, ...rankStaffByLoad(input, free.filter((id) => id !== preferred))].slice(0, n);
+    return ids.length === n ? ids : null;
+  }
+  const ids = rankStaffByLoad(input, free).slice(0, n);
+  return ids.length === n ? ids : null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -286,6 +384,7 @@ export async function loadAvailabilityData(tx: Tx, tenantId: string, opts: { ser
     tx
       .select({
         staffId: bookings.staffId,
+        extraStaffIds: bookings.extraStaffIds,
         serviceId: bookings.serviceId,
         startsAt: bookings.startsAt,
         endsAt: bookings.endsAt,
@@ -306,22 +405,22 @@ export async function loadAvailabilityData(tx: Tx, tenantId: string, opts: { ser
   return { rules, overrides, bookings: booked, eligibleStaffIds: eligible.map((e) => e.id) };
 }
 
-export function toSlotService(s: { id: string; durationMin: number; bufferBeforeMin: number; bufferAfterMin: number; capacity: number; requiresStaff: boolean }): SlotService {
-  return { id: s.id, durationMin: s.durationMin, bufferBeforeMin: s.bufferBeforeMin, bufferAfterMin: s.bufferAfterMin, capacity: s.capacity, requiresStaff: s.requiresStaff };
+export function toSlotService(s: { id: string; durationMin: number; bufferBeforeMin: number; bufferAfterMin: number; capacity: number; requiresStaff: boolean; seatsPerBooking?: number | null }): SlotService {
+  return { id: s.id, durationMin: s.durationMin, bufferBeforeMin: s.bufferBeforeMin, bufferAfterMin: s.bufferAfterMin, capacity: s.capacity, requiresStaff: s.requiresStaff, seatsPerBooking: s.seatsPerBooking ?? null };
 }
 
 /** Slots for one date (what /api/booking/slots returns). */
 export async function getSlotsForDate(
   tx: Tx,
   tenantId: string,
-  opts: { service: SlotService; date: string; staffId?: string | null; config: BookingConfig; now?: Date },
+  opts: { service: SlotService; date: string; staffId?: string | null; partySize?: number | null; config: BookingConfig; now?: Date },
 ): Promise<Slot[]> {
   const ymd = parseYmd(opts.date);
   if (!ymd) return [];
   const from = bkkDayStart(ymd);
   const to = new Date(from.getTime() + DAY_MS);
   const data = await loadAvailabilityData(tx, tenantId, { serviceId: opts.service.id, from, to });
-  return computeSlots({ config: opts.config, service: opts.service, date: opts.date, staffId: opts.staffId ?? null, now: opts.now, ...data });
+  return computeSlots({ config: opts.config, service: opts.service, date: opts.date, staffId: opts.staffId ?? null, partySize: opts.partySize ?? null, now: opts.now, ...data });
 }
 
 export interface DayAvailability {
@@ -335,7 +434,7 @@ export interface DayAvailability {
 export async function getDayAvailability(
   tx: Tx,
   tenantId: string,
-  opts: { service: SlotService; month: string; staffId?: string | null; config: BookingConfig; now?: Date },
+  opts: { service: SlotService; month: string; staffId?: string | null; partySize?: number | null; config: BookingConfig; now?: Date },
 ): Promise<DayAvailability[]> {
   const ym = parseYm(opts.month);
   if (!ym) return [];
@@ -347,7 +446,7 @@ export async function getDayAvailability(
   const out: DayAvailability[] = [];
   for (let i = 0; i < days; i++) {
     const date = ymdToString(addDays(first, i));
-    const slots = computeSlots({ config: opts.config, service: opts.service, date, staffId: opts.staffId ?? null, now: opts.now, ...data });
+    const slots = computeSlots({ config: opts.config, service: opts.service, date, staffId: opts.staffId ?? null, partySize: opts.partySize ?? null, now: opts.now, ...data });
     const count = slots.filter((s) => s.available).length;
     out.push({ date, available: count > 0, count });
   }

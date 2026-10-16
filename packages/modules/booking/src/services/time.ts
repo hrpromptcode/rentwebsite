@@ -78,6 +78,20 @@ export function addDays(ymd: Ymd, n: number): Ymd {
   return { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate() };
 }
 
+/**
+ * Age in full years on the Bangkok calendar (COR-12: not the server's timezone – a birthday turns over at
+ * 00:00 Asia/Bangkok). null for an unknown / impossible / future date.
+ */
+export function ageOn(birthDate: string | null | undefined, now: Date = new Date()): number | null {
+  if (!birthDate) return null;
+  const b = parseYmd(birthDate);
+  if (!b) return null;
+  const t = toBkkParts(now);
+  let age = t.y - b.y;
+  if (t.m < b.m || (t.m === b.m && t.d < b.d)) age--;
+  return age >= 0 && age < 150 ? age : null;
+}
+
 /** b − a in whole days. */
 export function diffDays(a: Ymd, b: Ymd): number {
   return Math.round((Date.UTC(b.y, b.m - 1, b.d) - Date.UTC(a.y, a.m - 1, a.d)) / DAY_MS);

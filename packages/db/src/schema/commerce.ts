@@ -1,4 +1,4 @@
-import { boolean, index, integer, jsonb, pgTable, text, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, text, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createdAt, id, money, timestamps, tz } from "./_helpers";
 import { tenantRef } from "./platform";
@@ -121,7 +121,9 @@ export const carts = pgTable(
     tenantId: tenantRef(),
     customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
     token: text("token").notNull(),
-    status: text("status").notNull().default("active"), // active | converted | abandoned
+    status: text("status").notNull().default("active"), // active | converted | abandoned | merged
+    /** set when status = merged: the customer cart this cart was merged into (SS-12, cart follows the account) */
+    mergedIntoId: uuid("merged_into_id"),
     couponCode: text("coupon_code"),
     note: text("note"),
     expiresAt: tz("expires_at"),
@@ -145,7 +147,11 @@ export const cartItems = pgTable(
     quantity: integer("quantity").notNull().default(1),
     ...timestamps(),
   },
-  (t) => [index("cart_items_cart_idx").on(t.tenantId, t.cartId)],
+  (t) => [
+    index("cart_items_cart_idx").on(t.tenantId, t.cartId),
+    // one line per product/variant per cart (COR-04: parallel add-to-cart must merge, not duplicate)
+    unique("cart_items_line_uq").on(t.cartId, t.productId, t.variantId).nullsNotDistinct(),
+  ],
 );
 
 export const shippingMethods = pgTable(
@@ -289,6 +295,8 @@ export const payments = pgTable(
   (t) => [
     index("payments_ref_idx").on(t.tenantId, t.refType, t.refId),
     index("payments_tenant_status_idx").on(t.tenantId, t.status, t.createdAt),
+    // cross-tenant expiry sweep (expireStalePayments: status = pending and expires_at due)
+    index("payments_status_expires_idx").on(t.status, t.expiresAt).where(sql`${t.expiresAt} is not null`),
     uniqueIndex("payments_slip_trans_ref_uq")
       .on(t.tenantId, t.slipTransRef)
       .where(sql`${t.slipTransRef} is not null`),

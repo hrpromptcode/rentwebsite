@@ -6,7 +6,7 @@ import { Button } from "@rentweb/ui/components/button";
 import { Reveal } from "@rentweb/ui/motion";
 import { Img } from "@rentweb/storefront";
 import { PaymentPanel } from "@rentweb/storefront/payments";
-import { paymentSettings, promptpayQrDataUrl } from "@rentweb/core/payments";
+import { paymentRefundRequired, paymentSettings, promptpayQrDataUrl } from "@rentweb/core/payments";
 import { thb } from "@rentweb/core/money";
 import { isUuid } from "@rentweb/core";
 import { bookingConfig, canCustomerModify, formatBkkTime, formatThaiDate, getBookingForCustomer } from "@rentweb/module-booking/services";
@@ -53,7 +53,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pa
     );
   }
 
-  const { booking, service, staff, payment } = detail;
+  const { booking, service, staff, extraStaff, payment, package: course } = detail;
   const config = bookingConfig(runtime.config.moduleConfig);
   const settings = paymentSettings(runtime.config.settings);
   const now = new Date();
@@ -62,7 +62,13 @@ export default async function BookingPage({ params, searchParams }: { params: Pa
   const contact = (runtime.config.settings.contact as { address?: string; phone?: string } | undefined) ?? {};
   const paymentExpired = !!payment && payment.status === "pending" && !!payment.expiresAt && payment.expiresAt < now;
   const needsDeposit = booking.status === "pending" && booking.depositAmount > 0 && booking.paymentStatus === "unpaid";
-  const showPayment = needsDeposit && !!payment && payment.status !== "paid" && !paymentExpired;
+  // a QR that can still be paid, or a slip under review (SBR-009: a rescheduled booking gets its own live QR)
+  const paymentLive = !!payment && (payment.status === "pending_verification" || (payment.status === "pending" && !paymentExpired));
+  const showPayment = needsDeposit && paymentLive;
+  const renew: "expired" | "failed" | "none" | null = needsDeposit && !paymentLive ? (paymentExpired || payment?.status === "expired" ? "expired" : payment?.status === "failed" ? "failed" : "none") : null;
+  const refundNote = booking.status === "cancelled" && payment?.status === "paid" ? paymentRefundRequired(payment) : null;
+  const group = service.capacity > 1 || !service.requiresStaff;
+  const staffNames = [staff?.name, ...extraStaff.map((s) => s.name)].filter(Boolean).join(", ");
   const canModify = canCustomerModify(booking, config, now);
   const isActive = booking.status === "pending" || booking.status === "confirmed";
   const { today, maxDate } = wizardDates(config, now);
@@ -109,12 +115,12 @@ export default async function BookingPage({ params, searchParams }: { params: Pa
                       <span className="inline-flex items-center gap-1">
                         <Clock className="size-3.5" /> {L.minutes(service.durationMin)}
                       </span>
-                      {staff && (
+                      {staffNames && (
                         <span className="inline-flex items-center gap-1">
-                          <UserRound className="size-3.5" /> {staff.name}
+                          <UserRound className="size-3.5" /> {staffNames}
                         </span>
                       )}
-                      {booking.partySize > 1 && <span>{booking.partySize} ท่าน</span>}
+                      {booking.partySize > 1 && <span>{L.guests(booking.partySize)}</span>}
                     </p>
                   </div>
                 </div>
@@ -155,18 +161,22 @@ export default async function BookingPage({ params, searchParams }: { params: Pa
                 bankAccounts={settings.bankAccounts ?? []}
                 successHref={selfHref}
               />
+              {payment.status === "pending" && <p className="mt-2 text-center text-xs text-muted-foreground">หากไม่ชำระมัดจำภายในเวลาที่กำหนด ระบบจะยกเลิกคิวนี้อัตโนมัติเพื่อเปิดให้ลูกค้าท่านอื่น</p>}
             </Reveal>
           )}
 
-          {needsDeposit && (!payment || paymentExpired) && (
+          {renew && (
             <Reveal delay={0.1} className="card mt-5 flex flex-col items-start gap-3 p-5 md:flex-row md:items-center md:justify-between md:p-6">
               <div>
-                <p className="font-heading text-lg font-semibold">QR ชำระมัดจำหมดอายุแล้ว</p>
-                <p className="text-sm text-muted-foreground">สร้างรายการชำระเงินใหม่เพื่อยืนยันคิว {thb(booking.depositAmount)}</p>
+                <p className="font-heading text-lg font-semibold">{renew === "expired" ? "QR ชำระมัดจำหมดอายุแล้ว" : renew === "failed" ? "สลิปไม่ผ่านการตรวจสอบ" : "ชำระมัดจำเพื่อยืนยันคิว"}</p>
+                <p className="text-sm text-muted-foreground">
+                  {renew === "failed" && payment?.failureReason ? `${payment.failureReason} · ` : ""}
+                  {renew === "none" ? `สร้าง QR ชำระมัดจำ ${thb(booking.depositAmount)} เพื่อยืนยันคิว` : `สร้างรายการชำระเงินใหม่เพื่อยืนยันคิว ${thb(booking.depositAmount)}`}
+                </p>
               </div>
               <form action={renewPaymentAction.bind(null, tenantId, booking.id, key)}>
                 <Button type="submit" size="lg">
-                  <RefreshCw className="size-4" /> สร้าง QR ใหม่
+                  <RefreshCw className="size-4" /> {renew === "none" ? "สร้าง QR ชำระมัดจำ" : "สร้าง QR ใหม่"}
                 </Button>
               </form>
             </Reveal>
@@ -180,11 +190,16 @@ export default async function BookingPage({ params, searchParams }: { params: Pa
               <Row label="ชื่อผู้จอง" value={booking.customerName} />
               {booking.customerPhone && <Row label="เบอร์โทร" value={booking.customerPhone} mono />}
               {booking.customerEmail && <Row label="อีเมล" value={booking.customerEmail} />}
-              <Row label={L.total} value={booking.price === 0 ? service.priceNote || L.free : thb(booking.price)} />
+              {course ? (
+                <Row label={L.useCourse} value={L.courseLeft(course.packageName, course.sessionsLeft)} />
+              ) : (
+                <Row label={L.total} value={booking.price === 0 ? service.priceNote || L.free : thb(booking.price)} />
+              )}
               {booking.depositAmount > 0 && <Row label={L.deposit} value={thb(booking.depositAmount)} />}
-              <Row label="สถานะการชำระ" value={PAYMENT_STATUS[booking.paymentStatus] ?? booking.paymentStatus} />
+              <Row label="สถานะการชำระ" value={course ? L.courseBookingNote : (PAYMENT_STATUS[booking.paymentStatus] ?? booking.paymentStatus)} />
               {payment && <Row label="ช่องทาง" value={METHOD_LABELS[payment.method]?.label ?? payment.method} />}
               {remaining > 0 && booking.price > 0 && <Row label={L.payAtShop} value={thb(remaining)} />}
+              {refundNote && <Row label="การคืนเงิน" value="ร้านได้รับเงินหลังการจองถูกยกเลิก และจะติดต่อคืนเงินให้" />}
               <Row label="จองเมื่อ" value={formatThaiDate(booking.createdAt, { time: true })} />
               {booking.confirmedAt && <Row label="ยืนยันเมื่อ" value={formatThaiDate(booking.confirmedAt, { time: true })} />}
               {booking.cancelledAt && <Row label="ยกเลิกเมื่อ" value={formatThaiDate(booking.cancelledAt, { time: true })} />}
@@ -205,10 +220,11 @@ export default async function BookingPage({ params, searchParams }: { params: Pa
                 canModify={canModify}
                 cancelHours={config.cancelHours}
                 serviceId={booking.serviceId}
-                staffId={booking.staffId}
+                staffId={group ? null : booking.staffId}
                 today={today}
                 maxDate={maxDate}
                 showRemaining={service.capacity > 1}
+                partySize={group ? booking.partySize : undefined}
                 cancelAction={cancelBookingAction.bind(null, tenantId, booking.id, key)}
                 rescheduleAction={rescheduleBookingAction.bind(null, tenantId, booking.id, key)}
               />

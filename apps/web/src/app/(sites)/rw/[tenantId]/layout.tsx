@@ -6,6 +6,7 @@ import { FloatingChat, ModeScript, SiteFooter, SiteHeader, ThemeEffects } from "
 import { fontClassNames } from "@/fonts";
 import { getNavigation, getRuntime, listNavPages } from "@/lib/tenant";
 import { buildCtx } from "@/lib/storefront-ctx";
+import { siteMetadata } from "@/lib/seo";
 import "../../../globals.css";
 import "@/modules";
 
@@ -15,17 +16,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { tenantId } = await params;
   const runtime = await getRuntime(tenantId);
   if (!runtime) return {};
-  const { config, theme } = runtime;
-  const seo = (config.settings.seo as { title?: string; description?: string } | undefined) ?? {};
-  const title = seo.title ?? config.name;
-  const description = seo.description ?? (config.settings.tagline as string | undefined) ?? undefined;
-  return {
-    title: { default: title, template: `%s · ${config.name}` },
-    description,
-    icons: theme.brand.favicon ? { icon: theme.brand.favicon } : undefined,
-    openGraph: { title, description, siteName: config.name, images: theme.brand.ogImage ? [theme.brand.ogImage] : undefined, locale: config.locale === "th" ? "th_TH" : "en_US", type: "website" },
-    robots: config.status === "trialing" ? { index: false, follow: false } : undefined,
-  };
+  // site defaults incl. a generated favicon when the tenant has none (SS-10); see lib/seo.ts
+  return siteMetadata(runtime);
 }
 
 export default async function SiteLayout({ children, params }: { children: React.ReactNode; params: Params }) {

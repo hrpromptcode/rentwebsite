@@ -20,13 +20,26 @@ export interface ModifierSheetProps {
   onOpenChange: (open: boolean) => void;
   onAdd: (line: CartItem) => void;
   addLabel?: string;
+  /** element to focus when the sheet closes (the item card that opened it) – the sheet has no Radix trigger (RA-05) */
+  returnFocus?: () => HTMLElement | null | undefined;
 }
 
 /** Bottom sheet: required radio groups, optional checkbox groups (max N), note, qty, add button. */
-export function ModifierSheet({ item, open, onOpenChange, onAdd, addLabel = L.addToOrder }: ModifierSheetProps) {
+export function ModifierSheet({ item, open, onOpenChange, onAdd, addLabel = L.addToOrder, returnFocus }: ModifierSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="mx-auto max-h-[92dvh] w-full gap-0 overflow-hidden p-0 sm:max-w-lg" aria-describedby={undefined}>
+      <SheetContent
+        side="bottom"
+        className="mx-auto max-h-[92dvh] w-full gap-0 overflow-hidden p-0 sm:max-w-lg"
+        aria-describedby={undefined}
+        onCloseAutoFocus={(e) => {
+          const el = returnFocus?.();
+          if (el) {
+            e.preventDefault();
+            el.focus();
+          }
+        }}
+      >
         {item && <Body key={item.id} item={item} onAdd={onAdd} addLabel={addLabel} />}
       </SheetContent>
     </Sheet>
@@ -57,7 +70,7 @@ function Body({ item, onAdd, addLabel }: { item: MenuItemData; onAdd: (line: Car
   const valid = missing.length === 0;
   const modifierIds = item.modifierGroups.flatMap((g) => sel[g.id] ?? []);
   const delta = item.modifierGroups.reduce((s, g) => s + g.modifiers.filter((m) => (sel[g.id] ?? []).includes(m.id)).reduce((a, m) => a + m.priceDelta, 0), 0);
-  const unit = item.price + delta;
+  const unit = Math.max(0, item.price + delta);
 
   const submit = () => {
     setTouched(true);

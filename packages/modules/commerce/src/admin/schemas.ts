@@ -34,6 +34,9 @@ const optionalInt = (label: string, min = 1) =>
     z.number({ error: `${label}ไม่ถูกต้อง` }).int(`${label}ต้องเป็นจำนวนเต็ม`).min(min, `${label}ต้องไม่น้อยกว่า ${min}`).nullable(),
   );
 
+/** The stock value the edit form was loaded with (COR-32): only the user's change is applied, as a delta. */
+const stockLoaded = z.preprocess((v) => (v === "" || v === null || v === undefined ? undefined : Number(v)), z.number().int().optional());
+
 const optionalDate = z.preprocess((v) => (v === "" || v === null || v === undefined ? null : v), z.coerce.date().nullable());
 
 const optionalText = (max: number, msg?: string) => z.preprocess((v) => (v === "" || v === undefined ? null : v), z.string().trim().max(max, msg).nullable());
@@ -88,6 +91,7 @@ export const productVariantSchema = z.object({
   price: moneyRequired("ราคา"),
   compareAtPrice: moneyOptional("ราคาก่อนลด"),
   stock: intField("สต็อก"),
+  stockLoaded,
   active: z.boolean().default(true),
 });
 
@@ -107,6 +111,7 @@ export const productSchema = z.object({
   status: z.enum(["draft", "active", "archived"]).default("draft"),
   trackInventory: z.boolean().default(true),
   stock: intField("สต็อก"),
+  stockLoaded,
   lowStockThreshold: intField("จุดเตือนสต็อกต่ำ"),
   weightGrams: intField("น้ำหนัก (กรัม)"),
   sku: optionalText(64),
@@ -155,6 +160,8 @@ export const discountSchema = z
   })
   .superRefine((d, ctx) => {
     if (d.type === "percent" && (d.value <= 0 || d.value > 100)) ctx.addIssue({ code: "custom", path: ["value"], message: "เปอร์เซ็นต์ต้องอยู่ระหว่าง 1–100" });
+    // COR-30: discounts.value stores whole percents — 12.5 must not silently become 13 (or 0.4 a 0% coupon)
+    else if (d.type === "percent" && !Number.isInteger(d.value)) ctx.addIssue({ code: "custom", path: ["value"], message: "เปอร์เซ็นต์ต้องเป็นจำนวนเต็ม (1–100)" });
     if (d.type === "fixed" && d.value <= 0) ctx.addIssue({ code: "custom", path: ["value"], message: "กรุณากรอกจำนวนเงินส่วนลด" });
     if (d.startsAt && d.endsAt && d.endsAt < d.startsAt) ctx.addIssue({ code: "custom", path: ["endsAt"], message: "วันสิ้นสุดต้องหลังวันเริ่ม" });
   });

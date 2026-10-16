@@ -10,6 +10,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createdAt, id, money, timestamps, tz } from "./_helpers";
 import { tenantRef } from "./platform";
 import { customers, type AddressJson } from "./customers";
@@ -145,14 +146,19 @@ export const tableSessions = pgTable(
       .notNull()
       .references(() => diningTables.id, { onDelete: "cascade" }),
     token: text("token").notNull(), // short code shared by guests at the table
-    status: text("status").notNull().default("open"), // open | bill_requested | paid | closed
+    status: text("status").notNull().default("open"), // open | bill_requested | paid | expired (retired by the system with money due) | closed
     guestCount: integer("guest_count"),
     openedAt: tz("opened_at").notNull().defaultNow(),
     closedAt: tz("closed_at"),
     total: money("total").notNull().default(0),
     paymentId: uuid("payment_id"),
   },
-  (t) => [uniqueIndex("table_sessions_token_uq").on(t.token), index("table_sessions_table_idx").on(t.tenantId, t.tableId, t.status)],
+  (t) => [
+    uniqueIndex("table_sessions_token_uq").on(t.token),
+    index("table_sessions_table_idx").on(t.tenantId, t.tableId, t.status),
+    // one session guests can order into per table (COR-26: parallel QR scans must join, not fork, the table)
+    uniqueIndex("table_sessions_open_table_uq").on(t.tenantId, t.tableId).where(sql`${t.status} in ('open', 'bill_requested')`),
+  ],
 );
 
 export const restaurantOrders = pgTable(

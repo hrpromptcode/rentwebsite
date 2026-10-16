@@ -43,7 +43,7 @@ export async function placePickupOrder(tenantId: string, _prev: PickupState, fd:
   const contact = (settings.contact as { hours?: Array<{ day?: string; time?: string }> } | undefined) ?? {};
 
   // the slot must still be one we would offer right now (inside hours, ≥ lead time)
-  const slots = pickupSlots({ hours: parseHours(contact.hours), leadMinutes: cfg.pickupLeadMinutes, stepMinutes: 15 });
+  const slots = pickupSlots({ hours: parseHours(contact.hours), leadMinutes: cfg.pickupLeadMinutes, stepMinutes: 15, prepMinutes: cfg.prepMinutesDefault });
   if (!slots.some((s) => s.value === parsed.data.scheduledFor)) return { error: "ช่วงเวลารับอาหารนี้ไม่เปิดแล้ว กรุณาเลือกเวลาใหม่", values };
   const methods = restaurantPaymentOptions(settings, "pickup");
   if (!methods.some((m) => m.value === parsed.data.paymentMethod)) return { error: "วิธีชำระเงินนี้ไม่เปิดใช้งาน", values };

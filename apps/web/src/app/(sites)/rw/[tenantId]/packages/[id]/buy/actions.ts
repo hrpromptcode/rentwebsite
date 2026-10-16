@@ -11,14 +11,15 @@ import { getCurrentCustomer } from "@/lib/customer";
 
 export type BuyState = { error?: string };
 
-const schema = z.object({ paymentMethod: z.enum(["promptpay_qr", "slip"]) });
+// SBR-007: the PDPA / terms checkbox is validated on the server and recorded on the patient
+const schema = z.object({ paymentMethod: z.enum(["promptpay_qr", "slip"]), consent: z.literal("on", { error: "consent_required" }) });
 const msg = (code: string) => L.errors[code] ?? L.errors.unknown ?? "เกิดข้อผิดพลาด";
 
 /** Buys a clinic package for the signed-in customer → redirects to the payment page under /account/packages/[id]. */
 export async function purchasePackageAction(tenantId: string, packageId: string, _prev: BuyState, form: FormData): Promise<BuyState> {
   if (!isUuid(packageId)) return { error: msg("package_not_found") };
-  const parsed = schema.safeParse({ paymentMethod: form.get("paymentMethod") });
-  if (!parsed.success) return { error: msg("invalid_input") };
+  const parsed = schema.safeParse({ paymentMethod: form.get("paymentMethod"), consent: form.get("consent") });
+  if (!parsed.success) return { error: msg(parsed.error.issues.some((i) => i.path[0] === "consent") ? "consent_required" : "invalid_input") };
   const runtime = await getRuntime(tenantId);
   if (!runtime || !runtime.config.modules.includes("clinic")) return { error: msg("unknown") };
   const customer = await getCurrentCustomer(tenantId);
@@ -28,7 +29,7 @@ export async function purchasePackageAction(tenantId: string, packageId: string,
     purchasePackage(
       tx,
       tenantId,
-      { packageId, customer: { id: customer.id, name: customer.name, phone: customer.phone, email: customer.email }, paymentMethod: parsed.data.paymentMethod },
+      { packageId, customer: { id: customer.id, name: customer.name, phone: customer.phone, email: customer.email }, paymentMethod: parsed.data.paymentMethod, consent: { version: clinicConfig(runtime.config.moduleConfig).consentVersion } },
       { settings: runtime.config.settings, hnPrefix: clinicConfig(runtime.config.moduleConfig).hnPrefix },
     ),
   );

@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import { diningTables, restaurantOrders, tableSessions, type Tx } from "@rentweb/db";
 import { fail, ok, shortCode, type Result } from "@rentweb/core";
+import { ACTIVE_SESSION_STATUSES, isSessionOpen } from "../services/tables";
 
 export interface TableRow {
   id: string;
@@ -20,7 +21,7 @@ export async function listTablesAdmin(tx: Tx, tenantId: string): Promise<TableRo
   const sessions = await tx
     .select()
     .from(tableSessions)
-    .where(and(eq(tableSessions.tenantId, tenantId), inArray(tableSessions.status, ["open", "bill_requested"])))
+    .where(and(eq(tableSessions.tenantId, tenantId), inArray(tableSessions.status, [...ACTIVE_SESSION_STATUSES])))
     .orderBy(asc(tableSessions.openedAt));
   const sessionIds = sessions.map((s) => s.id);
   const orders = sessionIds.length
@@ -30,13 +31,14 @@ export async function listTablesAdmin(tx: Tx, tenantId: string): Promise<TableRo
         .where(and(eq(restaurantOrders.tenantId, tenantId), inArray(restaurantOrders.sessionId, sessionIds), ne(restaurantOrders.status, "cancelled")))
     : [];
   return tables.map((t) => {
-    const s = sessions.find((x) => x.tableId === t.id);
+    // the guests' current session first; an unsettled (paid / expired) one otherwise
+    const s = sessions.find((x) => x.tableId === t.id && isSessionOpen(x)) ?? sessions.find((x) => x.tableId === t.id);
     let session: TableRow["session"] = null;
     if (s) {
       const mine = orders.filter((o) => o.sessionId === s.id);
       const total = mine.reduce((a, o) => a + o.total, 0);
-      const paid = mine.filter((o) => o.paymentStatus === "paid").reduce((a, o) => a + o.total, 0);
-      session = { id: s.id, status: s.status, openedAt: s.openedAt.toISOString(), total, dueTotal: Math.max(0, total - paid), ordersCount: mine.length };
+      const due = mine.filter((o) => o.paymentStatus === "unpaid" || o.paymentStatus === "pay_at_counter").reduce((a, o) => a + o.total, 0);
+      session = { id: s.id, status: s.status, openedAt: s.openedAt.toISOString(), total, dueTotal: due, ordersCount: mine.length };
     }
     return { id: t.id, name: t.name, zone: t.zone, seats: t.seats, qrToken: t.qrToken, active: t.active, sort: t.sort, createdAt: t.createdAt.toISOString(), session };
   });
@@ -93,7 +95,7 @@ export async function deleteTable(tx: Tx, tenantId: string, id: string): Promise
   const [open] = await tx
     .select({ id: tableSessions.id })
     .from(tableSessions)
-    .where(and(eq(tableSessions.tenantId, tenantId), eq(tableSessions.tableId, id), inArray(tableSessions.status, ["open", "bill_requested"])))
+    .where(and(eq(tableSessions.tenantId, tenantId), eq(tableSessions.tableId, id), inArray(tableSessions.status, [...ACTIVE_SESSION_STATUSES])))
     .limit(1);
   if (open) return fail("โต๊ะนี้มีลูกค้ากำลังใช้งาน กรุณาปิดโต๊ะก่อนลบ", "in_use");
   const [row] = await tx.delete(diningTables).where(and(eq(diningTables.tenantId, tenantId), eq(diningTables.id, id))).returning({ id: diningTables.id });

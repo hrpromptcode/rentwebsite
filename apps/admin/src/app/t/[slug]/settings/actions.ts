@@ -8,6 +8,8 @@ import { invalidateTenant } from "@rentweb/core/tenant";
 import { randomToken } from "@rentweb/core/crypto";
 import { rootDomain } from "@rentweb/core/env";
 import { auditLog } from "@/lib/audit";
+import { OWN_ACTION_AUDIT, ownStatusTransition, type OwnStatusAction, type TenantStatus } from "@/lib/tenant-status";
+import { loadTenantStatusState } from "@/lib/tenant-status-server";
 import { assertRole, getTenantCtx, hasRole, ROLE_RANK, tenantHostnames, type MemberRole, type TenantCtx } from "@/lib/tenant";
 import type { ActionResult } from "@/components/ui/form";
 import { generalSchema, MEMBER_ROLES, paymentsSchema, type GeneralInput, type PaymentsInput } from "./shared";
@@ -231,6 +233,8 @@ export async function changeMemberRole(slug: string, memberId: string, roleRaw: 
   const m = await loadMember(ctx, memberId);
   if (!m) return { ok: false, error: "ไม่พบสมาชิก" };
   if (m.role === "owner" && !hasRole(ctx, "owner")) return { ok: false, error: "เฉพาะเจ้าของเท่านั้นที่แก้ไขเจ้าของได้" };
+  // same rule as removeMember: non-owners may only change members ranked strictly below them (self excepted)
+  if (m.userId !== ctx.userId && !canAssign(ctx, m.role as MemberRole)) return { ok: false, error: "คุณไม่สามารถเปลี่ยนบทบาทของสมาชิกที่มีบทบาทเท่ากันหรือสูงกว่าได้" };
   if (!canAssign(ctx, role.data)) return { ok: false, error: "คุณไม่สามารถมอบบทบาทนี้ได้" };
   if (m.role === "owner" && role.data !== "owner" && (await countOwners(ctx.tenant.id)) <= 1) return { ok: false, error: "ต้องมีเจ้าของอย่างน้อย 1 คน" };
   await getAdminDb().update(tenantMembers).set({ role: role.data }).where(eq(tenantMembers.id, m.id));
@@ -257,29 +261,40 @@ export async function removeMember(slug: string, memberId: string): Promise<Acti
 
 /* ------------------------------- danger zone -------------------------------- */
 
-async function setOwnStatus(slug: string, status: "active" | "suspended" | "cancelled", action: string, message: string): Promise<ActionResult> {
+async function setOwnStatus(slug: string, action: OwnStatusAction, message: string): Promise<ActionResult> {
   const ctx = await getTenantCtx(slug);
   assertRole(ctx, "owner");
-  const db = getAdminDb();
-  const [cur] = await db.select({ status: tenants.status, trialEndsAt: tenants.trialEndsAt }).from(tenants).where(eq(tenants.id, ctx.tenant.id)).limit(1);
-  if (!cur) return { ok: false, error: "ไม่พบร้าน" };
-  // re-activating a site that is still inside its trial goes back to "trialing"
-  const next = status === "active" && cur.trialEndsAt && cur.trialEndsAt.getTime() > Date.now() ? "trialing" : status;
-  await db
+  const state = await loadTenantStatusState(ctx.tenant.id);
+  if (!state) return { ok: false, error: "ไม่พบร้าน" };
+  const decision = ownStatusTransition(action, state);
+  if (!decision.ok) return { ok: false, error: decision.error };
+  const next = decision.next;
+  const suspendedAt = next === "suspended" ? new Date() : null;
+  // optimistic: only apply when nobody (e.g. RentWeb staff) changed the status since we read it
+  const updated = await getAdminDb()
     .update(tenants)
-    .set({ status: next, suspendedAt: next === "suspended" ? new Date() : null })
-    .where(and(eq(tenants.id, ctx.tenant.id), ne(tenants.status, "deleted")));
-  await auditLog({ tenantId: ctx.tenant.id, ...actor(ctx), action, targetType: "tenant", targetId: ctx.tenant.id, diff: { from: cur.status, to: next } });
-  await refresh(ctx, ["/settings/danger", "/dashboard"]);
+    .set({ status: next, suspendedAt })
+    .where(and(eq(tenants.id, ctx.tenant.id), eq(tenants.status, state.status as TenantStatus), ne(tenants.status, "deleted")))
+    .returning({ id: tenants.id });
+  if (updated.length === 0) return { ok: false, error: "สถานะร้านเพิ่งถูกเปลี่ยน กรุณารีเฟรชหน้าแล้วลองอีกครั้ง" };
+  await auditLog({
+    tenantId: ctx.tenant.id,
+    ...actor(ctx),
+    action: OWN_ACTION_AUDIT[action],
+    targetType: "tenant",
+    targetId: ctx.tenant.id,
+    diff: { from: state.status, to: next, by: "owner", ...(suspendedAt ? { suspendedAt: suspendedAt.toISOString() } : {}) },
+  });
+  await refresh(ctx, ["/settings/danger", "/settings/billing", "/dashboard"]);
   return { ok: true, message };
 }
 
 export async function suspendOwnTenant(slug: string) {
-  return setOwnStatus(slug, "suspended", "tenant.self.suspend", "ระงับเว็บไซต์ชั่วคราวแล้ว");
+  return setOwnStatus(slug, "suspend", "ระงับเว็บไซต์ชั่วคราวแล้ว");
 }
 export async function reactivateOwnTenant(slug: string) {
-  return setOwnStatus(slug, "active", "tenant.self.reactivate", "เปิดใช้งานเว็บไซต์อีกครั้งแล้ว");
+  return setOwnStatus(slug, "reactivate", "เปิดใช้งานเว็บไซต์อีกครั้งแล้ว");
 }
 export async function cancelOwnTenant(slug: string) {
-  return setOwnStatus(slug, "cancelled", "tenant.self.cancel", "ยกเลิกเว็บไซต์แล้ว");
+  return setOwnStatus(slug, "cancel", "ยกเลิกเว็บไซต์แล้ว");
 }

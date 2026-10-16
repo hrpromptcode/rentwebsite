@@ -17,6 +17,7 @@ export function TenantAdminPanel({ tenantId, planKey, status, trialEndsAt, suspe
   const [plan, setPlan] = React.useState(planKey);
   const [nextStatus, setNextStatus] = React.useState<Status>((STATUSES.includes(status as Status) ? status : "trialing") as Status);
   const [days, setDays] = React.useState("14");
+  const [reason, setReason] = React.useState("");
   const [savePlan, planPending] = useAction(updateTenantPlan);
   const [saveStatus, statusPending] = useAction(updateTenantStatus);
   const [extend, extendPending] = useAction(extendTrial);
@@ -62,8 +63,8 @@ export function TenantAdminPanel({ tenantId, planKey, status, trialEndsAt, suspe
             {suspendedAt && status === "suspended" ? ` (ตั้งแต่ ${fmtDate(suspendedAt)})` : ""}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <Field label="สถานะใหม่" htmlFor="c-status" className="flex-1">
+        <CardContent className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] sm:items-end">
+          <Field label="สถานะใหม่" htmlFor="c-status">
             <Select value={nextStatus} onValueChange={(v) => setNextStatus(v as Status)}>
               <SelectTrigger id="c-status" className="w-full">
                 <SelectValue />
@@ -77,7 +78,18 @@ export function TenantAdminPanel({ tenantId, planKey, status, trialEndsAt, suspe
               </SelectContent>
             </Select>
           </Field>
-          <Button type="button" variant={nextStatus === "suspended" || nextStatus === "cancelled" ? "destructive" : "default"} onClick={() => void saveStatus({ tenantId, status: nextStatus })} disabled={nextStatus === status || statusPending}>
+          <Field label="เหตุผล (เจ้าของร้านจะเห็นข้อความนี้)" htmlFor="c-reason">
+            <Input id="c-reason" value={reason} maxLength={500} placeholder="เช่น ค้างชำระค่าบริการ" onChange={(e) => setReason(e.target.value)} />
+          </Field>
+          <Button
+            type="button"
+            variant={nextStatus === "suspended" || nextStatus === "cancelled" ? "destructive" : "default"}
+            onClick={async () => {
+              const r = await saveStatus({ tenantId, status: nextStatus, reason: reason.trim() || undefined });
+              if (r?.ok) setReason("");
+            }}
+            disabled={nextStatus === status || statusPending}
+          >
             {statusPending && <Loader2 className="animate-spin" aria-hidden />} อัปเดตสถานะ
           </Button>
         </CardContent>

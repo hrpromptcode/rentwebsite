@@ -107,6 +107,7 @@ export async function saveService(tx: Tx, tenantId: string, id: string | null, v
     depositAmount: v.depositRequired ? v.depositAmount : 0,
     capacity: v.capacity,
     requiresStaff: v.requiresStaff,
+    seatsPerBooking: v.capacity > 1 ? v.seatsPerBooking : null,
     active: v.active,
     featured: v.featured,
     sort: v.sort,

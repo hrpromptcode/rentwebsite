@@ -15,6 +15,7 @@ import {
   type Actor,
 } from "@rentweb/module-commerce/admin";
 import { bahtToSatang, fieldErrors, manualOrderSchema, shipOrderSchema, type FormResult, type ManualOrderInput, type ShipOrderInput } from "@rentweb/module-commerce/admin/schemas";
+import { paymentRefundRequired } from "@rentweb/core/payments";
 import { assertRole, getTenantCtx, tenantTx, type TenantCtx } from "@/lib/tenant";
 
 function actorOf(ctx: TenantCtx): Actor {
@@ -79,7 +80,9 @@ export async function refundOrderAction(slug: string, orderId: string, input: { 
   const r = await tenantTx(ctx.tenant.id, (tx) => refundOrderPayment(tx, ctx.tenant.id, orderId, input.paymentId, amount, input.note?.trim().slice(0, 300) || null, actorOf(ctx)));
   if (!r.ok) return { ok: false, error: r.error, fieldErrors: r.code === "amount" ? { amount: r.error } : undefined };
   revalidateOrder(slug, orderId);
-  return { ok: true, message: r.value.paymentStatus === "refunded" ? "คืนเงินเต็มจำนวนแล้ว" : "บันทึกการคืนเงินบางส่วนแล้ว" };
+  revalidatePath(`/t/${slug}/products`);
+  if (r.value.paymentStatus !== "refunded") return { ok: true, message: "บันทึกการคืนเงินบางส่วนแล้ว" };
+  return { ok: true, message: r.value.restocked > 0 ? `คืนเงินเต็มจำนวนแล้ว คืนสต็อก ${r.value.restocked} ชิ้น` : "คืนเงินเต็มจำนวนแล้ว" };
 }
 
 export async function verifyPaymentAction(slug: string, orderId: string, paymentId: string): Promise<FormResult> {
@@ -89,7 +92,8 @@ export async function verifyPaymentAction(slug: string, orderId: string, payment
   const r = await tenantTx(ctx.tenant.id, (tx) => verifyPayment(tx, ctx.tenant.id, paymentId, actorOf(ctx)));
   if (!r.ok) return { ok: false, error: r.error };
   revalidateOrder(slug, orderId);
-  return { ok: true, message: "ยืนยันการชำระเงินแล้ว" };
+  const refund = paymentRefundRequired(r.value);
+  return { ok: true, message: refund ? `บันทึกว่าได้รับเงินแล้ว แต่ต้องคืนเงินลูกค้า: ${refund}` : "ยืนยันการชำระเงินแล้ว" };
 }
 
 export async function rejectPaymentAction(slug: string, orderId: string, paymentId: string, reason: string): Promise<FormResult> {

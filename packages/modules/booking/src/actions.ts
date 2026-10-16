@@ -26,7 +26,9 @@ const payloadSchema = z.object({
   email: z.string().trim().max(200).optional().nullable(),
   note: z.string().trim().max(1000).optional().nullable(),
   paymentMethod: z.enum(["promptpay_qr", "slip", "cash", "card", "cod", "wallet"]).optional().nullable(),
-  partySize: z.number().int().min(1).max(20).optional(),
+  partySize: z.number().int().min(1).max(50).optional(),
+  /** SBR-016: book with a session of this course (signed-in customer) */
+  patientPackageId: z.uuid().nullable().optional(),
 });
 
 export type CreateBookingPayload = z.input<typeof payloadSchema>;
@@ -57,6 +59,7 @@ export async function createBookingAction(raw: unknown): Promise<BookingActionRe
 
   const result = await withTenant(getDb(), tenantId, async (tx) => {
     const customer = await getCustomerByToken(tx, tenantId, token);
+    if (parsed.data.patientPackageId && !customer) return { ok: false as const, error: "login_required" };
     return createBooking(
       tx,
       tenantId,
@@ -68,6 +71,7 @@ export async function createBookingAction(raw: unknown): Promise<BookingActionRe
         note: parsed.data.note ?? null,
         partySize: parsed.data.partySize ?? 1,
         paymentMethod: parsed.data.paymentMethod ?? null,
+        patientPackageId: parsed.data.patientPackageId ?? null,
         source: "online",
       },
       { config: bookingConfig(runtime.config.moduleConfig), settings: runtime.config.settings },
@@ -75,5 +79,6 @@ export async function createBookingAction(raw: unknown): Promise<BookingActionRe
   });
   if (!result.ok) return { error: msg(result.error) };
   revalidatePath(`/rw/${tenantId}/account/bookings`);
+  if (parsed.data.patientPackageId) revalidatePath(`/rw/${tenantId}/account/packages`, "layout");
   redirect(`/bookings/${result.value.booking.id}?k=${encodeURIComponent(result.value.accessKey)}`);
 }

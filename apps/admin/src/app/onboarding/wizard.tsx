@@ -9,6 +9,7 @@ import { Label } from "@rentweb/ui/components/label";
 import { toast } from "@rentweb/ui/components/sonner";
 import { cn } from "@rentweb/ui/lib/utils";
 import { checkSlugAction, createSiteAction } from "./actions";
+import { finalizeSlug, typingSlug } from "@/lib/slug";
 
 export interface TemplateSummary {
   key: string;
@@ -55,15 +56,6 @@ const MODULE_TH: Record<string, string> = {
   donation: "บริจาค",
 };
 
-function clientSlug(input: string): string {
-  return input
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 40);
-}
 
 const RADIUS_PX: Record<string, string> = { none: "0px", sm: "4px", md: "8px", lg: "12px", xl: "16px", "2xl": "20px", full: "9999px" };
 
@@ -75,32 +67,39 @@ export function OnboardingWizard({ templates, presets, rootHost }: { templates: 
   const [name, setName] = React.useState("");
   const [slug, setSlug] = React.useState("");
   const [slugTouched, setSlugTouched] = React.useState(false);
-  const [slugState, setSlugState] = React.useState<{ status: "idle" | "checking" | "ok" | "taken"; reason?: string }>({ status: "idle" });
+  const [slugState, setSlugState] = React.useState<{ status: "idle" | "checking" | "ok" | "taken"; reason?: string; slug?: string }>({ status: "idle" });
+  // what will actually be created (no trailing hyphen); the input keeps the raw typed value
+  const slugCandidate = finalizeSlug(slug);
   const [preset, setPreset] = React.useState<string | null>(null);
   const [creating, setCreating] = React.useState(false);
 
   const template = templates.find((t) => t.key === templateKey) ?? null;
   const presetMap = React.useMemo(() => Object.fromEntries(presets.map((p) => [p.key, p])), [presets]);
 
-  // live slug availability check (debounced)
+  // live slug availability check (debounced). Server actions are queued, so an answer can arrive
+  // after the user already changed the value: `cancelled` drops every response but the latest.
   React.useEffect(() => {
     if (step !== 1) return;
-    if (!slug || slug.length < 3) {
+    if (!slugCandidate || slugCandidate.length < 3) {
       setSlugState({ status: "idle" });
       return;
     }
+    let cancelled = false;
     setSlugState({ status: "checking" });
     const handle = setTimeout(async () => {
       try {
-        const r = await checkSlugAction(slug);
-        setSlugState(r.available ? { status: "ok" } : { status: "taken", reason: r.reason });
-        if (r.slug !== slug && r.available) setSlug(r.slug);
+        const r = await checkSlugAction(slugCandidate);
+        if (cancelled) return;
+        setSlugState(r.available ? { status: "ok", slug: r.slug } : { status: "taken", reason: r.reason, slug: r.slug });
       } catch {
-        setSlugState({ status: "idle" });
+        if (!cancelled) setSlugState({ status: "idle" });
       }
     }, 400);
-    return () => clearTimeout(handle);
-  }, [slug, step]);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [slugCandidate, step]);
 
   function go(next: number) {
     setDir(next > step ? 1 : -1);
@@ -113,13 +112,13 @@ export function OnboardingWizard({ templates, presets, rootHost }: { templates: 
     if (t && (!preset || !t.recommendedPresets.includes(preset))) setPreset(t.recommendedPresets[0] ?? t.themePreset);
   }
 
-  const canNext = step === 0 ? !!templateKey : step === 1 ? name.trim().length >= 2 && slugState.status === "ok" : !!preset;
+  const canNext = step === 0 ? !!templateKey : step === 1 ? name.trim().length >= 2 && slugState.status === "ok" && slugState.slug === slugCandidate : !!preset;
 
   async function create() {
     if (!template || !preset) return;
     setCreating(true);
     try {
-      const r = await createSiteAction({ template: template.key, name: name.trim(), slug, preset });
+      const r = await createSiteAction({ template: template.key, name: name.trim(), slug: slugCandidate, preset });
       if (r && r.ok === false) {
         toast.error(r.error);
         setCreating(false);
@@ -251,7 +250,7 @@ export function OnboardingWizard({ templates, presets, rootHost }: { templates: 
                     placeholder="เช่น Siam Atelier"
                     onChange={(e) => {
                       setName(e.target.value);
-                      if (!slugTouched) setSlug(clientSlug(e.target.value));
+                      if (!slugTouched) setSlug(finalizeSlug(e.target.value));
                     }}
                     maxLength={60}
                   />
@@ -268,8 +267,9 @@ export function OnboardingWizard({ templates, presets, rootHost }: { templates: 
                       spellCheck={false}
                       onChange={(e) => {
                         setSlugTouched(true);
-                        setSlug(clientSlug(e.target.value));
+                        setSlug(typingSlug(e.target.value));
                       }}
+                      onBlur={() => setSlug((v) => finalizeSlug(v))}
                       className="h-11 min-w-0 flex-1 bg-transparent px-3 text-base outline-none md:text-sm"
                       placeholder="my-shop"
                       aria-describedby="slug-status"
@@ -300,7 +300,7 @@ export function OnboardingWizard({ templates, presets, rootHost }: { templates: 
                   <div className="min-w-0">
                     <p className="text-muted-foreground">เว็บของคุณจะอยู่ที่</p>
                     <p className="truncate font-medium text-primary">
-                      {rootHost.startsWith("localhost") ? "http" : "https"}://{slug || "ชื่อร้าน"}.{rootHost}
+                      {rootHost.startsWith("localhost") ? "http" : "https"}://{slugCandidate || "ชื่อร้าน"}.{rootHost}
                     </p>
                   </div>
                 </div>

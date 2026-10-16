@@ -35,7 +35,7 @@ export function CursorGlow({ size = 520, opacity = 0.18 }: { size?: number; opac
     <div
       ref={ref}
       aria-hidden
-      className="pointer-events-none fixed top-0 left-0 z-[1] hidden rounded-full [pointer:fine]:block"
+      className="pointer-events-none fixed top-0 left-0 z-[1] hidden rounded-full pointer-fine:block"
       style={{
         width: size,
         height: size,

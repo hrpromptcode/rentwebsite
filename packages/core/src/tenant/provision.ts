@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import {
+  forms,
   getAdminDb,
   navigation,
   pages,
@@ -12,6 +13,7 @@ import {
   type NavItem,
   type SectionJson,
   type Tx,
+  user,
 } from "@rentweb/db";
 import { rootDomain } from "../env";
 import { resolveModules, type ModuleKey } from "../modules";
@@ -61,6 +63,13 @@ export interface ProvisionInput {
   themeOverrides?: Partial<ThemeInput>;
   /** when true, seeds sample content (default true) */
   withSampleData?: boolean;
+  /**
+   * Keep the template's sample business identity (PromptPay ID, bank accounts, phone, LINE,
+   * e-mail, address, licence no., LINE/tel/mailto links, form recipients). Only for demo sites:
+   * defaults to true for ownerless `demo-*` slugs (tooling seed / reset-demo) and false otherwise,
+   * so a real shop never takes payments to – or mails its leads to – the sample business.
+   */
+  sampleIdentity?: boolean;
   db?: Db;
 }
 
@@ -68,6 +77,65 @@ export interface ProvisionResult {
   tenantId: string;
   slug: string;
   hostname: string;
+}
+
+type Json = Record<string, unknown>;
+
+/**
+ * Template settings without the sample business's identity (AC-02): contact keeps only the
+ * opening hours (used by ordering/reservation slots), payments keep only which methods are
+ * switched on – no PromptPay ID / bank account, so nothing can be paid to the sample receiver
+ * until the owner enters their own (the dashboard checklist then shows these steps as open).
+ */
+export function stripSampleIdentity(settings: Json): Json {
+  const out: Json = { ...settings };
+  const contact = settings.contact as Json | undefined;
+  if (contact) out.contact = contact.hours ? { hours: contact.hours } : {};
+  const payments = settings.payments as Json | undefined;
+  if (payments) out.payments = payments.enabled ? { enabled: payments.enabled } : {};
+  const clinic = settings.clinic as Json | undefined;
+  if (clinic) {
+    const { licenseNo: _sample, ...rest } = clinic;
+    out.clinic = rest;
+  }
+  delete out.notifications;
+  delete out.line;
+  return out;
+}
+
+const SAMPLE_CONTACT_HREF = /^(?:https?:\/\/(?:line\.me|lin\.ee)\/|tel:|mailto:)/i;
+
+/** Sample identity values of a template mapped to the placeholder shown until the owner edits the text. */
+export function sampleIdentityValues(settings: Json): Array<[string, string]> {
+  const contact = (settings.contact ?? {}) as Json;
+  const payments = (settings.payments ?? {}) as Json;
+  const clinic = (settings.clinic ?? {}) as Json;
+  const pairs: Array<[unknown, string]> = [
+    [clinic.licenseNo, "[เลขที่ใบอนุญาต]"],
+    [contact.phone, "[เบอร์โทรของร้าน]"],
+    [contact.email, "[อีเมลของร้าน]"],
+    [contact.lineId, "[LINE ID ของร้าน]"],
+    [contact.address, "[ที่อยู่ของร้าน]"],
+    [payments.promptpayId, "[พร้อมเพย์ของร้าน]"],
+    ...((Array.isArray(payments.bankAccounts) ? payments.bankAccounts : []) as Json[]).map((b): [unknown, string] => [b.number, "[เลขบัญชีของร้าน]"]),
+  ];
+  return pairs.filter((p): p is [string, string] => typeof p[0] === "string" && p[0].length >= 4);
+}
+
+/**
+ * Template sections without the sample business's contact points: LINE / tel: / mailto: buttons
+ * go to the tenant's own /contact page, and sample values inside texts (e.g. the clinic licence
+ * number in the hero) become a visible "[…ของร้าน]" placeholder for the owner to fill in.
+ */
+export function scrubSampleLinks<T>(value: T, samples: Array<[string, string]> = []): T {
+  if (typeof value === "string") return samples.reduce<string>((s, [from, to]) => s.split(from).join(to), value) as T;
+  if (Array.isArray(value)) return value.map((v) => scrubSampleLinks(v, samples)) as T;
+  if (!value || typeof value !== "object") return value;
+  const out: Json = {};
+  for (const [k, v] of Object.entries(value as Json)) {
+    out[k] = k === "href" && typeof v === "string" && SAMPLE_CONTACT_HREF.test(v) ? "/contact" : scrubSampleLinks(v, samples);
+  }
+  return out as T;
 }
 
 export async function isSlugAvailable(slug: string, db: Db = getAdminDb()): Promise<boolean> {
@@ -87,6 +155,16 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
   let slug = tenantSlug(input.slug ?? input.name);
   if (!(await isSlugAvailable(slug, db))) slug = tenantSlug(`${slug}-${Math.random().toString(36).slice(2, 6)}`);
 
+  const sampleIdentity = input.sampleIdentity ?? (!input.ownerUserId && slug.startsWith("demo-"));
+  const templateSettings = sampleIdentity ? (tpl.settings ?? {}) : stripSampleIdentity(tpl.settings ?? {});
+  const samples = sampleIdentityValues(tpl.settings ?? {});
+  const templatePages = sampleIdentity ? tpl.pages : tpl.pages.map((p) => ({ ...p, sections: scrubSampleLinks(p.sections, samples) }));
+  let ownerEmail: string | null = null;
+  if (input.ownerUserId) {
+    const [owner] = await db.select({ email: user.email }).from(user).where(eq(user.id, input.ownerUserId)).limit(1);
+    ownerEmail = owner?.email ?? null;
+  }
+
   const modules = resolveModules(tpl.modules);
   const trialDays = input.trialDays ?? 14;
   const theme: ThemeInput = { preset: tpl.themePreset, ...(tpl.theme ?? {}), ...(input.themeOverrides ?? {}) };
@@ -101,7 +179,7 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
         planKey: input.planKey ?? "trial",
         status: "trialing",
         locale: input.locale ?? "th",
-        settings: { ...(tpl.settings ?? {}), ...(input.settings ?? {}), templateKey: tpl.key },
+        settings: { ...templateSettings, ...(input.settings ?? {}), templateKey: tpl.key },
         theme: theme as Record<string, unknown>,
         onboarding: { steps: {}, startedAt: new Date().toISOString() },
         trialEndsAt: new Date(Date.now() + trialDays * 86_400_000),
@@ -133,9 +211,9 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
       db,
       tenantId,
       async (tx) => {
-        if (tpl.pages.length) {
+        if (templatePages.length) {
           await tx.insert(pages).values(
-            tpl.pages.map((p, i) => ({
+            templatePages.map((p, i) => ({
               tenantId,
               slug: p.slug,
               title: p.title,
@@ -155,6 +233,8 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
           { tenantId, location: "footer", items: tpl.navigation.footer },
         ]);
         if (tpl.seed && input.withSampleData !== false) await tpl.seed(tx, tenantId);
+        // seeded forms notify the new owner – never an address that came with the template (AC-03)
+        if (!sampleIdentity) await tx.update(forms).set({ notifyEmails: ownerEmail ? [ownerEmail] : [] }).where(eq(forms.tenantId, tenantId));
       },
       { role: null }, // admin connection; RLS still filters by tenant_id via set_config
     );

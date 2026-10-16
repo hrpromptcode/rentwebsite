@@ -19,7 +19,7 @@ describe("clinic packages", () => {
   let paymentId: string;
 
   it("purchasePackage creates the patient with an HN, a pending package and a payment", async () => {
-    const r = await s.tx((tx) => purchasePackage(tx, s.tenantId, { packageId: s.packageId, customer: { id: customerId, name: "สมหญิง ใจดี", phone: "0899999999" }, paymentMethod: "slip" }, { settings: SETTINGS, hnPrefix: "LM", now: NOW }));
+    const r = await s.tx((tx) => purchasePackage(tx, s.tenantId, { packageId: s.packageId, customer: { id: customerId, name: "สมหญิง ใจดี", phone: "0899999999" }, paymentMethod: "slip", consent: { version: "1.0" } }, { settings: SETTINGS, hnPrefix: "LM", now: NOW }));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.value.patient.hn).toBe("LM-0001");
@@ -49,7 +49,7 @@ describe("clinic packages", () => {
     const [again] = await s.tx((tx) => listPatientPackages(tx, s.tenantId, { id: customerId }));
     expect(again!.expiresAt?.getTime()).toBe(pp!.expiresAt?.getTime());
 
-    const r2 = await s.tx((tx) => purchasePackage(tx, s.tenantId, { packageId: s.packageId, customer: { id: customerId, name: "สมหญิง ใจดี", phone: "0899999999" } }, { settings: SETTINGS, hnPrefix: "LM", now: NOW }));
+    const r2 = await s.tx((tx) => purchasePackage(tx, s.tenantId, { packageId: s.packageId, customer: { id: customerId, name: "สมหญิง ใจดี", phone: "0899999999" }, consent: { version: "1.0" } }, { settings: SETTINGS, hnPrefix: "LM", now: NOW }));
     expect(r2.ok).toBe(true);
     if (r2.ok) expect(r2.value.patient.hn).toBe("LM-0001");
     const all = await s.tx((tx) => tx.select().from(patients).where(eq(patients.tenantId, s.tenantId)));

@@ -84,7 +84,9 @@ export function TablePanel({ initial, promptpayEnabled, promptpayName, promptpay
   };
 
   const paid = data.status === "paid" || data.status === "closed";
-  const payment: PaymentPanelData | null = data.payment && data.payment.status !== "expired" && data.payment.status !== "failed" ? data.payment : null;
+  // only an open bill QR is shown; a QR for an older amount (rounds ordered after the bill) is never offered (COR-07)
+  const open = data.payment && (data.payment.status === "pending" || data.payment.status === "pending_verification") ? data.payment : null;
+  const payment: PaymentPanelData | null = open && (open.status === "pending_verification" || open.amount === data.dueTotal) ? open : null;
 
   return (
     <section className="container-x pt-4 md:pt-6">
@@ -219,7 +221,14 @@ export function TablePanel({ initial, promptpayEnabled, promptpayName, promptpay
             ) : data.dueTotal <= 0 ? (
               <p className="text-sm text-muted-foreground">{L.nothingDue}</p>
             ) : payment && payment.method === "promptpay_qr" && payment.status !== "paid" ? (
-              <PaymentPanel payment={payment} amountLabel={thb(payment.amount)} promptpayName={promptpayName} promptpayId={promptpayId} className="border-0 p-0 shadow-none" />
+              <div className="grid gap-3">
+                <PaymentPanel payment={payment} amountLabel={thb(payment.amount)} promptpayName={promptpayName} promptpayId={promptpayId} className="border-0 p-0 shadow-none" />
+                {payment.amount !== data.dueTotal && (
+                  <p className="rounded-[var(--radius-lg)] bg-muted px-4 py-3 text-xs text-muted-foreground">
+                    สลิปนี้ชำระ {thb(payment.amount)} สำหรับรายการก่อนขอบิล รายการที่สั่งเพิ่ม {thb(Math.max(0, data.dueTotal - payment.amount))} ชำระแยกได้หลังร้านตรวจสลิป
+                  </p>
+                )}
+              </div>
             ) : (
               <div className="grid gap-3">
                 {promptpayEnabled && (

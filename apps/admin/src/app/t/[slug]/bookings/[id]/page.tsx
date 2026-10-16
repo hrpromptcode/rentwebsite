@@ -31,7 +31,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
     return { ...d, eligible: staff };
   });
   if (!data) notFound();
-  const { booking: b, service, staff, customer, payment, rescheduledFrom, rescheduledTo, timeline, customerHistory, eligible } = data;
+  const { booking: b, service, staff, extraStaff, customer, payment, rescheduledFrom, rescheduledTo, timeline, customerHistory, eligible } = data;
   const canWrite = hasRole(ctx, "staff");
   const canApprove = hasRole(ctx, "manager");
   const actions = STATUS_ACTIONS[b.status] ?? [];
@@ -104,13 +104,18 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                   <UserRound className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
                   <div className="min-w-0">
                     <dt className="text-xs text-muted-foreground">ผู้ให้บริการ</dt>
-                    <dd className="flex items-center gap-2 font-medium">
+                    <dd className="flex flex-wrap items-center gap-2 font-medium">
                       {staff ? (
                         <>
                           <Avatar src={staff.avatar ? assetUrl(staff.avatar) : null} name={staff.name} color={staff.color} size="sm" className="size-6" />
                           <Link href={`/t/${slug}/staff/${staff.id}`} className="hover:text-primary">
                             {staff.name}
                           </Link>
+                          {extraStaff.map((x) => (
+                            <Link key={x.id} href={`/t/${slug}/staff/${x.id}`} className="hover:text-primary">
+                              + {x.name}
+                            </Link>
+                          ))}
                         </>
                       ) : (
                         "ไม่ระบุ"

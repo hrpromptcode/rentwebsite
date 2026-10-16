@@ -15,7 +15,7 @@ import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Field } from "@/components/ui/form";
 import { cancelOrderAction, completeOrderAction, confirmOrderAction, refundOrderAction, rejectPaymentAction, saveInternalNoteAction, shipOrderAction, verifyPaymentAction } from "../actions";
 
-type OrderLite = { id: string; number: string; status: string; paymentStatus: string; fulfillmentStatus: string; shippingMethodType: string | null; total: number };
+type OrderLite = { id: string; number: string; status: string; paymentStatus: string; fulfillmentStatus: string; shippingMethodType: string | null; total: number; canCancel: boolean };
 type PaymentLite = { id: string; status: string; amount: number; refundedAmount: number; method: string };
 
 function useRun() {
@@ -51,7 +51,6 @@ export function OrderActionBar({ slug, order, payments, canWrite }: { slug: stri
   const { run, pending } = useRun();
   const [shipOpen, setShipOpen] = React.useState(false);
   const [refundOpen, setRefundOpen] = React.useState(false);
-  const closed = order.status === "cancelled" || order.status === "refunded" || order.status === "completed";
   const refundable = payments.filter((p) => (p.status === "paid" || p.status === "partially_refunded") && p.amount - p.refundedAmount > 0);
   const isPickup = order.shippingMethodType === "pickup";
   if (!canWrite) return null;
@@ -78,7 +77,7 @@ export function OrderActionBar({ slug, order, payments, canWrite }: { slug: stri
           <RotateCcw aria-hidden /> คืนเงิน
         </Button>
       )}
-      {!closed && <CancelOrderButton slug={slug} orderId={order.id} number={order.number} paid={order.paymentStatus === "paid"} />}
+      {order.canCancel && <CancelOrderButton slug={slug} orderId={order.id} number={order.number} paid={order.paymentStatus === "paid"} />}
 
       <ShipDialog slug={slug} orderId={order.id} open={shipOpen} onOpenChange={setShipOpen} isPickup={isPickup} />
       {refundable.length > 0 && <RefundDialog slug={slug} orderId={order.id} payments={refundable} open={refundOpen} onOpenChange={setRefundOpen} />}

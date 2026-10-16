@@ -5,8 +5,8 @@ import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { media } from "@rentweb/db";
 import { isUuid, slugify } from "@rentweb/core";
-import { getStorage, IMAGE_MIMES, MAX_UPLOAD_BYTES, objectKey } from "@rentweb/core/storage";
-import { archiveProduct, deleteCategory, saveCategory, saveProduct, setProductFeatured, setProductsStatus, uniqueProductSlug, type Actor } from "@rentweb/module-commerce/admin";
+import { getStorage, MAX_UPLOAD_BYTES, objectKey, sniffImage } from "@rentweb/core/storage";
+import { archiveProduct, deleteCategory, saveCategory, saveProduct, setProductFeatured, setProductsStatus, uniqueProductSlug, type Actor, type SaveProductResult } from "@rentweb/module-commerce/admin";
 import { categorySchema, fieldErrors, productSchema, type CategoryInput, type FormResult, type ProductInput } from "@rentweb/module-commerce/admin/schemas";
 import { assertRole, getTenantCtx, tenantTx, type TenantCtx } from "@/lib/tenant";
 
@@ -20,7 +20,7 @@ function revalidateProducts(slug: string, id?: string) {
   if (id) revalidatePath(`/t/${slug}/products/${id}`);
 }
 
-export async function saveProductAction(slug: string, id: string | null, input: ProductInput): Promise<FormResult<{ id: string; slug: string }>> {
+export async function saveProductAction(slug: string, id: string | null, input: ProductInput): Promise<FormResult<SaveProductResult>> {
   const ctx = await getTenantCtx(slug);
   assertRole(ctx, "manager");
   if (id && !isUuid(id)) return { ok: false, error: "ไม่พบสินค้า" };
@@ -79,12 +79,15 @@ export async function uploadProductImageAction(slug: string, fd: FormData): Prom
   assertRole(ctx, "manager");
   const file = fd.get("file");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "กรุณาเลือกรูปภาพ" };
-  if (!IMAGE_MIMES.has(file.type)) return { ok: false, error: "รองรับเฉพาะไฟล์รูปภาพ (JPG, PNG, WebP, GIF, AVIF)" };
   if (file.size > MAX_UPLOAD_BYTES) return { ok: false, error: "ไฟล์ใหญ่เกิน 10 MB" };
+  // trust the bytes, not the declared type / file name (payments-api.md section 7): no SVG / HTML disguised as an image
+  const buf = Buffer.from(await file.arrayBuffer());
+  const sniffed = sniffImage(buf);
+  if (!sniffed) return { ok: false, error: "รองรับเฉพาะไฟล์รูปภาพ (JPG, PNG, WebP, GIF, AVIF)" };
   const folder = String(fd.get("folder") ?? "products").replace(/[^a-z0-9-]/gi, "") || "products";
   pointLocalStorageAtWeb();
-  const key = objectKey(ctx.tenant.id, folder, file.name);
-  const stored = await getStorage().put(key, Buffer.from(await file.arrayBuffer()), file.type);
+  const key = objectKey(ctx.tenant.id, folder, `image.${sniffed.ext}`);
+  const stored = await getStorage().put(key, buf, sniffed.mime);
   const [row] = await tenantTx(ctx.tenant.id, (tx) =>
     tx
       .insert(media)

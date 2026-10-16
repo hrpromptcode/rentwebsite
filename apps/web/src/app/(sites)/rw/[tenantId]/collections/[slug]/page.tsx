@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { decodeSlug } from "@/lib/slug";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getCategoryBySlug, listCategories, listProducts } from "@rentweb/module-commerce/services";
-import { CatalogListing, cardStyleForPreset, parseCatalogParams } from "@rentweb/module-commerce/components";
+import { CatalogListing, cardStyleForPreset, catalogHref, parseCatalogParams } from "@rentweb/module-commerce/components";
 import { L } from "@rentweb/module-commerce/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
@@ -36,6 +36,8 @@ export default async function CollectionPage({ params, searchParams }: Props) {
   });
   if (!data) notFound();
   const { category, result, categories } = data;
+  // SS-09: a page past the last one → the last page
+  if (result.total > 0 && q.page > result.pages) redirect(catalogHref(`/collections/${encodeURIComponent(slug)}`, { ...q, category: null, page: result.pages }));
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>

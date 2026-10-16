@@ -68,6 +68,7 @@ export default async function PaymentsPage({ params, searchParams }: { params: P
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-lg font-semibold tabular-nums">{thb(p.amount)}</span>
                     <ToneBadge tone={st.tone}>{st.label}</ToneBadge>
+                    {p.refundRequired && <ToneBadge tone="destructive">ต้องคืนเงิน</ToneBadge>}
                     <Badge variant="outline">{REF_TYPE[p.refType] ?? p.refType}</Badge>
                     <span className="text-sm text-muted-foreground">{paymentMethodLabel(p.method)}</span>
                   </div>
@@ -91,7 +92,7 @@ export default async function PaymentsPage({ params, searchParams }: { params: P
                     {tab === "pending_verification" ? `แนบสลิป ${fmtRelative(p.updatedAt)}` : p.paidAt ? `ชำระ ${fmtDate(p.paidAt, { withTime: true })}` : `อัปเดต ${fmtDate(p.updatedAt, { withTime: true })}`}
                     {p.slipTransRef && <> · อ้างอิง {p.slipTransRef}</>}
                     {p.verifiedBy && <> · ตรวจโดย {p.verifiedBy === "auto" ? "ระบบอัตโนมัติ" : p.verifiedBy === ctx.userId ? "คุณ" : "เจ้าหน้าที่"}</>}
-                    {p.failureReason && <span className="text-destructive"> · {p.failureReason}</span>}
+                    {p.refundRequired ? <span className="text-destructive"> · ต้องคืนเงินลูกค้า: {p.refundRequired}</span> : p.failureReason && <span className="text-destructive"> · {p.failureReason}</span>}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2 sm:flex-col sm:items-stretch">

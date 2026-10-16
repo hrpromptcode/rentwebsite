@@ -8,7 +8,7 @@ export function Logo({ ctx, className, inverse = false, size = "md" }: { ctx: St
   const src = inverse && brand.logoDark ? brand.logoDark : brand.logo;
   const h = size === "lg" ? "h-12 md:h-14" : size === "sm" ? "h-7" : "h-8 md:h-9";
   return (
-    <Link href="/" className={cn("inline-flex items-center gap-2.5", className)} aria-label={ctx.tenant.name}>
+    <Link href="/" className={cn("inline-flex min-h-11 items-center gap-2.5", className)} aria-label={ctx.tenant.name}>
       {src ? (
         <img src={src} alt={ctx.tenant.name} className={cn(h, "w-auto")} />
       ) : (

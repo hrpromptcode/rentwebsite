@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { resolvePromptpayId } from "@rentweb/core/payments";
-import { bangkokDate, createReservation, parseHours, reservationSlots, restaurantConfigOf, restaurantPaymentOptions } from "@rentweb/module-restaurant/services";
+import { bangkokDate, createReservation, lastBookableDay, parseHours, reservationSlots, restaurantConfigOf, restaurantPaymentOptions } from "@rentweb/module-restaurant/services";
 import type { ReserveState } from "@rentweb/module-restaurant/components";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
@@ -44,6 +44,8 @@ export async function createReservationAction(tenantId: string, _prev: ReserveSt
   const settings = runtime.config.settings;
   const contact = (settings.contact as { hours?: Array<{ day?: string; time?: string }> } | undefined) ?? {};
   const now = new Date();
+  // the booking window is enforced here, not only by the date input's max (SBR-015)
+  if (parsed.data.date > lastBookableDay(now, cfg.reservationMaxAdvanceDays)) return { error: `จองล่วงหน้าได้ไม่เกิน ${cfg.reservationMaxAdvanceDays} วัน`, values };
   const slots = reservationSlots({ hours: parseHours(contact.hours), ymd: parsed.data.date, now, durationMinutes: cfg.reservationMinutes });
   if (!slots.includes(parsed.data.time)) return { error: "รอบเวลานี้ไม่เปิดให้จองแล้ว กรุณาเลือกเวลาใหม่", values };
 
@@ -70,6 +72,7 @@ export async function createReservationAction(tenantId: string, _prev: ReserveSt
       paymentMethod: deposit > 0 ? method : null,
       promptpayId: resolvePromptpayId(settings),
       durationMinutes: cfg.reservationMinutes,
+      maxAdvanceDays: cfg.reservationMaxAdvanceDays,
       now,
     }),
   );

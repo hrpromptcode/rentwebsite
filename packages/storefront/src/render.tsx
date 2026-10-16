@@ -53,8 +53,20 @@ export function hasSectionComponent(type: string) {
   return type in REGISTRY;
 }
 
-export async function RenderSections({ sections, ctx }: { sections: SectionJson[]; ctx: StorefrontCtx }) {
+/** Section types whose component renders the page's <h1> (the hero headline). Module sections use h2. */
+const H1_SECTIONS = new Set(["hero"]);
+
+export function sectionsRenderH1(sections: SectionJson[]): boolean {
+  return sections.some((s) => !s.hidden && H1_SECTIONS.has(s.type));
+}
+
+/**
+ * Renders a page's sections. With `pageTitle`, a page without a hero still gets exactly one <h1> (visually hidden,
+ * the section headings stay h2) so CMS pages have a document heading for screen readers and search engines (SS-07).
+ */
+export async function RenderSections({ sections, ctx, pageTitle }: { sections: SectionJson[]; ctx: StorefrontCtx; pageTitle?: string }) {
   const out: React.ReactNode[] = [];
+  if (pageTitle && !sectionsRenderH1(sections)) out.push(<h1 key="page-title" className="sr-only">{pageTitle}</h1>);
   let index = 0;
   for (const s of sections) {
     if (s.hidden) continue;

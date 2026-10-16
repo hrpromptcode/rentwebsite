@@ -269,6 +269,9 @@ export async function saveItem(tx: Tx, tenantId: string, input: SaveItemInput): 
   if (groupIds.length) {
     const found = await tx.select({ id: modifierGroups.id }).from(modifierGroups).where(and(eq(modifierGroups.tenantId, tenantId), inArray(modifierGroups.id, groupIds)));
     if (found.length !== groupIds.length) return fail("กลุ่มตัวเลือกบางรายการไม่ถูกต้อง", "group_not_found");
+    // discount options must never push the dish below ฿0 (COR-25)
+    const worst = await worstDiscount(tx, tenantId, groupIds);
+    if (input.price + worst < 0) return fail(`ราคาเมนูต้องไม่น้อยกว่าส่วนลดของตัวเลือก (${thbText(-worst)})`, "negative_total");
   }
   const values = {
     categoryId: input.categoryId,
@@ -390,12 +393,42 @@ export async function deleteModifierGroup(tx: Tx, tenantId: string, id: string):
   return ok(row);
 }
 
+const thbText = (satang: number) => `฿${(satang / 100).toLocaleString("th-TH", { maximumFractionDigits: 2 })}`;
+/** largest possible discount (≤ 0, satang) the groups' negative options can add to one dish: per group the `maxSelect` most negative deltas */
+async function worstDiscount(tx: Tx, tenantId: string, groupIds: string[], override?: { id?: string | null; groupId: string; priceDelta: number }): Promise<number> {
+  if (!groupIds.length) return 0;
+  const groups = await tx.select({ id: modifierGroups.id, maxSelect: modifierGroups.maxSelect }).from(modifierGroups).where(and(eq(modifierGroups.tenantId, tenantId), inArray(modifierGroups.id, groupIds)));
+  const mods = await tx.select({ id: modifiers.id, groupId: modifiers.groupId, priceDelta: modifiers.priceDelta }).from(modifiers).where(and(eq(modifiers.tenantId, tenantId), inArray(modifiers.groupId, groupIds)));
+  const list = override ? [...mods.filter((m) => m.id !== override.id), { id: override.id ?? "new", groupId: override.groupId, priceDelta: override.priceDelta }] : mods;
+  let worst = 0;
+  for (const g of groups) {
+    const neg = list.filter((m) => m.groupId === g.id && m.priceDelta < 0).map((m) => m.priceDelta).sort((a, b) => a - b);
+    worst += neg.slice(0, Math.max(1, g.maxSelect)).reduce((s, d) => s + d, 0);
+  }
+  return worst;
+}
+
+export const MAX_PRICE_DELTA = 100_000_00; // ฿100,000 (same bound as the admin form)
+
 export async function saveModifier(tx: Tx, tenantId: string, input: { id?: string | null; groupId: string; name: string; priceDelta: number; available: boolean; sort?: number }): Promise<Result<{ id: string }>> {
   const name = input.name.trim();
   if (!name) return fail("กรุณากรอกชื่อตัวเลือก", "name_required");
-  if (!Number.isInteger(input.priceDelta)) return fail("ราคาเพิ่มไม่ถูกต้อง", "invalid_price");
+  if (!Number.isInteger(input.priceDelta) || Math.abs(input.priceDelta) > MAX_PRICE_DELTA) return fail("ราคาเพิ่มไม่ถูกต้อง", "invalid_price");
   const [group] = await tx.select({ id: modifierGroups.id }).from(modifierGroups).where(and(eq(modifierGroups.tenantId, tenantId), eq(modifierGroups.id, input.groupId))).limit(1);
   if (!group) return fail("ไม่พบกลุ่มตัวเลือก", "group_not_found");
+  if (input.priceDelta < 0) {
+    // a discount option may not exceed the price of any dish that uses the group (COR-25)
+    const items = await tx
+      .select({ name: menuItems.name, price: menuItems.price, groupId: menuItemModifierGroups.groupId, itemId: menuItems.id })
+      .from(menuItemModifierGroups)
+      .innerJoin(menuItems, and(eq(menuItems.tenantId, menuItemModifierGroups.tenantId), eq(menuItems.id, menuItemModifierGroups.itemId)))
+      .where(and(eq(menuItemModifierGroups.tenantId, tenantId), eq(menuItemModifierGroups.groupId, input.groupId)));
+    for (const it of items) {
+      const links = await tx.select({ groupId: menuItemModifierGroups.groupId }).from(menuItemModifierGroups).where(and(eq(menuItemModifierGroups.tenantId, tenantId), eq(menuItemModifierGroups.itemId, it.itemId)));
+      const worst = await worstDiscount(tx, tenantId, links.map((l) => l.groupId), { id: input.id, groupId: input.groupId, priceDelta: input.priceDelta });
+      if (it.price + worst < 0) return fail(`ส่วนลดของตัวเลือกทำให้ "${it.name}" (${thbText(it.price)}) ติดลบ ลดได้ไม่เกินราคาเมนู`, "negative_total");
+    }
+  }
   const patch = { name, priceDelta: input.priceDelta, available: input.available };
   if (input.id) {
     const [row] = await tx.update(modifiers).set({ ...patch, ...(input.sort !== undefined ? { sort: input.sort } : {}) }).where(and(eq(modifiers.tenantId, tenantId), eq(modifiers.id, input.id), eq(modifiers.groupId, input.groupId))).returning({ id: modifiers.id });

@@ -1,11 +1,11 @@
 import { and, asc, count, desc, eq, exists, gte, ilike, inArray, lt, or, sql, type SQL } from "drizzle-orm";
-import { customers, discounts, inventoryMovements, nextCounter, orderItems, orders, payments, productVariants, products, shipments, type AddressJson, type Tx } from "@rentweb/db";
+import { customers, inventoryMovements, nextCounter, orderItems, orders, payments, productVariants, products, shipments, type AddressJson, type Tx } from "@rentweb/db";
 import { audit, emitEvent, fail, normalizeThaiPhone, ok, randomToken, type Result } from "@rentweb/core";
 import { upsertGuestCustomer } from "@rentweb/core/customer";
-import { createPayment, markFailed, markPaid, refundPayment, resolvePromptpayId, paymentSettings, type PaymentMethod, type PaymentProvider } from "@rentweb/core/payments";
+import { createPayment, markFailed, markPaid, paymentRefundRequired, refundPayment, resolvePromptpayId, paymentSettings, type PaymentMethod, type PaymentProvider } from "@rentweb/core/payments";
 import { getShippingMethod, toQuote } from "../services/shipping";
 import { qualified } from "./sql";
-import { formatOrderNumber, type OrderItemRow, type OrderRow, type PaymentRow, type ShipmentRow } from "../services/orders";
+import { formatOrderNumber, orderContactPayload, orderMeta, releaseOrderReservation, voidOpenOrderPayments, type OrderItemRow, type OrderRow, type PaymentRow, type ShipmentRow } from "../services/orders";
 import { trackingUrlFor, type OrderTab } from "./labels";
 import type { manualOrderSchema, shipOrderSchema } from "./schemas";
 import type { z } from "zod";
@@ -190,6 +190,10 @@ export interface AdminOrderDetail {
   customer: { id: string; name: string | null; phone: string | null; email: string | null; ordersCount: number; totalSpent: number } | null;
   timeline: TimelineEntry[];
   accessKey: string | null;
+  /** paymentId → reason, for payments markPaid flagged as "refund required" (late / duplicate money) and not refunded yet */
+  refundFlags: Record<string, string>;
+  /** cancelOrderAdmin would accept this order (incl. an old full refund whose stock was never released) */
+  canCancel: boolean;
 }
 
 export function buildTimeline(order: OrderRow, pays: PaymentRow[], ships: ShipmentRow[]): TimelineEntry[] {
@@ -222,7 +226,12 @@ export async function getAdminOrder(tx: Tx, tenantId: string, orderId: string): 
       : Promise.resolve([]),
   ]);
   const meta = (order.metadata ?? {}) as { accessKey?: string };
-  return { order, items, payments: pays, shipments: ships, customer: cust[0] ?? null, timeline: buildTimeline(order, pays, ships), accessKey: meta.accessKey ?? null };
+  const refundFlags: Record<string, string> = {};
+  for (const p of pays) {
+    const reason = paymentRefundRequired(p);
+    if (reason && (p.status === "paid" || p.status === "partially_refunded")) refundFlags[p.id] = reason;
+  }
+  return { order, items, payments: pays, shipments: ships, customer: cust[0] ?? null, timeline: buildTimeline(order, pays, ships), accessKey: meta.accessKey ?? null, refundFlags, canCancel: canAdminCancel(order) };
 }
 
 async function lockOrder(tx: Tx, tenantId: string, orderId: string): Promise<OrderRow | null> {
@@ -230,20 +239,38 @@ async function lockOrder(tx: Tx, tenantId: string, orderId: string): Promise<Ord
   return row ?? null;
 }
 
-function contactPayload(order: OrderRow) {
-  const meta = (order.metadata ?? {}) as { accessKey?: string };
-  return { orderId: order.id, number: order.number, customerId: order.customerId, email: order.email, phone: order.phone, customerName: order.customerName, accessKey: meta.accessKey ?? null, total: order.total };
+const contactPayload = orderContactPayload;
+
+const byId = (tenantId: string, id: string) => and(eq(orders.tenantId, tenantId), eq(orders.id, id));
+
+function isPickupOrder(order: Pick<OrderRow, "shippingMethodType" | "fulfillmentStatus">): boolean {
+  return order.shippingMethodType === "pickup" || order.fulfillmentStatus === "pickup_ready";
+}
+
+/** Full refund before anything left the shop: the order holds nothing any more (COR-24). */
+function unfulfilled(order: Pick<OrderRow, "status" | "fulfillmentStatus">): boolean {
+  return order.fulfillmentStatus === "unfulfilled" && order.status !== "shipped" && order.status !== "completed";
+}
+
+/** The action bar may offer "cancel / release stock" for this order (server rules of cancelOrderAdmin). */
+export function canAdminCancel(order: Pick<OrderRow, "status" | "fulfillmentStatus" | "metadata">): boolean {
+  if (order.status === "cancelled" || order.status === "completed") return false;
+  if (order.status === "refunded") return unfulfilled(order) && !orderMeta(order).stockReleased;
+  return true;
 }
 
 // ---------------------------------------------------------------------------
-// state transitions
+// state transitions (COR-21: the server allows exactly what the action bar offers)
+//   pending ─confirm→ confirmed ─ship→ shipped ─complete→ completed
+//   confirmed|processing (pickup) ─complete→ completed
+//   any open state ─cancel→ cancelled · full refund before shipping → refunded (+ restock)
 // ---------------------------------------------------------------------------
 
 export async function confirmOrder(tx: Tx, tenantId: string, orderId: string, actor: Actor): Promise<Result<{ status: string }>> {
   const order = await lockOrder(tx, tenantId, orderId);
   if (!order) return fail("ไม่พบออเดอร์", "not_found");
   if (order.status !== "pending") return fail("ออเดอร์นี้ยืนยันแล้วหรืออยู่ในสถานะที่ยืนยันไม่ได้", "state");
-  await tx.update(orders).set({ status: "confirmed" }).where(eq(orders.id, order.id));
+  await tx.update(orders).set({ status: "confirmed" }).where(byId(tenantId, order.id));
   await emitEvent(tx, { tenantId, type: "order.confirmed", payload: { ...contactPayload(order), by: actor.userId } });
   await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "order.confirm", targetType: "order", targetId: order.id, diff: { number: order.number } });
   return ok({ status: "confirmed" });
@@ -254,6 +281,8 @@ export async function shipOrder(tx: Tx, tenantId: string, orderId: string, input
   if (!order) return fail("ไม่พบออเดอร์", "not_found");
   if (order.status === "cancelled" || order.status === "refunded") return fail("ออเดอร์ถูกยกเลิกแล้ว จัดส่งไม่ได้", "state");
   if (order.status === "completed") return fail("ออเดอร์เสร็จสิ้นแล้ว", "state");
+  if (order.status === "shipped") return fail("ออเดอร์นี้จัดส่งแล้ว", "state");
+  if (order.status !== "confirmed" && order.status !== "processing") return fail("ออเดอร์ยังไม่ได้ยืนยัน (รอชำระเงิน) กรุณาตรวจสอบการชำระเงินหรือกดยืนยันออเดอร์ก่อนจัดส่ง", "state");
   const items = await tx.select().from(orderItems).where(and(eq(orderItems.tenantId, tenantId), eq(orderItems.orderId, order.id)));
   const trackingUrl = input.trackingUrl ?? trackingUrlFor(input.carrier, input.trackingNumber);
   const now = new Date();
@@ -280,7 +309,7 @@ export async function shipOrder(tx: Tx, tenantId: string, orderId: string, input
       fulfillmentStatus: isPickup ? "pickup_ready" : "fulfilled",
       internalNote: input.note ? [order.internalNote, `[จัดส่ง] ${input.note}`].filter(Boolean).join("\n") : order.internalNote,
     })
-    .where(eq(orders.id, order.id));
+    .where(byId(tenantId, order.id));
   await emitEvent(tx, {
     tenantId,
     type: "order.shipped",
@@ -295,47 +324,38 @@ export async function completeOrder(tx: Tx, tenantId: string, orderId: string, a
   if (!order) return fail("ไม่พบออเดอร์", "not_found");
   if (order.status === "cancelled" || order.status === "refunded") return fail("ออเดอร์ถูกยกเลิกแล้ว", "state");
   if (order.status === "completed") return ok({ status: "completed" });
+  const pickupHandover = (order.status === "confirmed" || order.status === "processing") && isPickupOrder(order);
+  if (order.status !== "shipped" && !pickupHandover) return fail("ต้องจัดส่งออเดอร์ก่อน จึงจะปิดเป็นเสร็จสิ้นได้", "state");
   const now = new Date();
-  const fulfillment = order.fulfillmentStatus === "pickup_ready" ? "picked_up" : order.fulfillmentStatus === "unfulfilled" ? "fulfilled" : order.fulfillmentStatus;
-  await tx.update(orders).set({ status: "completed", completedAt: now, fulfillmentStatus: fulfillment }).where(eq(orders.id, order.id));
+  const fulfillment = order.fulfillmentStatus === "pickup_ready" || pickupHandover ? "picked_up" : order.fulfillmentStatus === "unfulfilled" ? "fulfilled" : order.fulfillmentStatus;
+  await tx.update(orders).set({ status: "completed", completedAt: now, fulfillmentStatus: fulfillment }).where(byId(tenantId, order.id));
+  if (pickupHandover) await tx.update(orderItems).set({ fulfilledQuantity: sql`${orderItems.quantity}` }).where(and(eq(orderItems.tenantId, tenantId), eq(orderItems.orderId, order.id)));
   await tx.update(shipments).set({ status: "delivered", deliveredAt: now }).where(and(eq(shipments.tenantId, tenantId), eq(shipments.orderId, order.id), inArray(shipments.status, ["shipped", "in_transit", "pending"])));
   await emitEvent(tx, { tenantId, type: "order.completed", payload: { ...contactPayload(order), by: actor.userId } });
   await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "order.complete", targetType: "order", targetId: order.id, diff: { number: order.number } });
   return ok({ status: "completed" });
 }
 
-/** Admin cancellation: restocks tracked items, releases the coupon, voids open payments. Paid money is refunded separately. */
+/**
+ * Admin cancellation: restocks tracked items, releases the coupon (and the paid stats), voids open payments
+ * with cancelPayment. Paid money is refunded separately. Also releases the stock of an order that was fully
+ * refunded before shipping by an older version (status refunded, nothing released yet — COR-24).
+ */
 export async function cancelOrderAdmin(tx: Tx, tenantId: string, orderId: string, reason: string | null, actor: Actor): Promise<Result<{ restocked: number }>> {
   const order = await lockOrder(tx, tenantId, orderId);
   if (!order) return fail("ไม่พบออเดอร์", "not_found");
-  if (order.status === "cancelled" || order.status === "refunded") return fail("ออเดอร์นี้ถูกยกเลิกแล้ว", "state");
   if (order.status === "completed") return fail("ออเดอร์เสร็จสิ้นแล้ว ยกเลิกไม่ได้ (ใช้การคืนเงินแทน)", "state");
-
-  const items = await tx.select().from(orderItems).where(and(eq(orderItems.tenantId, tenantId), eq(orderItems.orderId, order.id)));
-  const productIds = [...new Set(items.map((i) => i.productId).filter((v): v is string => !!v))];
-  const prods = productIds.length ? await tx.select().from(products).where(and(eq(products.tenantId, tenantId), inArray(products.id, productIds))) : [];
-  const pById = new Map(prods.map((p) => [p.id, p]));
-  let restocked = 0;
-  for (const it of items) {
-    if (!it.productId) continue;
-    const p = pById.get(it.productId);
-    if (!p || !p.trackInventory || it.type === "service") continue;
-    if (it.variantId) await tx.update(productVariants).set({ stock: sql`${productVariants.stock} + ${it.quantity}` }).where(eq(productVariants.id, it.variantId));
-    else await tx.update(products).set({ stock: sql`${products.stock} + ${it.quantity}` }).where(eq(products.id, it.productId));
-    await tx.insert(inventoryMovements).values({ tenantId, productId: it.productId, variantId: it.variantId, delta: it.quantity, reason: "release", refType: "order", refId: order.id, note: reason ? `ร้านยกเลิกออเดอร์: ${reason}` : "ร้านยกเลิกออเดอร์", createdBy: actor.userId });
-    restocked += it.quantity;
-  }
-  if (order.couponCode) {
-    await tx.update(discounts).set({ usedCount: sql`greatest(${discounts.usedCount} - 1, 0)` }).where(and(eq(discounts.tenantId, tenantId), eq(discounts.code, order.couponCode)));
-  }
+  if (!canAdminCancel(order)) return fail("ออเดอร์นี้ถูกยกเลิกแล้ว", "state");
+  const note = reason ? `ร้านยกเลิกออเดอร์: ${reason}` : "ร้านยกเลิกออเดอร์";
+  const released = await releaseOrderReservation(tx, tenantId, order, { note, actorId: actor.userId });
+  await voidOpenOrderPayments(tx, tenantId, order.id, reason?.trim() || "ร้านยกเลิกออเดอร์");
   await tx
-    .update(payments)
-    .set({ status: "cancelled" })
-    .where(and(eq(payments.tenantId, tenantId), eq(payments.refType, "order"), eq(payments.refId, order.id), inArray(payments.status, ["pending", "pending_verification"])));
-  await tx.update(orders).set({ status: "cancelled", cancelledAt: new Date(), cancelReason: reason?.trim() || "ร้านยกเลิก" }).where(eq(orders.id, order.id));
+    .update(orders)
+    .set({ status: order.status === "refunded" ? "refunded" : "cancelled", cancelledAt: new Date(), cancelReason: reason?.trim() || "ร้านยกเลิก" })
+    .where(byId(tenantId, order.id));
   await emitEvent(tx, { tenantId, type: "order.cancelled", payload: { ...contactPayload(order), by: "admin", reason, actorId: actor.userId } });
-  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "order.cancel", targetType: "order", targetId: order.id, diff: { number: order.number, reason, restocked, total: order.total } });
-  return ok({ restocked });
+  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "order.cancel", targetType: "order", targetId: order.id, diff: { number: order.number, reason, restocked: released.restocked, couponReleased: released.couponReleased, total: order.total } });
+  return ok({ restocked: released.restocked });
 }
 
 export async function updateInternalNote(tx: Tx, tenantId: string, orderId: string, note: string | null): Promise<boolean> {
@@ -358,7 +378,7 @@ export async function verifyPayment(tx: Tx, tenantId: string, paymentId: string,
   if (p.status === "paid") return ok(p);
   if (!["pending", "pending_verification", "failed", "expired"].includes(p.status)) return fail("รายการนี้อยู่ในสถานะที่ยืนยันไม่ได้", "state");
   const updated = await markPaid(tx, tenantId, paymentId, { verifiedBy: actor.userId });
-  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "payment.verify", targetType: "payment", targetId: paymentId, diff: { refType: p.refType, refId: p.refId, amount: p.amount, method: p.method } });
+  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "payment.verify", targetType: "payment", targetId: paymentId, diff: { refType: p.refType, refId: p.refId, amount: p.amount, method: p.method, refundRequired: paymentRefundRequired(updated) } });
   return ok(updated);
 }
 
@@ -367,12 +387,18 @@ export async function rejectPayment(tx: Tx, tenantId: string, paymentId: string,
   if (!p) return fail("ไม่พบรายการชำระเงิน", "not_found");
   if (p.status === "paid") return fail("รายการนี้ชำระแล้ว ปฏิเสธไม่ได้ (ใช้การคืนเงินแทน)", "state");
   if (p.status === "failed") return ok(p);
+  if (!["pending", "pending_verification", "expired"].includes(p.status)) return fail("รายการนี้อยู่ในสถานะที่ปฏิเสธไม่ได้", "state");
   const updated = await markFailed(tx, tenantId, paymentId, reason.trim() || "สลิปไม่ถูกต้อง");
   await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "payment.reject", targetType: "payment", targetId: paymentId, diff: { refType: p.refType, refId: p.refId, amount: p.amount, reason } });
   return ok(updated);
 }
 
-export async function refundOrderPayment(tx: Tx, tenantId: string, orderId: string, paymentId: string, amount: number, note: string | null, actor: Actor): Promise<Result<{ refunded: number; paymentStatus: string }>> {
+/**
+ * Refunds (part of) a paid payment of the order. A full refund closes the order as "refunded"; when nothing
+ * was shipped yet it also restocks, releases the coupon and reverses the sales stats (COR-24) and voids the
+ * order's other open payments. Refunding a shipped / completed order never touches stock (goods are out).
+ */
+export async function refundOrderPayment(tx: Tx, tenantId: string, orderId: string, paymentId: string, amount: number, note: string | null, actor: Actor): Promise<Result<{ refunded: number; paymentStatus: string; restocked: number }>> {
   const order = await lockOrder(tx, tenantId, orderId);
   if (!order) return fail("ไม่พบออเดอร์", "not_found");
   const [p] = await tx.select().from(payments).where(and(eq(payments.tenantId, tenantId), eq(payments.id, paymentId), eq(payments.refType, "order"), eq(payments.refId, orderId))).limit(1).for("update");
@@ -382,13 +408,23 @@ export async function refundOrderPayment(tx: Tx, tenantId: string, orderId: stri
   if (amount > remaining) return fail(`คืนได้สูงสุด ${(remaining / 100).toLocaleString("th-TH")} บาท`, "amount");
   const updated = await refundPayment(tx, tenantId, paymentId, amount, note ?? undefined);
   const full = updated.status === "refunded";
-  await tx
-    .update(orders)
-    .set({ paymentStatus: full ? "refunded" : "partially_refunded", status: full && order.status !== "completed" ? "refunded" : order.status })
-    .where(eq(orders.id, order.id));
-  await emitEvent(tx, { tenantId, type: "order.refunded", payload: { ...contactPayload(order), paymentId, amount, full, note } });
-  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "order.refund", targetType: "order", targetId: order.id, diff: { number: order.number, paymentId, amount, note } });
-  return ok({ refunded: updated.refundedAmount, paymentStatus: updated.status });
+  // a refund of a duplicate / late payment (flagged refundRequired) does not refund the order itself
+  const duplicate = !!paymentRefundRequired(p);
+  let restocked = 0;
+  if (!duplicate) {
+    if (full && unfulfilled(order) && order.status !== "cancelled") {
+      const released = await releaseOrderReservation(tx, tenantId, order, { note: note ? `คืนเงินเต็มจำนวนก่อนจัดส่ง: ${note}` : "คืนเงินเต็มจำนวนก่อนจัดส่ง", actorId: actor.userId });
+      restocked = released.restocked;
+      await voidOpenOrderPayments(tx, tenantId, order.id, "คืนเงินแล้ว");
+    }
+    await tx
+      .update(orders)
+      .set({ paymentStatus: full ? "refunded" : "partially_refunded", status: full && order.status !== "completed" ? "refunded" : order.status })
+      .where(byId(tenantId, order.id));
+    await emitEvent(tx, { tenantId, type: "order.refunded", payload: { ...contactPayload(order), paymentId, amount, full, note, restocked } });
+  }
+  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "order.refund", targetType: "order", targetId: order.id, diff: { number: order.number, paymentId, amount, note, restocked, duplicate } });
+  return ok({ refunded: updated.refundedAmount, paymentStatus: updated.status, restocked });
 }
 
 // ---------------------------------------------------------------------------
@@ -535,8 +571,8 @@ export async function adminCreateOrder(tx: Tx, tenantId: string, input: z.output
   );
   for (const l of built) {
     if (!l.tracked) continue;
-    if (l.variantId) await tx.update(productVariants).set({ stock: sql`${productVariants.stock} - ${l.quantity}` }).where(eq(productVariants.id, l.variantId));
-    else await tx.update(products).set({ stock: sql`${products.stock} - ${l.quantity}` }).where(eq(products.id, l.productId));
+    if (l.variantId) await tx.update(productVariants).set({ stock: sql`${productVariants.stock} - ${l.quantity}` }).where(and(eq(productVariants.tenantId, tenantId), eq(productVariants.id, l.variantId)));
+    else await tx.update(products).set({ stock: sql`${products.stock} - ${l.quantity}` }).where(and(eq(products.tenantId, tenantId), eq(products.id, l.productId)));
     await tx.insert(inventoryMovements).values({ tenantId, productId: l.productId, variantId: l.variantId, delta: -l.quantity, reason: "sale", refType: "order", refId: orderId, note: "ออเดอร์สร้างโดยร้าน", createdBy: actor.userId });
   }
 
@@ -558,7 +594,7 @@ export async function adminCreateOrder(tx: Tx, tenantId: string, input: z.output
   await tx
     .update(orders)
     .set({ metadata: { ...(order!.metadata ?? {}), paymentId: payment.id } })
-    .where(eq(orders.id, orderId));
+    .where(and(eq(orders.tenantId, tenantId), eq(orders.id, orderId)));
   if (input.markPaid) await markPaid(tx, tenantId, payment.id, { verifiedBy: actor.userId });
 
   await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "order.create_manual", targetType: "order", targetId: orderId, diff: { number, total, paymentMethod: input.paymentMethod, markPaid: input.markPaid, items: built.length } });

@@ -14,7 +14,7 @@ import { fieldErrors, patientSchema } from "@rentweb/module-booking/admin/schema
 import { NativeSelect } from "@rentweb/module-booking/admin/ui";
 import { Field } from "@/components/ui/form";
 import { updatePatientAction } from "../actions";
-import { patientFormToInput, type PatientFormValues } from "../form-values";
+import { bkkToday, patientFormToInput, type PatientFormValues } from "../form-values";
 
 type SetFn = <K extends keyof PatientFormValues>(k: K, val: PatientFormValues[K]) => void;
 
@@ -42,7 +42,7 @@ export function IdentityFields({ v, set, errors, autoFocus }: { v: PatientFormVa
           </NativeSelect>
         </Field>
         <Field label="วันเกิด" htmlFor="pt-birth" error={errors.birthDate}>
-          <Input id="pt-birth" type="date" value={v.birthDate} onChange={(e) => set("birthDate", e.target.value)} max={new Date().toISOString().slice(0, 10)} className="min-w-0" />
+          <Input id="pt-birth" type="date" value={v.birthDate} onChange={(e) => set("birthDate", e.target.value)} max={bkkToday()} className="min-w-0" />
         </Field>
       </div>
       <Field label="เบอร์โทร" htmlFor="pt-phone" error={errors.phone} hint="ใช้จับคู่กับบัญชีลูกค้าและการจองออนไลน์">

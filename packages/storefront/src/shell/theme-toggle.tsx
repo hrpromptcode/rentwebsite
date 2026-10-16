@@ -23,7 +23,7 @@ export function ThemeToggle({ labels }: { labels: { dark: string; light: string 
     setDark(next);
   };
   return (
-    <Button variant="ghost" size="icon-sm" onClick={toggle} aria-label={dark ? labels.light : labels.dark} className="text-current">
+    <Button variant="ghost" size="icon" onClick={toggle} aria-label={dark ? labels.light : labels.dark} className="text-current md:size-9">
       {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
     </Button>
   );

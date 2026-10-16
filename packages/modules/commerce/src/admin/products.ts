@@ -1,5 +1,5 @@
 import { and, asc, count, desc, eq, ilike, inArray, ne, or, sql, type SQL } from "drizzle-orm";
-import { categories, productVariants, products, type Tx } from "@rentweb/db";
+import { categories, inventoryMovements, productVariants, products, type Tx } from "@rentweb/db";
 import { audit, fail, ok, slugify, type Result } from "@rentweb/core";
 import type { CategoryRow, ProductRow, VariantRow } from "../services/products";
 import type { Actor } from "./orders";
@@ -166,8 +166,31 @@ export async function uniqueProductSlug(tx: Tx, tenantId: string, base: string, 
 
 export type SaveProductError = { field: string; message: string };
 
+export interface SaveProductResult {
+  id: string;
+  slug: string;
+  /** live stock after the save (the form shows it and uses it as the next baseline) */
+  stock: number;
+  variants: Array<{ id: string; title: string; stock: number }>;
+}
+
+/**
+ * Stock to write for one row (COR-32). New rows (`live` null) take the form value. Existing rows only change by
+ * what the user changed in the form: `loaded` is the value the form was opened with and the difference is applied
+ * as a delta on the live value, so sales made while the form was open are kept and an unchanged field is not
+ * written. Without `loaded` (a stale form from before this fix) live stock is never overwritten.
+ * Returns null when nothing should be written.
+ */
+export function stockWrite(live: number | null, wanted: number, loaded: number | null | undefined): { next: number; delta: number } | null {
+  if (live === null) return { next: wanted, delta: wanted };
+  if (loaded === null || loaded === undefined) return null;
+  if (wanted === loaded) return null;
+  const next = Math.max(0, live + (wanted - loaded));
+  return next === live ? null : { next, delta: next - live };
+}
+
 /** Creates or updates a product and syncs its variant rows (insert / update / delete missing). */
-export async function saveProduct(tx: Tx, tenantId: string, id: string | null, v: ProductValues, actor: Actor): Promise<Result<{ id: string; slug: string }, SaveProductError>> {
+export async function saveProduct(tx: Tx, tenantId: string, id: string | null, v: ProductValues, actor: Actor): Promise<Result<SaveProductResult, SaveProductError>> {
   const slug = slugify(v.slug);
   if (await slugTaken(tx, tenantId, slug, id)) return fail({ field: "slug", message: "slug นี้ถูกใช้แล้ว กรุณาเปลี่ยน" }, "slug");
   if (v.categoryId) {
@@ -186,10 +209,29 @@ export async function saveProduct(tx: Tx, tenantId: string, id: string | null, v
   const hasVariants = v.options.length > 0 && v.variants.length > 0;
   const activeVariants = v.variants.filter((x) => x.active);
   const basePrice = hasVariants && activeVariants.length ? Math.min(...activeVariants.map((x) => x.price)) : v.price;
+  if (id) {
+    // row locks: checkout decrements stock under the same locks, so the delta below is applied to the live value
+    await tx.select({ id: products.id }).from(products).where(and(eq(products.tenantId, tenantId), eq(products.id, id))).for("update");
+    await tx.select({ id: productVariants.id }).from(productVariants).where(and(eq(productVariants.tenantId, tenantId), eq(productVariants.productId, id))).orderBy(asc(productVariants.id)).for("update");
+  }
   const existing = id ? await getAdminProduct(tx, tenantId, id) : null;
   if (id && !existing) return fail({ field: "_", message: "ไม่พบสินค้า" }, "not_found");
   const now = new Date();
   const publishedAt = v.status === "active" ? (existing?.product.publishedAt ?? now) : (existing?.product.publishedAt ?? null);
+
+  const movements: Array<{ variantId: string | null; delta: number }> = [];
+  // product-level stock (only used without variants); a switch between simple/variants is written absolutely
+  let productStock: number | undefined;
+  if (hasVariants) productStock = 0;
+  else {
+    // switching a variant product back to a simple one: the product-level stock was 0, the form value is absolute
+    const sameShape = !!existing && !existing.product.hasVariants;
+    const w = stockWrite(existing && sameShape ? existing.product.stock : null, v.stock, v.stockLoaded);
+    if (w) {
+      productStock = w.next;
+      if (existing && w.delta !== 0) movements.push({ variantId: null, delta: w.delta });
+    }
+  }
 
   const values = {
     name: v.name,
@@ -206,7 +248,7 @@ export async function saveProduct(tx: Tx, tenantId: string, id: string | null, v
     hasVariants,
     options: hasVariants ? v.options.map((o) => ({ name: o.name.trim(), values: o.values.map((x) => x.trim()).filter(Boolean) })) : [],
     trackInventory: v.trackInventory,
-    stock: hasVariants ? 0 : v.stock,
+    ...(productStock !== undefined ? { stock: productStock } : {}),
     lowStockThreshold: v.lowStockThreshold,
     weightGrams: v.weightGrams,
     sku: v.sku,
@@ -220,40 +262,64 @@ export async function saveProduct(tx: Tx, tenantId: string, id: string | null, v
   if (productId) {
     await tx.update(products).set(values).where(and(eq(products.tenantId, tenantId), eq(products.id, productId)));
   } else {
-    const [row] = await tx.insert(products).values({ tenantId, ...values }).returning({ id: products.id });
+    const [row] = await tx
+      .insert(products)
+      .values({ tenantId, ...values, stock: productStock ?? 0 })
+      .returning({ id: products.id });
     productId = row!.id;
   }
 
   // ---- variants sync -------------------------------------------------------
-  const existingIds = new Set((existing?.variants ?? []).map((x) => x.id));
+  const existingById = new Map((existing?.variants ?? []).map((x) => [x.id, x]));
   const keep = new Set<string>();
   if (hasVariants) {
     let pos = 0;
     for (const x of v.variants) {
+      const live = x.id ? existingById.get(x.id) : undefined;
+      const wanted = v.trackInventory ? x.stock : 0;
+      const w = !v.trackInventory ? (live && live.stock === 0 ? null : { next: 0, delta: 0 - (live?.stock ?? 0) }) : stockWrite(live ? live.stock : null, wanted, x.stockLoaded);
       const data = {
         title: x.title.trim(),
         optionValues: x.optionValues,
         sku: x.sku?.trim() || null,
         price: x.price,
         compareAtPrice: x.compareAtPrice,
-        stock: v.trackInventory ? x.stock : 0,
+        ...(w ? { stock: w.next } : {}),
         active: x.active,
         position: pos++,
       };
-      if (x.id && existingIds.has(x.id)) {
-        await tx.update(productVariants).set(data).where(and(eq(productVariants.tenantId, tenantId), eq(productVariants.id, x.id)));
-        keep.add(x.id);
+      if (live) {
+        await tx.update(productVariants).set(data).where(and(eq(productVariants.tenantId, tenantId), eq(productVariants.id, live.id)));
+        if (w && w.delta !== 0) movements.push({ variantId: live.id, delta: w.delta });
+        keep.add(live.id);
       } else {
-        const [row] = await tx.insert(productVariants).values({ tenantId, productId, ...data }).returning({ id: productVariants.id });
+        const [row] = await tx
+          .insert(productVariants)
+          .values({ tenantId, productId, ...data, stock: w?.next ?? wanted })
+          .returning({ id: productVariants.id });
         keep.add(row!.id);
       }
     }
   }
-  const toDelete = [...existingIds].filter((x) => !keep.has(x));
+  const toDelete = [...existingById.keys()].filter((x) => !keep.has(x));
   if (toDelete.length) await tx.delete(productVariants).where(and(eq(productVariants.tenantId, tenantId), inArray(productVariants.id, toDelete)));
+  if (movements.length && v.trackInventory) {
+    await tx.insert(inventoryMovements).values(
+      movements.map((m) => ({ tenantId, productId: productId!, variantId: m.variantId, delta: m.delta, reason: "adjustment", refType: "product", refId: productId!, note: "แก้ไขสต็อกในหน้าสินค้า", createdBy: actor.userId })),
+    );
+  }
 
-  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: id ? "product.update" : "product.create", targetType: "product", targetId: productId, diff: { name: v.name, status: v.status, price: basePrice, variants: hasVariants ? v.variants.length : 0 } });
-  return ok({ id: productId, slug });
+  await audit(tx, {
+    tenantId,
+    actorType: actor.actorType,
+    actorId: actor.userId,
+    action: id ? "product.update" : "product.create",
+    targetType: "product",
+    targetId: productId,
+    diff: { name: v.name, status: v.status, price: basePrice, variants: hasVariants ? v.variants.length : 0, stockChanges: movements },
+  });
+  const fresh = (await getAdminProduct(tx, tenantId, productId))!;
+  return ok({ id: productId, slug, stock: fresh.product.stock, variants: fresh.variants.map((x) => ({ id: x.id, title: x.title, stock: x.stock })) });
 }
 
 export async function setProductsStatus(tx: Tx, tenantId: string, ids: string[], status: "active" | "draft" | "archived", actor: Actor): Promise<number> {

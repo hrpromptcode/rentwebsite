@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { isUuid } from "@rentweb/core";
 import { rejectPayment, verifyPayment, type Actor } from "@rentweb/module-commerce/admin";
 import type { FormResult } from "@rentweb/module-commerce/admin/schemas";
+import { paymentRefundRequired } from "@rentweb/core/payments";
 import { assertRole, getTenantCtx, tenantTx, type TenantCtx } from "@/lib/tenant";
 
 function actorOf(ctx: TenantCtx): Actor {
@@ -22,7 +23,8 @@ export async function approvePaymentAction(slug: string, paymentId: string): Pro
   const r = await tenantTx(ctx.tenant.id, (tx) => verifyPayment(tx, ctx.tenant.id, paymentId, actorOf(ctx)));
   if (!r.ok) return { ok: false, error: r.error };
   revalidateAll(slug);
-  return { ok: true, message: "ยืนยันการชำระเงินแล้ว" };
+  const refund = paymentRefundRequired(r.value);
+  return { ok: true, message: refund ? `บันทึกว่าได้รับเงินแล้ว แต่ต้องคืนเงินลูกค้า: ${refund}` : "ยืนยันการชำระเงินแล้ว" };
 }
 
 export async function rejectPaymentQueueAction(slug: string, paymentId: string, reason: string): Promise<FormResult> {

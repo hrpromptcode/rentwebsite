@@ -49,14 +49,14 @@ function Actions({ ctx, cta, compact }: { ctx: StorefrontCtx; cta: { label: stri
     <div className="flex items-center gap-1">
       {ctx.theme.mode === "system" && <ThemeToggle labels={{ dark: ctx.t("common.darkMode"), light: ctx.t("common.lightMode") }} />}
       {hasAccount && (
-        <Button asChild variant="ghost" size="icon-sm" className="text-current" aria-label={ctx.t("common.account")}>
+        <Button asChild variant="ghost" size="icon" className="text-current md:size-9" aria-label={ctx.t("common.account")}>
           <Link href="/account">
             <UserRound className="size-5" />
           </Link>
         </Button>
       )}
       {hasCommerce && (
-        <Button asChild variant="ghost" size="icon-sm" className="relative text-current" aria-label={ctx.t("cart.title")}>
+        <Button asChild variant="ghost" size="icon" className="relative text-current md:size-9" aria-label={ctx.t("cart.title")}>
           <Link href="/cart">
             <ShoppingBag className="size-5" />
             {!!ctx.cartCount && (
@@ -131,14 +131,16 @@ export function SiteHeader({ ctx, nav }: { ctx: StorefrontCtx; nav: NavItem[] })
   }
 
   if (variant === "minimal" || variant === "sidebar") {
+    // only the first 3 items fit inline: keep the menu button on tablet/desktop when there are more (RA-01)
+    const inline = nav.slice(0, 3);
     return (
       <HeaderShell variant={variant} transparent={layout.headerTransparent} sticky={layout.headerSticky}>
         <div className="container-x flex h-16 items-center justify-between md:h-20">
           <Logo ctx={ctx} />
           <div className="flex items-center gap-1">
-            <NavLinks items={nav.slice(0, 3)} />
+            <NavLinks items={inline} />
             <Actions ctx={ctx} cta={cta} />
-            <MobileNav items={nav} title={ctx.tenant.name} cta={cta} />
+            <MobileNav items={nav} title={ctx.tenant.name} cta={cta} desktop={nav.length > inline.length} />
           </div>
         </div>
       </HeaderShell>

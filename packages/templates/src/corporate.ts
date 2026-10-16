@@ -23,14 +23,12 @@ export const corporate: TemplateDefinition = {
     header: [
       { label: "บริการ", href: "/services" },
       { label: "ผลงาน", href: "/work" },
-      { label: "บทความ", href: "/blog" },
       { label: "เกี่ยวกับเรา", href: "/about" },
       { label: "ติดต่อ", href: "/contact" },
     ],
     footer: [
       { label: "บริการ", href: "/services" },
       { label: "ผลงาน", href: "/work" },
-      { label: "บทความ", href: "/blog" },
       { label: "ร่วมงานกับเรา", href: "/careers" },
       { label: "บริษัท", href: "#", children: [{ label: "เกี่ยวกับเรา", href: "/about" }, { label: "ติดต่อ", href: "/contact" }] },
     ],
@@ -158,10 +156,11 @@ export const corporate: TemplateDefinition = {
     ...legalPages("Northstar"),
   ],
   async seed(tx, tenantId) {
-    await tx.insert(forms).values({ tenantId, name: "ติดต่อ / ขอใบเสนอราคา", slug: "contact", fields: [{ key: "name", label: "ชื่อ", type: "text", required: true }, { key: "phone", label: "เบอร์โทร", type: "tel", required: true }, { key: "email", label: "อีเมล", type: "email" }, { key: "message", label: "รายละเอียดโปรเจกต์", type: "textarea", required: true }], notifyEmails: ["contact@northstar.co.th"], successMessage: "ขอบคุณค่ะ ทีมจะติดต่อกลับภายใน 1 วันทำการ" });
+    await tx.insert(forms).values({ tenantId, name: "ติดต่อ / ขอใบเสนอราคา", slug: "contact", fields: [{ key: "name", label: "ชื่อ", type: "text", required: true }, { key: "phone", label: "เบอร์โทร", type: "tel", required: true }, { key: "email", label: "อีเมล", type: "email" }, { key: "message", label: "รายละเอียดโปรเจกต์", type: "textarea", required: true }], notifyEmails: [], successMessage: "ขอบคุณค่ะ ทีมจะติดต่อกลับภายใน 1 วันทำการ" });
+    // drafts until the storefront has a /blog route – published posts would put 404 URLs into sitemap.xml (SS-06)
     await tx.insert(posts).values([
-      { tenantId, slug: "pdpa-checklist-2026", title: "เช็กลิสต์ PDPA สำหรับเว็บไซต์ธุรกิจ ปี 2026", excerpt: "สิ่งที่เว็บไซต์ทุกแห่งต้องมีตามกฎหมายคุ้มครองข้อมูลส่วนบุคคล", bodyHtml: "<p>บทความตัวอย่าง…</p>", coverImage: u("1497366216548-37526070297c", 1200), category: "กฎหมาย", status: "published", authorName: "ทีม Northstar", publishedAt: new Date() },
-      { tenantId, slug: "why-nextjs", title: "ทำไมเราเลือก Next.js สำหรับระบบองค์กร", excerpt: "เหตุผลด้านประสิทธิภาพ ความปลอดภัย และการดูแลระยะยาว", bodyHtml: "<p>บทความตัวอย่าง…</p>", coverImage: u("1461749280684-dccba630e2f6", 1200), category: "เทคโนโลยี", status: "published", authorName: "ณัฐพล เกียรติ", publishedAt: new Date(Date.now() - 86400000 * 5) },
+      { tenantId, slug: "pdpa-checklist-2026", title: "เช็กลิสต์ PDPA สำหรับเว็บไซต์ธุรกิจ ปี 2026", excerpt: "สิ่งที่เว็บไซต์ทุกแห่งต้องมีตามกฎหมายคุ้มครองข้อมูลส่วนบุคคล", bodyHtml: "<p>บทความตัวอย่าง…</p>", coverImage: u("1497366216548-37526070297c", 1200), category: "กฎหมาย", status: "draft", authorName: "ทีม Northstar", publishedAt: new Date() },
+      { tenantId, slug: "why-nextjs", title: "ทำไมเราเลือก Next.js สำหรับระบบองค์กร", excerpt: "เหตุผลด้านประสิทธิภาพ ความปลอดภัย และการดูแลระยะยาว", bodyHtml: "<p>บทความตัวอย่าง…</p>", coverImage: u("1461749280684-dccba630e2f6", 1200), category: "เทคโนโลยี", status: "draft", authorName: "ณัฐพล เกียรติ", publishedAt: new Date(Date.now() - 86400000 * 5) },
     ]);
   },
 };

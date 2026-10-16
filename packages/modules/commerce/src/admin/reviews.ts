@@ -95,7 +95,7 @@ export async function setReviewStatus(tx: Tx, tenantId: string, id: string, stat
   const [row] = await tx.select().from(reviews).where(and(eq(reviews.tenantId, tenantId), eq(reviews.id, id))).limit(1).for("update");
   if (!row) return fail("ไม่พบรีวิว", "not_found");
   if (row.status !== status) {
-    await tx.update(reviews).set({ status }).where(eq(reviews.id, id));
+    await tx.update(reviews).set({ status }).where(and(eq(reviews.tenantId, tenantId), eq(reviews.id, id)));
     await recomputeProductRating(tx, tenantId, row.productId);
     await emitEvent(tx, { tenantId, type: status === "approved" ? "review.approved" : "review.rejected", payload: { reviewId: id, productId: row.productId, customerId: row.customerId } });
     await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: `review.${status}`, targetType: "review", targetId: id, diff: { productId: row.productId, rating: row.rating } });

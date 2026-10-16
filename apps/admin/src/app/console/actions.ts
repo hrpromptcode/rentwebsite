@@ -46,19 +46,25 @@ export async function updateTenantPlan(input: z.input<typeof planSchema>): Promi
   return { ok: true, message: "เปลี่ยนแพ็กเกจแล้ว" };
 }
 
-const statusSchema = z.object({ tenantId: z.string().uuid(), status: z.enum(["trialing", "active", "past_due", "suspended", "cancelled"]) });
+const statusSchema = z.object({
+  tenantId: z.string().uuid(),
+  status: z.enum(["trialing", "active", "past_due", "suspended", "cancelled"]),
+  /** why RentWeb staff changed the status — shown to the owner in Settings > Danger zone */
+  reason: z.string().trim().max(500).optional(),
+});
 
 export async function updateTenantStatus(input: z.input<typeof statusSchema>): Promise<ActionResult> {
   const s = await requireSuperadmin();
-  const { tenantId, status } = statusSchema.parse(input);
+  const { tenantId, status, reason } = statusSchema.parse(input);
   const db = getAdminDb();
   const [before] = await db.select({ status: tenants.status }).from(tenants).where(eq(tenants.id, tenantId)).limit(1);
+  if (!before) return { ok: false, error: "ไม่พบร้านนี้" };
   await db
     .update(tenants)
     .set({ status, suspendedAt: status === "suspended" ? new Date() : null })
     .where(eq(tenants.id, tenantId));
   await invalidateTenant(tenantId, await tenantHostnames(tenantId));
-  await auditLog({ tenantId, actorType: "superadmin", actorId: s.user.id, action: "tenant.status.change", targetType: "tenant", targetId: tenantId, diff: { from: before?.status, to: status } });
+  await auditLog({ tenantId, actorType: "superadmin", actorId: s.user.id, action: "tenant.status.change", targetType: "tenant", targetId: tenantId, diff: { from: before.status, to: status, by: "platform", ...(reason ? { reason } : {}) } });
   revalidatePath(`/console/tenants/${tenantId}`);
   revalidatePath("/console/tenants");
   return { ok: true, message: "อัปเดตสถานะแล้ว" };

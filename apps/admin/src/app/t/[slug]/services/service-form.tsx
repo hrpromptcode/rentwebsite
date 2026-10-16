@@ -17,15 +17,26 @@ import { Field } from "@/components/ui/form";
 import { deleteServiceAction, saveServiceAction, suggestServiceSlugAction, uploadBookingImageAction } from "./actions";
 import type { ServiceFormValues } from "./form-values";
 
-function autoSlug(name: string): string {
-  return name
-    .trim()
+/**
+ * Slug while typing: same contract as typingSlug() in @/lib/slug (lower-case, invalid → "-", no doubled / leading
+ * "-", a trailing "-" is KEPT so "hair-cut" can be typed) but Thai / Unicode letters stay allowed, as in the
+ * service slug schema. finalizeSlug() trims the trailing "-" on blur / submit / when derived from the name.
+ */
+function typingSlug(input: string, max = 80): string {
+  return input
     .toLowerCase()
     .replace(/[\s_]+/g, "-")
-    .replace(/[^\p{L}\p{M}\p{N}-]+/gu, "")
+    .replace(/[^\p{L}\p{M}\p{N}-]+/gu, "-")
     .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replace(/^-/, "")
+    .slice(0, max);
 }
+
+function finalizeSlug(input: string, max = 80): string {
+  return typingSlug(input.trim(), max).replace(/-+$/, "");
+}
+
+const autoSlug = (name: string) => finalizeSlug(name);
 
 export function ServiceForm({ slug, serviceId, initial, categories, assetBase, canDelete }: { slug: string; serviceId: string | null; initial: ServiceFormValues; categories: Array<{ id: string; name: string }>; assetBase: string; canDelete: boolean }) {
   const router = useRouter();
@@ -48,7 +59,7 @@ export function ServiceForm({ slug, serviceId, initial, categories, assetBase, c
     return {
       categoryId: v.categoryId || null,
       name: v.name,
-      slug: v.slug,
+      slug: finalizeSlug(v.slug, 80),
       description: v.description || null,
       image: v.image,
       durationMin: Number(v.durationMin),
@@ -60,6 +71,7 @@ export function ServiceForm({ slug, serviceId, initial, categories, assetBase, c
       depositAmount: v.depositRequired ? bahtToSatang(v.depositAmount || 0) : 0,
       capacity: Number(v.capacity || 1),
       requiresStaff: v.requiresStaff,
+      seatsPerBooking: Number(v.capacity || 1) > 1 && v.seatsPerBooking ? Number(v.seatsPerBooking) : null,
       active: v.active,
       featured: v.featured,
       sort: Number(v.sort || 0),
@@ -114,8 +126,10 @@ export function ServiceForm({ slug, serviceId, initial, categories, assetBase, c
                   value={v.slug}
                   onChange={(e) => {
                     setSlugTouched(true);
-                    set("slug", e.target.value);
+                    // keep a trailing "-" while typing ("hair-" → "hair-cut"); trimmed on blur / submit
+                    set("slug", typingSlug(e.target.value, 80));
                   }}
+                  onBlur={() => set("slug", finalizeSlug(v.slug, 80))}
                   placeholder="hair-cut"
                   maxLength={80}
                 />
@@ -222,9 +236,32 @@ export function ServiceForm({ slug, serviceId, initial, categories, assetBase, c
               </span>
               <Switch checked={v.requiresStaff} onCheckedChange={(c) => set("requiresStaff", c)} />
             </label>
-            <Field label="จำนวนที่รับต่อรอบ" htmlFor="svc-cap" error={err("capacity")} hint="มากกว่า 1 = คลาสกลุ่ม (จองร่วมช่องเวลาเดียวกันได้)">
+            <Field
+              label="จำนวนที่รับต่อรอบ"
+              htmlFor="svc-cap"
+              error={err("capacity")}
+              hint={v.requiresStaff ? "จำนวนลูกค้าที่รับพร้อมกันได้ — ลูกค้าแต่ละท่านใช้ผู้ให้บริการ 1 คน (เช่น นวดคู่ = 2)" : "มากกว่า 1 = คลาส / ห้อง ที่หลายคนจองช่องเวลาเดียวกันได้"}
+            >
               <Input id="svc-cap" type="number" inputMode="numeric" min={1} max={500} value={v.capacity} onChange={(e) => set("capacity", e.target.value)} className="max-w-32" />
             </Field>
+            {Number(v.capacity || 1) > 1 && (
+              <Field
+                label="การจอง 1 ครั้ง"
+                htmlFor="svc-seats"
+                error={err("seatsPerBooking")}
+                hint={v.seatsPerBooking ? `แพ็กเกจสำหรับ ${v.seatsPerBooking} ท่าน — ราคาคิดต่อการจอง` : "ลูกค้าเลือกจำนวนท่านเอง — ราคาและมัดจำคิดต่อท่าน"}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <NativeSelect id="svc-seats" value={v.seatsPerBooking ? "fixed" : "per_person"} onChange={(e) => set("seatsPerBooking", e.target.value === "fixed" ? v.capacity : "")} className="max-w-64">
+                    <option value="per_person">คิดราคาต่อท่าน</option>
+                    <option value="fixed">แพ็กเกจจำนวนท่านคงที่</option>
+                  </NativeSelect>
+                  {v.seatsPerBooking && (
+                    <Input aria-label="จำนวนท่านต่อการจอง" type="number" inputMode="numeric" min={1} max={Number(v.capacity || 1)} value={v.seatsPerBooking} onChange={(e) => set("seatsPerBooking", e.target.value)} className="max-w-24" />
+                  )}
+                </div>
+              </Field>
+            )}
           </CardContent>
         </Card>
 

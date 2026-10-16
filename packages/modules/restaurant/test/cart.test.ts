@@ -98,7 +98,8 @@ describe("priceCart", () => {
 describe("time slots", () => {
   const hours = parseHours([{ day: "ทุกวัน", time: "11:00 – 22:00 (ครัวปิด 21:30)" }]);
   it("parses opening hours from the contact settings", () => {
-    expect(hours).toEqual({ open: "11:00", close: "22:00" });
+    // SBR-012: the kitchen's last order is parsed too
+    expect(hours).toEqual({ open: "11:00", close: "22:00", lastOrder: "21:30" });
     expect(parseHours(undefined)).toEqual({ open: "10:00", close: "20:00" });
   });
   it("pickup slots start 20 minutes ahead, rounded to 15 min", () => {
@@ -106,7 +107,10 @@ describe("time slots", () => {
     const slots = pickupSlots({ hours, now, leadMinutes: 20, stepMinutes: 15 });
     expect(slots[0]!.label).toBe("12:30");
     expect(slots[0]!.day).toBe("วันนี้");
-    expect(slots.at(-1)!.label).toBe("21:45");
+    // SBR-012: never after the kitchen closes (21:30), minus the prep time when given
+    expect(slots.at(-1)!.label).toBe("21:30");
+    expect(pickupSlots({ hours, now, leadMinutes: 20, stepMinutes: 15, prepMinutes: 15 }).at(-1)!.label).toBe("21:15");
+    expect(pickupSlots({ hours: parseHours([{ day: "ทุกวัน", time: "11:00 – 22:00" }]), now, stepMinutes: 15 }).at(-1)!.label).toBe("21:45");
     expect(new Date(slots[0]!.value).toISOString()).toBe("2026-10-14T05:30:00.000Z");
   });
   it("rolls to tomorrow after closing time", () => {

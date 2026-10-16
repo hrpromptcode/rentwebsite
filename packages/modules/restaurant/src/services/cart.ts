@@ -85,7 +85,8 @@ export async function priceCart(tx: Tx, tenantId: string, items: CartItem[], opt
     if (problem) return fail(`${row.name}: ${problem.error}`, problem.code);
     const mods: PricedModifier[] = [];
     for (const g of groups) for (const m of g.modifiers) if (it.modifierIds.includes(m.id)) mods.push({ id: m.id, group: g.name, name: m.name, priceDelta: m.priceDelta });
-    const unitPrice = row.price + mods.reduce((s, m) => s + m.priceDelta, 0);
+    // a discount modifier ("ไม่เอาข้าว -10") can never make a line negative (COR-25)
+    const unitPrice = Math.max(0, row.price + mods.reduce((s, m) => s + m.priceDelta, 0));
     lines.push({
       key: cartLineKey(it),
       menuItemId: row.id,
@@ -105,5 +106,5 @@ export async function priceCart(tx: Tx, tenantId: string, items: CartItem[], opt
   const serviceChargePercent = Math.max(0, opts.serviceChargePercent ?? 0);
   const serviceCharge = percentOf(subtotal, serviceChargePercent);
   const deliveryFee = Math.max(0, opts.deliveryFee ?? 0);
-  return ok({ lines, subtotal, serviceChargePercent, serviceCharge, deliveryFee, total: subtotal + serviceCharge + deliveryFee });
+  return ok({ lines, subtotal, serviceChargePercent, serviceCharge, deliveryFee, total: Math.max(0, subtotal + serviceCharge + deliveryFee) });
 }

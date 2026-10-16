@@ -67,19 +67,87 @@ export function minutesToHm(min: number): string {
 export interface HoursRange {
   open: string; // HH:MM
   close: string; // HH:MM
+  /** kitchen close / last order ("ครัวปิด 21:30"), when given (SBR-012) */
+  lastOrder?: string;
+  /**
+   * per weekday (0 = Sunday) hours parsed from all entries ("จันทร์ – ศุกร์", "เสาร์ – อาทิตย์", "จันทร์: ปิด");
+   * null = closed that day. Absent = the same hours every day.
+   */
+  byDay?: Array<HoursRange | null>;
+}
+
+type HoursEntry = { day?: string; time?: string };
+
+const LAST_ORDER_RE = /(?:ครัวปิด(?:รับ)?(?:ออเดอร์)?|ออเดอร์สุดท้าย|รับออเดอร์ถึง|สั่งได้ถึง|สั่งอาหารได้ถึง|last\s*orders?|kitchen\s*clos\w*)\s*[:\-]?\s*(\d{1,2})[:.](\d{2})/i;
+const DAY_TOKENS: Array<[RegExp, number]> = [
+  [/อาทิตย์|\bsun(?:day)?\b/gi, 0],
+  [/จันทร์|\bmon(?:day)?\b/gi, 1],
+  [/อังคาร|\btue(?:s|sday)?\b/gi, 2],
+  [/พุธ|\bwed(?:nesday)?\b/gi, 3],
+  [/พฤหัส(?:บดี)?|\bthu(?:rs|rsday)?\b/gi, 4],
+  [/ศุกร์|\bfri(?:day)?\b/gi, 5],
+  [/เสาร์|\bsat(?:urday)?\b/gi, 6],
+];
+
+/** Weekdays named by an hours entry label: "ทุกวัน" / missing → all, "จันทร์ – ศุกร์" → 1..5, "เสาร์, อาทิตย์" → 6,0; null = unrecognised label. */
+export function parseDaySpec(day: string | undefined | null): number[] | null {
+  const label = (day ?? "").trim();
+  if (!label || /ทุกวัน|every\s*day|daily|all\s*days/i.test(label)) return [0, 1, 2, 3, 4, 5, 6];
+  const hits: Array<{ at: number; end: number; d: number }> = [];
+  for (const [re, d] of DAY_TOKENS) for (const m of label.matchAll(re)) hits.push({ at: m.index ?? 0, end: (m.index ?? 0) + m[0].length, d });
+  if (!hits.length) return null;
+  hits.sort((a, b) => a.at - b.at);
+  const out = new Set<number>();
+  for (let i = 0; i < hits.length; i++) {
+    const cur = hits[i]!;
+    const next = hits[i + 1];
+    if (next && /^\s*(?:[-–—~]|ถึง|to)\s*(?:วัน)?\s*$/i.test(label.slice(cur.end, next.at))) {
+      for (let d = cur.d; ; d = (d + 1) % 7) {
+        out.add(d);
+        if (d === next.d) break;
+      }
+      i++;
+    } else out.add(cur.d);
+  }
+  return [...out];
+}
+
+function parseRange(time: string | undefined): HoursRange | null | undefined {
+  if (!time) return undefined;
+  const last = time.match(LAST_ORDER_RE);
+  const rest = last ? time.replace(last[0], " ") : time;
+  const found = [...rest.matchAll(/(\d{1,2})[:.](\d{2})/g)].map((m) => `${pad2(Number(m[1]))}:${m[2]}`);
+  if (found.length < 2) return /ปิด|closed|หยุด/i.test(time) ? null : undefined;
+  return { open: found[0]!, close: found[1]!, ...(last ? { lastOrder: `${pad2(Number(last[1]))}:${last[2]}` } : {}) };
 }
 
 /**
- * Parses tenant `settings.contact.hours` ([{day, time: "11:00 - 22:00 (kitchen closes 21:30)"}]) into open/close.
- * Uses the first entry; falls back to 10:00-20:00.
+ * Parses tenant `settings.contact.hours` ([{day, time: "11:00 - 22:00 (ครัวปิด 21:30)"}]): open/close of the first
+ * entry (display), the kitchen's last-order time, and the hours of every weekday from all entries (days no entry
+ * names are closed; the most specific entry wins). Falls back to 10:00-20:00.
  */
-export function parseHours(hours: Array<{ day?: string; time?: string }> | undefined | null, fallback: HoursRange = { open: "10:00", close: "20:00" }): HoursRange {
-  const first = hours?.find((h) => typeof h?.time === "string");
-  if (!first?.time) return fallback;
-  const found = [...first.time.matchAll(/(\d{1,2})[:.](\d{2})/g)].map((m) => `${pad2(Number(m[1]))}:${m[2]}`);
-  if (found.length < 2) return fallback;
-  return { open: found[0]!, close: found[1]! };
+export function parseHours(hours: HoursEntry[] | undefined | null, fallback: HoursRange = { open: "10:00", close: "20:00" }): HoursRange {
+  const entries = (Array.isArray(hours) ? hours : []).filter((h) => typeof h?.time === "string");
+  const parsed = entries.map((h) => ({ days: parseDaySpec(h.day), range: parseRange(h.time) }));
+  const first = parsed.find((p) => p.range)?.range;
+  if (!first) return fallback;
+  const dayed = parsed.filter((p) => p.days && p.range !== undefined);
+  if (!dayed.length || dayed.every((p) => p.days!.length === 7 && p.range)) return first;
+  const byDay: Array<HoursRange | null> = [];
+  for (let d = 0; d < 7; d++) {
+    const match = dayed.filter((p) => p.days!.includes(d)).sort((a, b) => a.days!.length - b.days!.length)[0];
+    byDay.push(match ? (match.range ?? null) : (parsed.find((p) => !p.days && p.range)?.range ?? null));
+  }
+  return { ...first, byDay };
 }
+
+/** Hours on a weekday (0 = Sunday); null when closed. */
+export function hoursOnDay(hours: HoursRange, weekday: number): HoursRange | null {
+  if (!hours.byDay) return hours;
+  return hours.byDay[weekday] ?? null;
+}
+
+const weekdayOf = (ymd: string) => new Date(`${ymd}T12:00:00Z`).getUTCDay();
 
 export type MenuSchedule = Array<{ weekdays: number[]; start: string; end: string }>;
 
@@ -107,26 +175,31 @@ export interface Slot {
 
 /**
  * Pickup slots: every `stepMinutes` inside opening hours, starting at least `leadMinutes` after `now`
- * (rounded up to the step). Rolls to the next day when today has no slots left.
+ * (rounded up to the step). The last slot is the kitchen's last-order time minus `prepMinutes` (SBR-012) and
+ * never later than close - step. Closed days are skipped; rolls to the next open day when today has no slots left.
  */
-export function pickupSlots(opts: { hours: HoursRange; now?: Date; leadMinutes?: number; stepMinutes?: number; maxDays?: number; dayLabels?: [string, string] }): Slot[] {
+export function pickupSlots(opts: { hours: HoursRange; now?: Date; leadMinutes?: number; stepMinutes?: number; prepMinutes?: number; maxDays?: number; dayLabels?: [string, string] }): Slot[] {
   const now = opts.now ?? new Date();
   const lead = opts.leadMinutes ?? 20;
   const step = opts.stepMinutes ?? 15;
+  const prep = Math.max(0, opts.prepMinutes ?? 0);
   const maxDays = opts.maxDays ?? 2;
   const [today, tomorrow] = opts.dayLabels ?? ["วันนี้", "พรุ่งนี้"];
-  const open = hmToMinutes(opts.hours.open);
-  const close = hmToMinutes(opts.hours.close);
   const p = bangkokParts(now);
   const out: Slot[] = [];
-  for (let dayOffset = 0; dayOffset < maxDays; dayOffset++) {
+  for (let dayOffset = 0; dayOffset < Math.max(maxDays, opts.hours.byDay ? 8 : maxDays); dayOffset++) {
     const ymd = addDays(p.ymd, dayOffset);
+    const h = hoursOnDay(opts.hours, weekdayOf(ymd));
+    if (!h) continue;
+    const open = hmToMinutes(h.open);
+    const close = hmToMinutes(h.close);
+    const last = Math.min(close - step, (h.lastOrder ? hmToMinutes(h.lastOrder) : close) - prep);
     let start = open;
     if (dayOffset === 0) {
       const earliest = p.minutes + lead;
       start = Math.max(open, Math.ceil(earliest / step) * step);
     }
-    for (let t = start; t <= close - step; t += step) {
+    for (let t = start; t <= last; t += step) {
       out.push({ value: bangkokDate(ymd, minutesToHm(t)).toISOString(), label: minutesToHm(t), day: dayOffset === 0 ? today : dayOffset === 1 ? tomorrow : ymd, ymd });
     }
     if (out.length) break; // only roll to the next day when today is empty
@@ -140,11 +213,13 @@ export function reservationSlots(opts: { hours: HoursRange; ymd: string; now?: D
   const dur = opts.durationMinutes ?? 90;
   const step = opts.stepMinutes ?? 30;
   const lead = opts.leadMinutes ?? 60;
-  const open = hmToMinutes(opts.hours.open);
-  const close = hmToMinutes(opts.hours.close);
   const p = bangkokParts(now);
   const out: string[] = [];
   if (opts.ymd < p.ymd) return out;
+  const h = hoursOnDay(opts.hours, weekdayOf(opts.ymd));
+  if (!h) return out; // closed that day
+  const open = hmToMinutes(h.open);
+  const close = hmToMinutes(h.close);
   for (let t = open; t + dur <= close; t += step) {
     if (opts.ymd === p.ymd && t < p.minutes + lead) continue;
     out.push(minutesToHm(t));

@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { safeNext } from "@/lib/safe-next";
 import { Eye, EyeOff, Loader2, LogIn } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@rentweb/ui/components/card";
@@ -31,7 +32,7 @@ export function LoginForm({ next }: { next?: string }) {
       return;
     }
     toast.success("เข้าสู่ระบบสำเร็จ");
-    router.push(next ?? "/");
+    router.push(safeNext(next));
     router.refresh();
   }
 

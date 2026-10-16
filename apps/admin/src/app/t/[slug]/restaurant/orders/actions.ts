@@ -75,5 +75,7 @@ export async function settleSessionAction(slug: string, sessionId: string, mode:
   if (!r.ok) return { ok: false, error: r.error };
   await auditLog({ tenantId: ctx.tenant.id, actorType: ctx.impersonating ? "superadmin" : "user", actorId: ctx.userId, action: `table.close.${parsed.data.mode}`, targetType: "table_session", targetId: sessionId, diff: { amount: r.value.amount, paymentId: r.value.paymentId } });
   revalidate(slug);
-  return { ok: true, message: r.value.amount > 0 ? `รับชำระ ฿${(r.value.amount / 100).toLocaleString("th-TH")} และปิดโต๊ะแล้ว` : "ปิดโต๊ะแล้ว" };
+  const baht = (s: number) => `฿${(s / 100).toLocaleString("th-TH")}`;
+  if (!r.value.closed) return { ok: true, message: `อนุมัติ ${baht(r.value.amount)} แล้ว ยังค้าง ${baht(r.value.remaining)} (รายการที่สั่งหลังขอบิล) รับเงินสดเพื่อปิดโต๊ะ` };
+  return { ok: true, message: r.value.amount > 0 ? `รับชำระ ${baht(r.value.amount)} และปิดโต๊ะแล้ว` : "ปิดโต๊ะแล้ว" };
 }

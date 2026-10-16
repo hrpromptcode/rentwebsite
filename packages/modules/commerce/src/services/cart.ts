@@ -1,6 +1,6 @@
-import { and, asc, count, eq, gt, inArray, ne, or, isNull, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, inArray, ne, or, isNull, sql } from "drizzle-orm";
 import { cartItems, carts, discounts, orders, productVariants, products, type Tx } from "@rentweb/db";
-import { fail, ok, randomToken, thb, type Result } from "@rentweb/core";
+import { fail, normalizeThaiPhone, ok, randomToken, thb, type Result } from "@rentweb/core";
 import { availableStock, variantAvailable, type ProductRow, type VariantRow } from "./products";
 
 export const CART_COOKIE = "rw_cart";
@@ -125,27 +125,105 @@ function expiry() {
   return new Date(Date.now() + CART_TTL_DAYS * 86_400_000);
 }
 
-/** Active, unexpired cart for a cookie token (null when missing). */
-export async function findActiveCart(tx: Tx, tenantId: string, token: string | null | undefined): Promise<CartRow | null> {
-  if (!token) return null;
-  const [row] = await tx
-    .select()
-    .from(carts)
-    .where(and(eq(carts.tenantId, tenantId), eq(carts.token, token), eq(carts.status, "active"), or(isNull(carts.expiresAt), gt(carts.expiresAt, new Date()))))
-    .limit(1);
-  return row ?? null;
+function isLive(c: CartRow, now = new Date()): boolean {
+  return c.status === "active" && (!c.expiresAt || c.expiresAt > now);
 }
 
-/** Lazily creates the cart; `created` tells the caller to (re)set the cookie. */
-export async function getOrCreateCart(tx: Tx, tenantId: string, token: string | null | undefined, customerId?: string | null): Promise<{ cart: CartRow; created: boolean }> {
-  const existing = await findActiveCart(tx, tenantId, token);
-  if (existing) {
-    if (customerId && existing.customerId !== customerId) {
-      const [upd] = await tx.update(carts).set({ customerId, expiresAt: expiry() }).where(eq(carts.id, existing.id)).returning();
-      return { cart: upd ?? existing, created: false };
-    }
-    return { cart: existing, created: false };
+export interface FindCartOptions {
+  /**
+   * Signed-in customer: their carts on other devices are merged into the one returned (SS-12), and a cookie
+   * cart that belongs to a different customer is not used. The returned cart's token may then differ from the
+   * cookie token; route handlers should re-set the cookie (getOrCreateCart reports it as `created`).
+   */
+  customerId?: string | null;
+  /** SELECT … FOR UPDATE: serialises checkout / concurrent cart writes on the cart row (COR-04/COR-05). */
+  lock?: boolean;
+}
+
+/** Cart for a cookie token, following "merged" pointers (max 3 hops) to the cart it was merged into. */
+async function cartByToken(tx: Tx, tenantId: string, token: string, lock: boolean): Promise<CartRow | null> {
+  const q = tx.select().from(carts).where(and(eq(carts.tenantId, tenantId), eq(carts.token, token))).limit(1);
+  let [row] = lock ? await q.for("update") : await q;
+  for (let hop = 0; row && row.status === "merged" && row.mergedIntoId && hop < 3; hop++) {
+    const next = tx.select().from(carts).where(and(eq(carts.tenantId, tenantId), eq(carts.id, row.mergedIntoId))).limit(1);
+    [row] = lock ? await next.for("update") : await next;
   }
+  return row && isLive(row) ? row : null;
+}
+
+/** Active, unexpired cart for a cookie token (null when missing). See FindCartOptions for customer merging and locking. */
+export async function findActiveCart(tx: Tx, tenantId: string, token: string | null | undefined, opts: FindCartOptions = {}): Promise<CartRow | null> {
+  const own = token ? await cartByToken(tx, tenantId, token, !!opts.lock) : null;
+  if (!opts.customerId) return own;
+  const usable = own && (!own.customerId || own.customerId === opts.customerId) ? own : null;
+  return mergeCustomerCarts(tx, tenantId, opts.customerId, usable);
+}
+
+/**
+ * SS-12: one cart per signed-in customer across devices. The cookie cart (or else the customer's most recent
+ * cart) survives; the customer's other active carts are merged into it (quantities summed, capped by stock and
+ * 99) and marked `merged` with a pointer to the survivor, so the other device's cookie keeps resolving.
+ */
+export async function mergeCustomerCarts(tx: Tx, tenantId: string, customerId: string, own: CartRow | null): Promise<CartRow | null> {
+  const now = new Date();
+  const conds = [eq(carts.tenantId, tenantId), eq(carts.customerId, customerId), eq(carts.status, "active"), or(isNull(carts.expiresAt), gt(carts.expiresAt, now))];
+  if (own) conds.push(ne(carts.id, own.id));
+  const others = await tx.select().from(carts).where(and(...conds)).orderBy(desc(carts.updatedAt), desc(carts.createdAt));
+  if (!others.length) {
+    if (own && own.customerId !== customerId) {
+      const [upd] = await tx.update(carts).set({ customerId, expiresAt: expiry() }).where(and(eq(carts.tenantId, tenantId), eq(carts.id, own.id))).returning();
+      return upd ?? own;
+    }
+    return own;
+  }
+  const survivorId = own?.id ?? others[0]!.id;
+  const ids = [...new Set([survivorId, ...others.map((o) => o.id)])].sort();
+  // lock every cart involved in a fixed order (two devices may merge at the same time)
+  const locked = await tx.select().from(carts).where(and(eq(carts.tenantId, tenantId), inArray(carts.id, ids))).orderBy(asc(carts.id)).for("update");
+  const survivor = locked.find((c) => c.id === survivorId && isLive(c, now)) ?? locked.find((c) => c.customerId === customerId && isLive(c, now));
+  if (!survivor) return null;
+  const donors = locked.filter((c) => c.id !== survivor.id && c.customerId === customerId && isLive(c, now));
+  let couponCode = survivor.couponCode;
+  for (const donor of donors) {
+    const [mine, theirs] = await Promise.all([
+      tx.select().from(cartItems).where(and(eq(cartItems.tenantId, tenantId), eq(cartItems.cartId, survivor.id))),
+      tx.select().from(cartItems).where(and(eq(cartItems.tenantId, tenantId), eq(cartItems.cartId, donor.id))).orderBy(asc(cartItems.createdAt)),
+    ]);
+    for (const item of theirs) {
+      const same = mine.find((m) => m.productId === item.productId && (m.variantId ?? null) === (item.variantId ?? null));
+      const loaded = await loadProductAndVariant(tx, tenantId, item.productId, item.variantId);
+      const available = loaded ? lineAvailability(loaded.product, loaded.variant) : 0;
+      const wanted = Math.min(99, (same?.quantity ?? 0) + item.quantity);
+      const qty = available === null ? wanted : Math.min(wanted, Math.max(available, same?.quantity ?? 0));
+      if (same) {
+        if (qty !== same.quantity) await tx.update(cartItems).set({ quantity: qty }).where(and(eq(cartItems.tenantId, tenantId), eq(cartItems.id, same.id)));
+        same.quantity = qty;
+        await tx.delete(cartItems).where(and(eq(cartItems.tenantId, tenantId), eq(cartItems.id, item.id)));
+      } else if (qty > 0) {
+        await tx.update(cartItems).set({ cartId: survivor.id, quantity: qty }).where(and(eq(cartItems.tenantId, tenantId), eq(cartItems.id, item.id)));
+        mine.push({ ...item, cartId: survivor.id, quantity: qty });
+      } else {
+        await tx.delete(cartItems).where(and(eq(cartItems.tenantId, tenantId), eq(cartItems.id, item.id)));
+      }
+    }
+    couponCode = couponCode ?? donor.couponCode;
+    await tx.update(carts).set({ status: "merged", mergedIntoId: survivor.id }).where(and(eq(carts.tenantId, tenantId), eq(carts.id, donor.id)));
+  }
+  const [upd] = await tx
+    .update(carts)
+    .set({ customerId, couponCode, expiresAt: expiry() })
+    .where(and(eq(carts.tenantId, tenantId), eq(carts.id, survivor.id)))
+    .returning();
+  return upd ?? survivor;
+}
+
+/**
+ * Lazily creates the cart. `created` = the caller must (re)set the cookie: a new cart, or a signed-in
+ * customer whose cart lives under another token (merged from another device).
+ */
+export async function getOrCreateCart(tx: Tx, tenantId: string, token: string | null | undefined, customerId?: string | null): Promise<{ cart: CartRow; created: boolean }> {
+  const existing = await findActiveCart(tx, tenantId, token, { customerId: customerId ?? null });
+  if (existing) return { cart: existing, created: existing.token !== token };
   const [cart] = await tx
     .insert(carts)
     .values({ tenantId, token: randomToken(24), status: "active", customerId: customerId ?? null, expiresAt: expiry() })
@@ -153,8 +231,14 @@ export async function getOrCreateCart(tx: Tx, tenantId: string, token: string | 
   return { cart: cart!, created: true };
 }
 
-async function touch(tx: Tx, cartId: string) {
-  await tx.update(carts).set({ expiresAt: expiry() }).where(eq(carts.id, cartId));
+async function touch(tx: Tx, tenantId: string, cartId: string) {
+  await tx.update(carts).set({ expiresAt: expiry() }).where(and(eq(carts.tenantId, tenantId), eq(carts.id, cartId)));
+}
+
+/** Row lock on the cart: concurrent add/update requests for one cart run one after another (COR-04). */
+async function lockCart(tx: Tx, tenantId: string, cartId: string): Promise<CartRow | null> {
+  const [row] = await tx.select().from(carts).where(and(eq(carts.tenantId, tenantId), eq(carts.id, cartId))).limit(1).for("update");
+  return row ?? null;
 }
 
 async function loadProductAndVariant(tx: Tx, tenantId: string, productId: string, variantId: string | null) {
@@ -185,12 +269,15 @@ export async function addCartItem(
   input: { productId: string; variantId?: string | null; quantity?: number },
 ): Promise<Result<{ item: CartItemRow; adjusted: boolean }>> {
   const qty = Math.max(1, Math.min(99, Math.floor(input.quantity ?? 1)));
+  const cart = await lockCart(tx, tenantId, cartId);
+  if (!cart || cart.status !== "active") return fail("ไม่พบตะกร้า กรุณาลองใหม่อีกครั้ง", "not_found");
   const loaded = await loadProductAndVariant(tx, tenantId, input.productId, input.variantId ?? null);
   if (!loaded || loaded.product.status !== "active") return fail("ไม่พบสินค้า", "not_found");
   const { product, variant } = loaded;
   if (product.hasVariants && !variant) return fail("กรุณาเลือกตัวเลือกสินค้า", "variant_required");
   if (variant && !variant.active) return fail("ตัวเลือกนี้ไม่พร้อมจำหน่าย", "variant_inactive");
 
+  // read after the cart lock: a concurrent add of the same line has committed by now and is merged into
   const [existing] = await tx
     .select()
     .from(cartItems)
@@ -198,33 +285,34 @@ export async function addCartItem(
     .limit(1);
 
   const available = lineAvailability(product, variant);
-  const wanted = (existing?.quantity ?? 0) + qty;
+  const wanted = Math.min(99, (existing?.quantity ?? 0) + qty);
   if (available !== null && available <= 0) return fail("สินค้าหมด", "out_of_stock");
   const finalQty = available === null ? wanted : Math.min(wanted, available);
-  const adjusted = finalQty < wanted;
-  if (existing && finalQty === existing.quantity) return fail(`มีสินค้าในตะกร้าครบตามสต็อกแล้ว (${available} ชิ้น)`, "out_of_stock");
+  const adjusted = finalQty < (existing?.quantity ?? 0) + qty;
+  if (existing && finalQty <= existing.quantity) return fail(available === null ? "สินค้าในตะกร้าครบจำนวนสูงสุดแล้ว (99 ชิ้น)" : `มีสินค้าในตะกร้าครบตามสต็อกแล้ว (${available} ชิ้น)`, "out_of_stock");
 
   let item: CartItemRow;
   if (existing) {
-    [item] = (await tx.update(cartItems).set({ quantity: finalQty }).where(eq(cartItems.id, existing.id)).returning()) as [CartItemRow];
+    [item] = (await tx.update(cartItems).set({ quantity: finalQty }).where(and(eq(cartItems.tenantId, tenantId), eq(cartItems.id, existing.id))).returning()) as [CartItemRow];
   } else {
     [item] = (await tx
       .insert(cartItems)
       .values({ tenantId, cartId, productId: product.id, variantId: variant?.id ?? null, quantity: finalQty })
       .returning()) as [CartItemRow];
   }
-  await touch(tx, cartId);
+  await touch(tx, tenantId, cartId);
   return ok({ item, adjusted });
 }
 
 /** Set a line quantity (0 removes). Caps to stock. */
 export async function updateCartItem(tx: Tx, tenantId: string, cartId: string, itemId: string, quantity: number): Promise<Result<{ quantity: number; adjusted: boolean }>> {
+  await lockCart(tx, tenantId, cartId);
   const [existing] = await tx.select().from(cartItems).where(and(eq(cartItems.tenantId, tenantId), eq(cartItems.cartId, cartId), eq(cartItems.id, itemId))).limit(1);
   if (!existing) return fail("ไม่พบรายการในตะกร้า", "not_found");
   const q = Math.floor(quantity);
   if (q <= 0) {
-    await tx.delete(cartItems).where(eq(cartItems.id, existing.id));
-    await touch(tx, cartId);
+    await tx.delete(cartItems).where(and(eq(cartItems.tenantId, tenantId), eq(cartItems.id, existing.id)));
+    await touch(tx, tenantId, cartId);
     return ok({ quantity: 0, adjusted: false });
   }
   const loaded = await loadProductAndVariant(tx, tenantId, existing.productId, existing.variantId);
@@ -232,18 +320,18 @@ export async function updateCartItem(tx: Tx, tenantId: string, cartId: string, i
   const available = lineAvailability(loaded.product, loaded.variant);
   const finalQty = available === null ? Math.min(q, 99) : Math.min(q, Math.max(0, available), 99);
   if (finalQty <= 0) return fail("สินค้าหมด", "out_of_stock");
-  await tx.update(cartItems).set({ quantity: finalQty }).where(eq(cartItems.id, existing.id));
-  await touch(tx, cartId);
+  await tx.update(cartItems).set({ quantity: finalQty }).where(and(eq(cartItems.tenantId, tenantId), eq(cartItems.id, existing.id)));
+  await touch(tx, tenantId, cartId);
   return ok({ quantity: finalQty, adjusted: finalQty < q });
 }
 
 export async function removeCartItem(tx: Tx, tenantId: string, cartId: string, itemId: string): Promise<void> {
   await tx.delete(cartItems).where(and(eq(cartItems.tenantId, tenantId), eq(cartItems.cartId, cartId), eq(cartItems.id, itemId)));
-  await touch(tx, cartId);
+  await touch(tx, tenantId, cartId);
 }
 
-export async function cartItemCount(tx: Tx, tenantId: string, token: string | null | undefined): Promise<number> {
-  const cart = await findActiveCart(tx, tenantId, token);
+export async function cartItemCount(tx: Tx, tenantId: string, token: string | null | undefined, opts: { customerId?: string | null } = {}): Promise<number> {
+  const cart = await findActiveCart(tx, tenantId, token, opts);
   if (!cart) return 0;
   const [row] = await tx
     .select({ n: sql<number>`coalesce(sum(${cartItems.quantity}), 0)::int` })
@@ -252,24 +340,55 @@ export async function cartItemCount(tx: Tx, tenantId: string, token: string | nu
   return Number(row?.n ?? 0);
 }
 
-/** Non-cancelled orders this customer placed with the coupon (for perCustomerLimit). */
-export async function countCouponUsesByCustomer(tx: Tx, tenantId: string, code: string, customerId: string | null | undefined): Promise<number | null> {
-  if (!customerId) return null;
+export interface CouponUser {
+  customerId?: string | null;
+  /** contact phone of the order (any format; normalised) */
+  phone?: string | null;
+  email?: string | null;
+}
+
+/**
+ * Orders that used the coupon and still count against perCustomerLimit: placed by the customer OR with the
+ * same normalised phone / e-mail (COR-03: guests are matched by their contact too). Cancelled orders and orders
+ * whose coupon use was released (metadata.couponReleased) do not count. null = nobody to match (no limit check).
+ */
+export async function countCouponUses(tx: Tx, tenantId: string, code: string, who: CouponUser): Promise<number | null> {
+  const ors = [];
+  if (who.customerId) ors.push(eq(orders.customerId, who.customerId));
+  const phone = who.phone ? (normalizeThaiPhone(who.phone) ?? who.phone.trim()) : null;
+  if (phone) ors.push(eq(orders.phone, phone));
+  const email = who.email?.trim().toLowerCase() || null;
+  if (email) ors.push(eq(orders.email, email));
+  if (!ors.length) return null;
   const [row] = await tx
     .select({ n: count() })
     .from(orders)
-    .where(and(eq(orders.tenantId, tenantId), eq(orders.customerId, customerId), eq(orders.couponCode, code), ne(orders.status, "cancelled")));
+    .where(
+      and(
+        eq(orders.tenantId, tenantId),
+        sql`upper(${orders.couponCode}) = ${code.trim().toUpperCase()}`,
+        ne(orders.status, "cancelled"),
+        sql`coalesce(${orders.metadata}->>'couponReleased', 'false') <> 'true'`,
+        or(...ors),
+      ),
+    );
   return Number(row?.n ?? 0);
 }
 
-export async function findDiscountByCode(tx: Tx, tenantId: string, code: string): Promise<DiscountRow | null> {
+/** Orders this signed-in customer placed with the coupon (for perCustomerLimit; see countCouponUses). */
+export async function countCouponUsesByCustomer(tx: Tx, tenantId: string, code: string, customerId: string | null | undefined): Promise<number | null> {
+  return countCouponUses(tx, tenantId, code, { customerId });
+}
+
+export async function findDiscountByCode(tx: Tx, tenantId: string, code: string, opts: { lock?: boolean } = {}): Promise<DiscountRow | null> {
   const normalized = code.trim().toUpperCase();
   if (!normalized) return null;
-  const [row] = await tx
+  const q = tx
     .select()
     .from(discounts)
     .where(and(eq(discounts.tenantId, tenantId), sql`upper(${discounts.code}) = ${normalized}`))
     .limit(1);
+  const [row] = opts.lock ? await q.for("update") : await q;
   return row ?? null;
 }
 
@@ -310,9 +429,12 @@ export async function loadCartLines(tx: Tx, tenantId: string, cartId: string): P
   });
 }
 
-/** Full cart view for the UI (null when the cookie has no live cart). */
+/**
+ * Full cart view for the UI (null when the cookie has no live cart). With a signed-in customer the carts of
+ * their other devices are merged in (SS-12); the view's token is then the surviving cart's token.
+ */
 export async function loadCart(tx: Tx, tenantId: string, token: string | null | undefined, opts: { customerId?: string | null } = {}): Promise<CartView | null> {
-  const cart = await findActiveCart(tx, tenantId, token);
+  const cart = await findActiveCart(tx, tenantId, token, { customerId: opts.customerId ?? null });
   if (!cart) return null;
   return buildCartView(tx, tenantId, cart, opts);
 }
@@ -356,9 +478,14 @@ export async function clearCart(tx: Tx, tenantId: string, cartId: string): Promi
   await tx.delete(cartItems).where(and(eq(cartItems.tenantId, tenantId), eq(cartItems.cartId, cartId)));
 }
 
-/** Marks a cart converted after checkout. */
-export async function markCartConverted(tx: Tx, tenantId: string, cartId: string): Promise<void> {
-  await tx.update(carts).set({ status: "converted" }).where(and(eq(carts.tenantId, tenantId), eq(carts.id, cartId)));
+/** Marks an active cart converted after checkout; false when it was not active any more (converted / merged meanwhile). */
+export async function markCartConverted(tx: Tx, tenantId: string, cartId: string): Promise<boolean> {
+  const r = await tx
+    .update(carts)
+    .set({ status: "converted" })
+    .where(and(eq(carts.tenantId, tenantId), eq(carts.id, cartId), eq(carts.status, "active")))
+    .returning({ id: carts.id });
+  return r.length > 0;
 }
 
 /** Variants for a set of products (used by cart UI to show option names). */

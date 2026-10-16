@@ -8,6 +8,7 @@ import { Input } from "@rentweb/ui/components/input";
 import { Label } from "@rentweb/ui/components/label";
 import { Switch } from "@rentweb/ui/components/switch";
 import { Field, SubmitButton, withToast } from "@/components/ui/form";
+import { finalizeSlug, typingSlug } from "@/lib/slug";
 import { createPage } from "./actions";
 
 export function NewPageDialog({ slug }: { slug: string }) {
@@ -16,13 +17,6 @@ export function NewPageDialog({ slug }: { slug: string }) {
   const [pageSlug, setPageSlug] = React.useState("");
   const [touched, setTouched] = React.useState(false);
   const [nav, setNav] = React.useState(true);
-  const auto = (t: string) =>
-    t
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9-]+/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "");
   const action = withToast(createPage.bind(null, slug), { success: "สร้างหน้าแล้ว" });
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -44,7 +38,7 @@ export function NewPageDialog({ slug }: { slug: string }) {
               value={title}
               onChange={(e) => {
                 setTitle(e.target.value);
-                if (!touched) setPageSlug(auto(e.target.value));
+                if (!touched) setPageSlug(finalizeSlug(e.target.value, 60));
               }}
               placeholder="เช่น โปรโมชัน, บริการของเรา"
               required
@@ -60,8 +54,9 @@ export function NewPageDialog({ slug }: { slug: string }) {
                 value={pageSlug}
                 onChange={(e) => {
                   setTouched(true);
-                  setPageSlug(auto(e.target.value));
+                  setPageSlug(typingSlug(e.target.value, 60));
                 }}
+                onBlur={() => setPageSlug((v) => finalizeSlug(v, 60))}
                 className="h-11 min-w-0 flex-1 bg-transparent px-3 text-sm outline-none"
                 placeholder="promotions"
               />

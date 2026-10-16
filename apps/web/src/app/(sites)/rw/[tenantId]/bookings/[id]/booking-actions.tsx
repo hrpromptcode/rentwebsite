@@ -18,12 +18,14 @@ export interface BookingActionsProps {
   today: string;
   maxDate: string;
   showRemaining?: boolean;
+  /** guests of a group booking (slots must fit the party) */
+  partySize?: number;
   cancelAction: (prev: BookingActionState, form: FormData) => Promise<BookingActionState>;
   rescheduleAction: (start: string) => Promise<{ error: string } | void>;
 }
 
 /** Reschedule / cancel controls on /bookings/[id]; both respect the cancelHours policy. */
-export function BookingActions({ canModify, cancelHours, serviceId, staffId, today, maxDate, showRemaining, cancelAction, rescheduleAction }: BookingActionsProps) {
+export function BookingActions({ canModify, cancelHours, serviceId, staffId, today, maxDate, showRemaining, partySize, cancelAction, rescheduleAction }: BookingActionsProps) {
   const [mode, setMode] = React.useState<"idle" | "reschedule" | "cancel">("idle");
   const [cancelState, submitCancel, cancelling] = useActionState(cancelAction, {} as BookingActionState);
 
@@ -48,7 +50,7 @@ export function BookingActions({ canModify, cancelHours, serviceId, staffId, tod
           </Button>
         </div>
       ) : mode === "reschedule" ? (
-        <ReschedulePanel className="mt-4 border-0 p-0 shadow-none md:p-0" serviceId={serviceId} staffId={staffId} today={today} maxDate={maxDate} action={rescheduleAction} onClose={() => setMode("idle")} showRemaining={showRemaining} />
+        <ReschedulePanel className="mt-4 border-0 p-0 shadow-none md:p-0" serviceId={serviceId} staffId={staffId} today={today} maxDate={maxDate} action={rescheduleAction} onClose={() => setMode("idle")} showRemaining={showRemaining} partySize={partySize} />
       ) : (
         <form action={submitCancel} className="mt-4 grid gap-4">
           <div className="grid gap-2">

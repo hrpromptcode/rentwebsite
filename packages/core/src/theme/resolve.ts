@@ -51,7 +51,11 @@ function completePalette(base: FullPalette, overrides: Partial<FullPalette>, war
 
   if (!aaOk(p.foreground, p.background)) warnings.push(`${label}: ข้อความหลักกับพื้นหลังคอนทราสต์ต่ำกว่า 4.5:1`);
   if (!aaOk(p.primaryForeground, p.primary)) warnings.push(`${label}: ข้อความบนปุ่มหลักอ่านยาก (คอนทราสต์ต่ำ)`);
-  if (!aaOk(p.mutedForeground, p.background, true)) warnings.push(`${label}: ข้อความรอง (muted) จางเกินไป`);
+  // the primary colour is also used as text (prices, eyebrows, links) on the page background
+  if (!aaOk(p.primary, p.background)) warnings.push(`${label}: สีหลักใช้เป็นตัวอักษรบนพื้นหลังแล้วอ่านยาก (ต่ำกว่า 4.5:1)`);
+  if (!aaOk(p.accentForeground, p.accent)) warnings.push(`${label}: ข้อความบนสีเน้น (accent) อ่านยาก`);
+  // muted text is body-sized (12–16px), so it needs the full 4.5:1, not the large-text 3:1
+  if (!aaOk(p.mutedForeground, p.background) || !aaOk(p.mutedForeground, p.muted)) warnings.push(`${label}: ข้อความรอง (muted) จางเกินไป`);
   return p;
 }
 
@@ -166,7 +170,8 @@ export function themeToCss(t: ResolvedTheme): ThemeCss {
     lightVars,
     darkVars,
     sharedVars,
-    styleTag: parts.join("\n"),
+    // escape once more over the whole tag: nothing in it may close the <style> element
+    styleTag: escapeStyleText(parts.join("\n")),
     htmlClass: classes.filter(Boolean).join(" "),
     dataAttrs: {
       "data-preset": t.preset.key,
@@ -183,13 +188,66 @@ export function themeToCss(t: ResolvedTheme): ThemeCss {
   };
 }
 
-/** Very conservative CSS sanitizer for tenant custom CSS (Business plan). */
-export function sanitizeCss(css: string): string {
-  return css
+const MAX_CUSTOM_CSS = 20_000;
+
+/** Decode CSS escapes inside an identifier, e.g. `\69 mport` -> `import`. */
+function decodeCssIdent(raw: string): string {
+  return raw.replace(/\\([0-9a-fA-F]{1,6})\s?|\\([\s\S])/g, (_m, hexDigits: string | undefined, ch: string | undefined) => {
+    if (hexDigits === undefined) return ch ?? "";
+    const cp = parseInt(hexDigits, 16);
+    return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : String.fromCharCode(0xfffd);
+  });
+}
+
+/** Removes every @import statement, including escaped spellings such as `@\69mport`. */
+function stripImports(css: string): string {
+  const atKeyword = /@((?:[\w-]|\\[0-9a-fA-F]{1,6}\s?|\\[^\r\n\f0-9a-fA-F])+)/g;
+  let out = "";
+  let last = 0;
+  for (let m = atKeyword.exec(css); m; m = atKeyword.exec(css)) {
+    if (decodeCssIdent(m[1]!).toLowerCase() !== "import") continue;
+    const semi = css.indexOf(";", atKeyword.lastIndex);
+    const stop = semi === -1 ? css.length : semi + 1;
+    out += css.slice(last, m.index);
+    last = stop;
+    atKeyword.lastIndex = stop;
+  }
+  return out + css.slice(last);
+}
+
+function sanitizeOnce(css: string): string {
+  return stripImports(css)
     .replace(/<\/?style[^>]*>/gi, "")
-    .replace(/@import[^;]+;/gi, "")
     .replace(/expression\s*\(/gi, "")
     .replace(/javascript:/gi, "")
-    .replace(/url\(\s*['"]?\s*(?!https?:\/\/|\/)[^)]*\)/gi, "url()")
-    .slice(0, 20_000);
+    .replace(/-moz-binding\s*:/gi, "")
+    .replace(/(?<![\w-])behavior\s*:/gi, "") // IE behaviours; keeps scroll-behavior etc.
+    // only absolute http(s) and site-relative urls; the quote is excluded from the lookahead so
+    // backtracking over an optional quote cannot drop url('/uploads/x.png')
+    .replace(/url\(\s*['"]?\s*(?!['"]|https?:\/\/|\/)[^)]*\)/gi, "url()");
+}
+
+/**
+ * Makes text safe to place inside an HTML <style> element. The HTML tokenizer ends the element at
+ * the raw characters `</style` whatever CSS thinks, so every `<` that could start a tag is written
+ * as the CSS escape `\3c ` (the same character for CSS inside strings, inert outside them). A `<`
+ * followed by whitespace, `=` or a digit (media-query ranges such as `(width < 600px)`) is kept.
+ */
+export function escapeStyleText(css: string): string {
+  return css.replace(/<(?![\s=0-9])/g, "\\3c ");
+}
+
+/**
+ * Conservative CSS sanitizer for tenant custom CSS (Business plan). The replacements run until the
+ * output is stable, so nested payloads like `</sty</style>le>` or `@im@import x;port` cannot
+ * reassemble, and the result can never close the surrounding <style> element (SEC-001).
+ */
+export function sanitizeCss(css: string): string {
+  let out = css.slice(0, MAX_CUSTOM_CSS);
+  for (let i = 0; i < 20; i++) {
+    const next = sanitizeOnce(out);
+    if (next === out) return escapeStyleText(out);
+    out = next;
+  }
+  return ""; // still changing after 20 passes: refuse rather than guess
 }

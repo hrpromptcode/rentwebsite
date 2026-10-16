@@ -138,7 +138,7 @@ export function DiscountForm({ slug, discountId, initial }: { slug: string; disc
             {v.type === "percent" && (
               <Field label="ลดกี่เปอร์เซ็นต์" htmlFor="d-value" error={err("value")}>
                 <span className="relative block">
-                  <Input id="d-value" type="number" min={1} max={100} value={v.value} onChange={(e) => set("value", e.target.value)} className="pr-8 text-right tabular-nums" aria-invalid={!!err("value")} />
+                  <Input id="d-value" type="number" min={1} max={100} step={1} inputMode="numeric" value={v.value} onChange={(e) => set("value", e.target.value)} className="pr-8 text-right tabular-nums" aria-invalid={!!err("value")} />
                   <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
                 </span>
               </Field>

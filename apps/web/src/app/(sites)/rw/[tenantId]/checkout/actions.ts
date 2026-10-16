@@ -47,7 +47,15 @@ function fieldErrors(issues: z.ZodIssue[]): Record<string, string> {
   return out;
 }
 
-const CODE_FIELD: Record<string, string> = { shipping: "shippingMethodId", shipping_unavailable: "shippingMethodId", cod_required: "paymentMethod", cod_not_allowed: "paymentMethod", address: "line1" };
+const CODE_FIELD: Record<string, string> = {
+  shipping: "shippingMethodId",
+  shipping_unavailable: "shippingMethodId",
+  cod_required: "paymentMethod",
+  cod_not_allowed: "paymentMethod",
+  payment_method: "paymentMethod",
+  cash_pickup_only: "paymentMethod",
+  address: "line1",
+};
 
 /** Creates the order + payment from the visitor's cart, then redirects to the order page with its access key. */
 export async function placeOrderAction(tenantId: string, _prev: CheckoutState, form: FormData): Promise<CheckoutState> {
@@ -85,6 +93,8 @@ export async function placeOrderAction(tenantId: string, _prev: CheckoutState, f
     }),
   );
   if (!result.ok) {
+    // a coupon that stopped being valid was dropped from the cart: refresh the summary before the next submit
+    if (result.code === "coupon") revalidatePath("/checkout");
     const field = result.code ? CODE_FIELD[result.code] : undefined;
     return { error: result.error, fieldErrors: field ? { [field]: result.error } : undefined };
   }

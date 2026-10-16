@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { enabledMethods } from "@rentweb/core/payments";
-import { loadCart, quoteShipping } from "@rentweb/module-commerce/services";
+import { checkoutPaymentMethods, loadCart, quoteShipping } from "@rentweb/module-commerce/services";
 import { CheckoutForm, PageHeader, type CheckoutCart } from "@rentweb/module-commerce/components";
 import { L } from "@rentweb/module-commerce/labels";
 import { THAI_PROVINCES } from "@rentweb/module-commerce/lib";
@@ -20,11 +19,14 @@ export default async function CheckoutPage({ params }: { params: Promise<{ tenan
   if (!runtime) notFound();
   if (!runtime.config.modules.includes("commerce")) return cmsFallback(runtime, "checkout");
   const [token, customer] = await Promise.all([getCartToken(), getCurrentCustomer(tenantId)]);
+  const methods = checkoutPaymentMethods(runtime.config.settings);
 
   const data = await tenantTx(tenantId, async (tx) => {
     const cart = await loadCart(tx, tenantId, token, { customerId: customer?.id ?? null });
     if (!cart || !cart.items.some((l) => l.active)) return null;
-    const shipping = await quoteShipping(tx, tenantId, { subtotal: cart.total, weightGrams: cart.weightGrams, freeShipping: cart.freeShipping });
+    const quotes = await quoteShipping(tx, tenantId, { subtotal: cart.total, weightGrams: cart.weightGrams, freeShipping: cart.freeShipping });
+    // COR-23: COD delivery is only offered while the shop accepts COD
+    const shipping = methods.includes("cod") ? quotes : quotes.filter((q) => !q.requiresCod);
     return { cart, shipping };
   });
   if (!data) redirect("/cart");
@@ -46,7 +48,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ tenan
         <CheckoutForm
           cart={checkoutCart}
           shipping={shipping}
-          methods={enabledMethods(runtime.config.settings)}
+          methods={methods}
           customer={customer ? { name: customer.name, phone: customer.phone, email: customer.email } : null}
           provinces={THAI_PROVINCES}
           loginHref={`/account/login?next=${encodeURIComponent("/checkout")}`}

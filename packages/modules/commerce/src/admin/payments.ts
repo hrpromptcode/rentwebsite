@@ -1,5 +1,6 @@
 import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
-import { bookings, customers, orders, payments, reservations, restaurantOrders, topupOrders, type Tx } from "@rentweb/db";
+import { bookings, customers, diningTables, orders, payments, reservations, restaurantOrders, tableSessions, topupOrders, type Tx } from "@rentweb/db";
+import { paymentRefundRequired } from "@rentweb/core/payments";
 
 export type PaymentQueueTab = "pending_verification" | "paid" | "failed";
 
@@ -7,10 +8,12 @@ export interface PaymentQueueRow {
   id: string;
   refType: string;
   refId: string;
-  /** human number of the referenced record (#1001, BK-1001…) when known */
+  /** human number / label of the referenced record (#1001, BK-1001, "บิลโต๊ะ A3"…) when known */
   refNumber: string | null;
   /** admin route (relative to /t/{slug}) for the referenced record */
   refHref: string | null;
+  /** markPaid flagged the money for a manual refund (late / duplicate payment), payments-api.md 3.1 */
+  refundRequired: string | null;
   customerId: string | null;
   customerName: string | null;
   customerPhone: string | null;
@@ -29,7 +32,16 @@ export interface PaymentQueueRow {
   updatedAt: Date;
 }
 
-export function refHrefFor(refType: string, refId: string): string | null {
+/** YYYY-MM-DD in Asia/Bangkok (the restaurant admin pages filter by local day). */
+function bangkokYmd(d: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+}
+
+/**
+ * Admin route for the referenced record. Restaurant orders and reservations have no detail route (AM-01):
+ * orders open the history view filtered to the order's day and number, reservations the day view.
+ */
+export function refHrefFor(refType: string, refId: string, ctx: { number?: string | null; at?: Date | null } = {}): string | null {
   switch (refType) {
     case "order":
       return `/orders/${refId}`;
@@ -39,26 +51,49 @@ export function refHrefFor(refType: string, refId: string): string | null {
       return `/topup/orders/${refId}`;
     case "wallet_topup":
       return `/topup/wallets`;
-    case "rest_order":
-      return `/restaurant/orders/${refId}`;
+    case "rest_order": {
+      if (!ctx.at) return "/restaurant/orders";
+      const day = bangkokYmd(ctx.at);
+      const q = ctx.number ? `&q=${encodeURIComponent(ctx.number)}` : "";
+      return `/restaurant/orders?tab=history&from=${day}&to=${day}${q}`;
+    }
     case "reservation":
-      return `/restaurant/reservations/${refId}`;
+      return ctx.at ? `/restaurant/reservations?date=${bangkokYmd(ctx.at)}` : "/restaurant/reservations";
     default:
       return null;
   }
 }
 
-async function refNumbers(tx: Tx, tenantId: string, rows: Array<{ refType: string; refId: string }>): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
+interface RefInfo {
+  number: string | null;
+  href: string | null;
+}
+
+async function refInfo(tx: Tx, tenantId: string, rows: Array<{ refType: string; refId: string }>): Promise<Map<string, RefInfo>> {
+  const map = new Map<string, RefInfo>();
   const byType = new Map<string, string[]>();
   for (const r of rows) byType.set(r.refType, [...(byType.get(r.refType) ?? []), r.refId]);
-  const put = (type: string, list: Array<{ id: string; number: string }>) => list.forEach((x) => map.set(`${type}:${x.id}`, x.number));
   const ids = (t: string) => [...new Set(byType.get(t) ?? [])];
-  if (ids("order").length) put("order", await tx.select({ id: orders.id, number: orders.number }).from(orders).where(and(eq(orders.tenantId, tenantId), inArray(orders.id, ids("order")))));
-  if (ids("booking").length) put("booking", await tx.select({ id: bookings.id, number: bookings.number }).from(bookings).where(and(eq(bookings.tenantId, tenantId), inArray(bookings.id, ids("booking")))));
-  if (ids("topup").length) put("topup", await tx.select({ id: topupOrders.id, number: topupOrders.number }).from(topupOrders).where(and(eq(topupOrders.tenantId, tenantId), inArray(topupOrders.id, ids("topup")))));
-  if (ids("rest_order").length) put("rest_order", await tx.select({ id: restaurantOrders.id, number: restaurantOrders.number }).from(restaurantOrders).where(and(eq(restaurantOrders.tenantId, tenantId), inArray(restaurantOrders.id, ids("rest_order")))));
-  if (ids("reservation").length) put("reservation", await tx.select({ id: reservations.id, number: reservations.number }).from(reservations).where(and(eq(reservations.tenantId, tenantId), inArray(reservations.id, ids("reservation")))));
+  const put = (type: string, id: string, number: string | null, at?: Date | null) => map.set(`${type}:${id}`, { number, href: refHrefFor(type, id, { number, at }) });
+  if (ids("order").length) for (const x of await tx.select({ id: orders.id, number: orders.number }).from(orders).where(and(eq(orders.tenantId, tenantId), inArray(orders.id, ids("order"))))) put("order", x.id, x.number);
+  if (ids("booking").length) for (const x of await tx.select({ id: bookings.id, number: bookings.number }).from(bookings).where(and(eq(bookings.tenantId, tenantId), inArray(bookings.id, ids("booking"))))) put("booking", x.id, x.number);
+  if (ids("topup").length) for (const x of await tx.select({ id: topupOrders.id, number: topupOrders.number }).from(topupOrders).where(and(eq(topupOrders.tenantId, tenantId), inArray(topupOrders.id, ids("topup"))))) put("topup", x.id, x.number);
+  if (ids("rest_order").length) {
+    const restIds = ids("rest_order");
+    const single = await tx.select({ id: restaurantOrders.id, number: restaurantOrders.number, at: restaurantOrders.placedAt }).from(restaurantOrders).where(and(eq(restaurantOrders.tenantId, tenantId), inArray(restaurantOrders.id, restIds)));
+    for (const x of single) put("rest_order", x.id, x.number, x.at);
+    // table bills: the payment references the table session (refId = table_sessions.id)
+    const rest = restIds.filter((id) => !single.some((s) => s.id === id));
+    if (rest.length) {
+      const sessions = await tx
+        .select({ id: tableSessions.id, table: diningTables.name, at: tableSessions.openedAt })
+        .from(tableSessions)
+        .leftJoin(diningTables, and(eq(diningTables.tenantId, tenantId), eq(diningTables.id, tableSessions.tableId)))
+        .where(and(eq(tableSessions.tenantId, tenantId), inArray(tableSessions.id, rest)));
+      for (const s of sessions) map.set(`rest_order:${s.id}`, { number: `บิลโต๊ะ ${s.table ?? "?"}`, href: refHrefFor("rest_order", s.id, { at: s.at }) });
+    }
+  }
+  if (ids("reservation").length) for (const x of await tx.select({ id: reservations.id, number: reservations.number, at: reservations.startsAt }).from(reservations).where(and(eq(reservations.tenantId, tenantId), inArray(reservations.id, ids("reservation"))))) put("reservation", x.id, x.number, x.at);
   return map;
 }
 
@@ -74,43 +109,47 @@ export async function paymentsQueue(tx: Tx, tenantId: string, f: { tab?: Payment
     tx
       .select({ p: payments, customerName: customers.name, customerPhone: customers.phone })
       .from(payments)
-      .leftJoin(customers, eq(customers.id, payments.customerId))
+      .leftJoin(customers, and(eq(customers.tenantId, tenantId), eq(customers.id, payments.customerId)))
       .where(where)
       .orderBy(tab === "pending_verification" ? desc(payments.updatedAt) : desc(sql`coalesce(${payments.paidAt}, ${payments.updatedAt})`))
       .limit(perPage)
       .offset((page - 1) * perPage),
     tx.select({ c: count() }).from(payments).where(where),
   ]);
-  const numbers = await refNumbers(
+  const refs = await refInfo(
     tx,
     tenantId,
     rows.map((r) => ({ refType: r.p.refType, refId: r.p.refId })),
   );
   const total = Number(c?.c ?? 0);
   return {
-    rows: rows.map(({ p, customerName, customerPhone }) => ({
-      id: p.id,
-      refType: p.refType,
-      refId: p.refId,
-      refNumber: numbers.get(`${p.refType}:${p.refId}`) ?? null,
-      refHref: refHrefFor(p.refType, p.refId),
-      customerId: p.customerId,
-      customerName,
-      customerPhone,
-      provider: p.provider,
-      method: p.method,
-      status: p.status,
-      amount: p.amount,
-      refundedAmount: p.refundedAmount,
-      slipUrl: p.slipUrl,
-      slipTransRef: p.slipTransRef,
-      failureReason: p.failureReason,
-      verifiedBy: p.verifiedBy,
-      paidAt: p.paidAt,
-      expiresAt: p.expiresAt,
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt,
-    })),
+    rows: rows.map(({ p, customerName, customerPhone }) => {
+      const ref = refs.get(`${p.refType}:${p.refId}`);
+      return {
+        id: p.id,
+        refType: p.refType,
+        refId: p.refId,
+        refNumber: ref?.number ?? null,
+        refHref: ref?.href ?? refHrefFor(p.refType, p.refId),
+        refundRequired: p.status === "paid" || p.status === "partially_refunded" ? paymentRefundRequired(p) : null,
+        customerId: p.customerId,
+        customerName,
+        customerPhone,
+        provider: p.provider,
+        method: p.method,
+        status: p.status,
+        amount: p.amount,
+        refundedAmount: p.refundedAmount,
+        slipUrl: p.slipUrl,
+        slipTransRef: p.slipTransRef,
+        failureReason: p.failureReason,
+        verifiedBy: p.verifiedBy,
+        paidAt: p.paidAt,
+        expiresAt: p.expiresAt,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+      };
+    }),
     total,
     page,
     pages: Math.max(1, Math.ceil(total / perPage)),

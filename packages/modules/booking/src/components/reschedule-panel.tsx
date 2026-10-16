@@ -19,10 +19,12 @@ export interface ReschedulePanelProps {
   onClose: () => void;
   className?: string;
   showRemaining?: boolean;
+  /** guests of the booking (group services) – slots must fit the whole party */
+  partySize?: number;
 }
 
 /** Calendar + slot picker used on /bookings/[id] to move an appointment. */
-export function ReschedulePanel({ serviceId, staffId, today, maxDate, action, onClose, className, showRemaining }: ReschedulePanelProps) {
+export function ReschedulePanel({ serviceId, staffId, today, maxDate, action, onClose, className, showRemaining, partySize }: ReschedulePanelProps) {
   const [month, setMonth] = React.useState(today.slice(0, 7));
   const [date, setDate] = React.useState<string | null>(null);
   const [start, setStart] = React.useState<string | null>(null);
@@ -31,28 +33,29 @@ export function ReschedulePanel({ serviceId, staffId, today, maxDate, action, on
   const [error, setError] = React.useState<string | null>(null);
   const [pending, startTransition] = React.useTransition();
   const staffParam = staffId ?? "";
+  const partyQs = partySize && partySize > 1 ? `&party=${partySize}` : "";
   const daysKey = `${month}|${staffParam}`;
   const slotsKey = `${date}|${staffParam}`;
 
   React.useEffect(() => {
     if (days[daysKey]) return;
     const ctrl = new AbortController();
-    fetch(`/api/booking/days?month=${month}&service=${serviceId}${staffParam ? `&staff=${staffParam}` : ""}`, { signal: ctrl.signal, cache: "no-store" })
+    fetch(`/api/booking/days?month=${month}&service=${serviceId}${staffParam ? `&staff=${staffParam}` : ""}${partyQs}`, { signal: ctrl.signal, cache: "no-store" })
       .then((r) => r.json())
       .then((j: { days: Array<{ date: string; available: boolean; count: number }> }) => setDays((d) => ({ ...d, [daysKey]: Object.fromEntries(j.days.map((x) => [x.date, { available: x.available, count: x.count }])) })))
       .catch(() => !ctrl.signal.aborted && setDays((d) => ({ ...d, [daysKey]: {} })));
     return () => ctrl.abort();
-  }, [month, serviceId, staffParam, daysKey, days]);
+  }, [month, serviceId, staffParam, partyQs, daysKey, days]);
 
   React.useEffect(() => {
     if (!date || slots[slotsKey]) return;
     const ctrl = new AbortController();
-    fetch(`/api/booking/slots?date=${date}&service=${serviceId}${staffParam ? `&staff=${staffParam}` : ""}`, { signal: ctrl.signal, cache: "no-store" })
+    fetch(`/api/booking/slots?date=${date}&service=${serviceId}${staffParam ? `&staff=${staffParam}` : ""}${partyQs}`, { signal: ctrl.signal, cache: "no-store" })
       .then((r) => r.json())
       .then((j: { slots: SlotChip[] }) => setSlots((s) => ({ ...s, [slotsKey]: j.slots })))
       .catch(() => !ctrl.signal.aborted && setSlots((s) => ({ ...s, [slotsKey]: [] })));
     return () => ctrl.abort();
-  }, [date, serviceId, staffParam, slotsKey, slots]);
+  }, [date, serviceId, staffParam, partyQs, slotsKey, slots]);
 
   const submit = () => {
     if (!start) return;

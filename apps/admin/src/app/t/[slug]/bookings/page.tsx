@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AlertCircle, CalendarCheck2, CheckCircle2, Clock3, Plus, Wallet } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
+import { isUuid } from "@rentweb/core";
 import { cn } from "@rentweb/ui/lib/utils";
 import { addDays, bkkDateString, bkkDayStart, bookingKpis, countPendingDeposits, dayHours, formatThaiYmd, listBookingsBetween, listStaff, parseYmd, weekdayOf, ymdToString } from "@rentweb/module-booking/admin";
 import { BOOKING_STATUS } from "@rentweb/module-booking/admin/labels";
@@ -30,7 +31,7 @@ export default async function BookingsPage({ params, searchParams }: { params: P
   const date = sp.date && parseYmd(sp.date) ? sp.date : today;
   const ymd = parseYmd(date)!;
   const view = sp.view === "week" ? "week" : "day";
-  const staffFilter = sp.staff === "none" || (sp.staff && /^[0-9a-f-]{36}$/i.test(sp.staff)) ? sp.staff : "";
+  const staffFilter = sp.staff === "none" || (sp.staff && isUuid(sp.staff)) ? sp.staff : "";
   const status = sp.status ?? "";
   const q = sp.q?.trim().slice(0, 60) ?? "";
 
@@ -135,7 +136,8 @@ export default async function BookingsPage({ params, searchParams }: { params: P
             closeMin={closeMin}
             nowMin={nowMin}
             canCreate={canWrite}
-            bookings={list.map((b) => ({
+            // a group booking served by several staff shows in each of their columns (SBR-004)
+            bookings={list.flatMap((b) => (b.extraStaffIds.length ? [b.staffId, ...b.extraStaffIds] : [b.staffId]).map((sid) => ({ b, sid }))).map(({ b, sid }) => ({
               id: b.id,
               number: b.number,
               status: b.status,
@@ -143,7 +145,7 @@ export default async function BookingsPage({ params, searchParams }: { params: P
               endsAt: b.endsAt.toISOString(),
               customerName: b.customerName,
               serviceName: b.serviceName,
-              staffId: b.staffId,
+              staffId: sid,
               partySize: b.partySize,
               paymentStatus: b.paymentStatus,
               depositAmount: b.depositAmount,

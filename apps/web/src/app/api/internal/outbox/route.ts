@@ -1,8 +1,10 @@
+// module registrations: payment paid / closed handlers used by the expiry sweep inside processOutbox()
+import "@/modules";
 import { getAdminDb } from "@rentweb/db";
 import { processOutbox } from "@rentweb/integrations/outbox";
 
 /**
- * Drains the events outbox. Call it from a cron (Vercel Cron / external scheduler) or the dev worker:
+ * Drains the events outbox (and runs the payment expiry sweep, see expireStalePayments). Call it from a cron (Vercel Cron / external scheduler) or the dev worker:
  *   curl -X POST -H "x-internal-secret: $INTERNAL_SECRET" http://localhost:3000/api/internal/outbox
  */
 export const maxDuration = 60;

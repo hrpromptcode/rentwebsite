@@ -1,7 +1,10 @@
-import { and, eq } from "drizzle-orm";
-import { payments, type Tx } from "@rentweb/db";
+import { and, asc, eq, inArray, isNotNull, lte } from "drizzle-orm";
+import { payments, withPlatform, type DbLike, type Tx } from "@rentweb/db";
 import { emitEvent } from "../events";
+import { isUuid } from "../utils";
 import { promptpayPayload } from "./promptpay";
+import { builtinTargetClosedReason } from "./targets";
+import { closedHandlerRefTypes, closedHandlers, failedHandlers, paidHandlers, targetChecks, type PaymentRefType, type PaymentRow, type PaymentStatus } from "./registry";
 
 /**
  * Shared payment layer used by every module (orders, bookings, top-ups, wallet top-ups, reservations…).
@@ -9,11 +12,74 @@ import { promptpayPayload } from "./promptpay";
  * Flow:   createPayment() → customer pays (QR / slip / card / cod / wallet)
  *         → markPaid() runs the module handler registered for payment.refType
  *         (e.g. "order" → fulfil order, "topup" → deliver game credits).
+ *
+ * State machine (every transition is a conditional UPDATE … WHERE status IN (…), so concurrent calls
+ * cannot double-apply):
+ *
+ *   pending ──attachSlip──▶ pending_verification ──markPaid──▶ paid ──refundPayment──▶ partially_refunded / refunded
+ *      │ │                        │      │
+ *      │ └──────────markPaid──────┼──────┘ (open states: pending, pending_verification)
+ *      │                          ├──markFailed──▶ failed  ──markPaid()──▶ paid   (money confirmed by admin / provider)
+ *      ├──expiry sweep──▶ expired ─────────────────────markPaid()──▶ paid   (target closed → flagged for refund)
+ *      └──cancelPayment──▶ cancelled (terminal)
+ *
+ * paid / partially_refunded / refunded / cancelled never go back to an open state; attachSlip (and its
+ * auto-approval, markPaid({ strict: true })) only accepts open payments. API contract for modules: tooling/qa/bughunt/fixes/payments-api.md
  */
 
-export type PaymentRefType = "order" | "booking" | "topup" | "wallet_topup" | "rest_order" | "reservation" | "patient_package" | "invoice";
 export type PaymentProvider = "bank_transfer" | "promptpay" | "opn" | "gbprimepay" | "stripe" | "cod" | "wallet" | "cash";
 export type PaymentMethod = "slip" | "promptpay_qr" | "card" | "cod" | "wallet" | "cash" | "installment";
+
+export {
+  registerPaymentHandler,
+  registerPaymentClosedHandler,
+  registerPaymentTargetCheck,
+  registerPaymentAccessCheck,
+  hasPaymentClosedHandler,
+  paymentHookSummary,
+  refundRequired,
+  type PaymentRow,
+  type PaymentRefType,
+  type PaymentStatus,
+  type PaymentPaidResult,
+  type PaymentPaidHandler,
+  type PaymentFailedHandler,
+  type PaymentClosedHandler,
+  type PaymentClosedInfo,
+  type PaymentTargetCheck,
+  type PaymentAccessCheck,
+  type PaymentAccessProof,
+  type PaymentAccessVia,
+} from "./registry";
+export { canAccessPayment, isStrongPaymentAccess } from "./access";
+
+/** Statuses a customer may still pay into (slip upload, QR, auto-approve). */
+export const OPEN_PAYMENT_STATUSES = ["pending", "pending_verification"] as const satisfies readonly PaymentStatus[];
+/** markPaid() default (money confirmed by an admin / provider): open states plus re-approving a rejected (failed) or expired payment. */
+export const REOPENABLE_PAYMENT_STATUSES = ["pending", "pending_verification", "failed", "expired"] as const satisfies readonly PaymentStatus[];
+const FAILABLE: PaymentStatus[] = ["pending", "pending_verification", "expired"];
+const CANCELLABLE: PaymentStatus[] = ["pending", "pending_verification", "failed"];
+
+export function isOpenPaymentStatus(status: string): boolean {
+  return (OPEN_PAYMENT_STATUSES as readonly string[]).includes(status);
+}
+
+/** Thrown when a transition is not allowed from the payment's current status (e.g. a slip for a cancelled payment). */
+export class PaymentStateError extends Error {
+  readonly code = "payment_state" as const;
+  constructor(
+    readonly paymentId: string,
+    readonly status: string,
+    readonly action: string,
+  ) {
+    super(`payment ${paymentId} is ${status}: cannot ${action}`);
+    this.name = "PaymentStateError";
+  }
+}
+
+export function isPaymentStateError(err: unknown): err is PaymentStateError {
+  return err instanceof PaymentStateError || (typeof err === "object" && err !== null && (err as { code?: unknown }).code === "payment_state");
+}
 
 export interface TenantPaymentSettings {
   /** PromptPay ID (phone 0812345678 or 13-digit tax id) used to render QR codes */
@@ -31,18 +97,6 @@ export function paymentSettings(settings: Record<string, unknown>): TenantPaymen
   return ((settings.payments as TenantPaymentSettings | undefined) ?? {}) as TenantPaymentSettings;
 }
 
-export type PaymentPaidHandler = (tx: Tx, payment: typeof payments.$inferSelect) => Promise<void>;
-export type PaymentFailedHandler = (tx: Tx, payment: typeof payments.$inferSelect, reason: string) => Promise<void>;
-
-const paidHandlers = new Map<string, PaymentPaidHandler>();
-const failedHandlers = new Map<string, PaymentFailedHandler>();
-
-/** Modules call this once (in their register.ts) to react when a payment of their refType is paid. */
-export function registerPaymentHandler(refType: PaymentRefType, onPaid: PaymentPaidHandler, onFailed?: PaymentFailedHandler) {
-  paidHandlers.set(refType, onPaid);
-  if (onFailed) failedHandlers.set(refType, onFailed);
-}
-
 export interface CreatePaymentInput {
   refType: PaymentRefType;
   refId: string;
@@ -51,6 +105,7 @@ export interface CreatePaymentInput {
   method: PaymentMethod;
   customerId?: string | null;
   currency?: string;
+  /** unpaid payments with an expiry are expired by the sweep (expireStalePayments) once past expiresAt + grace */
   expiresMinutes?: number;
   /** needed for promptpay_qr */
   promptpayId?: string;
@@ -60,7 +115,6 @@ export interface CreatePaymentInput {
 export async function createPayment(tx: Tx, tenantId: string, input: CreatePaymentInput) {
   const qrPayload = input.method === "promptpay_qr" && input.promptpayId ? promptpayPayload(input.promptpayId, input.amount) : null;
   const expiresAt = input.expiresMinutes ? new Date(Date.now() + input.expiresMinutes * 60_000) : null;
-  const status = input.method === "cod" || input.method === "cash" ? "pending" : "pending";
   const [row] = await tx
     .insert(payments)
     .values({
@@ -70,7 +124,7 @@ export async function createPayment(tx: Tx, tenantId: string, input: CreatePayme
       customerId: input.customerId ?? null,
       provider: input.provider,
       method: input.method,
-      status,
+      status: "pending",
       amount: input.amount,
       currency: input.currency ?? "THB",
       qrPayload,
@@ -82,7 +136,9 @@ export async function createPayment(tx: Tx, tenantId: string, input: CreatePayme
   return row!;
 }
 
+/** null for unknown ids, including ids that are not uuids (never reaches Postgres with garbage). */
 export async function getPayment(tx: Tx, tenantId: string, paymentId: string) {
+  if (!isUuid(paymentId) || !isUuid(tenantId)) return null;
   const [row] = await tx.select().from(payments).where(and(eq(payments.tenantId, tenantId), eq(payments.id, paymentId))).limit(1);
   return row ?? null;
 }
@@ -91,7 +147,18 @@ export async function listPaymentsFor(tx: Tx, tenantId: string, refType: Payment
   return tx.select().from(payments).where(and(eq(payments.tenantId, tenantId), eq(payments.refType, refType), eq(payments.refId, refId)));
 }
 
-/** Attach an uploaded slip. Auto-approves when the tenant allows it, otherwise waits for admin verification. */
+async function currentOrThrow(tx: Tx, tenantId: string, paymentId: string): Promise<PaymentRow> {
+  const current = await getPayment(tx, tenantId, paymentId);
+  if (!current) throw new Error("payment not found");
+  return current;
+}
+
+/**
+ * Attach an uploaded slip to an OPEN payment (pending / pending_verification) → pending_verification.
+ * Auto-approves (markPaid, verifiedBy "auto") when asked. A paid payment is returned unchanged;
+ * any other status (cancelled, expired, failed, refunded…) throws PaymentStateError.
+ * Callers must authorise the uploader first (canAccessPayment).
+ */
 export async function attachSlip(
   tx: Tx,
   tenantId: string,
@@ -99,49 +166,119 @@ export async function attachSlip(
   slip: { url: string; transRef?: string | null; verification?: Record<string, unknown> | null },
   opts: { autoApprove?: boolean } = {},
 ) {
-  const payment = await getPayment(tx, tenantId, paymentId);
-  if (!payment) throw new Error("payment not found");
-  if (payment.status === "paid") return payment;
   const [updated] = await tx
     .update(payments)
     .set({ slipUrl: slip.url, slipTransRef: slip.transRef ?? null, slipVerification: slip.verification ?? null, status: "pending_verification" })
-    .where(eq(payments.id, paymentId))
+    .where(and(eq(payments.tenantId, tenantId), eq(payments.id, paymentId), inArray(payments.status, [...OPEN_PAYMENT_STATUSES])))
     .returning();
-  await emitEvent(tx, { tenantId, type: "payment.slip_uploaded", payload: { paymentId, refType: payment.refType, refId: payment.refId } });
-  if (opts.autoApprove) return markPaid(tx, tenantId, paymentId, { verifiedBy: "auto" });
-  return updated!;
+  if (!updated) {
+    const current = await currentOrThrow(tx, tenantId, paymentId);
+    if (current.status === "paid") return current;
+    throw new PaymentStateError(paymentId, current.status, "attach a slip");
+  }
+  await emitEvent(tx, { tenantId, type: "payment.slip_uploaded", payload: { paymentId, refType: updated.refType, refId: updated.refId, amount: updated.amount } });
+  if (opts.autoApprove) return markPaid(tx, tenantId, paymentId, { verifiedBy: "auto", strict: true });
+  return updated;
 }
 
-/** Marks a payment paid (idempotent) and runs the module's paid handler. */
-export async function markPaid(tx: Tx, tenantId: string, paymentId: string, opts: { verifiedBy?: string; providerRef?: string | null; providerPayload?: Record<string, unknown> } = {}) {
-  const payment = await getPayment(tx, tenantId, paymentId);
-  if (!payment) throw new Error("payment not found");
-  if (payment.status === "paid") return payment;
+export interface MarkPaidOptions {
+  verifiedBy?: string;
+  providerRef?: string | null;
+  providerPayload?: Record<string, unknown>;
+  /**
+   * Only accept open payments (pending / pending_verification). Use for unverified confirmations
+   * (auto-approved slips). Default false: a failed (rejected slip) or expired payment may also be marked
+   * paid, because markPaid() means the money was confirmed by an admin or a payment provider.
+   */
+  strict?: boolean;
+}
+
+/**
+ * Marks a payment paid exactly once and runs the module's paid handler.
+ *  - from pending / pending_verification / failed / expired (only the first two with strict: true)
+ *  - already paid → returned unchanged, handler not run again (idempotent)
+ *  - refunded / partially_refunded / cancelled (and failed / expired with strict) → PaymentStateError
+ *  - when the target is already cancelled/refunded (registerPaymentTargetCheck or the built-in check) or the
+ *    paid handler returns { refundRequired }, the payment stays paid but is flagged for a manual refund
+ *    (providerPayload.refundRequired + payment.refund_required event) instead of fulfilling the target.
+ */
+export async function markPaid(tx: Tx, tenantId: string, paymentId: string, opts: MarkPaidOptions = {}) {
+  const from: readonly PaymentStatus[] = opts.strict ? OPEN_PAYMENT_STATUSES : REOPENABLE_PAYMENT_STATUSES;
+  const set: Partial<typeof payments.$inferInsert> = { status: "paid", paidAt: new Date(), verifiedBy: opts.verifiedBy ?? null, failureReason: null };
+  if (opts.providerRef != null) set.providerRef = opts.providerRef;
+  if (opts.providerPayload) set.providerPayload = opts.providerPayload;
   const [updated] = await tx
     .update(payments)
-    .set({ status: "paid", paidAt: new Date(), verifiedBy: opts.verifiedBy ?? null, providerRef: opts.providerRef ?? payment.providerRef, providerPayload: opts.providerPayload ?? payment.providerPayload })
-    .where(eq(payments.id, paymentId))
+    .set(set)
+    .where(and(eq(payments.tenantId, tenantId), eq(payments.id, paymentId), inArray(payments.status, [...from])))
     .returning();
-  const handler = paidHandlers.get(updated!.refType);
-  if (handler) await handler(tx, updated!);
-  await emitEvent(tx, { tenantId, type: "payment.paid", payload: { paymentId, refType: updated!.refType, refId: updated!.refId, amount: updated!.amount } });
-  return updated!;
+  if (!updated) {
+    const current = await currentOrThrow(tx, tenantId, paymentId);
+    if (current.status === "paid") return current;
+    throw new PaymentStateError(paymentId, current.status, "mark paid");
+  }
+
+  const check = targetChecks.get(updated.refType) ?? builtinTargetClosedReason;
+  let refundReason = await check(tx, updated);
+  if (!refundReason) {
+    const handler = paidHandlers.get(updated.refType);
+    const outcome = handler ? await handler(tx, updated) : undefined;
+    if (outcome && typeof outcome === "object" && typeof outcome.refundRequired === "string") refundReason = outcome.refundRequired || "refund required";
+  }
+  await emitEvent(tx, { tenantId, type: "payment.paid", payload: { paymentId, refType: updated.refType, refId: updated.refId, amount: updated.amount } });
+  if (refundReason) return flagRefundRequired(tx, updated, refundReason);
+  return updated;
 }
 
+async function flagRefundRequired(tx: Tx, payment: PaymentRow, reason: string): Promise<PaymentRow> {
+  const providerPayload = { ...(payment.providerPayload ?? {}), refundRequired: { reason, at: new Date().toISOString() } };
+  const [row] = await tx
+    .update(payments)
+    .set({ providerPayload, failureReason: `ต้องคืนเงิน: ${reason}` })
+    .where(and(eq(payments.tenantId, payment.tenantId), eq(payments.id, payment.id)))
+    .returning();
+  await emitEvent(tx, { tenantId: payment.tenantId, type: "payment.refund_required", payload: { paymentId: payment.id, refType: payment.refType, refId: payment.refId, amount: payment.amount, reason } });
+  return row ?? payment;
+}
+
+/** The refund flag set by markPaid when money arrived for a closed target (null when none). */
+export function paymentRefundRequired(payment: Pick<PaymentRow, "providerPayload">): string | null {
+  const flag = (payment.providerPayload as { refundRequired?: { reason?: unknown } } | null)?.refundRequired;
+  return flag ? String(flag.reason ?? "refund required") : null;
+}
+
+/**
+ * Rejects an open (or expired) payment → failed, then runs the module's failed handler.
+ * Already failed → unchanged. paid / refunded / cancelled → PaymentStateError.
+ */
 export async function markFailed(tx: Tx, tenantId: string, paymentId: string, reason: string) {
-  const payment = await getPayment(tx, tenantId, paymentId);
-  if (!payment) throw new Error("payment not found");
-  const [updated] = await tx.update(payments).set({ status: "failed", failureReason: reason }).where(eq(payments.id, paymentId)).returning();
-  const handler = failedHandlers.get(updated!.refType);
-  if (handler) await handler(tx, updated!, reason);
-  await emitEvent(tx, { tenantId, type: "payment.failed", payload: { paymentId, refType: updated!.refType, refId: updated!.refId, reason } });
-  return updated!;
+  const [updated] = await tx
+    .update(payments)
+    .set({ status: "failed", failureReason: reason })
+    .where(and(eq(payments.tenantId, tenantId), eq(payments.id, paymentId), inArray(payments.status, FAILABLE)))
+    .returning();
+  if (!updated) {
+    const current = await currentOrThrow(tx, tenantId, paymentId);
+    if (current.status === "failed") return current;
+    throw new PaymentStateError(paymentId, current.status, "mark failed");
+  }
+  const handler = failedHandlers.get(updated.refType);
+  if (handler) await handler(tx, updated, reason);
+  await emitEvent(tx, { tenantId, type: "payment.failed", payload: { paymentId, refType: updated.refType, refId: updated.refId, reason } });
+  return updated;
 }
 
+/**
+ * Refunds (part of) a paid payment under a row lock. Only paid / partially_refunded payments can be
+ * refunded (PaymentStateError otherwise); the amount is capped at what is left.
+ */
 export async function refundPayment(tx: Tx, tenantId: string, paymentId: string, amount?: number, note?: string) {
-  const payment = await getPayment(tx, tenantId, paymentId);
+  const [payment] = await tx.select().from(payments).where(and(eq(payments.tenantId, tenantId), eq(payments.id, paymentId))).limit(1).for("update");
   if (!payment) throw new Error("payment not found");
-  const refundAmount = Math.min(amount ?? payment.amount, payment.amount - payment.refundedAmount);
+  if (payment.status !== "paid" && payment.status !== "partially_refunded") throw new PaymentStateError(paymentId, payment.status, "refund");
+  const remaining = payment.amount - payment.refundedAmount;
+  const refundAmount = Math.min(amount ?? remaining, remaining);
+  if (refundAmount <= 0) return payment;
   const total = payment.refundedAmount + refundAmount;
   const [updated] = await tx
     .update(payments)
@@ -150,6 +287,105 @@ export async function refundPayment(tx: Tx, tenantId: string, paymentId: string,
     .returning();
   await emitEvent(tx, { tenantId, type: "payment.refunded", payload: { paymentId, refType: payment.refType, refId: payment.refId, amount: refundAmount } });
   return updated!;
+}
+
+export interface CancelPaymentOptions {
+  /** run the module's closed handler (default true). Pass false when the module itself is cancelling the target. */
+  runHandler?: boolean;
+}
+
+/**
+ * Voids an unpaid payment (pending / pending_verification / failed) → cancelled (terminal: no slip, no
+ * re-approval). Runs the module's closed handler ({ status: "cancelled" }) once and emits payment.cancelled.
+ * Already cancelled / expired → returned unchanged. paid / refunded → PaymentStateError (refund instead).
+ */
+export async function cancelPayment(tx: Tx, tenantId: string, paymentId: string, reason: string, opts: CancelPaymentOptions = {}) {
+  const [updated] = await tx
+    .update(payments)
+    .set({ status: "cancelled", failureReason: reason })
+    .where(and(eq(payments.tenantId, tenantId), eq(payments.id, paymentId), inArray(payments.status, CANCELLABLE)))
+    .returning();
+  if (!updated) {
+    const current = await currentOrThrow(tx, tenantId, paymentId);
+    if (current.status === "cancelled" || current.status === "expired") return current;
+    throw new PaymentStateError(paymentId, current.status, "cancel");
+  }
+  if (opts.runHandler !== false) {
+    const handler = closedHandlers.get(updated.refType);
+    if (handler) await handler(tx, updated, { status: "cancelled", reason });
+  }
+  await emitEvent(tx, { tenantId, type: "payment.cancelled", payload: { paymentId, refType: updated.refType, refId: updated.refId, amount: updated.amount, reason } });
+  return updated;
+}
+
+/**
+ * Expires ONE payment if it is still "pending" and its expiresAt is at or before `now`; runs the module's
+ * closed handler ({ status: "expired" }) and emits payment.expired. Returns null when nothing changed
+ * (already paid / slip uploaded / not yet due / expired by a concurrent sweep).
+ */
+export async function expirePayment(tx: Tx, tenantId: string, paymentId: string, opts: { now?: Date; reason?: string } = {}) {
+  const now = opts.now ?? new Date();
+  const reason = opts.reason ?? "หมดเวลาชำระเงิน";
+  const [updated] = await tx
+    .update(payments)
+    .set({ status: "expired", failureReason: reason })
+    .where(and(eq(payments.tenantId, tenantId), eq(payments.id, paymentId), eq(payments.status, "pending"), isNotNull(payments.expiresAt), lte(payments.expiresAt, now)))
+    .returning();
+  if (!updated) return null;
+  const handler = closedHandlers.get(updated.refType);
+  if (handler) await handler(tx, updated, { status: "expired", reason });
+  await emitEvent(tx, { tenantId, type: "payment.expired", payload: { paymentId, refType: updated.refType, refId: updated.refId, amount: updated.amount, reason } });
+  return updated;
+}
+
+export interface ExpirySweepOptions {
+  now?: Date;
+  /** minutes after expiresAt before a payment is expired (late QR payments / slow uploads). Default env PAYMENT_EXPIRY_GRACE_MINUTES or 15. */
+  graceMinutes?: number;
+  limit?: number;
+  /** refTypes to expire. Default: those with a registered closed handler — a payment is never expired unless its module can release the target. */
+  refTypes?: string[];
+}
+
+export interface ExpirySweepResult {
+  expired: number;
+  skipped: number;
+  errors: number;
+}
+
+/**
+ * Cross-tenant sweep for stale unpaid payments (status pending, expiresAt + grace in the past). Each payment
+ * is expired in its own platform transaction together with its module's closed handler, so one failure never
+ * blocks the batch and a payment is never left expired with its stock / slot still held.
+ * Called by processOutbox() (worker + /api/internal/outbox).
+ */
+export async function expireStalePayments(db: DbLike, opts: ExpirySweepOptions = {}): Promise<ExpirySweepResult> {
+  const result: ExpirySweepResult = { expired: 0, skipped: 0, errors: 0 };
+  const refTypes = opts.refTypes ?? closedHandlerRefTypes();
+  if (!refTypes.length) return result;
+  const now = opts.now ?? new Date();
+  const envGrace = Number(process.env.PAYMENT_EXPIRY_GRACE_MINUTES);
+  const graceMinutes = opts.graceMinutes ?? (Number.isFinite(envGrace) && envGrace >= 0 ? envGrace : 15);
+  const cutoff = new Date(now.getTime() - graceMinutes * 60_000);
+  const due = await withPlatform(db, (tx) =>
+    tx
+      .select({ id: payments.id, tenantId: payments.tenantId })
+      .from(payments)
+      .where(and(eq(payments.status, "pending"), isNotNull(payments.expiresAt), lte(payments.expiresAt, cutoff), inArray(payments.refType, refTypes)))
+      .orderBy(asc(payments.expiresAt))
+      .limit(opts.limit ?? 50),
+  );
+  for (const p of due) {
+    try {
+      const row = await withPlatform(db, (tx) => expirePayment(tx, p.tenantId, p.id, { now: cutoff }));
+      if (row) result.expired++;
+      else result.skipped++;
+    } catch (err) {
+      result.errors++;
+      if (process.env.NODE_ENV !== "production") console.error(`[payments] expiring ${p.id} failed:`, err instanceof Error ? err.message : err);
+    }
+  }
+  return result;
 }
 
 export { promptpayPayload, promptpayQrSvg, promptpayQrDataUrl } from "./promptpay";

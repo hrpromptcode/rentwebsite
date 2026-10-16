@@ -1,9 +1,9 @@
 import { and, asc, count, desc, eq, gte, ilike, inArray, lte, or, sql, type SQL } from "drizzle-orm";
 import { diningTables, payments, restaurantOrderItems, restaurantOrders, tableSessions, type Tx } from "@rentweb/db";
 import { emitEvent, fail, ok, type Result } from "@rentweb/core";
-import { createPayment, getPayment, markFailed, markPaid } from "@rentweb/core/payments";
+import { cancelPayment, createPayment, getPayment, isPaymentStateError, markFailed, markPaid, paymentRefundRequired } from "@rentweb/core/payments";
 import { updateOrderStatus, type OrderStatus, type RestaurantOrder } from "../services/orders";
-import { closeSession, sessionSummary } from "../services/tables";
+import { ACTIVE_SESSION_STATUSES, OPEN_SESSION_STATUSES, closeSession, lockSession, sessionSummary, voidSessionBill, type SessionBillMeta } from "../services/tables";
 
 /* ────────────── JSON-safe view models (shared by server pages, route handlers and client boards) ────────────── */
 
@@ -16,6 +16,8 @@ export interface AdminPaymentInfo {
   slipUrl: string | null;
   paidAt: string | null;
   expiresAt: string | null;
+  /** set when money arrived that cannot be applied (cancelled order, double payment…) – refund manually */
+  refundRequired: string | null;
 }
 
 export interface BoardItem {
@@ -83,7 +85,19 @@ const iso = (d: Date | null | undefined) => (d ? d.toISOString() : null);
 
 export function toPaymentInfo(p: typeof payments.$inferSelect | null | undefined): AdminPaymentInfo | null {
   if (!p) return null;
-  return { id: p.id, status: p.status, method: p.method, provider: p.provider, amount: p.amount, slipUrl: p.slipUrl ?? null, paidAt: iso(p.paidAt), expiresAt: iso(p.expiresAt) };
+  return { id: p.id, status: p.status, method: p.method, provider: p.provider, amount: p.amount, slipUrl: p.slipUrl ?? null, paidAt: iso(p.paidAt), expiresAt: iso(p.expiresAt), refundRequired: paymentRefundRequired(p) };
+}
+
+/** Voids an unpaid payment (pending / slip awaiting review / rejected) so it can never be (re-)approved later. */
+async function voidOpenPayment(tx: Tx, tenantId: string, paymentId: string | null | undefined, reason: string): Promise<void> {
+  if (!paymentId) return;
+  const p = await getPayment(tx, tenantId, paymentId);
+  if (!p || (p.status !== "pending" && p.status !== "pending_verification" && p.status !== "failed")) return;
+  try {
+    await cancelPayment(tx, tenantId, p.id, reason, { runHandler: false });
+  } catch (err) {
+    if (!isPaymentStateError(err)) throw err; // paid meanwhile: keep it (the paid handler decided)
+  }
 }
 
 /** Loads orders (+ table, items, payment) for a where clause. Oldest first unless `newestFirst`. */
@@ -91,7 +105,7 @@ export async function loadOrders(tx: Tx, tenantId: string, where: SQL | undefine
   let q = tx
     .select({ o: restaurantOrders, tableName: diningTables.name, zone: diningTables.zone })
     .from(restaurantOrders)
-    .leftJoin(diningTables, eq(diningTables.id, restaurantOrders.tableId))
+    .leftJoin(diningTables, and(eq(diningTables.tenantId, restaurantOrders.tenantId), eq(diningTables.id, restaurantOrders.tableId)))
     .where(and(eq(restaurantOrders.tenantId, tenantId), where))
     .orderBy(opts.newestFirst ? desc(restaurantOrders.placedAt) : asc(restaurantOrders.placedAt))
     .$dynamic();
@@ -153,13 +167,16 @@ export async function listBoardOrders(tx: Tx, tenantId: string, now = new Date()
   );
 }
 
-/** Open table sessions (open / bill_requested) with running totals. */
+/**
+ * Table sessions staff still has to act on, with running totals: open / bill_requested, fully paid but not yet
+ * closed ("paid") and sessions the system retired while money was still due ("expired", SBR-006).
+ */
 export async function listOpenSessions(tx: Tx, tenantId: string): Promise<OpenSession[]> {
   const rows = await tx
     .select({ s: tableSessions, tableName: diningTables.name, zone: diningTables.zone })
     .from(tableSessions)
-    .innerJoin(diningTables, eq(diningTables.id, tableSessions.tableId))
-    .where(and(eq(tableSessions.tenantId, tenantId), inArray(tableSessions.status, ["open", "bill_requested"])))
+    .innerJoin(diningTables, and(eq(diningTables.tenantId, tableSessions.tenantId), eq(diningTables.id, tableSessions.tableId)))
+    .where(and(eq(tableSessions.tenantId, tenantId), inArray(tableSessions.status, [...ACTIVE_SESSION_STATUSES])))
     .orderBy(asc(tableSessions.openedAt));
   if (!rows.length) return [];
   const ids = rows.map((r) => r.s.id);
@@ -174,6 +191,7 @@ export async function listOpenSessions(tx: Tx, tenantId: string): Promise<OpenSe
     const live = orders.filter((o) => o.sessionId === s.id && o.status !== "cancelled");
     const total = live.reduce((a, o) => a + o.total, 0);
     const paidTotal = live.filter((o) => o.paymentStatus === "paid").reduce((a, o) => a + o.total, 0);
+    const dueTotal = live.filter((o) => o.paymentStatus === "unpaid" || o.paymentStatus === "pay_at_counter").reduce((a, o) => a + o.total, 0);
     return {
       id: s.id,
       tableId: s.tableId,
@@ -185,7 +203,7 @@ export async function listOpenSessions(tx: Tx, tenantId: string): Promise<OpenSe
       ordersCount: live.length,
       total,
       paidTotal,
-      dueTotal: Math.max(0, total - paidTotal),
+      dueTotal,
       payment: toPaymentInfo(s.paymentId ? payById.get(s.paymentId) : null),
     };
   });
@@ -257,6 +275,8 @@ export async function advanceOrder(tx: Tx, tenantId: string, orderId: string, ne
 }
 
 export async function cancelOrder(tx: Tx, tenantId: string, orderId: string, reason?: string | null): Promise<Result<RestaurantOrder>> {
+  const [current] = await tx.select({ sessionId: restaurantOrders.sessionId }).from(restaurantOrders).where(and(eq(restaurantOrders.tenantId, tenantId), eq(restaurantOrders.id, orderId))).limit(1);
+  const session = current?.sessionId ? await lockSession(tx, tenantId, current.sessionId) : null;
   const r = await updateOrderStatus(tx, tenantId, orderId, "cancelled");
   if (!r.ok) return r;
   const order = r.value;
@@ -266,11 +286,11 @@ export async function cancelOrder(tx: Tx, tenantId: string, orderId: string, rea
       .set({ total: sql`greatest(0, ${tableSessions.total} - ${order.total})` })
       .where(and(eq(tableSessions.tenantId, tenantId), eq(tableSessions.id, order.sessionId)));
   }
-  if (order.paymentId) {
-    const p = await getPayment(tx, tenantId, order.paymentId);
-    if (p && (p.status === "pending" || p.status === "pending_verification")) await markFailed(tx, tenantId, p.id, reason ? `ยกเลิกออเดอร์: ${reason}` : "ยกเลิกออเดอร์");
-  }
-  await emitEvent(tx, { tenantId, type: "rest_order.cancelled", payload: { orderId: order.id, number: order.number, reason: reason ?? null, customerPhone: order.customerPhone, type: order.type, paymentStatus: order.paymentStatus } });
+  // void (not "fail") the order's unpaid QR/slip so it can never be re-approved for a cancelled order
+  await voidOpenPayment(tx, tenantId, order.paymentId, reason ? `ยกเลิกออเดอร์: ${reason}` : "ยกเลิกออเดอร์");
+  // the table bill QR included this order → reissue for the new amount
+  if (session) await voidSessionBill(tx, tenantId, session, "มีการยกเลิกรายการในบิล");
+  await emitEvent(tx, { tenantId, type: "rest_order.cancelled", payload: { orderId: order.id, number: order.number, reason: reason ?? null, customerPhone: order.customerPhone, customerName: order.customerName, type: order.type, paymentStatus: order.paymentStatus, by: "staff" } });
   return ok(order);
 }
 
@@ -283,14 +303,18 @@ export async function approveOrderPayment(tx: Tx, tenantId: string, orderId: str
   if (!order) return fail("ไม่พบออเดอร์", "not_found");
   if (order.status === "cancelled") return fail("ออเดอร์นี้ถูกยกเลิกแล้ว", "cancelled");
   if (order.paymentStatus === "paid") return fail("ออเดอร์นี้ชำระแล้ว", "already_paid");
+  // paying one round on its own changes the table bill → a pending bill QR for the session is reissued later
+  if (order.sessionId) {
+    const session = await lockSession(tx, tenantId, order.sessionId);
+    if (session) await voidSessionBill(tx, tenantId, session, "มีการชำระบางรายการแยก");
+  }
   const existing = order.paymentId ? await getPayment(tx, tenantId, order.paymentId) : null;
   if (existing && (existing.status === "pending" || existing.status === "pending_verification") && !opts.cash) {
     const p = await markPaid(tx, tenantId, existing.id, { verifiedBy: opts.verifiedBy });
     return ok({ paymentId: p.id, amount: p.amount });
   }
-  if (existing && (existing.status === "pending" || existing.status === "pending_verification") && opts.cash) {
-    await markFailed(tx, tenantId, existing.id, "ชำระเงินสดแทน");
-  }
+  // switching to cash: cancel (terminal) instead of fail, so the superseded QR can never be re-approved
+  if (opts.cash) await voidOpenPayment(tx, tenantId, existing?.id, "ชำระเงินสดแทน");
   const cash = await createPayment(tx, tenantId, {
     refType: "rest_order",
     refId: order.id,
@@ -318,43 +342,65 @@ export async function rejectOrderPayment(tx: Tx, tenantId: string, orderId: stri
 
 export type SettleMode = "cash" | "approve" | "close_only";
 
+export interface SettleResult {
+  sessionId: string;
+  /** amount collected / approved by this call (satang) */
+  amount: number;
+  paymentId: string | null;
+  /** still due after the call (approve of a bill that did not cover later rounds) */
+  remaining: number;
+  closed: boolean;
+}
+
 /**
  * Closes a table: records the outstanding amount as cash (or approves the guests' PromptPay/slip payment),
- * which marks every order of the session paid through the payment handler, then closes the session.
+ * which marks the covered orders paid through the payment handler, then closes the session.
+ * "approve" pays exactly the orders of the guests' bill snapshot (COR-07); rounds ordered after the bill stay
+ * due and the table stays open (remaining > 0) until they are collected in cash.
  */
-export async function settleSession(tx: Tx, tenantId: string, sessionId: string, opts: { mode: SettleMode; verifiedBy: string }): Promise<Result<{ sessionId: string; amount: number; paymentId: string | null }>> {
-  const summary = await sessionSummary(tx, tenantId, sessionId);
-  if (!summary) return fail("ไม่พบรอบการใช้โต๊ะนี้", "not_found");
-  const { session } = summary;
-  if (session.status === "closed") return ok({ sessionId, amount: 0, paymentId: session.paymentId });
+export async function settleSession(tx: Tx, tenantId: string, sessionId: string, opts: { mode: SettleMode; verifiedBy: string }): Promise<Result<SettleResult>> {
+  const session = await lockSession(tx, tenantId, sessionId);
+  if (!session) return fail("ไม่พบรอบการใช้โต๊ะนี้", "not_found");
+  if (session.status === "closed") return ok({ sessionId, amount: 0, paymentId: session.paymentId, remaining: 0, closed: true });
+  let summary = (await sessionSummary(tx, tenantId, sessionId))!;
   let paymentId: string | null = session.paymentId;
   let amount = 0;
-  if (session.status !== "paid" && summary.dueTotal > 0) {
+  if (summary.dueTotal > 0) {
     if (opts.mode === "close_only") return fail("โต๊ะนี้ยังค้างชำระอยู่ กรุณารับชำระก่อนปิดโต๊ะ", "due");
     const existing = session.paymentId ? await getPayment(tx, tenantId, session.paymentId) : null;
+    const awaiting = !!existing && (existing.status === "pending" || existing.status === "pending_verification");
     if (opts.mode === "approve") {
-      if (!existing || (existing.status !== "pending" && existing.status !== "pending_verification")) return fail("ไม่มีรายการชำระเงินที่รออนุมัติ", "no_payment");
-      if (existing.amount !== summary.dueTotal) return fail(`ยอดที่ลูกค้าชำระ (฿${existing.amount / 100}) ไม่ตรงกับยอดค้าง (฿${summary.dueTotal / 100}) กรุณารับเป็นเงินสดแทน`, "amount_mismatch");
+      if (!existing || !awaiting) return fail("ไม่มีรายการชำระเงินที่รออนุมัติ", "no_payment");
       const p = await markPaid(tx, tenantId, existing.id, { verifiedBy: opts.verifiedBy });
       paymentId = p.id;
       amount = p.amount;
+      summary = (await sessionSummary(tx, tenantId, sessionId))!;
+      if (summary.dueTotal > 0) return ok({ sessionId, amount, paymentId, remaining: summary.dueTotal, closed: false });
     } else {
-      if (existing && (existing.status === "pending" || existing.status === "pending_verification")) await markFailed(tx, tenantId, existing.id, "ชำระเงินสดแทน");
-      const cash = await createPayment(tx, tenantId, {
-        refType: "rest_order",
-        refId: sessionId,
-        amount: summary.dueTotal,
-        provider: "cash",
-        method: "cash",
-        metadata: { kind: "session", sessionId, tableId: session.tableId, recordedBy: opts.verifiedBy },
-      });
-      await tx.update(tableSessions).set({ paymentId: cash.id }).where(and(eq(tableSessions.tenantId, tenantId), eq(tableSessions.id, sessionId)));
-      const p = await markPaid(tx, tenantId, cash.id, { verifiedBy: opts.verifiedBy });
-      paymentId = p.id;
-      amount = p.amount;
+      // switching to cash: cancel (terminal) instead of fail, so the superseded QR can never be re-approved
+      if (awaiting) await voidOpenPayment(tx, tenantId, existing!.id, "ชำระเงินสดแทน");
+      summary = (await sessionSummary(tx, tenantId, sessionId))!;
+      if (summary.dueTotal > 0) {
+        const meta: SessionBillMeta & { recordedBy: string } = { kind: "session", sessionId, tableId: session.tableId, orderIds: summary.dueOrderIds, recordedBy: opts.verifiedBy };
+        const cash = await createPayment(tx, tenantId, {
+          refType: "rest_order",
+          refId: sessionId,
+          amount: summary.dueTotal,
+          provider: "cash",
+          method: "cash",
+          metadata: { ...meta },
+        });
+        await tx.update(tableSessions).set({ paymentId: cash.id }).where(and(eq(tableSessions.tenantId, tenantId), eq(tableSessions.id, sessionId)));
+        const p = await markPaid(tx, tenantId, cash.id, { verifiedBy: opts.verifiedBy });
+        paymentId = p.id;
+        amount = p.amount;
+      }
     }
   }
   const closed = await closeSession(tx, tenantId, sessionId);
   if (!closed.ok) return closed;
-  return ok({ sessionId, amount, paymentId });
+  return ok({ sessionId, amount, paymentId, remaining: 0, closed: true });
 }
+
+/** true for statuses the guests can still order into (re-exported for admin screens) */
+export const isGuestOpenStatus = (status: string) => (OPEN_SESSION_STATUSES as readonly string[]).includes(status);

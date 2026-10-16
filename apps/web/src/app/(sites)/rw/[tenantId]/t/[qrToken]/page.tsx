@@ -26,7 +26,8 @@ export default async function TablePage({ params }: { params: Params }) {
   const data = await tenantTx(tenantId, async (tx) => {
     const table = await getTableByQr(tx, tenantId, qrToken);
     if (!table) return null;
-    const { session } = await openOrGetSession(tx, tenantId, table.id);
+    // a session left open by earlier guests (idle / too old) is retired, the next guests start fresh (SBR-006)
+    const { session } = await openOrGetSession(tx, tenantId, table.id, { idleMinutes: cfg.tableSessionIdleMinutes, maxHours: cfg.tableSessionMaxHours });
     const dto = await loadSessionDto(tx, tenantId, session.id);
     const menu = await getActiveMenu(tx, tenantId);
     return { session, dto, menu };

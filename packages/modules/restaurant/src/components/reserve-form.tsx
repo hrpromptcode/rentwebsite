@@ -22,6 +22,8 @@ export interface ReserveFormProps {
   deposit: number;
   methods: PaymentMethodOption[];
   today: string; // YYYY-MM-DD in Bangkok
+  /** last bookable day (YYYY-MM-DD); the server enforces the same window (SBR-015) */
+  maxDate?: string;
   nowIso: string;
   initial: { date?: string; time?: string; size?: number; zone?: string };
   action: (prev: ReserveState, fd: FormData) => Promise<ReserveState>;
@@ -29,13 +31,14 @@ export interface ReserveFormProps {
 
 const ZONE_ICON: Record<string, React.ComponentType<{ className?: string }>> = { ในบ้าน: Home, สวน: Trees };
 
-type Avail = { state: "idle" | "loading" | "ok" | "full" | "error"; remaining?: number; capacity?: number };
+type Avail = { state: "idle" | "loading" | "ok" | "full" | "error"; remaining?: number; capacity?: number; totalSeats?: number };
 
-export function ReserveForm({ hours, zones, deposit, methods, today, nowIso, initial, action }: ReserveFormProps) {
+export function ReserveForm({ hours, zones, deposit, methods, today, maxDate, nowIso, initial, action }: ReserveFormProps) {
   const [state, formAction, pending] = useActionState(action, {} as ReserveState);
+  const lastDay = maxDate ?? addDays(today, 60);
   // default to the first day that still has a round (today after closing time → tomorrow)
   const [date, setDate] = React.useState(() => {
-    if (initial.date && initial.date >= today) return initial.date;
+    if (initial.date && initial.date >= today && initial.date <= lastDay) return initial.date;
     const now = new Date(nowIso);
     for (let i = 0; i < 7; i++) {
       const d = addDays(today, i);
@@ -69,8 +72,8 @@ export function ReserveForm({ hours, zones, deposit, methods, today, nowIso, ini
       try {
         const qs = new URLSearchParams({ date, time, size: String(size), ...(zone ? { zone } : {}) });
         const r = await fetch(`/api/restaurant/reservations/availability?${qs}`, { signal: ctrl.signal, cache: "no-store" });
-        const j = (await r.json()) as { available: boolean; remaining: number; capacity: number };
-        setAvail({ state: j.available ? "ok" : "full", remaining: j.remaining, capacity: j.capacity });
+        const j = (await r.json()) as { available: boolean; remaining: number; capacity: number; totalSeats?: number };
+        setAvail({ state: j.available ? "ok" : "full", remaining: j.remaining, capacity: j.capacity, totalSeats: j.totalSeats });
       } catch (e) {
         if ((e as Error).name !== "AbortError") setAvail({ state: "error" });
       }
@@ -96,7 +99,7 @@ export function ReserveForm({ hours, zones, deposit, methods, today, nowIso, ini
 
       <section className="grid gap-3">
         <Label htmlFor="res-date" className="text-base">{L.date}</Label>
-        <Input id="res-date" type="date" value={date} min={today} max={addDays(today, 60)} onChange={(e) => setDate(e.target.value || today)} className="h-12 max-w-xs text-base" required />
+        <Input id="res-date" type="date" value={date} min={today} max={lastDay} onChange={(e) => setDate(e.target.value && e.target.value <= lastDay ? e.target.value : today)} className="h-12 max-w-xs text-base" required />
       </section>
 
       <section>
@@ -184,7 +187,7 @@ export function ReserveForm({ hours, zones, deposit, methods, today, nowIso, ini
         )}
         {avail.state === "full" && (
           <p className="flex items-center gap-2 text-sm text-destructive">
-            <XCircle className="size-4" /> {L.full}
+            <XCircle className="size-4" /> {avail.totalSeats && size > avail.totalSeats ? `${zone ? `โซน${zone}` : "ร้าน"}รองรับได้สูงสุด ${avail.totalSeats} ท่าน กรุณาเลือกโซนอื่นหรือโทรจอง` : L.full}
           </p>
         )}
       </div>

@@ -36,7 +36,7 @@ export const PAYMENT_METHOD_LABEL: Record<string, string> = {
   counter: "เคาน์เตอร์",
 };
 
-export const SESSION_STATUS_LABEL: Record<string, string> = { open: "กำลังทาน", bill_requested: "ขอบิลแล้ว", paid: "ชำระแล้ว", closed: "ปิดโต๊ะแล้ว" };
+export const SESSION_STATUS_LABEL: Record<string, string> = { open: "กำลังทาน", bill_requested: "ขอบิลแล้ว", paid: "ชำระแล้ว", expired: "หมดเวลา · ค้างชำระ", closed: "ปิดโต๊ะแล้ว" };
 
 export const ITEM_STATUS_LABEL: Record<string, string> = { queued: "รอคิว", cooking: "กำลังทำ", done: "เสร็จแล้ว", served: "เสิร์ฟแล้ว", cancelled: "ยกเลิก" };
 

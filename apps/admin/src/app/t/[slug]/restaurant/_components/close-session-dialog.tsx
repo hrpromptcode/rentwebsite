@@ -17,7 +17,9 @@ export function CloseSessionDialog({ slug, session, onDone, children, ...btn }: 
   const [pending, setPending] = React.useState<SettleMode | null>(null);
   const p = session.payment;
   const awaiting = !!p && (p.status === "pending" || p.status === "pending_verification");
-  const canApprove = awaiting && p!.amount === session.dueTotal && session.dueTotal > 0;
+  // the guests' bill covers the orders due when they asked for it; rounds ordered later stay due (COR-07)
+  const canApprove = awaiting && session.dueTotal > 0;
+  const partial = canApprove && p!.amount < session.dueTotal;
 
   async function run(mode: SettleMode) {
     setPending(mode);
@@ -65,7 +67,7 @@ export function CloseSessionDialog({ slug, session, onDone, children, ...btn }: 
             <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
               <span className="flex-1">
                 ลูกค้าเลือก <b>{PAYMENT_METHOD_LABEL[p.method] ?? p.method}</b> {thb(p.amount)} · {PAYMENT_STATUS_LABEL[p.status] ?? p.status}
-                {!canApprove && session.dueTotal !== p.amount && <span className="block text-xs text-muted-foreground">ยอดไม่ตรงกับยอดค้าง (มีการสั่งเพิ่มหลังขอบิล) กรุณารับเป็นเงินสด</span>}
+                {partial && <span className="block text-xs text-muted-foreground">มีการสั่งเพิ่มหลังขอบิล: อนุมัติแล้วยังค้าง {thb(session.dueTotal - p.amount)} รับเงินสดส่วนที่เหลือเพื่อปิดโต๊ะ</span>}
               </span>
               {p.slipUrl && <SlipDialog url={p.slipUrl} size="sm" />}
             </div>
@@ -74,7 +76,7 @@ export function CloseSessionDialog({ slug, session, onDone, children, ...btn }: 
             {canApprove && (
               <Button type="button" className="w-full" onClick={() => run("approve")} disabled={!!pending}>
                 {pending === "approve" ? <Loader2 className="animate-spin" aria-hidden /> : <CheckCircle2 aria-hidden />}
-                อนุมัติการชำระ {thb(p!.amount)} และปิดโต๊ะ
+                {partial ? `อนุมัติการชำระ ${thb(p!.amount)} (ยังค้าง ${thb(session.dueTotal - p!.amount)})` : `อนุมัติการชำระ ${thb(p!.amount)} และปิดโต๊ะ`}
               </Button>
             )}
             {session.dueTotal > 0 ? (

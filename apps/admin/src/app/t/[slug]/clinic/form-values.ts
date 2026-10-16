@@ -1,5 +1,6 @@
 /** Client-safe helpers shared by clinic server pages and client forms (no server imports). */
 import type { PatientInput } from "@rentweb/module-booking/admin/schemas";
+import { ageOn, bkkDateString } from "@rentweb/module-booking/time";
 
 export interface PatientFormValues {
   firstName: string;
@@ -107,13 +108,14 @@ export function patientName(p: { firstName: string; lastName?: string | null; ni
   return p.nickname ? `${full} (${p.nickname})` : full;
 }
 
-/** Age in full years from YYYY-MM-DD (null when unknown). */
+/** Age in full years from YYYY-MM-DD on the Bangkok calendar (COR-12; null when unknown). */
 export function ageFrom(birthDate: string | null | undefined, now = new Date()): number | null {
-  if (!birthDate || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return null;
-  const [y, m, d] = birthDate.split("-").map(Number) as [number, number, number];
-  let age = now.getFullYear() - y;
-  if (now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) age--;
-  return age >= 0 && age < 150 ? age : null;
+  return ageOn(birthDate, now);
+}
+
+/** Today's date (YYYY-MM-DD) in Bangkok – e.g. the max of a birth-date picker (COR-12: not the UTC date). */
+export function bkkToday(now = new Date()): string {
+  return bkkDateString(now);
 }
 
 export interface PackageFormValues {

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { AlertCircle, CalendarDays, Check, ChevronLeft, ChevronRight, Clock, Loader2, Pencil, ShieldCheck, Sparkles, UserRound, Users } from "lucide-react";
+import { AlertCircle, CalendarDays, Check, ChevronLeft, ChevronRight, Clock, Loader2, Minus, Pencil, Plus, ShieldCheck, Sparkles, Ticket, UserRound, Users } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
 import { Badge } from "@rentweb/ui/components/badge";
 import { Input } from "@rentweb/ui/components/input";
@@ -34,8 +34,19 @@ export interface WizardService {
   depositAmount: number;
   capacity: number;
   requiresStaff: boolean;
+  /** fixed guests per booking (package "for 2", priced per booking); null = per person */
+  seatsPerBooking: number | null;
   featured: boolean;
   categoryName: string | null;
+}
+
+/** SBR-016: a course session the signed-in customer redeems with this booking. */
+export interface WizardCourse {
+  id: string;
+  name: string;
+  sessionsLeft: number;
+  /** service the course is for (null = any service) */
+  serviceId: string | null;
 }
 
 export interface WizardStaff {
@@ -66,6 +77,8 @@ export interface BookingWizardProps {
   customer: { name: string | null; phone: string | null; email: string | null } | null;
   preselect?: { serviceId?: string | null; staffId?: string | null };
   paymentMethods: PaymentMethodOption[];
+  /** redeem a course session (price 0, no deposit) */
+  course?: WizardCourse | null;
   compact?: boolean;
   className?: string;
 }
@@ -88,18 +101,33 @@ function isGroup(s: WizardService | undefined) {
   return !!s && (s.capacity > 1 || !s.requiresStaff);
 }
 
-function priceLabel(s: WizardService) {
+/** per-person group service: the customer picks the party size and pays per guest */
+function isPerPerson(s: WizardService | undefined) {
+  return !!s && s.capacity > 1 && !s.seatsPerBooking;
+}
+
+function partyOf(s: WizardService | undefined, requested: number) {
+  if (!s) return 1;
+  if (s.seatsPerBooking) return Math.min(s.seatsPerBooking, Math.max(1, s.capacity));
+  return isPerPerson(s) ? Math.min(Math.max(1, requested), s.capacity) : 1;
+}
+
+function priceLabel(s: WizardService, party = 1) {
   if (s.price === 0) return s.priceNote || L.free;
-  return s.priceNote ? `${thb(s.price)} ${s.priceNote}` : thb(s.price);
+  const amount = isPerPerson(s) ? s.price * party : s.price;
+  const base = s.priceNote ? `${thb(amount)} ${s.priceNote}` : thb(amount);
+  return isPerPerson(s) && party === 1 ? `${base} / ${L.perGuest}` : base;
 }
 
 /* ------------------------------------------------------------------ */
 /* Wizard                                                               */
 /* ------------------------------------------------------------------ */
 
-export function BookingWizard({ services, staff, config, today, maxDate, customer, preselect, paymentMethods, compact, className }: BookingWizardProps) {
+export function BookingWizard({ services: allServices, staff, config, today, maxDate, customer, preselect, paymentMethods, course, compact, className }: BookingWizardProps) {
   const reduce = useReducedMotion();
-  const initialService = services.find((s) => s.id === preselect?.serviceId) ?? null;
+  // a course booking is limited to the course's service
+  const services = React.useMemo(() => (course?.serviceId ? allServices.filter((s) => s.id === course.serviceId) : allServices), [allServices, course]);
+  const initialService = services.find((s) => s.id === (course?.serviceId ?? preselect?.serviceId)) ?? null;
   const initialStaff = staff.find((s) => s.id === preselect?.staffId && (!initialService || s.serviceIds.includes(initialService.id))) ?? null;
 
   const [serviceId, setServiceId] = React.useState<string | null>(initialService?.id ?? null);
@@ -114,9 +142,13 @@ export function BookingWizard({ services, staff, config, today, maxDate, custome
   const [fieldError, setFieldError] = React.useState<string | null>(null);
   const [pending, startTransition] = React.useTransition();
   const [dir, setDir] = React.useState(1);
+  const [partyWanted, setPartyWanted] = React.useState(1);
 
   const service = services.find((s) => s.id === serviceId);
   const group = isGroup(service);
+  const perPerson = isPerPerson(service) && !course;
+  const party = course ? 1 : partyOf(service, partyWanted);
+  const partyQs = party > 1 ? `&party=${party}` : "";
   const steps = React.useMemo<StepKey[]>(() => (group ? ALL_STEPS.filter((k) => k !== "staff") : ALL_STEPS), [group]);
   const eligibleStaff = React.useMemo(() => (service ? staff.filter((s) => s.serviceIds.includes(service.id)) : []), [staff, service]);
 
@@ -128,13 +160,13 @@ export function BookingWizard({ services, staff, config, today, maxDate, custome
   const [days, setDays] = React.useState<Record<string, Record<string, DayInfo>>>({});
   const [slots, setSlots] = React.useState<Record<string, SlotChip[]>>({});
   const staffParam = staffChoice ?? "";
-  const daysKey = `${month}|${serviceId}|${staffParam}`;
-  const slotsKey = `${date}|${serviceId}|${staffParam}`;
+  const daysKey = `${month}|${serviceId}|${staffParam}|${party}`;
+  const slotsKey = `${date}|${serviceId}|${staffParam}|${party}`;
 
   React.useEffect(() => {
     if (step !== "date" || !serviceId || days[daysKey]) return;
     const ctrl = new AbortController();
-    fetch(`/api/booking/days?month=${month}&service=${serviceId}${staffParam ? `&staff=${staffParam}` : ""}`, { signal: ctrl.signal, cache: "no-store" })
+    fetch(`/api/booking/days?month=${month}&service=${serviceId}${staffParam ? `&staff=${staffParam}` : ""}${partyQs}`, { signal: ctrl.signal, cache: "no-store" })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((j: { days: Array<{ date: string; available: boolean; count: number }> }) => {
         setDays((d) => ({ ...d, [daysKey]: Object.fromEntries(j.days.map((x) => [x.date, { available: x.available, count: x.count }])) }));
@@ -143,19 +175,19 @@ export function BookingWizard({ services, staff, config, today, maxDate, custome
         if (!ctrl.signal.aborted) setDays((d) => ({ ...d, [daysKey]: {} }));
       });
     return () => ctrl.abort();
-  }, [step, serviceId, month, staffParam, daysKey, days]);
+  }, [step, serviceId, month, staffParam, partyQs, daysKey, days]);
 
   React.useEffect(() => {
     if (step !== "time" || !serviceId || !date || slots[slotsKey]) return;
     const ctrl = new AbortController();
-    fetch(`/api/booking/slots?date=${date}&service=${serviceId}${staffParam ? `&staff=${staffParam}` : ""}`, { signal: ctrl.signal, cache: "no-store" })
+    fetch(`/api/booking/slots?date=${date}&service=${serviceId}${staffParam ? `&staff=${staffParam}` : ""}${partyQs}`, { signal: ctrl.signal, cache: "no-store" })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((j: { slots: SlotChip[] }) => setSlots((s) => ({ ...s, [slotsKey]: j.slots })))
       .catch(() => {
         if (!ctrl.signal.aborted) setSlots((s) => ({ ...s, [slotsKey]: [] }));
       });
     return () => ctrl.abort();
-  }, [step, serviceId, date, staffParam, slotsKey, slots]);
+  }, [step, serviceId, date, staffParam, partyQs, slotsKey, slots]);
 
   const go = (next: StepKey) => {
     const from = steps.indexOf(step);
@@ -220,7 +252,12 @@ export function BookingWizard({ services, staff, config, today, maxDate, custome
     next();
   };
 
-  const deposit = service && config.depositEnabled && service.depositRequired ? service.depositAmount : 0;
+  const unitDeposit = service && !course && config.depositEnabled && service.depositRequired ? service.depositAmount : 0;
+  const deposit = perPerson ? (service && service.price > 0 ? Math.min(unitDeposit * party, service.price * party) : unitDeposit * party) : unitDeposit;
+  const changeParty = (n: number) => {
+    setPartyWanted(n);
+    setStart(null);
+  };
   const chosenStaff = staffChoice ? staff.find((s) => s.id === staffChoice) : null;
 
   const submit = () => {
@@ -235,6 +272,8 @@ export function BookingWizard({ services, staff, config, today, maxDate, custome
       email: details.email.trim() || null,
       note: details.note.trim() || null,
       paymentMethod: deposit > 0 ? method : null,
+      partySize: party,
+      patientPackageId: course?.id ?? null,
     };
     startTransition(async () => {
       try {
@@ -266,6 +305,8 @@ export function BookingWizard({ services, staff, config, today, maxDate, custome
       date={date}
       start={start}
       deposit={deposit}
+      party={party}
+      course={course ?? null}
       onEdit={(k) => go(k)}
       steps={steps}
     />
@@ -292,6 +333,12 @@ export function BookingWizard({ services, staff, config, today, maxDate, custome
               transition={transition}
             >
               <h3 className="font-heading text-xl font-semibold md:text-2xl">{STEP_TITLE[step]}</h3>
+
+              {course && (
+                <p className="mt-3 flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-soft px-3 py-2 text-sm text-primary">
+                  <Ticket className="size-4 shrink-0" /> {L.useCourse}: {L.courseLeft(course.name, course.sessionsLeft)}
+                </p>
+              )}
 
               {step === "service" && <ServiceStep services={services} selected={serviceId} onSelect={chooseService} />}
 
@@ -322,7 +369,9 @@ export function BookingWizard({ services, staff, config, today, maxDate, custome
                     <CalendarDays className="size-4 text-primary" /> {date ? formatThaiYmd(date, { weekday: true }) : L.pickDateFirst}
                     <Pencil className="size-3.5 text-muted-foreground" />
                   </button>
-                  <SlotPicker slots={slots[slotsKey] ?? null} selected={start} onSelect={chooseTime} showRemaining={group} />
+                  {perPerson && service && <PartyStepper value={party} max={service.capacity} onChange={changeParty} />}
+                  {service?.seatsPerBooking ? <p className="mb-4 flex items-center gap-2 text-sm text-muted-foreground"><Users className="size-4 text-primary" /> {L.packageFor(service.seatsPerBooking)}</p> : null}
+                  <SlotPicker slots={slots[slotsKey] ?? null} selected={start} onSelect={chooseTime} showRemaining={perPerson} />
                 </div>
               )}
 
@@ -367,6 +416,8 @@ export function BookingWizard({ services, staff, config, today, maxDate, custome
                       {!group && <Row label={L.staff} value={chosenStaff ? chosenStaff.name : L.anyStaff} />}
                       <Row label="วันและเวลา" value={`${formatThaiDate(start, { weekday: true })} · ${formatBkkTime(start)} น.`} />
                       <Row label="ระยะเวลา" value={L.minutes(service.durationMin)} />
+                      {party > 1 && <Row label={L.partySize} value={L.guests(party)} />}
+                      {course && <Row label={L.useCourse} value={L.courseLeft(course.name, course.sessionsLeft)} />}
                       <Row label={L.name} value={details.name} />
                       <Row label={L.phone} value={details.phone} />
                       {details.email && <Row label="อีเมล" value={details.email} />}
@@ -375,7 +426,7 @@ export function BookingWizard({ services, staff, config, today, maxDate, custome
                     <div className="mt-4 flex items-end justify-between border-t pt-4">
                       <div>
                         <p className="text-xs text-muted-foreground">{L.total}</p>
-                        <p className="font-heading text-2xl font-semibold">{priceLabel(service)}</p>
+                        <p className="font-heading text-2xl font-semibold">{course ? L.useCourse : priceLabel(service, party)}</p>
                       </div>
                       {deposit > 0 ? (
                         <div className="text-right">
@@ -465,14 +516,15 @@ function StepHeader({ steps, current, reached, onJump }: { steps: StepKey[]; cur
                 onClick={() => done && onJump(k)}
                 disabled={!done}
                 aria-current={active ? "step" : undefined}
+                aria-label={`ขั้นที่ ${i + 1} ${STEP_LABEL[k]}${done ? " (เสร็จแล้ว แตะเพื่อแก้ไข)" : active ? " (ขั้นปัจจุบัน)" : ""}`}
                 className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition sm:size-9",
+                  "flex size-11 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition",
                   active && "border-primary bg-primary text-primary-foreground shadow-md shadow-glow/40",
                   done && "border-primary bg-primary-soft text-primary hover:bg-primary hover:text-primary-foreground",
                   !active && !done && "border-border text-muted-foreground",
                 )}
               >
-                {done ? <Check className="size-4" /> : i + 1}
+                {done ? <Check className="size-4" aria-hidden /> : i + 1}
               </button>
               <span className={cn("truncate", active ? "font-medium text-foreground" : "text-muted-foreground", "hidden sm:inline")}>{STEP_LABEL[k]}</span>
             </li>
@@ -524,14 +576,14 @@ function ServiceStep({ services, selected, onSelect }: { services: WizardService
                   <span className="min-w-0 flex-1">
                     <span className="flex items-start justify-between gap-2">
                       <span className="font-medium leading-snug">{s.name}</span>
-                      <span className="shrink-0 text-sm font-semibold tabular-nums">{priceLabel(s)}</span>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums">{priceLabel(s, 1)}</span>
                     </span>
                     <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
                         <Clock className="size-3" /> {L.minutes(s.durationMin)}
                       </span>
                       {s.depositRequired && s.depositAmount > 0 && <span>{L.deposit} {thb(s.depositAmount)}</span>}
-                      {s.capacity > 1 && <span>สูงสุด {s.capacity} ที่</span>}
+                      {s.seatsPerBooking ? <span>{L.packageFor(s.seatsPerBooking)}</span> : s.capacity > 1 && <span>สูงสุด {s.capacity} ท่าน/รอบ</span>}
                       {s.featured && (
                         <Badge variant="soft" className="px-1.5 py-0 text-[10px]">
                           แนะนำ
@@ -597,6 +649,29 @@ function StaffStep({ staff, selected, onSelect }: { staff: WizardStaff[]; select
   );
 }
 
+/** Party size for per-person group services (SBR-001); slots are fetched for the whole party. */
+function PartyStepper({ value, max, onChange }: { value: number; max: number; onChange: (n: number) => void }) {
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-3">
+      <span id="bk-party-label" className="text-sm font-medium">
+        {L.partySize}
+      </span>
+      <div className="inline-flex items-center rounded-full border" role="group" aria-labelledby="bk-party-label">
+        <button type="button" onClick={() => onChange(Math.max(1, value - 1))} disabled={value <= 1} aria-label="ลดจำนวนผู้ใช้บริการ" className="flex size-11 items-center justify-center rounded-full hover:bg-muted disabled:opacity-40">
+          <Minus className="size-4" aria-hidden />
+        </button>
+        <span className="min-w-16 text-center text-sm font-semibold tabular-nums" aria-live="polite">
+          {L.guests(value)}
+        </span>
+        <button type="button" onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max} aria-label="เพิ่มจำนวนผู้ใช้บริการ" className="flex size-11 items-center justify-center rounded-full hover:bg-muted disabled:opacity-40">
+          <Plus className="size-4" aria-hidden />
+        </button>
+      </div>
+      <span className="text-xs text-muted-foreground">สูงสุด {max} ท่าน</span>
+    </div>
+  );
+}
+
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -626,6 +701,8 @@ function Summary({
   date,
   start,
   deposit,
+  party,
+  course,
   onEdit,
   steps,
 }: {
@@ -634,6 +711,8 @@ function Summary({
   date: string | null;
   start: string | null;
   deposit: number;
+  party: number;
+  course: WizardCourse | null;
   onEdit: (k: StepKey) => void;
   steps: StepKey[];
 }) {
@@ -647,7 +726,7 @@ function Summary({
         <span className={cn("block text-sm", value ? "font-medium" : "text-muted-foreground/70")}>{value ?? L.notSelected}</span>
       </span>
       {value && steps.includes(k) && (
-        <button type="button" onClick={() => onEdit(k)} aria-label={`แก้ไข${label}`} className="flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted">
+        <button type="button" onClick={() => onEdit(k)} aria-label={`แก้ไข${label}`} className="flex size-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted">
           <Pencil className="size-3.5" />
         </button>
       )}
@@ -665,8 +744,8 @@ function Summary({
       {service && (
         <div className="mt-5 border-t pt-4 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">{L.total}</span>
-            <span className="font-semibold">{priceLabel(service)}</span>
+            <span className="text-muted-foreground">{party > 1 ? `${L.total} (${L.guests(party)})` : L.total}</span>
+            <span className="font-semibold">{course ? L.useCourse : priceLabel(service, party)}</span>
           </div>
           <div className="mt-1 flex justify-between">
             <span className="text-muted-foreground">{deposit > 0 ? `${L.deposit} (${L.dueNow})` : L.deposit}</span>

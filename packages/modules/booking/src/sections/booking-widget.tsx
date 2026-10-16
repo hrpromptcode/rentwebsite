@@ -8,8 +8,9 @@ import type { StorefrontCtx } from "@rentweb/storefront/ctx";
 import type { bookingWidget } from "@rentweb/storefront/definitions";
 import { Section, SectionHeading } from "@rentweb/storefront";
 import type { PaymentMethodOption } from "@rentweb/storefront/payments";
-import { BookingWizard, type WizardService, type WizardStaff } from "../components/booking-wizard";
+import { BookingWizard, type WizardCourse, type WizardService, type WizardStaff } from "../components/booking-wizard";
 import { listServices, listStaff } from "../services/catalog";
+import { getPatientPackageForCustomer } from "../services/clinic";
 import { bookingConfig, type BookingConfig } from "../services/config";
 import { addDays, bkkDateString, parseYmd, ymdToString } from "../services/time";
 import { METHOD_LABELS } from "../labels";
@@ -32,6 +33,7 @@ export async function loadWizardData(tx: Tx, tenantId: string): Promise<{ servic
       depositAmount: s.depositAmount,
       capacity: s.capacity,
       requiresStaff: s.requiresStaff,
+      seatsPerBooking: s.seatsPerBooking ?? null,
       featured: s.featured,
       categoryName: s.categoryName,
     })),
@@ -62,8 +64,8 @@ async function currentCustomer(tx: Tx, tenantId: string): Promise<CustomerSummar
 }
 
 export interface BookingWidgetExtra {
-  /** preselect by id or slug (?service= / ?staff= on /book) */
-  preselect?: { service?: string | null; staff?: string | null };
+  /** preselect by id or slug (?service= / ?staff= on /book); package = patient package id (?package=, SBR-016) */
+  preselect?: { service?: string | null; staff?: string | null; package?: string | null };
   /** render without the Section wrapper (used by the /book page) */
   bare?: boolean;
 }
@@ -71,9 +73,21 @@ export interface BookingWidgetExtra {
 export async function BookingWidgetSection({ ctx, props: p, id, preselect, bare }: { ctx: StorefrontCtx; props: Props; id: string; index: number } & BookingWidgetExtra) {
   const tenantId = ctx.tenant.id;
   const config = bookingConfig(ctx.tenant.moduleConfig);
-  const { services, staff, customer } = await withTenant(getDb(), tenantId, async (tx) => ({ ...(await loadWizardData(tx, tenantId)), customer: await currentCustomer(tx, tenantId) }));
+  const { services, staff, customer, course } = await withTenant(getDb(), tenantId, async (tx) => {
+    const data = await loadWizardData(tx, tenantId);
+    const customer = await currentCustomer(tx, tenantId);
+    // SBR-016: a course the signed-in customer can redeem (validated again by createBooking)
+    let course: WizardCourse | null = null;
+    if (customer && preselect?.package) {
+      const item = await getPatientPackageForCustomer(tx, tenantId, preselect.package, customer).catch(() => null);
+      if (item && item.status === "active" && !item.isExpired && item.sessionsLeft > 0 && (!item.serviceId || data.services.some((s) => s.id === item.serviceId))) {
+        course = { id: item.id, name: item.packageName, sessionsLeft: item.sessionsLeft, serviceId: item.serviceId };
+      }
+    }
+    return { ...data, customer, course };
+  });
   const { today, maxDate } = wizardDates(config);
-  const wantService = preselect?.service ?? p.serviceSlug ?? null;
+  const wantService = course?.serviceId ?? preselect?.service ?? p.serviceSlug ?? null;
   const svc = wantService ? services.find((s) => s.id === wantService || s.slug === wantService) : undefined;
   const st = preselect?.staff ? staff.find((s) => s.id === preselect.staff || s.slug === preselect.staff) : undefined;
 
@@ -87,6 +101,7 @@ export async function BookingWidgetSection({ ctx, props: p, id, preselect, bare 
       customer={customer ? { name: customer.name, phone: customer.phone, email: customer.email } : null}
       preselect={{ serviceId: svc?.id ?? null, staffId: st?.id ?? null }}
       paymentMethods={depositMethodOptions(ctx.tenant.settings)}
+      course={course}
       compact={p.compact}
     />
   );

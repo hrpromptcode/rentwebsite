@@ -28,7 +28,8 @@ export default async function OrderPrintPage({ params }: { params: Promise<{ slu
 
   return (
     <div className="space-y-4">
-      <style>{`@media print { aside, header, [data-print-hide], [data-sonner-toaster] { display: none !important } main { padding: 0 !important } body { background: #fff } .print-sheet { box-shadow: none !important; border: 0 !important; max-width: none !important } @page { margin: 10mm } }`}</style>
+      {/* AM-04: hide only the app chrome (shell <aside>/<header>), never the label's own sender / order-number block */}
+      <style>{`@media print { aside, header:not(.print-sheet *), [data-print-hide], [data-sonner-toaster] { display: none !important } main { padding: 0 !important } body { background: #fff } .print-sheet { box-shadow: none !important; border: 0 !important; max-width: none !important } @page { margin: 10mm } }`}</style>
       <div data-print-hide className="flex flex-wrap items-center justify-between gap-2">
         <Button asChild variant="ghost">
           <Link href={`/t/${slug}/orders/${order.id}`}>
@@ -39,7 +40,7 @@ export default async function OrderPrintPage({ params }: { params: Promise<{ slu
       </div>
 
       <section className="print-sheet mx-auto max-w-2xl rounded-2xl border bg-white p-6 text-black shadow-sm sm:p-8">
-        <header className="flex items-start justify-between gap-4 border-b border-black/20 pb-4">
+        <div data-print-sheet-head className="flex items-start justify-between gap-4 border-b border-black/20 pb-4">
           <div>
             <p className="text-xs uppercase tracking-widest text-black/60">ผู้ส่ง</p>
             <p className="text-lg font-bold">{ctx.tenant.name}</p>
@@ -51,7 +52,7 @@ export default async function OrderPrintPage({ params }: { params: Promise<{ slu
             <p className="font-mono text-2xl font-bold">{order.number}</p>
             <p className="text-xs text-black/60">{fmtDate(order.placedAt, { withTime: true })}</p>
           </div>
-        </header>
+        </div>
 
         <div className="mt-5 rounded-xl border-2 border-black p-4">
           <p className="text-xs uppercase tracking-widest text-black/60">ผู้รับ</p>

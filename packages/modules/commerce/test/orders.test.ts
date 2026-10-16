@@ -153,7 +153,9 @@ describe("createOrderFromCart", () => {
       const [v] = await tx.select().from(products).where(eq(products.id, f.ids.variant));
       expect(v!.soldCount).toBe(1);
       const [c] = await tx.select().from(customers).where(eq(customers.id, o!.customerId!));
-      expect(c).toMatchObject({ ordersCount: 1, totalSpent: 186000, phone: "0891234567", email: "somchai@example.com" });
+      // SS-02: a guest record is keyed by the phone only; the e-mail stays on the order
+      expect(c).toMatchObject({ ordersCount: 1, totalSpent: 186000, phone: "0891234567", email: null });
+      expect(o!.email).toBe("somchai@example.com");
 
       // idempotent: handler again + markPaid again change nothing
       const [pay] = await tx.select().from(payments).where(eq(payments.id, firstPaymentId));

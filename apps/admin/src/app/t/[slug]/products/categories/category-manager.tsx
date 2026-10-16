@@ -30,14 +30,21 @@ export interface CategoryVM {
 
 type Draft = { name: string; slug: string; description: string; image: string; parentId: string; sort: string };
 const empty = (sort: number): Draft => ({ name: "", slug: "", description: "", image: "", parentId: "", sort: String(sort) });
-const slugify = (s: string) =>
+/**
+ * Slug while typing — same contract as typingSlug() in @/lib/slug, but Unicode-aware because category slugs may
+ * be Thai (the schema allows \p{L}): lower-case, spaces → "-", no doubled / leading "-", and the trailing "-" is
+ * KEPT so "home-decor" can be typed. `slugify` (= finalizeSlug: trailing "-" trimmed) runs on blur, on submit and
+ * for slugs derived from the name.
+ */
+const typingCategorySlug = (s: string) =>
   s
-    .trim()
     .toLowerCase()
     .replace(/[\s_]+/g, "-")
     .replace(/[^\p{L}\p{M}\p{N}-]+/gu, "")
     .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replace(/^-/, "")
+    .slice(0, 120);
+const slugify = (s: string) => typingCategorySlug(s.trim()).replace(/-+$/, "");
 
 export function CategoryManager({ slug, categories, canWrite }: { slug: string; categories: CategoryVM[]; canWrite: boolean }) {
   const router = useRouter();
@@ -58,7 +65,7 @@ export function CategoryManager({ slug, categories, canWrite }: { slug: string; 
 
   async function save() {
     if (!editing) return;
-    const input: CategoryInput = { name: editing.draft.name, slug: editing.draft.slug || slugify(editing.draft.name), description: editing.draft.description, image: editing.draft.image, parentId: editing.draft.parentId || null, sort: editing.draft.sort };
+    const input: CategoryInput = { name: editing.draft.name, slug: slugify(editing.draft.slug) || slugify(editing.draft.name), description: editing.draft.description, image: editing.draft.image, parentId: editing.draft.parentId || null, sort: editing.draft.sort };
     const parsed = categorySchema.safeParse(input);
     if (!parsed.success) {
       setErrors(fieldErrors(parsed.error));
@@ -161,8 +168,9 @@ export function CategoryManager({ slug, categories, canWrite }: { slug: string; 
                   value={editing.draft.slug}
                   onChange={(e) => {
                     setSlugTouched(true);
-                    setDraft({ slug: e.target.value });
+                    setDraft({ slug: typingCategorySlug(e.target.value) });
                   }}
+                  onBlur={(e) => setDraft({ slug: slugify(e.target.value) })}
                   aria-invalid={!!errors.slug}
                 />
               </Field>

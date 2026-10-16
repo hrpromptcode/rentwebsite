@@ -10,3 +10,12 @@ export function decodeSlug(s: string): string {
     return s;
   }
 }
+
+/** URL path for a (possibly nested, possibly Thai) slug: every segment percent-encoded per RFC 3986 (sitemap <loc>, SS-08). */
+export function slugPath(slug: string): string {
+  return slug
+    .split("/")
+    .filter(Boolean)
+    .map((s) => encodeURIComponent(s))
+    .join("/");
+}

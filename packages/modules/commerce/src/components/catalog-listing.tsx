@@ -66,6 +66,15 @@ export function parseCatalogParams(sp: Record<string, string | string[] | undefi
 
 export function CatalogListing({ title, eyebrow, description, crumbs, categories, activeSlug, basePath, query, result, cardStyle = "standard", columns = 4 }: CatalogListingProps) {
   const filtered = !!(query.q || query.min || query.max);
+  // SS-09: say why the grid is empty — a page past the last one, a filter, an empty category, or a really empty shop
+  const pageOut = result.items.length === 0 && result.total > 0;
+  const empty = pageOut
+    ? { title: L.pageEmpty, hint: L.pageEmptyHint, action: { href: catalogHref(basePath, { ...query, page: 1 }), label: L.firstPage } }
+    : filtered
+      ? { title: L.noResults, hint: L.noResultsHint, action: { href: basePath, label: L.clearFilters } }
+      : activeSlug
+        ? { title: L.emptyCategory, hint: L.emptyCategoryHint, action: { href: "/products", label: L.allProducts } }
+        : { title: L.emptyCatalog, hint: L.emptyCatalogHint, action: null };
   const hrefFor = (page: number) => catalogHref(basePath, { ...query, page });
   const hidden = basePath === "/products" && query.category ? { category: query.category } : {};
 
@@ -89,12 +98,12 @@ export function CatalogListing({ title, eyebrow, description, crumbs, categories
 
       {result.items.length === 0 ? (
         <Reveal className="card mx-auto flex max-w-lg flex-col items-center gap-3 p-10 text-center">
-          <span className="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground">{filtered ? <SearchX className="size-7" /> : <PackageSearch className="size-7" />}</span>
-          <h2 className="font-heading text-2xl font-semibold">{filtered ? L.noResults : L.emptyCatalog}</h2>
-          <p className="text-muted-foreground">{filtered ? L.noResultsHint : L.emptyCatalogHint}</p>
-          {filtered && (
+          <span className="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground">{filtered || pageOut ? <SearchX className="size-7" /> : <PackageSearch className="size-7" />}</span>
+          <h2 className="font-heading text-2xl font-semibold">{empty.title}</h2>
+          <p className="text-muted-foreground">{empty.hint}</p>
+          {empty.action && (
             <Button asChild variant="outline" size="lg" className="mt-2">
-              <Link href={basePath}>{L.clearFilters}</Link>
+              <Link href={empty.action.href}>{empty.action.label}</Link>
             </Button>
           )}
         </Reveal>

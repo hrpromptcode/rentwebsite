@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getStorage, IMAGE_MIMES, MAX_UPLOAD_BYTES, objectKey } from "@rentweb/core/storage";
+import { getStorage, MAX_UPLOAD_BYTES, objectKey, sniffImage } from "@rentweb/core/storage";
 import { deleteCategory, deleteItem, deleteMenu, deleteModifier, deleteModifierGroup, reorderCategories, reorderItems, saveCategory, saveItem, saveMenu, saveModifier, saveModifierGroup, setItemFlag, STATIONS } from "@rentweb/module-restaurant/admin";
 import { auditLog } from "@/lib/audit";
 import { assertRole, getTenantCtx, tenantTx } from "@/lib/tenant";
@@ -173,10 +173,14 @@ export async function uploadItemImageAction(slug: string, fd: FormData): Promise
   const ctx = await actor(slug, "manager");
   const file = fd.get("file");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "กรุณาเลือกไฟล์รูป" };
-  if (!IMAGE_MIMES.has(file.type)) return { ok: false, error: "รองรับเฉพาะไฟล์รูปภาพ (JPG, PNG, WebP, GIF, AVIF)" };
   if (file.size > MAX_UPLOAD_BYTES) return { ok: false, error: "ไฟล์ใหญ่เกิน 10 MB" };
-  const stored = await getStorage().put(objectKey(ctx.tenant.id, "menu", file.name), Buffer.from(await file.arrayBuffer()), file.type);
-  const url = stored.url.startsWith("/") ? `${(process.env.ADMIN_URL ?? "http://localhost:3001").replace(/\/$/, "")}${stored.url}` : stored.url;
+  // trust the bytes, not the client's file.type / file.name: only real raster images, stored with their sniffed type
+  const buf = Buffer.from(await file.arrayBuffer());
+  const sniffed = sniffImage(buf);
+  if (!sniffed) return { ok: false, error: "รองรับเฉพาะไฟล์รูปภาพ (JPG, PNG, WebP, GIF, AVIF)" };
+  const stored = await getStorage().put(objectKey(ctx.tenant.id, "menu", `menu.${sniffed.ext}`), buf, sniffed.mime);
+  // local uploads are served by the storefront (AC-01), so absolute URLs point at WEB_URL like assetUrl()
+  const url = stored.url.startsWith("/") ? `${(process.env.WEB_URL ?? "http://localhost:3000").replace(/\/$/, "")}${stored.url}` : stored.url;
   return { ok: true, message: "อัปโหลดรูปแล้ว", url };
 }
 

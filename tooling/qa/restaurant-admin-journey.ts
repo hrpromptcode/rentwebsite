@@ -281,7 +281,7 @@ async function main() {
     const sw = soldOutRow().getByRole("switch", { name: "หมดชั่วคราว" });
     await sw.click();
     await expect(sw).toHaveAttribute("aria-checked", "false");
-    await toast(a, /หมด|บันทึก|กลับมา/);
+    await toast(a, /หมด|บันทึก|กลับมา|เปิดขาย/); // un-sold-out replies "เปิดขายอีกครั้งแล้ว" (AM-03)
     await a.waitForTimeout(500);
     const { ctx, page } = await storeCtx(browser);
     await page.goto(`${STORE}/menu`, { waitUntil: "networkidle", timeout: 60_000 });

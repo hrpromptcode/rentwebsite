@@ -44,8 +44,10 @@ export const services = pgTable(
     priceNote: text("price_note"), // "เริ่มต้น", "ขึ้นกับหน้างาน"
     depositRequired: boolean("deposit_required").notNull().default(false),
     depositAmount: money("deposit_amount").notNull().default(0),
-    capacity: integer("capacity").notNull().default(1), // >1 = class / group
-    requiresStaff: boolean("requires_staff").notNull().default(true),
+    capacity: integer("capacity").notNull().default(1), // >1 = class / group / room: max guests served at the same time
+    requiresStaff: boolean("requires_staff").notNull().default(true), // true = every guest is served by one staff member
+    /** fixed number of guests per booking (package "for 2", price per booking); null = per person (customer picks 1..capacity, price per guest) */
+    seatsPerBooking: integer("seats_per_booking"),
     active: boolean("active").notNull().default(true),
     featured: boolean("featured").notNull().default(false),
     sort: integer("sort").notNull().default(0),
@@ -135,6 +137,8 @@ export const bookings = pgTable(
       .notNull()
       .references(() => services.id, { onDelete: "restrict" }),
     staffId: uuid("staff_id").references(() => staff.id, { onDelete: "set null" }),
+    /** further staff serving a party (staffed services with party size > 1); staffId is the first one */
+    extraStaffIds: uuid("extra_staff_ids").array().notNull().default([]),
     startsAt: tz("starts_at").notNull(),
     endsAt: tz("ends_at").notNull(),
     status: text("status").notNull().default("pending"), // pending | confirmed | checked_in | in_progress | completed | cancelled | no_show

@@ -8,13 +8,26 @@ import { Button } from "@rentweb/ui/components/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@rentweb/ui/components/sheet";
 import { cn } from "@rentweb/ui/lib/utils";
 
-export function MobileNav({ items, title, cta, extra }: { items: NavItem[]; title: string; cta?: { label: string; href: string } | null; extra?: React.ReactNode }) {
+/** Menu sheet. The trigger is phone-only unless `desktop` is set (header variants that inline only part of the nav). */
+export function MobileNav({
+  items,
+  title,
+  cta,
+  extra,
+  desktop = false,
+}: {
+  items: NavItem[];
+  title: string;
+  cta?: { label: string; href: string } | null;
+  extra?: React.ReactNode;
+  desktop?: boolean;
+}) {
   const [open, setOpen] = React.useState(false);
   const [expanded, setExpanded] = React.useState<string | null>(null);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="เปิดเมนู" className="text-current md:hidden">
+        <Button variant="ghost" size="icon" aria-label="เปิดเมนู" className={cn("text-current", !desktop && "md:hidden")}>
           <Menu className="size-6" />
         </Button>
       </SheetTrigger>

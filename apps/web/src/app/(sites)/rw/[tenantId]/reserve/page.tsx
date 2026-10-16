@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { CalendarCheck, Clock, Home, Phone, Trees, Users } from "lucide-react";
 import { Reveal } from "@rentweb/ui/motion";
 import { thb } from "@rentweb/core/money";
-import { bangkokParts, listZones, parseHours, restaurantConfigOf, restaurantPaymentOptions } from "@rentweb/module-restaurant/services";
+import { bangkokParts, lastBookableDay, listZones, parseHours, restaurantConfigOf, restaurantPaymentOptions } from "@rentweb/module-restaurant/services";
 import { ReserveForm } from "@rentweb/module-restaurant/components";
 import { L } from "@rentweb/module-restaurant/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -54,6 +54,7 @@ export default async function ReservePage({ params, searchParams }: { params: Pa
               deposit={deposit}
               methods={methods}
               today={today}
+              maxDate={lastBookableDay(now, cfg.reservationMaxAdvanceDays)}
               nowIso={now.toISOString()}
               initial={{ date: sp.date, time: sp.time, size: Number.isFinite(size) ? size : undefined, zone: sp.zone }}
               action={action}

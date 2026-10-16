@@ -328,3 +328,42 @@
 @media (width < 48rem) { body:has([data-sticky-bar="md"]) [data-floating-chat] { bottom: calc(5.5rem + env(safe-area-inset-bottom)); } }
 @media (width < 64rem) { body:has([data-sticky-bar="lg"]) [data-floating-chat] { bottom: calc(5.5rem + env(safe-area-inset-bottom)); } }
 body:has([data-sticky-bar="all"]) [data-floating-chat] { bottom: calc(5.75rem + env(safe-area-inset-bottom)); }
+
+/* Scroll-reveal start states (Reveal / StaggerItem / TextReveal in packages/ui/src/motion).
+   Only when motion is allowed AND scripts run, so reduced-motion users, no-JS visitors and crawlers see content as-is.
+   Uses `transform` (never the separate translate/scale properties) so motion's inline end state replaces it. */
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  [data-reveal] { opacity: 0; }
+  [data-reveal="up"] { transform: translateY(var(--reveal-distance, 28px)); }
+  [data-reveal="down"] { transform: translateY(calc(-1 * var(--reveal-distance, 28px))); }
+  [data-reveal="left"] { transform: translateX(var(--reveal-distance, 28px)); }
+  [data-reveal="right"] { transform: translateX(calc(-1 * var(--reveal-distance, 28px))); }
+  [data-reveal="scale"] { transform: scale(0.92); }
+  [data-reveal="blur"] { filter: blur(12px); transform: translateY(calc(var(--reveal-distance, 28px) / 2)); }
+  [data-reveal-item] { opacity: 0; transform: translateY(22px) scale(0.98); }
+  [data-reveal-word] { opacity: 0; transform: translateY(110%) rotate(2deg); }
+}
+
+/* Floating chat opt-out: render any element with data-hide-floating-chat (e.g. on a full-screen widget) to hide it. */
+body:has([data-hide-floating-chat]) [data-floating-chat] { display: none; }
+
+/* Keep the footer's last row clear of fixed bottom UI at max scroll (RA-04).
+   --bottom-ui = height reserved at the viewport bottom (button/bar + gap); the footer adds it minus its own 2.5rem padding. */
+[data-site-footer] { padding-bottom: max(0px, calc(var(--bottom-ui, 0px) - 2.5rem)); }
+body:has([data-floating-chat]) { --bottom-ui: 4.75rem; }
+@media (width >= 48rem) { body:has([data-floating-chat]) { --bottom-ui: 5.25rem; } }
+body:has([data-hide-floating-chat]) { --bottom-ui: 0px; }
+@media (width < 40rem) {
+  body:has([data-sticky-bar="sm"]) { --bottom-ui: calc(5rem + env(safe-area-inset-bottom)); }
+  body:has([data-sticky-bar="sm"]):has([data-floating-chat]) { --bottom-ui: calc(9.25rem + env(safe-area-inset-bottom)); }
+}
+@media (width < 48rem) {
+  body:has([data-sticky-bar="md"]) { --bottom-ui: calc(5rem + env(safe-area-inset-bottom)); }
+  body:has([data-sticky-bar="md"]):has([data-floating-chat]) { --bottom-ui: calc(9.25rem + env(safe-area-inset-bottom)); }
+}
+@media (width < 64rem) {
+  body:has([data-sticky-bar="lg"]) { --bottom-ui: calc(5rem + env(safe-area-inset-bottom)); }
+  body:has([data-sticky-bar="lg"]):has([data-floating-chat]) { --bottom-ui: calc(9.25rem + env(safe-area-inset-bottom)); }
+}
+body:has([data-sticky-bar="all"]) { --bottom-ui: calc(5rem + env(safe-area-inset-bottom)); }
+body:has([data-sticky-bar="all"]):has([data-floating-chat]) { --bottom-ui: calc(9.5rem + env(safe-area-inset-bottom)); }

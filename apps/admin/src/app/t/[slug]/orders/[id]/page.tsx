@@ -22,7 +22,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ sl
   const ctx = await getTenantCtx(slug);
   const data = await tenantTx(ctx.tenant.id, (tx) => getAdminOrder(tx, ctx.tenant.id, id));
   if (!data) notFound();
-  const { order, items, payments, shipments, customer, timeline, accessKey } = data;
+  const { order, items, payments, shipments, customer, timeline, accessKey, refundFlags, canCancel } = data;
+  const flagged = payments.filter((p) => refundFlags[p.id]);
   const canWrite = hasRole(ctx, "manager");
   const base = `/t/${slug}/orders`;
   const addr = order.shippingAddress;
@@ -55,7 +56,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ sl
         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
           <OrderActionBar
             slug={slug}
-            order={{ id: order.id, number: order.number, status: order.status, paymentStatus: order.paymentStatus, fulfillmentStatus: order.fulfillmentStatus, shippingMethodType: order.shippingMethodType, total: order.total }}
+            order={{ id: order.id, number: order.number, status: order.status, paymentStatus: order.paymentStatus, fulfillmentStatus: order.fulfillmentStatus, shippingMethodType: order.shippingMethodType, total: order.total, canCancel }}
             payments={payments.map((p) => ({ id: p.id, status: p.status, amount: p.amount, refundedAmount: p.refundedAmount, method: p.method }))}
             canWrite={canWrite}
           />
@@ -66,6 +67,20 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ sl
           </Button>
         </div>
       </div>
+
+      {flagged.length > 0 && (
+        <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm">
+          <p className="font-semibold text-destructive">ต้องคืนเงินลูกค้า</p>
+          <ul className="mt-1 space-y-0.5 text-destructive">
+            {flagged.map((p) => (
+              <li key={p.id}>
+                {thb(p.amount - p.refundedAmount)} ({paymentMethodLabel(p.method)}) — {refundFlags[p.id]}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-muted-foreground">เงินเข้ามาแล้วแต่ระบบไม่ได้นำไปใช้กับออเดอร์นี้ กรุณาโอนคืนลูกค้า แล้วกด &quot;คืนเงิน&quot; ที่รายการชำระเงินเพื่อบันทึก</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="space-y-6">
@@ -138,6 +153,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ sl
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-semibold tabular-nums">{thb(p.amount)}</span>
                             <ToneBadge tone={st.tone}>{st.label}</ToneBadge>
+                            {refundFlags[p.id] && <ToneBadge tone="destructive">ต้องคืนเงิน</ToneBadge>}
                             <span className="text-sm text-muted-foreground">{paymentMethodLabel(p.method)}</span>
                           </div>
                           <p className="text-xs text-muted-foreground">
@@ -148,7 +164,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ sl
                           </p>
                           {p.slipTransRef && <p className="text-xs text-muted-foreground">เลขอ้างอิงธนาคาร {p.slipTransRef}</p>}
                           {p.refundedAmount > 0 && <p className="text-xs text-destructive">คืนเงินแล้ว {thb(p.refundedAmount)}</p>}
-                          {p.failureReason && <p className="text-xs text-destructive">เหตุผล: {p.failureReason}</p>}
+                          {refundFlags[p.id] ? (
+                            <p className="text-xs text-destructive">ต้องคืนเงิน: {refundFlags[p.id]}</p>
+                          ) : (
+                            p.failureReason && <p className="text-xs text-destructive">เหตุผล: {p.failureReason}</p>
+                          )}
                           <PaymentActions slug={slug} orderId={order.id} payment={{ id: p.id, status: p.status, amount: p.amount, refundedAmount: p.refundedAmount, method: p.method }} canWrite={canWrite} />
                         </div>
                       </li>

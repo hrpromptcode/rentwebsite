@@ -106,7 +106,7 @@ export async function rescheduleBookingAction(slug: string, id: string, input: {
   const parsed = rescheduleSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "กรุณาเลือกเวลา" };
   const cfg = await loadModuleConfig(getAdminDb(), ctx.tenant.id);
-  const r = await tenantTx(ctx.tenant.id, (tx) => adminReschedule(tx, ctx.tenant.id, id, { start: parsed.data.start, staffId: parsed.data.staffId }, cfg.adminBooking, actorOf(ctx)));
+  const r = await tenantTx(ctx.tenant.id, (tx) => adminReschedule(tx, ctx.tenant.id, id, { start: parsed.data.start, staffId: parsed.data.staffId }, cfg.adminBooking, actorOf(ctx), { settings: (ctx.tenant.settings ?? {}) as Record<string, unknown> }));
   if (!r.ok) return { ok: false, error: r.error };
   revalidate(slug, id, r.value.id);
   return { ok: true, message: `เลื่อนนัดแล้ว — การจองใหม่ ${r.value.number}`, data: { id: r.value.id, number: r.value.number } };

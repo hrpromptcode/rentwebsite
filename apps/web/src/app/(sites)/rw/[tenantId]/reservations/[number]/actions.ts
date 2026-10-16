@@ -12,7 +12,7 @@ export async function cancelReservationAction(tenantId: string, number: string, 
     const r = await getReservationForCustomer(tx, tenantId, number, phone);
     if (!r.ok) return r;
     if (r.value.reservation.startsAt.getTime() < Date.now()) return { ok: false as const, error: "เลยเวลาจองแล้ว ไม่สามารถยกเลิกได้" };
-    return cancelReservation(tx, tenantId, r.value.reservation.id, "guest");
+    return cancelReservation(tx, tenantId, r.value.reservation.id, "ลูกค้ายกเลิกเอง", { by: "customer" });
   });
   if (!result.ok) return { ok: false, error: result.error };
   revalidatePath(`/reservations/${number}`);

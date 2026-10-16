@@ -1,5 +1,6 @@
-/** zod schemas shared by admin server actions and client forms (client-safe: zod only). */
+/** zod schemas shared by admin server actions and client forms (client-safe: zod + the pure Bangkok time helpers). */
 import { z } from "zod";
+import { bkkDateString, parseYmd } from "../services/time";
 
 export type FormResult<T = unknown> = { ok: true; message?: string; data?: T } | { ok: false; error: string; fieldErrors?: Record<string, string> };
 
@@ -58,11 +59,17 @@ export const serviceSchema = z
     depositAmount: money.default(0),
     capacity: intMin(1, "จำนวนที่รับ").max(500).default(1),
     requiresStaff: boolDefault(true),
+    /** SBR-001: fixed guests per booking (package "for 2", priced per booking); null = per person (priced per guest) */
+    seatsPerBooking: z
+      .union([intMin(1, "จำนวนท่านต่อการจอง").max(500), z.null(), z.undefined(), z.literal("")])
+      .transform((v) => (typeof v === "number" ? v : null)),
     active: boolDefault(true),
     featured: boolDefault(false),
     sort: intMin(0, "ลำดับ").max(9999).default(0),
   })
+  .transform((v) => ({ ...v, seatsPerBooking: v.capacity > 1 ? v.seatsPerBooking : null }))
   .superRefine((v, ctx) => {
+    if (v.seatsPerBooking && v.seatsPerBooking > v.capacity) ctx.addIssue({ code: "custom", path: ["seatsPerBooking"], message: "จำนวนท่านต่อการจองต้องไม่เกินจำนวนที่รับต่อรอบ" });
     if (v.depositRequired && v.depositAmount <= 0) ctx.addIssue({ code: "custom", path: ["depositAmount"], message: "กรุณาระบุยอดมัดจำ" });
     if (v.depositRequired && v.price > 0 && v.depositAmount > v.price) ctx.addIssue({ code: "custom", path: ["depositAmount"], message: "มัดจำต้องไม่เกินราคาบริการ" });
   });
@@ -153,7 +160,19 @@ export const patientSchema = z.object({
     .optional()
     .nullable()
     .transform((v) => (v ? v : null)),
-  birthDate: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "วันเกิดไม่ถูกต้อง"), z.literal(""), z.null(), z.undefined()]).transform((v) => (v ? v : null)),
+  birthDate: z
+    .union([
+      z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, "วันเกิดไม่ถูกต้อง")
+        .refine((s) => !!parseYmd(s) && Number(s.slice(0, 4)) >= 1900, "วันเกิดไม่ถูกต้อง")
+        // COR-12: compared with today's date in Bangkok, not the server's UTC date
+        .refine((s) => s <= bkkDateString(new Date()), "วันเกิดต้องไม่เป็นวันในอนาคต"),
+      z.literal(""),
+      z.null(),
+      z.undefined(),
+    ])
+    .transform((v) => (v ? v : null)),
   phone: optPhone,
   email: optEmail,
   bloodType: optStr(4),

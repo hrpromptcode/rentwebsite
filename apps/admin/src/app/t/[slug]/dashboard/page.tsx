@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Activity, ArrowRight, CalendarDays, Check, Circle, ExternalLink, Receipt, ShoppingBag, UserPlus, Wallet, Zap } from "lucide-react";
+import { Activity, ArrowRight, BadgeCheck, CalendarCheck, CalendarDays, Check, Circle, ExternalLink, Receipt, ShoppingBag, UserPlus, UtensilsCrossed, Wallet, Zap } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@rentweb/ui/components/card";
 import { KpiCard } from "@/components/ui/kpi-card";
@@ -17,6 +17,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
   const ctx = await getTenantCtx(slug);
   const data = await getDashboardData(ctx);
   const { kpis } = data;
+  const base = `/t/${slug}`;
+  const hasModuleKpis = kpis.ordersToday !== null || kpis.restOrdersToday !== null || kpis.bookingsToday !== null || kpis.topupsToday !== null;
+  const kpiCount = [kpis.ordersToday, kpis.restOrdersToday, kpis.revenueToday, kpis.reservationsToday, kpis.bookingsToday, kpis.topupsToday, kpis.pendingSlips].filter((v) => v !== null).length + 1 + (hasModuleKpis ? 0 : 1);
   const trialDaysLeft = ctx.tenant.trialEndsAt ? Math.max(0, Math.ceil((ctx.tenant.trialEndsAt.getTime() - Date.now()) / 86_400_000)) : null;
 
   return (
@@ -43,16 +46,19 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
         }
       />
 
-      <section aria-label="ตัวเลขวันนี้" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {kpis.ordersToday !== null && <KpiCard label="ออเดอร์วันนี้" value={fmtNumber(kpis.ordersToday)} hint={kpis.pendingSlips ? `${kpis.pendingSlips} สลิปรอตรวจ` : "ไม่มีสลิปรอตรวจ"} icon={ShoppingBag} tone="primary" />}
-        {kpis.revenueToday !== null && <KpiCard label="ยอดขายวันนี้ (ชำระแล้ว)" value={thb(kpis.revenueToday)} icon={Wallet} tone="success" />}
-        {kpis.bookingsToday !== null && <KpiCard label="นัดหมายวันนี้" value={fmtNumber(kpis.bookingsToday)} icon={CalendarDays} tone="accent" />}
+      <section aria-label="ตัวเลขวันนี้" className={`grid gap-4 sm:grid-cols-2 ${kpiCount === 5 ? "xl:grid-cols-5" : kpiCount === 6 ? "xl:grid-cols-3" : "xl:grid-cols-4"}`}>
+        {kpis.ordersToday !== null && <KpiCard label="ออเดอร์วันนี้" value={fmtNumber(kpis.ordersToday)} icon={ShoppingBag} tone="primary" href={`${base}/orders`} />}
+        {kpis.restOrdersToday !== null && <KpiCard label={kpis.ordersToday !== null ? "ออเดอร์ร้านอาหารวันนี้" : "ออเดอร์วันนี้"} value={fmtNumber(kpis.restOrdersToday)} hint={kpis.openTables ? `${fmtNumber(kpis.openTables)} โต๊ะกำลังใช้งาน` : "ไม่มีโต๊ะที่เปิดอยู่"} icon={UtensilsCrossed} tone="primary" href={`${base}/restaurant/orders`} />}
+        {kpis.revenueToday !== null && <KpiCard label="ยอดขายวันนี้" value={thb(kpis.revenueToday)} hint="เฉพาะที่ชำระแล้ว" icon={Wallet} tone="success" />}
+        {kpis.reservationsToday !== null && <KpiCard label="จองโต๊ะวันนี้" value={fmtNumber(kpis.reservationsToday)} icon={CalendarCheck} tone="accent" href={`${base}/restaurant/reservations`} />}
+        {kpis.bookingsToday !== null && <KpiCard label="นัดหมายวันนี้" value={fmtNumber(kpis.bookingsToday)} icon={CalendarDays} tone="accent" href={`${base}/bookings`} />}
         {kpis.topupsToday !== null && <KpiCard label="รายการเติมวันนี้" value={fmtNumber(kpis.topupsToday)} hint={kpis.topupQueue ? `${kpis.topupQueue} รายการรอเติม` : "คิวว่าง"} icon={Zap} tone="accent" />}
-        <KpiCard label="ลูกค้าใหม่ 7 วัน" value={fmtNumber(kpis.newCustomers7d)} icon={UserPlus} />
-        {kpis.ordersToday === null && kpis.bookingsToday === null && kpis.topupsToday === null && <KpiCard label="ยอดขายวันนี้" value="—" hint="เปิดโมดูลร้านค้า จองคิว หรือเติมเกมเพื่อดูยอด" icon={Receipt} />}
+        {kpis.pendingSlips !== null && <KpiCard label="สลิปรอตรวจ" value={fmtNumber(kpis.pendingSlips)} hint={kpis.pendingSlips ? "รวมทุกโมดูล · กดเพื่อตรวจสลิป" : "ไม่มีสลิปค้างตรวจ"} icon={BadgeCheck} tone={kpis.pendingSlips ? "accent" : "default"} href={`${base}/payments`} />}
+        <KpiCard label="ลูกค้าใหม่ 7 วัน" value={fmtNumber(kpis.newCustomers7d)} icon={UserPlus} href={`${base}/customers`} />
+        {!hasModuleKpis && <KpiCard label="ยอดขายวันนี้" value="—" hint="เปิดโมดูลร้านค้า ร้านอาหาร จองคิว หรือเติมเกมเพื่อดูยอด" icon={Receipt} />}
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <Card>
           <CardHeader className="gap-3">
             <div className="flex items-start justify-between gap-4">

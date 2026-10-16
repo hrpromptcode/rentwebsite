@@ -59,7 +59,7 @@ export function OtpForm({
         <Label htmlFor="otp-target">{labels.phone}</Label>
         <div className="relative">
           <Phone className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input id="otp-target" name="target" type="tel" inputMode="tel" autoComplete="tel" placeholder="08x-xxx-xxxx หรืออีเมล" required className="h-12 pl-10" autoFocus />
+          <Input id="otp-target" name="target" type="text" inputMode="email" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="08x-xxx-xxxx หรืออีเมล" required className="h-12 pl-10" autoFocus />
         </div>
       </div>
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}

@@ -69,6 +69,7 @@ export function CartSheet({
   notice,
   children,
   replace,
+  returnFocus,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -80,10 +81,23 @@ export function CartSheet({
   notice?: React.ReactNode;
   children?: React.ReactNode;
   replace?: React.ReactNode;
+  /** element to focus when the sheet closes (the cart bar) – the sheet has no Radix trigger (RA-05) */
+  returnFocus?: () => HTMLElement | null | undefined;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="mx-auto max-h-[92dvh] w-full gap-0 overflow-hidden p-0 sm:max-w-lg" aria-describedby={undefined}>
+      <SheetContent
+        side="bottom"
+        className="mx-auto max-h-[92dvh] w-full gap-0 overflow-hidden p-0 sm:max-w-lg"
+        aria-describedby={undefined}
+        onCloseAutoFocus={(e) => {
+          const el = returnFocus?.();
+          if (el) {
+            e.preventDefault();
+            el.focus();
+          }
+        }}
+      >
         {replace ? (
           <div className="min-h-0 flex-1 overflow-y-auto">{replace}</div>
         ) : (

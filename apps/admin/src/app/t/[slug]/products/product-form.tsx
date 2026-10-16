@@ -35,6 +35,8 @@ export function ProductForm({ slug, productId, initial, categories: initialCateg
   const [newCat, setNewCat] = React.useState("");
   const [catBusy, setCatBusy] = React.useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
+  // COR-32: stock values the form was loaded with — the server applies only the change made here, as a delta
+  const stockBase = React.useRef<{ stock: string; variants: Record<string, string> }>({ stock: initial.stock, variants: Object.fromEntries(initial.variants.filter((x) => x.id).map((x) => [x.id!, x.stock])) });
   const set = <K extends keyof ProductFormValues>(k: K, val: ProductFormValues[K]) => setV((s) => ({ ...s, [k]: val }));
   const hasVariants = v.options.length > 0 && v.variants.length > 0;
   const imgSrc = (url: string) => (url.startsWith("/") ? `${assetBase}${url}` : url);
@@ -120,6 +122,7 @@ export function ProductForm({ slug, productId, initial, categories: initialCateg
       status,
       trackInventory: v.trackInventory,
       stock: v.stock,
+      stockLoaded: productId ? stockBase.current.stock : undefined,
       lowStockThreshold: v.lowStockThreshold,
       weightGrams: v.weightGrams,
       sku: v.sku,
@@ -128,7 +131,7 @@ export function ProductForm({ slug, productId, initial, categories: initialCateg
       seoTitle: v.seoTitle,
       seoDescription: v.seoDescription,
       options: hasVariants ? v.options : [],
-      variants: hasVariants ? v.variants.map((x) => ({ id: x.id, title: x.title, optionValues: x.optionValues, sku: x.sku, price: x.price, compareAtPrice: x.compareAtPrice, stock: x.stock, active: x.active })) : [],
+      variants: hasVariants ? v.variants.map((x) => ({ id: x.id, title: x.title, optionValues: x.optionValues, sku: x.sku, price: x.price, compareAtPrice: x.compareAtPrice, stock: x.stock, stockLoaded: x.id ? stockBase.current.variants[x.id] : undefined, active: x.active })) : [],
     };
   }
   async function submit(status: ProductFormValues["status"]) {
@@ -158,7 +161,20 @@ export function ProductForm({ slug, productId, initial, categories: initialCateg
       toast.success(r.message ?? "บันทึกแล้ว");
       if (!productId) router.push(`/t/${slug}/products/${r.data!.id}`);
       else {
-        setV((s) => ({ ...s, status, slug: r.data!.slug }));
+        // show the live stock (sales made meanwhile are kept) and make it the baseline of the next save
+        const saved = r.data!;
+        const byTitle = new Map(saved.variants.map((x) => [x.title, x]));
+        stockBase.current = { stock: String(saved.stock), variants: Object.fromEntries(saved.variants.map((x) => [x.id, String(x.stock)])) };
+        setV((s) => ({
+          ...s,
+          status,
+          slug: saved.slug,
+          stock: String(saved.stock),
+          variants: s.variants.map((x) => {
+            const row = byTitle.get(x.title.trim());
+            return row ? { ...x, id: row.id, stock: String(row.stock) } : x;
+          }),
+        }));
         router.refresh();
       }
     } catch (e) {

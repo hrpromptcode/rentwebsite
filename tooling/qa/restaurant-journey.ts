@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdir } from "node:fs/promises";
 import { chromium, expect, type BrowserContext, type Page } from "@playwright/test";
+import { isolateHmr } from "./bughunt/fixes/_dev-stable";
 
 /**
  * QA journey for the restaurant deliverable (demo-restaurant / ember) in a real Chromium at 390px.
@@ -60,6 +61,7 @@ function track(page: Page, tag: string) {
 
 async function newCtx(browser: Awaited<ReturnType<typeof chromium.launch>>, tag: string): Promise<{ ctx: BrowserContext; page: Page }> {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, reducedMotion: "reduce", hasTouch: true, isMobile: true, locale: "th-TH" });
+  await isolateHmr(ctx); // other agents' edits make the shared dev server reload every page (HMR churn)
   const page = await ctx.newPage();
   track(page, tag);
   currentPage = page;
@@ -303,6 +305,13 @@ async function main() {
       await page.getByRole("button", { name: /ขอบิล/ }).click();
       const bill = page.getByRole("dialog");
       await expect(bill.getByText("ยอดที่ต้องชำระ").first()).toBeVisible();
+      // COR-07/SBR-005: the new round voided the old QR → the sheet offers a fresh PromptPay bill for the new due
+      const fresh = bill.getByRole("button", { name: /ชำระด้วย PromptPay/ });
+      if (await fresh.count()) {
+        if (!(await fresh.textContent())?.replace(/[,\s]/g, "").includes(Math.round(due / 100).toString())) throw new Error(`PromptPay button does not show the new due ฿${due / 100}: ${await fresh.textContent()}`);
+        await fresh.click();
+        await expect(bill.locator(".heading-display").first()).toBeVisible({ timeout: 15000 });
+      }
       const header = (await bill.getByText("ยอดที่ต้องชำระ").first().locator("xpath=..").textContent()) ?? "";
       const panelAmount = (await bill.locator(".heading-display").first().textContent())?.trim() ?? "(no panel)";
       const regen = await bill.getByRole("button", { name: /ชำระด้วย PromptPay|ชำระที่เคาน์เตอร์/ }).count();

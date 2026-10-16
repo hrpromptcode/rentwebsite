@@ -21,7 +21,7 @@ export default async function HomePage({ params }: { params: Promise<{ tenantId:
 
   return (
     <PageBody theme={runtime.theme} sections={page.sections}>
-      <RenderSections sections={page.sections} ctx={ctx} />
+      <RenderSections sections={page.sections} ctx={ctx} pageTitle={runtime.config.name} />
     </PageBody>
   );
 }

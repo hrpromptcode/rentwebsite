@@ -16,6 +16,7 @@ export function ItemCard({ item, onSelect, className }: { item: MenuItemData; on
       type="button"
       disabled={soldOut}
       onClick={() => onSelect(item)}
+      data-item-id={item.id}
       aria-label={`${item.name} ${thb(item.price)}${soldOut ? ` (${L.soldOut})` : ""}`}
       className={cn(
         "card group flex w-full gap-3 p-3 text-left transition duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/5 focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 md:gap-4 md:p-4",

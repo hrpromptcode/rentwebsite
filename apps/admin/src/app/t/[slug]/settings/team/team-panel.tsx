@@ -71,7 +71,7 @@ export function TeamPanel({ slug, currentUserId, myRole, canManage, members, inv
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -137,7 +137,7 @@ export function TeamPanel({ slug, currentUserId, myRole, canManage, members, inv
           </CardHeader>
           <CardContent>
             <form
-              className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end"
+              className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end"
               onSubmit={(e) => {
                 e.preventDefault();
                 void invite(slug, { email, role });

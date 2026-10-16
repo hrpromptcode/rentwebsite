@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { isUuid } from "@rentweb/core";
 import type { PaymentMethod } from "@rentweb/core/payments";
-import { bookingConfig, cancelBooking, createBookingPayment, getBookingForCustomer, rescheduleBooking } from "@rentweb/module-booking/services";
+import { bookingConfig, cancelBooking, getBookingForCustomer, renewBookingPayment, rescheduleBooking } from "@rentweb/module-booking/services";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
@@ -28,6 +28,7 @@ async function authorise(tenantId: string, bookingId: string, key: string | null
 function revalidate(tenantId: string, bookingId: string) {
   revalidatePath(`/rw/${tenantId}/bookings/${bookingId}`);
   revalidatePath(`/rw/${tenantId}/account/bookings`);
+  revalidatePath(`/rw/${tenantId}/account/packages`, "layout");
 }
 
 /** Customer cancels under the cancelHours policy. Bound as (tenantId, bookingId, key) → useActionState. */
@@ -41,7 +42,7 @@ export async function cancelBookingAction(tenantId: string, bookingId: string, k
   redirect(`/bookings/${bookingId}${keyQs(key)}`);
 }
 
-/** Customer moves the appointment: old booking cancelled, new one created (same payment state). */
+/** Customer moves the appointment: old booking cancelled, new one created; the deposit payment follows (COR-09). */
 export async function rescheduleBookingAction(tenantId: string, bookingId: string, key: string | null, start: string): Promise<{ error: string } | void> {
   if (typeof start !== "string" || Number.isNaN(Date.parse(start))) return { error: msg("invalid_slot") };
   const auth = await authorise(tenantId, bookingId, key);
@@ -52,13 +53,12 @@ export async function rescheduleBookingAction(tenantId: string, bookingId: strin
   redirect(`/bookings/${result.value.booking.id}?k=${encodeURIComponent(result.value.accessKey)}`);
 }
 
-/** Re-issues the deposit payment (new QR) when the previous one expired. */
+/** Issues the deposit payment (new QR) when there is no live one; the expired / rejected one is voided first. */
 export async function renewPaymentAction(tenantId: string, bookingId: string, key: string | null): Promise<void> {
   const auth = await authorise(tenantId, bookingId, key);
   if (!auth) return;
-  const { booking, payment } = auth.detail;
-  if (booking.status !== "pending" || booking.depositAmount <= 0 || payment?.status === "paid") return;
-  await tenantTx(tenantId, (tx) => createBookingPayment(tx, tenantId, booking, (payment?.method as PaymentMethod | undefined) ?? null, auth.runtime.config.settings));
+  const { payment } = auth.detail;
+  await tenantTx(tenantId, (tx) => renewBookingPayment(tx, tenantId, bookingId, (payment?.method as PaymentMethod | undefined) ?? null, auth.runtime.config.settings));
   revalidate(tenantId, bookingId);
   redirect(`/bookings/${bookingId}${keyQs(key)}`);
 }

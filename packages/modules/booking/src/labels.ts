@@ -58,6 +58,13 @@ export const L = {
   validity: (days: number) => (days % 30 === 0 ? `ใช้ได้ ${days / 30} เดือน` : `ใช้ได้ ${days} วัน`),
   save: (pct: number) => `ประหยัด ${pct}%`,
   buyPackage: "ซื้อแพ็กเกจ",
+  partySize: "จำนวนผู้ใช้บริการ",
+  guests: (n: number) => `${n} ท่าน`,
+  perGuest: "ต่อท่าน",
+  packageFor: (n: number) => `แพ็กเกจสำหรับ ${n} ท่าน`,
+  useCourse: "ใช้สิทธิ์คอร์ส",
+  courseLeft: (name: string, n: number) => `${name} (เหลือ ${n} ครั้ง)`,
+  courseBookingNote: "การจองนี้ใช้สิทธิ์จากคอร์สที่ซื้อไว้ ไม่ต้องชำระเพิ่ม",
   perSession: "ต่อครั้ง",
   errors: {
     service_not_found: "ไม่พบบริการนี้ กรุณาเลือกใหม่",
@@ -74,6 +81,9 @@ export const L = {
     unknown: "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
     package_not_found: "ไม่พบแพ็กเกจนี้",
     login_required: "กรุณาเข้าสู่ระบบก่อน",
+    package_not_usable: "ใช้สิทธิ์คอร์สนี้กับการจองนี้ไม่ได้ (คอร์สหมดอายุ ใช้ครบแล้ว หรือไม่ใช่บริการของคอร์ส)",
+    consent_required: "กรุณายอมรับเงื่อนไขและการเก็บข้อมูลส่วนบุคคล (PDPA) ก่อนสั่งซื้อ",
+    not_payable: "การจองนี้ไม่ต้องชำระมัดจำแล้ว",
   } as Record<string, string>,
 } as const;
 
@@ -100,6 +110,7 @@ export const PACKAGE_STATUS: Record<string, { label: string; tone: "default" | "
   exhausted: { label: "ใช้ครบแล้ว", tone: "muted" },
   expired: { label: "หมดอายุ", tone: "muted" },
   refunded: { label: "คืนเงินแล้ว", tone: "destructive" },
+  cancelled: { label: "ยกเลิกแล้ว", tone: "destructive" },
 };
 
 export const METHOD_LABELS: Record<string, { label: string; description: string }> = {

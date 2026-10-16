@@ -16,6 +16,8 @@ export interface ServiceFormValues {
   depositAmount: string;
   capacity: string;
   requiresStaff: boolean;
+  /** "" = priced per guest (customer picks the party size); "2" = package for 2 guests, priced per booking */
+  seatsPerBooking: string;
   active: boolean;
   featured: boolean;
   sort: string;
@@ -36,6 +38,7 @@ export const EMPTY_SERVICE: ServiceFormValues = {
   depositAmount: "",
   capacity: "1",
   requiresStaff: true,
+  seatsPerBooking: "",
   active: true,
   featured: false,
   sort: "0",
@@ -56,6 +59,7 @@ export function serviceToForm(s: {
   depositAmount: number;
   capacity: number;
   requiresStaff: boolean;
+  seatsPerBooking?: number | null;
   active: boolean;
   featured: boolean;
   sort: number;
@@ -75,6 +79,7 @@ export function serviceToForm(s: {
     depositAmount: satangToBaht(s.depositAmount),
     capacity: String(s.capacity),
     requiresStaff: s.requiresStaff,
+    seatsPerBooking: s.seatsPerBooking ? String(s.seatsPerBooking) : "",
     active: s.active,
     featured: s.featured,
     sort: String(s.sort),

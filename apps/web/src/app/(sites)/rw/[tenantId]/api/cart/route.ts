@@ -32,6 +32,11 @@ async function guard(tenantId: string) {
   return { customerId: customer?.id ?? null };
 }
 
+/** SS-12: a signed-in customer's cart may live under another device's token after a merge — point the cookie at it. */
+async function syncCookie(cookieToken: string | null, cartToken: string | null | undefined) {
+  if (cartToken && cartToken !== cookieToken) await setCartToken(cartToken);
+}
+
 /** Current cart (empty view when the cookie has no live cart). */
 export async function GET(_req: Request, { params }: Params) {
   const { tenantId } = await params;
@@ -39,6 +44,7 @@ export async function GET(_req: Request, { params }: Params) {
   if (!g) return failJson("not found", "not_found", 404);
   const token = await getCartToken();
   const cart = await tenantTx(tenantId, (tx) => loadCart(tx, tenantId, token, { customerId: g.customerId }));
+  await syncCookie(token, cart?.token);
   return json({ ok: true, cart: cart ?? EMPTY });
 }
 
@@ -58,13 +64,14 @@ export async function POST(req: Request, { params }: Params) {
     const parsed = couponSchema.safeParse(body);
     if (!parsed.success) return failJson("กรุณากรอกโค้ดส่วนลด");
     const out = await tenantTx(tenantId, async (tx) => {
-      const cart = await findActiveCart(tx, tenantId, token);
+      const cart = await findActiveCart(tx, tenantId, token, { customerId: g.customerId });
       if (!cart) return { ok: false as const, error: "ตะกร้าว่าง กรุณาเลือกสินค้าก่อน", code: "empty" };
       const r = await applyCoupon(tx, tenantId, cart.id, parsed.data.coupon, { customerId: g.customerId });
-      if (!r.ok) return { ok: false as const, error: r.error, code: r.code };
-      const [fresh] = [await findActiveCart(tx, tenantId, token)];
+      if (!r.ok) return { ok: false as const, error: r.error, code: r.code, token: cart.token };
+      const fresh = await findActiveCart(tx, tenantId, cart.token);
       return { ok: true as const, cart: await buildCartView(tx, tenantId, fresh ?? cart, { customerId: g.customerId }) };
     });
+    await syncCookie(token, out.ok ? out.cart.token : "token" in out ? out.token : null);
     return out.ok ? json(out) : failJson(out.error, out.code);
   }
 
@@ -76,7 +83,7 @@ export async function POST(req: Request, { params }: Params) {
     if (!r.ok) return { ok: false as const, error: r.error, code: r.code, created, token: cart.token };
     return { ok: true as const, adjusted: r.value.adjusted, created, token: cart.token, cart: await buildCartView(tx, tenantId, cart, { customerId: g.customerId }) };
   });
-  if (out.created) await setCartToken(out.token);
+  if (out.created) await setCartToken(out.token); // new cart, or the customer's merged cart from another device
   return out.ok ? json({ ok: true, cart: out.cart, adjusted: out.adjusted }) : failJson(out.error, out.code);
 }
 
@@ -91,12 +98,13 @@ export async function PATCH(req: Request, { params }: Params) {
   if (!parsed.success) return failJson("ข้อมูลไม่ถูกต้อง");
   const token = await getCartToken();
   const out = await tenantTx(tenantId, async (tx) => {
-    const cart = await findActiveCart(tx, tenantId, token);
+    const cart = await findActiveCart(tx, tenantId, token, { customerId: g.customerId });
     if (!cart) return { ok: false as const, error: "ไม่พบตะกร้า", code: "not_found" };
     const r = await updateCartItem(tx, tenantId, cart.id, parsed.data.itemId, parsed.data.quantity);
     if (!r.ok) return { ok: false as const, error: r.error, code: r.code };
     return { ok: true as const, adjusted: r.value.adjusted, cart: await buildCartView(tx, tenantId, cart, { customerId: g.customerId }) };
   });
+  if (out.ok) await syncCookie(token, out.cart.token);
   return out.ok ? json(out) : failJson(out.error, out.code);
 }
 
@@ -111,13 +119,14 @@ export async function DELETE(req: Request, { params }: Params) {
   if (itemId && !z.string().uuid().safeParse(itemId).success) return failJson("ข้อมูลไม่ถูกต้อง");
   const token = await getCartToken();
   const out = await tenantTx(tenantId, async (tx) => {
-    const cart = await findActiveCart(tx, tenantId, token);
+    const cart = await findActiveCart(tx, tenantId, token, { customerId: g.customerId });
     if (!cart) return { ok: true as const, cart: EMPTY };
     if (itemId) await removeCartItem(tx, tenantId, cart.id, itemId);
     else if (dropCoupon) await removeCoupon(tx, tenantId, cart.id);
     else await clearCart(tx, tenantId, cart.id);
-    const fresh = (await findActiveCart(tx, tenantId, token)) ?? cart;
+    const fresh = (await findActiveCart(tx, tenantId, cart.token)) ?? cart;
     return { ok: true as const, cart: await buildCartView(tx, tenantId, fresh, { customerId: g.customerId }) };
   });
+  if (out.cart.token) await syncCookie(token, out.cart.token);
   return json(out);
 }

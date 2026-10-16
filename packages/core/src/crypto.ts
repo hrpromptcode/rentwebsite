@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 
 const ALGO = "aes-256-gcm";
 
@@ -57,9 +57,9 @@ export function randomToken(bytes = 32): string {
   return randomBytes(bytes).toString("base64url");
 }
 
-/** 6-digit numeric OTP */
+/** 6-digit numeric OTP from the CSPRNG (never Math.random – login codes must be unpredictable). */
 export function randomOtp(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return String(randomInt(100000, 1000000));
 }
 
 export function safeEqual(a: string, b: string): boolean {

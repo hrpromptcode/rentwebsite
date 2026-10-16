@@ -1,6 +1,6 @@
 export * from "./ctx";
 export * from "./definitions";
-export { RenderSections, registerSection, hasSectionComponent, type SectionComponent } from "./render";
+export { RenderSections, registerSection, hasSectionComponent, sectionsRenderH1, type SectionComponent } from "./render";
 export { SiteHeader } from "./shell/header";
 export { SiteFooter } from "./shell/footer";
 export { Logo } from "./shell/logo";

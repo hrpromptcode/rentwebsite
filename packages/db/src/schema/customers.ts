@@ -98,9 +98,11 @@ export const customerOtps = pgTable(
     attempts: integer("attempts").notNull().default(0),
     expiresAt: tz("expires_at").notNull(),
     consumedAt: tz("consumed_at"),
+    /** Requesting client IP – used to rate-limit OTP requests per IP (SMS cost / spam). */
+    ip: text("ip"),
     createdAt: createdAt(),
   },
-  (t) => [index("customer_otps_target_idx").on(t.tenantId, t.target, t.createdAt)],
+  (t) => [index("customer_otps_target_idx").on(t.tenantId, t.target, t.createdAt), index("customer_otps_ip_idx").on(t.tenantId, t.ip, t.createdAt)],
 );
 
 export const loyaltyTransactions = pgTable(

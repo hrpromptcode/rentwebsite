@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { and, asc, eq, getAdminDb, getDb, tenantDomains, tenantMembers, tenantModules, tenants, withTenant, type Tx } from "@rentweb/db";
 import { MODULES, resolveModules, type ModuleKey } from "@rentweb/core/modules";
 import { rootHost } from "@rentweb/core/env";
+import { safeNext } from "./safe-next";
 import { getSession, isSuperadmin } from "./session";
 
 export type MemberRole = "owner" | "admin" | "manager" | "staff" | "viewer";
@@ -33,7 +34,7 @@ export function storefrontUrlFor(slug: string): string {
 /** Loads the tenant by slug and verifies the current user may access its back-office (superadmin bypass). */
 export const getTenantCtx = cache(async (slug: string): Promise<TenantCtx> => {
   const session = await getSession();
-  if (!session) redirect(`/login?next=${encodeURIComponent(`/t/${slug}/dashboard`)}`);
+  if (!session) redirect(`/login?next=${encodeURIComponent(safeNext(`/t/${encodeURIComponent(slug)}/dashboard`))}`);
   const db = getAdminDb();
   const [tenant] = await db.select().from(tenants).where(eq(tenants.slug, slug)).limit(1);
   if (!tenant || tenant.status === "deleted") notFound();
