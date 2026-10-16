@@ -22,7 +22,7 @@ export function CategoriesManager({ slug, categories, canEdit }: { slug: string;
   const router = useRouter();
   const [newName, setNewName] = React.useState("");
   const [busy, setBusy] = React.useState<string | null>(null);
-  const [editing, setEditing] = React.useState<{ id: string; name: string; sort: string } | null>(null);
+  const [editing, setEditing] = React.useState<{ id: string; name: string; slug: string; sort: string } | null>(null);
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -43,7 +43,7 @@ export function CategoriesManager({ slug, categories, canEdit }: { slug: string;
     if (!editing) return;
     setBusy(editing.id);
     try {
-      const r = await saveCategoryAction(slug, editing.id, { name: editing.name, sort: Number(editing.sort || 0) });
+      const r = await saveCategoryAction(slug, editing.id, { name: editing.name, slug: editing.slug, sort: Number(editing.sort || 0) });
       if (!r.ok) return void toast.error(r.error);
       toast.success(r.message ?? "บันทึกแล้ว");
       setEditing(null);
@@ -88,7 +88,7 @@ export function CategoriesManager({ slug, categories, canEdit }: { slug: string;
                     </span>
                     {canEdit && (
                       <>
-                        <Button type="button" size="icon-sm" variant="ghost" onClick={() => setEditing({ id: c.id, name: c.name, sort: String(c.sort) })} aria-label={`แก้ไข ${c.name}`}>
+                        <Button type="button" size="icon-sm" variant="ghost" onClick={() => setEditing({ id: c.id, name: c.name, slug: c.slug, sort: String(c.sort) })} aria-label={`แก้ไข ${c.name}`}>
                           <Pencil aria-hidden />
                         </Button>
                         <ConfirmButton size="icon-sm" variant="ghost" className="text-destructive hover:text-destructive" aria-label={`ลบ ${c.name}`} title={`ลบหมวดหมู่ “${c.name}”?`} description={c.serviceCount ? `บริการ ${c.serviceCount} รายการในหมวดนี้จะกลายเป็น “ไม่ระบุหมวดหมู่”` : undefined} confirmLabel="ลบ" action={async () => {

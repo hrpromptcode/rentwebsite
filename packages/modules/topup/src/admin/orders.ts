@@ -1,8 +1,9 @@
-import { and, count, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, inArray, isNull, lte, or, sql, type SQL } from "drizzle-orm";
 import { auditLogs, customers, gamePackages, games, payments, topupOrders, topupSuppliers, type Tx } from "@rentweb/db";
 import { audit, emitEvent, encryptToString, fail, ok, type Result } from "@rentweb/core";
 import { getPayment, markFailed, markPaid } from "@rentweb/core/payments";
 import { failOrder, fulfillOrder, getOrderById, revealDeliveredCode, type TopupOrder } from "../services/orders";
+import { getWallet } from "../services/wallet";
 import type { OrderTab } from "./labels";
 
 export interface Actor {
@@ -97,8 +98,8 @@ export async function listAdminTopupOrders(tx: Tx, tenantId: string, f: ListOrde
   if (tc) conds.push(tc);
   const q = f.q?.trim();
   if (q) conds.push(searchCondition(q));
-  if (f.from && /^\d{4}-\d{2}-\d{2}$/.test(f.from)) conds.push(sql`${topupOrders.placedAt} >= ${dayStart(f.from)}`);
-  if (f.to && /^\d{4}-\d{2}-\d{2}$/.test(f.to)) conds.push(sql`${topupOrders.placedAt} <= ${dayEnd(f.to)}`);
+  if (f.from && /^\d{4}-\d{2}-\d{2}$/.test(f.from)) conds.push(gte(topupOrders.placedAt, dayStart(f.from)));
+  if (f.to && /^\d{4}-\d{2}-\d{2}$/.test(f.to)) conds.push(lte(topupOrders.placedAt, dayEnd(f.to)));
   const where = and(...conds);
 
   const base = () =>
@@ -198,7 +199,7 @@ export async function topupKpis(tx: Tx, tenantId: string, since: Date): Promise<
       fulfilled: sql<number>`count(*) filter (where ${topupOrders.status} = 'fulfilled')::int`,
     })
     .from(topupOrders)
-    .where(and(eq(topupOrders.tenantId, tenantId), sql`${topupOrders.placedAt} >= ${since}`));
+    .where(and(eq(topupOrders.tenantId, tenantId), gte(topupOrders.placedAt, since)));
   return { revenue: Number(r?.revenue ?? 0), profit: Number(r?.profit ?? 0), count: Number(r?.count ?? 0), fulfilled: Number(r?.fulfilled ?? 0) };
 }
 
@@ -340,6 +341,10 @@ export async function adminFailOrder(tx: Tx, tenantId: string, orderId: string, 
   if (!order) return fail("ไม่พบรายการ", "not_found");
   if (order.status === "fulfilled") return fail("รายการนี้เติมสำเร็จแล้ว ไม่สามารถเปลี่ยนเป็นไม่สำเร็จได้", "bad_status");
   if (["failed", "refunded", "cancelled"].includes(order.status)) return fail("รายการนี้ปิดไปแล้ว", "already");
+  if (order.status !== "pending_payment" && order.paymentMethod === "wallet" && order.customerId) {
+    const w = await getWallet(tx, tenantId, order.customerId);
+    if (w?.frozen) return fail("กระเป๋าเงินของลูกค้าถูกระงับอยู่ — ปลดระงับก่อน ระบบจึงจะคืนเงินอัตโนมัติได้", "frozen");
+  }
   const failed = await failOrder(tx, tenantId, order.id, reason);
   if (!failed) return fail("ไม่พบรายการ", "not_found");
   const [updated] = await tx
@@ -364,7 +369,17 @@ export async function adminRetryOrder(tx: Tx, tenantId: string, orderId: string,
     .update(topupOrders)
     .set({ status: "paid", failureReason: null, supplierResponse: mergeResponse(order, { retriedAt: new Date().toISOString(), retriedBy: actor.userId }) })
     .where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.id, order.id)));
-  const result = await fulfillOrder(tx, tenantId, order.id);
+  let result = await fulfillOrder(tx, tenantId, order.id);
+  // the fulfilment strategies replace supplier_response wholesale – carry the internal notes + retry trail over
+  const notes = notesOf(order);
+  if (result && notes.length) {
+    const [kept] = await tx
+      .update(topupOrders)
+      .set({ supplierResponse: { ...((result.supplierResponse ?? {}) as Record<string, unknown>), notes, retriedAt: new Date().toISOString(), retriedBy: actor.userId } })
+      .where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.id, order.id)))
+      .returning();
+    result = kept ?? result;
+  }
   await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.retry", targetType: "topup_order", targetId: order.id, diff: { number: order.number, result: result?.status ?? null } });
   if (!result) return fail("ไม่พบรายการ", "not_found");
   if (result.status !== "fulfilled") return fail(`ลองใหม่แล้วแต่ยังไม่สำเร็จ (${result.failureReason ?? result.status})`, "retry_failed");

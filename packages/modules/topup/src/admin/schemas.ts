@@ -74,7 +74,7 @@ export const gameSchema = z.object({
     .trim()
     .min(1, "กรุณากรอก slug")
     .max(80)
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "slug ใช้ได้เฉพาะ a-z 0-9 และ - (เช่น rov, free-fire)"),
+    .regex(/^[\p{Ll}\p{Lo}\p{M}\p{N}]+(?:-[\p{Ll}\p{Lo}\p{M}\p{N}]+)*$/u, "slug ใช้ได้เฉพาะตัวอักษรพิมพ์เล็ก ตัวเลข และ - (เช่น rov, free-fire)"),
   publisher: z.string().trim().max(120).nullable().optional(),
   description: z.string().trim().max(2000).nullable().optional(),
   image: z.string().trim().max(2000).nullable().optional(),

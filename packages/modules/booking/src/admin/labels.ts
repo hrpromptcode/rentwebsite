@@ -26,7 +26,7 @@ export type BookingAction = "confirm" | "check_in" | "start" | "complete" | "no_
 export const STATUS_ACTIONS: Record<string, BookingAction[]> = {
   pending: ["confirm", "no_show"],
   confirmed: ["check_in", "start", "complete", "no_show"],
-  checked_in: ["start", "complete", "no_show"],
+  checked_in: ["start", "complete"],
   in_progress: ["complete"],
   completed: [],
   cancelled: [],

@@ -23,9 +23,9 @@ const optStr = (max: number) =>
 const intMin = (min: number, label: string) => z.coerce.number({ message: `${label}ต้องเป็นตัวเลข` }).int(`${label}ต้องเป็นจำนวนเต็ม`).min(min, `${label}ต้องไม่น้อยกว่า ${min}`);
 /** satang */
 const money = z.coerce.number({ message: "ราคาต้องเป็นตัวเลข" }).int("ราคาต้องเป็นจำนวนเต็ม (สตางค์)").min(0, "ราคาต้องไม่ติดลบ").max(10_000_000_000);
-const slugRe = /^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u;
+const slugRe = /^[\p{L}\p{M}\p{N}]+(?:-[\p{L}\p{M}\p{N}]+)*$/u;
 export const slugField = z.string().trim().min(1, "กรุณากรอก slug").max(80, "slug ยาวเกิน 80 ตัวอักษร").regex(slugRe, "ใช้ได้เฉพาะตัวอักษร ตัวเลข และขีดกลาง");
-const optSlug = z.union([slugField, z.literal(""), z.undefined()]).transform((v) => v || "");
+const optSlug = z.union([slugField, z.literal("")]).optional().transform((v) => v || "");
 const hm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "รูปแบบเวลาไม่ถูกต้อง (HH:MM)");
 const phone = z.string().trim().min(9, "เบอร์โทรไม่ถูกต้อง").max(20, "เบอร์โทรไม่ถูกต้อง").regex(/^[+\d][\d\s-]{7,19}$/, "เบอร์โทรไม่ถูกต้อง");
 const optPhone = z.union([phone, z.literal(""), z.null(), z.undefined()]).transform((v) => (v ? v : null));

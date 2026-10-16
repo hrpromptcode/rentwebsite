@@ -1,3 +1,4 @@
+import { qualified } from "./sql";
 import { and, asc, count, desc, eq, gte, ilike, inArray, lt, or, sql, type SQL } from "drizzle-orm";
 import { bookings, clinicPackages, clinicVisits, customers, nextCounter, packageUsages, patientPackages, patients, payments, recordAccessLogs, services, staff, type Tx } from "@rentweb/db";
 import { audit, decryptFromString, emitEvent, encryptToString, fail, normalizeThaiPhone, ok, pad, type Result } from "@rentweb/core";
@@ -58,9 +59,9 @@ export async function listPatients(tx: Tx, tenantId: string, f: { q?: string | n
         tags: patients.tags,
         active: patients.active,
         createdAt: patients.createdAt,
-        lastVisitAt: sql<Date | null>`(select max(v.visited_at) from ${clinicVisits} v where v.patient_id = ${patients.id})`,
-        visitCount: sql<number>`(select count(*) from ${clinicVisits} v where v.patient_id = ${patients.id})::int`,
-        activeSessions: sql<number>`coalesce((select sum(greatest(pp.sessions_total - pp.sessions_used, 0)) from ${patientPackages} pp where pp.patient_id = ${patients.id} and pp.status = 'active'), 0)::int`,
+        lastVisitAt: sql<Date | null>`(select max(v.visited_at) from ${clinicVisits} v where v.patient_id = ${qualified(patients.id)})`,
+        visitCount: sql<number>`(select count(*) from ${clinicVisits} v where v.patient_id = ${qualified(patients.id)})::int`,
+        activeSessions: sql<number>`coalesce((select sum(greatest(pp.sessions_total - pp.sessions_used, 0)) from ${patientPackages} pp where pp.patient_id = ${qualified(patients.id)} and pp.status = 'active'), 0)::int`,
       })
       .from(patients)
       .where(where)
@@ -388,7 +389,7 @@ export async function listBookingsForVisits(tx: Tx, tenantId: string, range: { f
       serviceName: services.name,
       staffId: bookings.staffId,
       staffName: staff.name,
-      hasVisit: sql<boolean>`exists (select 1 from ${clinicVisits} v where v.booking_id = ${bookings.id})`,
+      hasVisit: sql<boolean>`exists (select 1 from ${clinicVisits} v where v.booking_id = ${qualified(bookings.id)})`,
     })
     .from(bookings)
     .innerJoin(services, eq(bookings.serviceId, services.id))

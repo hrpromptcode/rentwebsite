@@ -1,3 +1,4 @@
+import { qualified } from "./sql";
 import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, lt, or, sql, type SQL } from "drizzle-orm";
 import { bookings, customers, nextCounter, payments, serviceCategories, services, staff, staffServices, type Tx } from "@rentweb/db";
 import { audit, emitEvent, fail, ok, randomToken, type Result } from "@rentweb/core";
@@ -513,7 +514,7 @@ export async function searchCustomers(tx: Tx, tenantId: string, q: string, limit
   if (term.length < 2) return [];
   const like = `%${term.replace(/[%_]/g, "")}%`;
   const rows = await tx
-    .select({ id: customers.id, name: customers.name, phone: customers.phone, email: customers.email, bookings: sql<number>`(select count(*) from ${bookings} b where b.customer_id = ${customers.id})::int` })
+    .select({ id: customers.id, name: customers.name, phone: customers.phone, email: customers.email, bookings: sql<number>`(select count(*) from ${bookings} b where b.customer_id = ${qualified(customers.id)})::int` })
     .from(customers)
     .where(and(eq(customers.tenantId, tenantId), or(ilike(customers.name, like), ilike(customers.phone, like), ilike(customers.email, like))))
     .orderBy(desc(customers.lastSeenAt))

@@ -1,4 +1,4 @@
-import { and, count, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
 import { customers, walletTopups, walletTransactions, wallets, type Tx } from "@rentweb/db";
 import { audit, fail, ok, type Result } from "@rentweb/core";
 import { creditWallet, debitWallet, type Wallet, type WalletTransaction, type WalletTopup } from "../services/wallet";
@@ -63,7 +63,7 @@ export async function listAdminWallets(tx: Tx, tenantId: string, f: { q?: string
     const last = await tx
       .select({ walletId: walletTransactions.walletId, type: walletTransactions.type, amount: walletTransactions.amount })
       .from(walletTransactions)
-      .where(and(eq(walletTransactions.tenantId, tenantId), sql`${walletTransactions.walletId} in ${ids}`))
+      .where(and(eq(walletTransactions.tenantId, tenantId), inArray(walletTransactions.walletId, ids)))
       .orderBy(desc(walletTransactions.createdAt), desc(walletTransactions.id));
     for (const l of last) if (!lastMap.has(l.walletId)) lastMap.set(l.walletId, { type: l.type, amount: l.amount });
   }

@@ -3,6 +3,7 @@ import { codeStock, gamePackages, games, topupOrders, topupSuppliers, type GameF
 import { audit, decryptFromString, emitEvent, encryptToString, fail, ok, type Result } from "@rentweb/core";
 import { maskCode } from "../components/format";
 import type { Actor } from "./orders";
+import { qualified } from "./sql";
 import type { GameValues, PackageValues } from "./schemas";
 
 export type Game = typeof games.$inferSelect;
@@ -101,7 +102,7 @@ export async function getAdminGame(tx: Tx, tenantId: string, gameId: string): Pr
   if (!game) return null;
   const [pkgs, suppliers] = await Promise.all([
     tx
-      .select({ p: gamePackages, orderCount: sql<number>`(select count(*) from topup_orders o where o.tenant_id = ${tenantId} and o.package_id = ${gamePackages.id})::int` })
+      .select({ p: gamePackages, orderCount: sql<number>`(select count(*) from topup_orders o where o.tenant_id = ${tenantId} and o.package_id = ${qualified(gamePackages.id)})::int` })
       .from(gamePackages)
       .where(and(eq(gamePackages.tenantId, tenantId), eq(gamePackages.gameId, game.id)))
       .orderBy(asc(gamePackages.sort), asc(gamePackages.price)),
@@ -302,6 +303,7 @@ export interface StockCodeRow {
   createdAt: Date;
   soldAt: Date | null;
   soldOrderNumber: string | null;
+  soldOrderId: string | null;
   expiresAt: Date | null;
   addedBy: string | null;
 }
@@ -323,7 +325,7 @@ export async function listStockCodes(tx: Tx, tenantId: string, packageId: string
     } catch {
       /* unreadable (key rotated) */
     }
-    return { id: c.id, masked, serial: c.serial, status: c.status, createdAt: c.createdAt, soldAt: c.soldAt, soldOrderNumber, expiresAt: c.expiresAt, addedBy: c.addedBy };
+    return { id: c.id, masked, serial: c.serial, status: c.status, createdAt: c.createdAt, soldAt: c.soldAt, soldOrderNumber, soldOrderId: c.soldOrderId, expiresAt: c.expiresAt, addedBy: c.addedBy };
   });
 }
 

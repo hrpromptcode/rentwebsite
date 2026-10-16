@@ -1,4 +1,5 @@
-import { and, asc, count, eq, gte, inArray, isNull, ne, sql, type SQL } from "drizzle-orm";
+import { qualified } from "./sql";
+import { and, asc, count, eq, gt, gte, inArray, isNull, lt, ne, sql, type SQL } from "drizzle-orm";
 import { availabilityOverrides, availabilityRules, bookings, serviceCategories, services, staff, staffServices, type Tx } from "@rentweb/db";
 import { audit, fail, ok, slugify, type Result } from "@rentweb/core";
 import type { ServiceWithCategory } from "../services/catalog";
@@ -161,7 +162,7 @@ export interface CategoryWithCount {
 
 export async function listCategoriesAdmin(tx: Tx, tenantId: string): Promise<CategoryWithCount[]> {
   const rows = await tx
-    .select({ id: serviceCategories.id, name: serviceCategories.name, slug: serviceCategories.slug, sort: serviceCategories.sort, serviceCount: sql<number>`(select count(*) from ${services} s where s.category_id = ${serviceCategories.id})::int` })
+    .select({ id: serviceCategories.id, name: serviceCategories.name, slug: serviceCategories.slug, sort: serviceCategories.sort, serviceCount: sql<number>`(select count(*) from ${services} s where s.category_id = ${qualified(serviceCategories.id)})::int` })
     .from(serviceCategories)
     .where(eq(serviceCategories.tenantId, tenantId))
     .orderBy(asc(serviceCategories.sort), asc(serviceCategories.name));
@@ -224,7 +225,7 @@ export async function listStaffAdmin(tx: Tx, tenantId: string, opts: { dayStart:
     tx
       .select({ staffId: bookings.staffId, c: count() })
       .from(bookings)
-      .where(and(eq(bookings.tenantId, tenantId), inArray(bookings.staffId, ids), gte(bookings.startsAt, opts.dayStart), sql`${bookings.startsAt} < ${opts.dayEnd}`, inArray(bookings.status, ["pending", "confirmed", "checked_in", "in_progress", "completed"])))
+      .where(and(eq(bookings.tenantId, tenantId), inArray(bookings.staffId, ids), gte(bookings.startsAt, opts.dayStart), lt(bookings.startsAt, opts.dayEnd), inArray(bookings.status, ["pending", "confirmed", "checked_in", "in_progress", "completed"])))
       .groupBy(bookings.staffId),
   ]);
   const own = new Set(ownRules.map((r) => r.staffId));
@@ -420,7 +421,7 @@ export async function addTimeOff(tx: Tx, tenantId: string, input: { staffId: str
   }
   const [row] = await tx.insert(availabilityOverrides).values({ tenantId, staffId: input.staffId, startsAt, endsAt, kind: "closed", reason: input.reason }).returning({ id: availabilityOverrides.id });
   // how many live bookings fall in the range (admin should move them)
-  const conds: SQL[] = [eq(bookings.tenantId, tenantId), sql`${bookings.startsAt} < ${endsAt}`, sql`${bookings.endsAt} > ${startsAt}`, inArray(bookings.status, ["pending", "confirmed", "checked_in", "in_progress"])];
+  const conds: SQL[] = [eq(bookings.tenantId, tenantId), lt(bookings.startsAt, endsAt), gt(bookings.endsAt, startsAt), inArray(bookings.status, ["pending", "confirmed", "checked_in", "in_progress"])];
   if (input.staffId) conds.push(eq(bookings.staffId, input.staffId));
   const [{ c } = { c: 0 }] = await tx.select({ c: count() }).from(bookings).where(and(...conds));
   await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "staff.time_off.add", targetType: "availability_override", targetId: row!.id, diff: { staffId: input.staffId, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString(), reason: input.reason } });
@@ -443,3 +444,11 @@ export async function listStaffForServiceAdmin(tx: Tx, tenantId: string, service
     .orderBy(asc(staff.sort), asc(staff.name));
 }
 
+
+/** Staff row + linked service ids (edit page). */
+export async function getStaffAdmin(tx: Tx, tenantId: string, id: string): Promise<(typeof staff.$inferSelect & { serviceIds: string[] }) | null> {
+  const [row] = await tx.select().from(staff).where(and(eq(staff.tenantId, tenantId), eq(staff.id, id))).limit(1);
+  if (!row) return null;
+  const links = await tx.select({ serviceId: staffServices.serviceId }).from(staffServices).where(and(eq(staffServices.tenantId, tenantId), eq(staffServices.staffId, id)));
+  return { ...row, serviceIds: links.map((l) => l.serviceId) };
+}

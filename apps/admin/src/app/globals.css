@@ -1,6 +1,7 @@
 @import "@rentweb/ui/styles.css";
 @source "../../../../packages/ui/src";
 @source "../../../../packages/storefront/src";
+@source "../../../../packages/modules";
 
 /* Admin shell tokens: quartz-like light defaults from @rentweb/ui, plus a soft surface for the workspace */
 :root {
