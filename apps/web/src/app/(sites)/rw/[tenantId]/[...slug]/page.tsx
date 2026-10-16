@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { decodeSlug } from "@/lib/slug";
 import { notFound } from "next/navigation";
 import { RenderSections } from "@rentweb/storefront";
 import { getPublishedPage, getRuntime } from "@/lib/tenant";
@@ -8,7 +9,8 @@ import { PageBody } from "@/components/page-body";
 type Params = Promise<{ tenantId: string; slug: string[] }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
-  const { tenantId, slug } = await params;
+  const { tenantId, slug: rawSlug } = await params;
+  const slug = rawSlug.map(decodeSlug);
   const page = await getPublishedPage(tenantId, slug.join("/"));
   if (!page) return {};
   const seo = page.seo as { title?: string; description?: string; ogImage?: string; noindex?: boolean };
@@ -21,7 +23,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 }
 
 export default async function CmsPage({ params }: { params: Params }) {
-  const { tenantId, slug } = await params;
+  const { tenantId, slug: rawSlug } = await params;
+  const slug = rawSlug.map(decodeSlug);
   const runtime = await getRuntime(tenantId);
   if (!runtime) notFound();
   const page = await getPublishedPage(tenantId, slug.join("/"));

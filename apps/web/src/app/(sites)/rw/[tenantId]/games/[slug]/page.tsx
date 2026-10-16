@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { decodeSlug } from "@/lib/slug";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, Clock, ShieldCheck, Zap } from "lucide-react";
@@ -19,14 +20,16 @@ import { createTopupOrderAction } from "./actions";
 type Params = Promise<{ tenantId: string; slug: string }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
-  const { tenantId, slug } = await params;
+  const { tenantId, slug: rawSlug } = await params;
+  const slug = decodeSlug(rawSlug);
   const detail = await tenantTx(tenantId, (tx) => getGameBySlug(tx, tenantId, slug));
   if (!detail) return {};
   return { title: `เติม ${detail.game.name}`, description: detail.game.description ?? undefined };
 }
 
 export default async function GamePage({ params, searchParams }: { params: Params; searchParams: Promise<{ pkg?: string }> }) {
-  const { tenantId, slug } = await params;
+  const { tenantId, slug: rawSlug } = await params;
+  const slug = decodeSlug(rawSlug);
   const { pkg } = await searchParams;
   const runtime = await getRuntime(tenantId);
   if (!runtime || !runtime.config.modules.includes("topup")) notFound();

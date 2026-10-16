@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { decodeSlug } from "@/lib/slug";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, Clock } from "lucide-react";
@@ -14,14 +15,16 @@ import { PageBody } from "@/components/page-body";
 type Params = Promise<{ tenantId: string; slug: string }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
-  const { tenantId, slug } = await params;
+  const { tenantId, slug: rawSlug } = await params;
+  const slug = decodeSlug(rawSlug);
   const s = await tenantTx(tenantId, (tx) => getStaffBySlug(tx, tenantId, slug));
   return s ? { title: s.name, description: s.bio ?? s.title ?? undefined } : {};
 }
 
 /** /staff/[slug] – profile + the services this person performs (with their own price/duration when overridden). */
 export default async function StaffProfilePage({ params }: { params: Params }) {
-  const { tenantId, slug } = await params;
+  const { tenantId, slug: rawSlug } = await params;
+  const slug = decodeSlug(rawSlug);
   const runtime = await getRuntime(tenantId);
   if (!runtime || !runtime.config.modules.includes("booking")) notFound();
   const person = await tenantTx(tenantId, (tx) => getStaffBySlug(tx, tenantId, slug));

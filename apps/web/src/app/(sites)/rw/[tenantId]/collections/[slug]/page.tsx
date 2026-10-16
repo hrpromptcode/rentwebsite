@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { decodeSlug } from "@/lib/slug";
 import { notFound } from "next/navigation";
 import { getCategoryBySlug, listCategories, listProducts } from "@rentweb/module-commerce/services";
 import { CatalogListing, cardStyleForPreset, parseCatalogParams } from "@rentweb/module-commerce/components";
@@ -10,14 +11,16 @@ type Params = Promise<{ tenantId: string; slug: string }>;
 type Props = { params: Params; searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
-  const { tenantId, slug } = await params;
+  const { tenantId, slug: rawSlug } = await params;
+  const slug = decodeSlug(rawSlug);
   const cat = await tenantTx(tenantId, (tx) => getCategoryBySlug(tx, tenantId, slug));
   if (!cat) return {};
   return { title: cat.name, description: cat.description ?? undefined, openGraph: cat.image ? { images: [cat.image] } : undefined };
 }
 
 export default async function CollectionPage({ params, searchParams }: Props) {
-  const { tenantId, slug } = await params;
+  const { tenantId, slug: rawSlug } = await params;
+  const slug = decodeSlug(rawSlug);
   const runtime = await getRuntime(tenantId);
   if (!runtime || !runtime.config.modules.includes("commerce")) notFound();
   const q = parseCatalogParams(await searchParams);
