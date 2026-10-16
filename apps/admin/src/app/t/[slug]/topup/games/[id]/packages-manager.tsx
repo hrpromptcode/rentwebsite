@@ -131,7 +131,7 @@ function PackageRow({ slug, gameId, p, canWrite, onEdit, stockHref }: { slug: st
   }
 
   return (
-    <li className={cn("grid gap-3 px-4 py-3 sm:px-5 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,0.8fr)_8.5rem] lg:items-center", !active && "opacity-60")} data-package-row={p.name}>
+    <li className={cn("grid grid-cols-1 gap-3 px-4 py-3 sm:px-5 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,0.8fr)_8.5rem] lg:items-center", !active && "opacity-60")} data-package-row={p.name}>
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="flex flex-wrap items-center gap-1.5 font-medium">
@@ -139,7 +139,7 @@ function PackageRow({ slug, gameId, p, canWrite, onEdit, stockHref }: { slug: st
             {p.badge && <Badge variant="accent">{p.badge}</Badge>}
           </p>
           <p className="text-xs text-muted-foreground">
-            ~{p.estimatedMinutes} นาที · สั่งแล้ว {p.orderCount} ครั้ง
+            ประมาณ {p.estimatedMinutes} นาที · สั่งแล้ว {p.orderCount} ครั้ง
             {tiers.length > 0 && ` · ${tiers.map(([k, v]) => `${k === "vip" ? "VIP" : k === "agent" ? "ตัวแทน" : k} ${thb(v)}`).join(" · ")}`}
           </p>
         </div>
@@ -250,7 +250,7 @@ function PackageEditor({ slug, gameId, initial, suppliers, onDone }: { slug: str
       }}
     >
       <p className="text-sm font-semibold">{v.id ? `แก้ไข “${initial.name}”` : "แพ็กเกจใหม่"}</p>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Field label="ชื่อแพ็กเกจ" htmlFor={`${idp}-name`} error={err("name")} className="sm:col-span-2">
           <Input id={`${idp}-name`} value={v.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น 86 Diamonds" aria-invalid={!!err("name")} autoFocus />
         </Field>
@@ -292,7 +292,7 @@ function PackageEditor({ slug, gameId, initial, suppliers, onDone }: { slug: str
         </div>
       </fieldset>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {v.fulfillment === "api" && (
           <>
             <Field label="Supplier" htmlFor={`${idp}-supplier`} error={err("supplierId")} hint={suppliers.length === 0 ? "ยังไม่มี supplier — ระบบจะใช้ตัวจำลอง" : undefined}>

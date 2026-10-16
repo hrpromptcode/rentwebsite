@@ -136,7 +136,7 @@ export function GameForm({ slug, gameId, initial }: { slug: string; gameId: stri
             <CardTitle>ข้อมูลเกม</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
               <Field label="ชื่อเกม" htmlFor="g-name" error={err("name")}>
                 <Input
                   id="g-name"
@@ -189,10 +189,10 @@ export function GameForm({ slug, gameId, initial }: { slug: string; gameId: stri
             <CardTitle>ช่องข้อมูลผู้เล่น</CardTitle>
             <CardDescription>สิ่งที่ลูกค้าต้องกรอกก่อนสั่งเติม เช่น UID, เซิร์ฟเวอร์, โซน (สูงสุด 10 ช่อง)</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3">
+          <CardContent className="grid grid-cols-1 gap-3">
             {v.fields.length === 0 && <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">ยังไม่มีช่อง — ลูกค้าสั่งได้โดยไม่ต้องกรอกข้อมูลผู้เล่น (เหมาะกับบัตรเติมเงิน / โค้ด)</p>}
             {v.fields.map((f, i) => (
-              <div key={i} role="group" aria-label={`ช่องที่ ${i + 1}`} className="grid min-w-0 gap-3 rounded-xl border p-3" data-field-row={i}>
+              <div key={i} role="group" aria-label={`ช่องที่ ${i + 1}`} className="grid min-w-0 grid-cols-1 gap-3 rounded-xl border p-3" data-field-row={i}>
                 <div className="flex items-center justify-between gap-2">
                   <p className="min-w-0 truncate text-sm font-medium">
                     ช่องที่ {i + 1}
@@ -210,7 +210,7 @@ export function GameForm({ slug, gameId, initial }: { slug: string; gameId: stri
                     </Button>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)]">
+                <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)]">
                   <Field label="key" htmlFor={`f-key-${i}`} error={err(`fields.${i}.key`)} hint="a-z 0-9 _ เช่น uid">
                     <Input id={`f-key-${i}`} value={f.key} onChange={(e) => setField(i, { key: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })} placeholder="uid" className="font-mono" aria-invalid={!!err(`fields.${i}.key`)} />
                   </Field>

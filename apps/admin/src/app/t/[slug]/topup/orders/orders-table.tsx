@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { primaryPlayerField } from "@rentweb/module-topup/admin/labels";
 import { FulfillmentBadge, PaymentStatusBadge, TopupStatusBadge, paymentMethodLabel } from "@rentweb/module-topup/admin/ui";
 import { ConfirmButton } from "@/components/ui/confirm-button";
-import { fmtRelative, thb } from "@/lib/format";
+import { thb } from "@/lib/format";
 import { fulfillManyAction } from "./actions";
 
 export interface OrderRowVM {
@@ -35,6 +35,9 @@ export interface OrderRowVM {
   placedAt: string;
   paidAt: string | null;
   fulfilledAt: string | null;
+  /** relative times are formatted on the server — Date.now() in a client component drifts between SSR and hydration */
+  placedRel: string;
+  paidRel: string | null;
 }
 
 export function OrdersTable({ slug, rows, canBatch }: { slug: string; rows: OrderRowVM[]; canBatch: boolean }) {
@@ -102,7 +105,7 @@ export function OrdersTable({ slug, rows, canBatch }: { slug: string; rows: Orde
               <TableHead>เลขที่ / สถานะ</TableHead>
               <TableHead>เกม · แพ็กเกจ</TableHead>
               <TableHead className="hidden md:table-cell">ผู้เล่น</TableHead>
-              <TableHead className="text-right">ราคา</TableHead>
+              <TableHead className="hidden text-right sm:table-cell">ราคา</TableHead>
               <TableHead className="hidden sm:table-cell">การชำระ</TableHead>
               <TableHead className="hidden lg:table-cell">เวลา</TableHead>
             </TableRow>
@@ -124,24 +127,26 @@ export function OrdersTable({ slug, rows, canBatch }: { slug: string; rows: Orde
                       {o.number}
                     </Link>
                     <span className="mt-1 flex flex-wrap items-center gap-1">
-                      <TopupStatusBadge status={o.status} refundRequired={o.refundRequired} />
+                      <TopupStatusBadge status={o.status} refundRequired={o.refundRequired} fulfillment={o.fulfillment} />
                       {o.riskScore >= 30 && (
                         <Badge variant="warning" className="gap-1">
                           <ShieldAlert aria-hidden /> เสี่ยง {o.riskScore}
                         </Badge>
                       )}
                     </span>
-                    <span className="mt-1 block text-xs text-muted-foreground lg:hidden">{fmtRelative(o.placedAt)}</span>
+                    <span className="mt-1 block text-xs text-muted-foreground lg:hidden">{o.placedRel}</span>
                   </TableCell>
-                  <TableCell className="align-top">
+                  <TableCell className="whitespace-normal align-top sm:whitespace-nowrap">
                     <span className="flex items-start gap-2">
                       {o.gameImage ? <img src={o.gameImage} alt="" className="mt-0.5 size-8 shrink-0 rounded-lg object-cover" /> : <span className="mt-0.5 size-8 shrink-0 rounded-lg bg-muted" />}
                       <span className="min-w-0">
-                        <span className="block max-w-[14rem] truncate font-medium">{o.packageName}</span>
-                        <span className="block truncate text-xs text-muted-foreground">{o.gameName}</span>
-                        <span className="mt-1 flex flex-wrap gap-1">
+                        <span className="block font-medium sm:max-w-[14rem] sm:truncate">{o.packageName}</span>
+                        <span className="block text-xs text-muted-foreground sm:truncate">{o.gameName}</span>
+                        <span className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <span className="text-sm font-semibold tabular-nums text-foreground sm:hidden">{thb(o.price)}</span>
                           <FulfillmentBadge fulfillment={o.fulfillment} />
                         </span>
+                        <span className="mt-1 block text-xs text-muted-foreground sm:hidden">{paymentMethodLabel(o.paymentMethod)}</span>
                         <span className="mt-1 block font-mono text-xs md:hidden">{player}</span>
                       </span>
                     </span>
@@ -151,17 +156,14 @@ export function OrdersTable({ slug, rows, canBatch }: { slug: string; rows: Orde
                     {extra.length > 0 && <span className="block max-w-[12rem] truncate text-xs text-muted-foreground">{extra.map(([k, v]) => `${k}: ${v}`).join(" · ")}</span>}
                     <span className="block truncate text-xs text-muted-foreground">{o.customerName ?? o.customerPhone ?? o.contact ?? "ไม่ได้ล็อกอิน"}</span>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap text-right align-top font-semibold tabular-nums">
-                    {thb(o.price)}
-                    <span className="block text-xs font-normal text-muted-foreground sm:hidden">{paymentMethodLabel(o.paymentMethod)}</span>
-                  </TableCell>
+                  <TableCell className="hidden whitespace-nowrap text-right align-top font-semibold tabular-nums sm:table-cell">{thb(o.price)}</TableCell>
                   <TableCell className="hidden align-top sm:table-cell">
                     <PaymentStatusBadge status={o.paymentStatus} />
                     <span className="mt-1 block text-xs text-muted-foreground">{paymentMethodLabel(o.paymentMethod)}</span>
                   </TableCell>
                   <TableCell className="hidden whitespace-nowrap align-top text-muted-foreground lg:table-cell">
-                    <span className="block">{fmtRelative(o.placedAt)}</span>
-                    {o.paidAt && o.status === "processing" && <span className="block text-xs">ชำระ {fmtRelative(o.paidAt)}</span>}
+                    <span className="block">{o.placedRel}</span>
+                    {o.paidAt && o.status === "processing" && <span className="block text-xs">ชำระ {o.paidRel}</span>}
                   </TableCell>
                 </TableRow>
               );

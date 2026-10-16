@@ -71,10 +71,10 @@ export default async function TopupWalletDetailPage({ params }: { params: Promis
       {wallet.frozen && <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">กระเป๋านี้ถูกระงับ — ลูกค้าใช้จ่ายหรือรับเงินเข้ากระเป๋าไม่ได้ (รวมถึงการคืนเงินอัตโนมัติ) จนกว่าจะปลดระงับ</div>}
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <KpiCard label="คงเหลือ" value={<span data-testid="wallet-balance">{thb(wallet.balance)}</span>} icon={Wallet} tone="primary" />
-        <KpiCard label="เข้ากระเป๋ารวม" value={thb(stats.credited)} icon={ArrowDownLeft} tone="success" />
-        <KpiCard label="ใช้ไปรวม" value={thb(stats.debited)} icon={ArrowUpRight} />
-        <KpiCard label="จำนวนรายการ" value={fmtNumber(stats.txCount)} icon={History} hint={`เปิดเมื่อ ${fmtDate(wallet.createdAt)}`} />
+        <KpiCard className="gap-3 p-4 sm:gap-4 sm:p-5" label="คงเหลือ" value={<span data-testid="wallet-balance">{thb(wallet.balance)}</span>} icon={Wallet} tone="primary" />
+        <KpiCard className="gap-3 p-4 sm:gap-4 sm:p-5" label="เติมเข้ารวม" value={thb(stats.credited)} icon={ArrowDownLeft} tone="success" />
+        <KpiCard className="gap-3 p-4 sm:gap-4 sm:p-5" label="ใช้ไปรวม" value={thb(stats.debited)} icon={ArrowUpRight} />
+        <KpiCard className="gap-3 p-4 sm:gap-4 sm:p-5" label="รายการ" value={fmtNumber(stats.txCount)} icon={History} hint={`เปิดเมื่อ ${fmtDate(wallet.createdAt)}`} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">

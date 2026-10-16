@@ -40,12 +40,12 @@ export default async function TopupOrderDetailPage({ params }: { params: Promise
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">{order.number}</h1>
-              <TopupStatusBadge status={order.status} refundRequired={data.refundRequired} />
+              <TopupStatusBadge status={order.status} refundRequired={data.refundRequired} fulfillment={order.fulfillment} />
               <FulfillmentBadge fulfillment={order.fulfillment} />
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
               สั่งเมื่อ {fmtDate(order.placedAt, { withTime: true })} · {fmtRelative(order.placedAt)}
-              {order.paidAt && order.status === "processing" && pkg && <span className="ml-2 text-amber-700">· ลูกค้ารอมา {fmtRelative(order.paidAt)} (สัญญา {pkg.estimatedMinutes} นาที)</span>}
+              {order.paidAt && order.status === "processing" && pkg && <span className="ml-2 text-amber-700">· ชำระเงิน{" "}{fmtRelative(order.paidAt)} (สัญญาเติมภายใน {pkg.estimatedMinutes} นาที)</span>}
             </p>
           </div>
         </div>

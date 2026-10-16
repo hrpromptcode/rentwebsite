@@ -71,7 +71,8 @@ const toast = (page: Page, re: RegExp) => expect(page.locator("[data-sonner-toas
 
 async function shot(page: Page, name: string) {
   const f = path.join(shotsDir, `topup-admin-${name}.png`);
-  await page.waitForTimeout(500);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(700);
   await page.screenshot({ path: f, animations: "disabled", fullPage: true });
   const scrollW = await page.evaluate(() => document.documentElement.scrollWidth);
   const vw = page.viewportSize()?.width ?? 0;
@@ -123,7 +124,7 @@ async function main() {
   a.on("response", (r) => {
     if (r.status() >= 500) adminErrors.push(`${r.status()} ${r.url().slice(0, 140)}`);
   });
-  a.on("pageerror", (e) => adminErrors.push(`pageerror ${e.message.slice(0, 200)}`));
+  a.on("pageerror", (e) => adminErrors.push(`pageerror @${new URL(a.url()).pathname.replace(`/t/${SLUG}`, "")} ${e.message.slice(0, 160)}`));
   a.on("console", (m) => {
     if (m.type() === "error" && !/Failed to load resource.*404/.test(m.text())) adminErrors.push(m.text().slice(0, 200));
   });
@@ -170,6 +171,9 @@ async function main() {
   await step("2 admin /topup/wallets: search phone → detail → credit ฿500 (double-click writes once)", async () => {
     await a.goto(`${base}/wallets?q=${PHONE}`, { waitUntil: "networkidle" });
     await expect(a.getByRole("heading", { level: 1, name: "กระเป๋าเงินลูกค้า" })).toBeVisible();
+    await a.goto(`${base}/wallets`, { waitUntil: "networkidle" });
+    await shot(a, "wallets-1440");
+    await a.goto(`${base}/wallets?q=${PHONE}`, { waitUntil: "networkidle" });
     await a.getByRole("link", { name: CUSTOMER_NAME }).click();
     await a.waitForURL(new RegExp(`/topup/wallets/${walletId}`));
     await expect(a.getByTestId("wallet-balance")).toHaveText("฿0");
@@ -286,7 +290,9 @@ async function main() {
     await a.getByRole("button", { name: /เติมสำเร็จที่เลือก/ }).click();
     await confirmDialog("เติมสำเร็จทั้งหมด");
     await toast(a, /เติมสำเร็จ 2 รายการ/);
-    await expect(a.getByRole("link", { name: shared.C!, exact: true })).toHaveCount(0, { timeout: 15_000 });
+    await expect(a.getByRole("dialog")).toHaveCount(0);
+    for (const k of ["C", "D"]) await expect(a.locator("tbody a[href*='/topup/orders/']").filter({ hasText: new RegExp(`^${shared[k]}$`) })).toHaveCount(0, { timeout: 20_000 });
+    await expect(a.getByText(/เลือกแล้ว\s*0/)).toBeVisible();
     for (const k of ["C", "D"]) assert((await orderId(shared[k]!)).status === "fulfilled", `${k} not fulfilled`);
     await shot(a, "orders-1440");
     return "C + D fulfilled";
@@ -311,14 +317,17 @@ async function main() {
     await a.getByRole("button", { name: "อนุมัติสลิป" }).click();
     await confirmDialog("อนุมัติสลิป");
     await toast(a, /อนุมัติสลิปแล้ว/);
-    await expect(a.locator("h1").locator("..").getByText("กำลังเติม", { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(a.locator("h1").locator("..").getByText("รอเติม", { exact: true })).toBeVisible({ timeout: 15_000 });
     assert((await orderId(shared.F!)).status === "processing", "F not processing after approve");
+    const [p2] = await db.select({ status: payments.status }).from(payments).where(eq(payments.id, f.paymentId));
+    assert(p2?.status === "paid", `payment after approve ${p2?.status}`);
+    await expect(a.getByText("ชำระแล้ว", { exact: true }).first()).toBeVisible();
     await a.getByRole("button", { name: "เติมไม่สำเร็จ" }).click();
     await expect(a.getByRole("dialog").getByText(/ต้องคืนเงินมือ/)).toBeVisible();
     await a.getByRole("dialog").getByRole("button", { name: "ยืนยันเติมไม่สำเร็จ" }).click();
     await toast(a, /กรุณาคืนเงินลูกค้าด้วยตนเอง/);
     await expect(a.getByText("ต้องคืนเงินมือ").first()).toBeVisible({ timeout: 15_000 });
-    return "reject → failed, approve → processing, fail → refundRequired";
+    return "reject → payment failed, approve → payment paid + order processing, fail → refundRequired";
   });
 
   await step("11 api retry: E stuck in processing (db) → ลองใหม่ → fulfilled with a new SIM ref", async () => {
@@ -391,6 +400,9 @@ async function main() {
     await toast(a, /ยกเลิกโค้ดแล้ว/);
     await expect(avail).toHaveText(String(before + 2), { timeout: 15_000 });
     shared.stockPkg = pkgId;
+    await a.goto(a.url().replace(/\?.*$/, "?tab=info"), { waitUntil: "networkidle" });
+    await expect(a.locator("#g-name")).toHaveValue("Steam Wallet (TH)");
+    await shot(a, "game-info-1440");
     return `available ${before} → ${before + 3} → ${before + 2}`;
   });
 
@@ -400,6 +412,7 @@ async function main() {
     await a.locator("#g-name").fill(name);
     await expect(a.locator("#g-slug")).toHaveValue(`qa-${RUN}`);
     await a.locator("#g-publisher").fill("QA Studio");
+    await shot(a, "games-new-1440");
     await a.getByRole("button", { name: "เพิ่มช่อง" }).click();
     await a.locator("#f-key-1").fill("server");
     await a.locator("#f-label-1").fill("เซิร์ฟเวอร์");

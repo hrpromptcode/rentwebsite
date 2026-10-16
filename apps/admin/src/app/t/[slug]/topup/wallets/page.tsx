@@ -32,8 +32,8 @@ export default async function TopupWalletsPage({ params, searchParams }: { param
       <PageHeader title="กระเป๋าเงินลูกค้า" description="ยอดเงินที่ลูกค้าเติมไว้ในเว็บ · ดูประวัติ ปรับยอด และระงับกระเป๋า" />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:max-w-3xl">
-        <KpiCard label="ยอดคงเหลือรวม" value={thb(list.totalBalance)} icon={Wallet} tone="primary" hint="เงินลูกค้าที่ร้านต้องให้บริการ" />
-        <KpiCard label={frozenOnly ? "กระเป๋าที่ถูกระงับ" : q ? "ตามคำค้น" : "กระเป๋าทั้งหมด"} value={fmtNumber(list.total)} icon={frozenOnly ? Lock : Wallet} />
+        <KpiCard className="gap-3 p-4 sm:gap-4 sm:p-5" label="คงเหลือรวม" value={thb(list.totalBalance)} icon={Wallet} tone="primary" hint="เงินลูกค้าที่ร้านต้องให้บริการ" />
+        <KpiCard className="gap-3 p-4 sm:gap-4 sm:p-5" label={frozenOnly ? "ถูกระงับ" : q ? "ตามคำค้น" : "กระเป๋า"} value={fmtNumber(list.total)} icon={frozenOnly ? Lock : Wallet} />
       </div>
 
       <FilterTabs

@@ -97,6 +97,7 @@ export const MODULES: Record<ModuleKey, ModuleMeta> = {
       { key: "games", label: { th: "เกมและแพ็กเกจ", en: "Games" }, href: "/topup/games", icon: "Gamepad2" },
       { key: "wallets", label: { th: "กระเป๋าเงินลูกค้า", en: "Wallets" }, href: "/topup/wallets", icon: "Wallet" },
       { key: "suppliers", label: { th: "Supplier / สต็อก", en: "Suppliers" }, href: "/topup/suppliers", icon: "Boxes" },
+      { key: "blacklist", label: { th: "บัญชีดำ", en: "Blacklist" }, href: "/topup/blacklist", icon: "Ban" },
     ],
     storefrontRoutes: ["/games", "/topup", "/wallet"],
     permissions: ["topup.manage", "topup.fulfill", "topup.wallet.adjust"],

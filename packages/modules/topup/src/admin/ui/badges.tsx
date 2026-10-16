@@ -9,8 +9,9 @@ export function ToneBadge({ tone, children, className }: { tone: Tone; children:
   );
 }
 
-export function TopupStatusBadge({ status, refundRequired }: { status: string; refundRequired?: boolean }) {
-  const s = orderStatus(status);
+/** `fulfillment` splits "processing" the way the queue tabs do: manual → รอเติม (staff must act), api/stock → กำลังเติม. */
+export function TopupStatusBadge({ status, refundRequired, fulfillment }: { status: string; refundRequired?: boolean; fulfillment?: string }) {
+  const s = status === "processing" && fulfillment === "manual" ? { label: "รอเติม", tone: "warning" as Tone } : orderStatus(status);
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
       <ToneBadge tone={s.tone}>{s.label}</ToneBadge>

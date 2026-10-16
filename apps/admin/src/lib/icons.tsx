@@ -1,4 +1,5 @@
 import {
+  Ban,
   BadgeCheck,
   BedDouble,
   BookOpen,
@@ -40,6 +41,7 @@ import {
 } from "lucide-react";
 
 const ICONS: Record<string, LucideIcon> = {
+  Ban,
   BadgeCheck,
   BedDouble,
   BookOpen,

@@ -9,7 +9,7 @@ import { FilterTabs, Pagination, qs } from "@rentweb/module-topup/admin/ui";
 import { EmptyState } from "@/components/ui/empty-state";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { PageHeader } from "@/components/ui/page-header";
-import { fmtNumber, startOfTodayBangkok, thb } from "@/lib/format";
+import { fmtNumber, fmtRelative, startOfTodayBangkok, thb } from "@/lib/format";
 import { getTenantCtx, hasRole, tenantTx } from "@/lib/tenant";
 import { OrdersTable } from "./orders-table";
 
@@ -40,10 +40,10 @@ export default async function TopupOrdersPage({ params, searchParams }: { params
       <PageHeader title="รายการเติม" description={`${fmtNumber(list.total)} รายการ${hasFilters ? " (ตามตัวกรอง)" : tab !== "all" ? ` · ${ORDER_TABS.find((t) => t.key === tab)?.label}` : ""}`} />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <KpiCard label="รอเติม (เติมมือ)" value={fmtNumber(counts.manual)} icon={Clock} tone={counts.manual > 0 ? "accent" : "default"} hint="ต้องให้ทีมกดเติม" />
-        <KpiCard label="รอตรวจสลิป" value={fmtNumber(counts.verify)} icon={Zap} tone={counts.verify > 0 ? "primary" : "default"} />
-        <KpiCard label="ยอดขายวันนี้" value={thb(kpi.revenue)} icon={TrendingUp} tone="success" hint={`${fmtNumber(kpi.count)} รายการที่ชำระแล้ว`} />
-        <KpiCard label="กำไรวันนี้" value={thb(kpi.profit)} icon={CheckCircle2} hint={`สำเร็จ ${fmtNumber(kpi.fulfilled)} รายการ`} />
+        <KpiCard className="gap-3 p-4 sm:gap-4 sm:p-5" label="รอเติม" value={fmtNumber(counts.manual)} icon={Clock} tone={counts.manual > 0 ? "accent" : "default"} hint="ต้องให้ทีมกดเติม" />
+        <KpiCard className="gap-3 p-4 sm:gap-4 sm:p-5" label="รอตรวจสลิป" value={fmtNumber(counts.verify)} icon={Zap} tone={counts.verify > 0 ? "primary" : "default"} />
+        <KpiCard className="gap-3 p-4 sm:gap-4 sm:p-5" label="ยอดขายวันนี้" value={thb(kpi.revenue)} icon={TrendingUp} tone="success" hint={`${fmtNumber(kpi.count)} รายการที่ชำระแล้ว`} />
+        <KpiCard className="gap-3 p-4 sm:gap-4 sm:p-5" label="กำไรวันนี้" value={thb(kpi.profit)} icon={CheckCircle2} hint={`สำเร็จ ${fmtNumber(kpi.fulfilled)} รายการ`} />
       </div>
 
       <FilterTabs active={tab} tabs={ORDER_TABS.map((t) => ({ key: t.key, label: t.label, count: counts[t.key], href: `${base}${qs(filters, { tab: t.key })}` }))} />
@@ -85,7 +85,7 @@ export default async function TopupOrdersPage({ params, searchParams }: { params
         />
       ) : (
         <div className="card py-0">
-          <OrdersTable slug={slug} rows={list.rows.map((r) => ({ ...r, placedAt: r.placedAt.toISOString(), paidAt: r.paidAt?.toISOString() ?? null, fulfilledAt: r.fulfilledAt?.toISOString() ?? null }))} canBatch={canWrite && tab === "manual"} />
+          <OrdersTable slug={slug} rows={list.rows.map((r) => ({ ...r, placedAt: r.placedAt.toISOString(), paidAt: r.paidAt?.toISOString() ?? null, placedRel: fmtRelative(r.placedAt), paidRel: r.paidAt ? fmtRelative(r.paidAt) : null, fulfilledAt: r.fulfilledAt?.toISOString() ?? null }))} canBatch={canWrite && tab === "manual"} />
           <Pagination page={list.page} pages={list.pages} total={list.total} baseHref={base} params={params_} label="รายการ" />
         </div>
       )}
