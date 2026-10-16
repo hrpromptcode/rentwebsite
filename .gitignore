@@ -34,3 +34,4 @@ apps/admin/public/uploads/
 tooling/qa/_*
 tooling/qa/*.log
 tooling/qa/*-results.json
+tooling/_*

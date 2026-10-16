@@ -48,6 +48,10 @@ export function CartView({ initial, checkoutHref = "/checkout", continueHref = "
   const [code, setCode] = React.useState("");
   const [couponBusy, setCouponBusy] = React.useState(false);
   const [couponError, setCouponError] = React.useState<string | null>(initial.couponError);
+  // Mutations may overlap (quick qty taps, then a coupon): a response older than the latest request must not overwrite newer state.
+  const seqRef = React.useRef(0);
+  const nextSeq = () => ++seqRef.current;
+  const isLatest = (n: number) => n === seqRef.current;
 
   const mark = (id: string, on: boolean) =>
     setBusy((s) => {
@@ -59,10 +63,12 @@ export function CartView({ initial, checkoutHref = "/checkout", continueHref = "
 
   async function setQty(line: CartLine, quantity: number) {
     const prev = cart;
+    const seq = nextSeq();
     setCart((c) => recompute(c, c.items.map((l) => (l.id === line.id ? { ...l, quantity, lineTotal: l.unitPrice * quantity } : l))));
     mark(line.id, true);
     const r = await cartApi.update(line.id, quantity);
     mark(line.id, false);
+    if (!isLatest(seq)) return;
     if (!r.ok) {
       setCart(prev);
       toast.error(r.error);
@@ -76,9 +82,14 @@ export function CartView({ initial, checkoutHref = "/checkout", continueHref = "
 
   async function remove(line: CartLine) {
     const prev = cart;
+    const seq = nextSeq();
     setCart((c) => recompute(c, c.items.filter((l) => l.id !== line.id)));
     mark(line.id, true);
     const r = await cartApi.remove(line.id);
+    if (!isLatest(seq)) {
+      mark(line.id, false);
+      return;
+    }
     if (!r.ok) {
       setCart(prev);
       mark(line.id, false);
@@ -96,8 +107,10 @@ export function CartView({ initial, checkoutHref = "/checkout", continueHref = "
     if (!c || couponBusy) return;
     setCouponBusy(true);
     setCouponError(null);
+    const seq = nextSeq();
     const r = await cartApi.applyCoupon(c);
     setCouponBusy(false);
+    if (!isLatest(seq)) return;
     if (!r.ok) {
       setCouponError(r.error);
       return;
@@ -110,8 +123,10 @@ export function CartView({ initial, checkoutHref = "/checkout", continueHref = "
 
   async function removeCoupon() {
     setCouponBusy(true);
+    const seq = nextSeq();
     const r = await cartApi.removeCoupon();
     setCouponBusy(false);
+    if (!isLatest(seq)) return;
     if (r.ok) {
       setCart(r.cart);
       setCouponError(null);

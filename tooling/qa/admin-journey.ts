@@ -524,8 +524,8 @@ async function main() {
 
   /* 8. customers */
   await step("8", "customers: list shows customers created by storefront flows", async () => {
-    const [{ c }] = await db.select({ c: count() }).from(customers).where(eq(customers.tenantId, demo.id));
-    const total = Number(c);
+    const [cnt] = await db.select({ c: count() }).from(customers).where(eq(customers.tenantId, demo.id));
+    const total = Number(cnt?.c ?? 0);
     const status = await goto(page, `/t/${SLUG}/customers`);
     assert(status === 200, `HTTP ${status}`);
     await page.getByRole("heading", { name: "ลูกค้า" }).first().waitFor();

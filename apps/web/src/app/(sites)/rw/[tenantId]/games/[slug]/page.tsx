@@ -121,6 +121,7 @@ export default async function GamePage({ params, searchParams }: { params: Param
             packages={formPackages}
             methods={methods}
             loggedIn={!!customer}
+            otpRequired={cfg.otpRequiredFirstOrder}
             walletBalance={customer ? (wallet?.balance ?? 0) : null}
             tier={customer?.tier ?? null}
             defaultContact={customer?.phone ?? customer?.email ?? ""}

@@ -27,10 +27,11 @@ async function main() {
 
   console.log("→ plans");
   for (const p of PLANS) {
+    const row = p as typeof plans.$inferInsert;
     await db
       .insert(plans)
-      .values(p)
-      .onConflictDoUpdate({ target: plans.key, set: { ...p } });
+      .values(row)
+      .onConflictDoUpdate({ target: plans.key, set: { ...row } });
   }
 
   console.log("→ templates");

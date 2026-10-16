@@ -1,4 +1,6 @@
 {
   "extends": "@rentweb/config/tsconfig/library.json",
-  "include": ["*.ts"]
+  "compilerOptions": { "lib": ["ES2023", "DOM", "DOM.Iterable"] },
+  "include": ["*.ts", "qa/*.ts"],
+  "exclude": ["_*.ts", "qa/_*.ts"]
 }

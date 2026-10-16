@@ -32,5 +32,5 @@ export async function clearCustomerCookie() {
 
 export async function requestMeta() {
   const h = await headers();
-  return { ip: h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null, userAgent: h.get("user-agent") };
+  return { ip: h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip")?.trim() || null, userAgent: h.get("user-agent") };
 }

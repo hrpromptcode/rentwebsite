@@ -32,6 +32,8 @@ export interface TopupFormPackage {
 }
 
 export interface TopupFormState {
+  /** Shown as a button under the error (e.g. OTP login required). */
+  loginHref?: string;
   error?: string;
   field?: string;
 }
@@ -41,6 +43,8 @@ export interface TopupFormProps {
   packages: TopupFormPackage[];
   methods: PaymentMethodOption[];
   loggedIn: boolean;
+  /** Tenant requires an OTP-verified session before the first order (moduleConfig.topup.otpRequiredFirstOrder). */
+  otpRequired?: boolean;
   walletBalance: number | null;
   tier: string | null;
   defaultContact?: string;
@@ -52,7 +56,7 @@ export interface TopupFormProps {
 
 const TIER_LABEL: Record<string, string> = { vip: "VIP", agent: "ตัวแทน", member: "สมาชิก" };
 
-export function TopupForm({ game, packages, methods, loggedIn, walletBalance, tier, defaultContact = "", loginHref, walletHref, action, initialPackageId }: TopupFormProps) {
+export function TopupForm({ game, packages, methods, loggedIn, otpRequired = false, walletBalance, tier, defaultContact = "", loginHref, walletHref, action, initialPackageId }: TopupFormProps) {
   const [state, submit, pending] = useActionState(action, {} as TopupFormState);
   const firstAvailable = packages.find((p) => p.available === null || p.available > 0);
   const [packageId, setPackageId] = React.useState<string>(() => (initialPackageId && packages.some((p) => p.id === initialPackageId) ? initialPackageId : firstAvailable?.id ?? ""));
@@ -61,7 +65,7 @@ export function TopupForm({ game, packages, methods, loggedIn, walletBalance, ti
   const selected = packages.find((p) => p.id === packageId) ?? null;
   const total = selected?.yourPrice ?? 0;
   const walletShort = method === "wallet" && walletBalance !== null && total > walletBalance;
-  const canSubmit = !!selected && !pending && !walletShort && (selected.available === null || selected.available > 0);
+  const canSubmit = !(otpRequired && !loggedIn) && (!!selected && !pending && !walletShort && (selected.available === null || selected.available > 0));
 
   return (
     <form action={submit} id="topup-form" className="grid gap-8 pb-44 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:pb-0 xl:grid-cols-[minmax(0,1fr)_400px]">
@@ -110,7 +114,7 @@ export function TopupForm({ game, packages, methods, loggedIn, walletBalance, ti
 
         {/* 2. package */}
         <Reveal as="section" className="card p-5 md:p-7" delay={0.05} aria-labelledby="step-package">
-          <StepHeading n={2} id="step-package" title="เลือกแพ็กเกจ" subtitle={tier && tier !== "member" ? `คุณได้ราคาสมาชิก ${TIER_LABEL[tier] ?? tier}` : "สมัครสมาชิก VIP เพื่อรับราคาถูกกว่า"} />
+          <StepHeading n={2} id="step-package" title="เลือกแพ็กเกจ" subtitle={tier && tier !== "member" ? `คุณได้ราคาสมาชิก ${TIER_LABEL[tier] ?? tier}` : "สมาชิก VIP และตัวแทนได้ราคาถูกกว่า"} />
           <input type="hidden" name="packageId" value={packageId} />
           <div role="radiogroup" aria-label="แพ็กเกจ" className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {packages.map((p) => {
@@ -205,6 +209,14 @@ export function TopupForm({ game, packages, methods, loggedIn, walletBalance, ti
         {/* 4. contact */}
         <Reveal as="section" className="card p-5 md:p-7" delay={0.15} aria-labelledby="step-contact">
           <StepHeading n={4} id="step-contact" title="ช่องทางติดต่อ" subtitle={loggedIn ? "ใช้แจ้งเตือนเมื่อเติมสำเร็จ (ไม่บังคับ)" : "เบอร์โทรหรืออีเมล ใช้ติดตามรายการและแจ้งเตือนเมื่อสำเร็จ"} />
+          {otpRequired && !loggedIn && (
+            <div className="mb-4 flex flex-col gap-3 rounded-[var(--radius-lg)] border border-primary/30 bg-primary/10 p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+              <p className="font-medium">ร้านนี้ให้ยืนยันเบอร์โทรด้วย OTP ก่อนสั่งซื้อครั้งแรก (ครั้งเดียว ใช้เวลาไม่ถึงนาที)</p>
+              <a href={loginHref} className="btn inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-primary px-5 font-semibold text-primary-foreground">
+                ยืนยันด้วย OTP
+              </a>
+            </div>
+          )}
           <div className="mt-5 grid gap-2">
             <Label htmlFor="contact">เบอร์โทร / LINE ID / อีเมล {!loggedIn && <span className="text-destructive">*</span>}</Label>
             <Input id="contact" name="contact" defaultValue={defaultContact} placeholder="08x-xxx-xxxx" required={!loggedIn} autoComplete="tel" className="h-12" maxLength={120} />
@@ -214,7 +226,14 @@ export function TopupForm({ game, packages, methods, loggedIn, walletBalance, ti
         {state.error && (
           <div role="alert" className="flex items-start gap-3 rounded-[var(--radius-lg)] border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-            {state.error}
+            <div className="grid gap-2">
+              <span>{state.error}</span>
+              {state.loginHref && (
+                <a href={state.loginHref} className="inline-flex h-10 w-fit items-center rounded-full bg-destructive px-4 font-semibold text-destructive-foreground">
+                  เข้าสู่ระบบด้วย OTP
+                </a>
+              )}
+            </div>
           </div>
         )}
       </div>

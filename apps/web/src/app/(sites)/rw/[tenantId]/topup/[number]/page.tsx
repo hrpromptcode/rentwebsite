@@ -7,7 +7,7 @@ import { Reveal } from "@rentweb/ui/motion";
 import { PaymentPanel } from "@rentweb/storefront/payments";
 import { getPayment, paymentSettings, promptpayQrDataUrl } from "@rentweb/core/payments";
 import { thb } from "@rentweb/core/money";
-import { eq, gamePackages, games } from "@rentweb/db";
+import { and, eq, gamePackages, games } from "@rentweb/db";
 import { getOrderByNumber, getOrderForCustomer, reconcileTopupOrder, revealDeliveredCode, toPublicOrder } from "@rentweb/module-topup/services";
 import { CodeReveal, OrderTracker, StatusBadge, dateTimeTh } from "@rentweb/module-topup/components";
 import { FULFILLMENT_LABEL, PAYMENT_METHOD_LABEL } from "@rentweb/module-topup/labels";
@@ -39,8 +39,8 @@ export default async function TopupOrderPage({ params, searchParams }: { params:
       ? await tx
           .select({ image: games.image, estimatedMinutes: gamePackages.estimatedMinutes, fields: games.fields })
           .from(gamePackages)
-          .innerJoin(games, eq(games.id, gamePackages.gameId))
-          .where(eq(gamePackages.id, full.packageId))
+          .innerJoin(games, and(eq(games.tenantId, tenantId), eq(games.id, gamePackages.gameId)))
+          .where(and(eq(gamePackages.tenantId, tenantId), eq(gamePackages.id, full.packageId)))
           .limit(1)
       : [null];
     return { full, pub, payment, meta: meta ?? null };

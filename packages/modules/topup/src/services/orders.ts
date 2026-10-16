@@ -76,9 +76,6 @@ export async function createTopupOrder(tx: Tx, tenantId: string, input: CreateTo
     return fail("blacklisted", "blacklisted");
   }
 
-  const recent = await countRecentOrders(tx, tenantId, { customerId: input.customer?.id, ip: input.ip });
-  if (cfg.maxOrdersPerHour > 0 && recent >= cfg.maxOrdersPerHour) return fail("rate_limited", "rate_limited");
-
   // attach a customer: signed-in, or a guest row from the contact (phone / email)
   let customerId: string | null = input.customer?.id ?? null;
   let tier: string | null = input.customer?.tier ?? null;
@@ -91,6 +88,11 @@ export async function createTopupOrder(tx: Tx, tenantId: string, input: CreateTo
       tier = null; // guests always pay the member price
     }
   }
+  if (cfg.otpRequiredFirstOrder && !input.customer?.id) return fail("otp_required", "otp_required");
+
+  // rate limit per customer (signed-in or guest row) and per IP
+  const recent = await countRecentOrders(tx, tenantId, { customerId, ip: input.ip });
+  if (cfg.maxOrdersPerHour > 0 && recent >= cfg.maxOrdersPerHour) return fail("rate_limited", "rate_limited");
   if (input.paymentMethod === "wallet" && !input.customer?.id) return fail("login_required", "login_required");
 
   const price = priceFor(pkg, tier);
@@ -165,7 +167,7 @@ export async function createTopupOrder(tx: Tx, tenantId: string, input: CreateTo
   let payment: Payment;
   if (input.paymentMethod === "wallet") {
     payment = await createPayment(tx, tenantId, { refType: "topup", refId: orderId, amount: price, provider: "wallet", method: "wallet", customerId });
-    await tx.update(topupOrders).set({ paymentId: payment.id }).where(eq(topupOrders.id, orderId));
+    await tx.update(topupOrders).set({ paymentId: payment.id }).where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.id, orderId)));
     payment = await markPaid(tx, tenantId, payment.id, { verifiedBy: "wallet" }); // runs onTopupPaid → fulfil
   } else {
     payment = await createPayment(tx, tenantId, {
@@ -179,7 +181,7 @@ export async function createTopupOrder(tx: Tx, tenantId: string, input: CreateTo
       expiresMinutes: 30,
       metadata: { number },
     });
-    await tx.update(topupOrders).set({ paymentId: payment.id }).where(eq(topupOrders.id, orderId));
+    await tx.update(topupOrders).set({ paymentId: payment.id }).where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.id, orderId)));
   }
 
   const [fresh] = await tx.select().from(topupOrders).where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.id, orderId))).limit(1);
@@ -219,13 +221,13 @@ export async function fulfillOrder(tx: Tx, tenantId: string, orderId: string): P
   if (!order || order.status !== "paid") return order;
 
   if (order.fulfillment === "api") {
-    await tx.update(topupOrders).set({ status: "processing" }).where(eq(topupOrders.id, order.id));
+    await tx.update(topupOrders).set({ status: "processing" }).where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.id, order.id)));
     // Simulated supplier: real adapters live behind topup_suppliers.provider (generic_http …).
     const supplierRef = randomRef("SIM-", 6);
     const [done] = await tx
       .update(topupOrders)
       .set({ status: "fulfilled", fulfilledAt: new Date(), supplierRef, supplierResponse: { simulated: true, provider: "simulator", at: new Date().toISOString() }, processedBy: "system" })
-      .where(eq(topupOrders.id, order.id))
+      .where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.id, order.id)))
       .returning();
     await emitEvent(tx, { tenantId, type: "topup.fulfilled", payload: { orderId: order.id, number: order.number, customerId: order.customerId, fulfillment: "api", supplierRef } });
     return done ?? null;
@@ -254,7 +256,7 @@ export async function fulfillOrder(tx: Tx, tenantId: string, orderId: string): P
     const [done] = await tx
       .update(topupOrders)
       .set({ status: "fulfilled", fulfilledAt: new Date(), deliveredCodeEncrypted: code.code_encrypted, supplierRef: code.serial ?? null, supplierResponse: { source: "stock", stockId: code.id }, processedBy: "system" })
-      .where(eq(topupOrders.id, order.id))
+      .where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.id, order.id)))
       .returning();
     await emitEvent(tx, { tenantId, type: "topup.fulfilled", payload: { orderId: order.id, number: order.number, customerId: order.customerId, fulfillment: "stock" } });
     const remaining = await countAvailableStock(tx, tenantId, order.packageId);
@@ -263,7 +265,7 @@ export async function fulfillOrder(tx: Tx, tenantId: string, orderId: string): P
   }
 
   // manual: queue for staff; admin marks fulfilled with proof
-  const [queued] = await tx.update(topupOrders).set({ status: "processing" }).where(eq(topupOrders.id, order.id)).returning();
+  const [queued] = await tx.update(topupOrders).set({ status: "processing" }).where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.id, order.id))).returning();
   await emitEvent(tx, { tenantId, type: "topup.processing", payload: { orderId: order.id, number: order.number, fulfillment: "manual" } });
   return queued ?? null;
 }
@@ -356,7 +358,7 @@ export async function getOrderByNumber(tx: Tx, tenantId: string, number: string)
   const [row] = await tx
     .select({ order: topupOrders, estimatedMinutes: gamePackages.estimatedMinutes })
     .from(topupOrders)
-    .leftJoin(gamePackages, eq(gamePackages.id, topupOrders.packageId))
+    .leftJoin(gamePackages, and(eq(gamePackages.tenantId, tenantId), eq(gamePackages.id, topupOrders.packageId)))
     .where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.number, number.trim().toUpperCase())))
     .limit(1);
   return row ? toPublicOrder(row.order, row.estimatedMinutes ?? null) : null;
@@ -409,7 +411,7 @@ export async function recentFeed(tx: Tx, tenantId: string, limit = 10): Promise<
   const rows = await tx
     .select({ order: topupOrders, gameImage: games.image })
     .from(topupOrders)
-    .leftJoin(games, eq(games.id, topupOrders.gameId))
+    .leftJoin(games, and(eq(games.tenantId, tenantId), eq(games.id, topupOrders.gameId)))
     .where(and(eq(topupOrders.tenantId, tenantId), inArray(topupOrders.status, ["paid", "processing", "fulfilled"])))
     .orderBy(desc(topupOrders.paidAt), desc(topupOrders.placedAt))
     .limit(Math.min(Math.max(limit, 1), 30));

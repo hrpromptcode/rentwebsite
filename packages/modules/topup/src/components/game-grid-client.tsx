@@ -43,7 +43,7 @@ export function GameGridClient({ games, showSearch = true, variant = "tiles", in
     <div>
       {(showSearch || games.length > 6) && (
         <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div role="tablist" aria-label="หมวดเกม" className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 py-1">
+          <div role="tablist" aria-label="หมวดเกม" className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 py-1 [mask-image:linear-gradient(to_right,black_88%,transparent)] sm:[mask-image:none]">
             {TABS.map((t) => {
               const active = tab === t.value;
               return (

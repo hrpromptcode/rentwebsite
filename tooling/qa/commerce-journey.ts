@@ -325,7 +325,10 @@ async function runTenant(browser: Browser, cfg: TenantCfg) {
     await page.getByRole("link", { name: /ไปชำระเงิน/ }).first().click();
     await page.waitForURL(/\/checkout/, { timeout: 30_000 });
     await page.waitForLoadState("networkidle");
-    for (const id of ["#name", "#phone", "#email", "#line1", "#subdistrict", "#district", "#province", "#postalCode"]) if (!(await page.locator(id).count())) throw new Error(`${id} missing`);
+    for (const id of ["#name", "#phone", "#email"]) if (!(await page.locator(id).count())) throw new Error(`${id} missing`);
+    // a pickup-first tenant (demo-cafe) hides the address block until a delivery method is chosen
+    const pickupSelected = (await page.getByText("รับสินค้าที่ร้าน ไม่ต้องกรอกที่อยู่จัดส่ง").count()) > 0;
+    if (!pickupSelected) for (const id of ["#line1", "#subdistrict", "#district", "#province", "#postalCode"]) if (!(await page.locator(id).count())) throw new Error(`${id} missing`);
     const radios = page.locator('div[role="radiogroup"][aria-label="วิธีจัดส่ง"] label');
     const n = await radios.count();
     if (n < 2) throw new Error(`only ${n} shipping options`);
@@ -333,8 +336,8 @@ async function runTenant(browser: Browser, cfg: TenantCfg) {
     const priced = texts.filter((t) => /฿[\d,]+|ส่งฟรี/.test(t)).length;
     if (priced !== n) throw new Error(`shipping options without visible price: ${texts.join(" | ")}`);
     const provinces = await page.locator("#province option").count();
-    if (provinces < 77) throw new Error(`province select has ${provinces} options`);
-    return `${n} shipping options all priced; ${provinces - 1} provinces`;
+    if (!pickupSelected && provinces < 77) throw new Error(`province select has ${provinces} options`);
+    return `${n} shipping options all priced; ${pickupSelected ? "pickup selected by default (address hidden)" : `${provinces - 1} provinces`}`;
   });
   await step("4b choose shipping + PromptPay + submit -> /orders/[id]?k=", async () => {
     await page.getByText(cfg.shippingLabel, { exact: true }).first().click();
@@ -515,7 +518,9 @@ async function runTenant(browser: Browser, cfg: TenantCfg) {
     const problems: string[] = [];
     if (!add.hit.isTarget) problems.push(`product sticky bar: tap on "เพิ่มลงตะกร้า" (${Math.round(add.box.width)}x${Math.round(add.box.height)}) lands on <${add.hit.tag}> "${add.hit.text}"`);
     // add via the API-backed button anyway so checkout has a cart (force bypasses the overlay)
+    const added = m.page.waitForResponse((r) => r.url().includes("/api/cart") && r.request().method() === "POST", { timeout: 15_000 });
     await m.page.getByRole("button", { name: "เพิ่มลงตะกร้า" }).filter({ visible: true }).first().click({ force: true });
+    if ((await added).status() !== 200) throw new Error("add to cart failed on mobile");
     await m.page.getByText("เพิ่มลงตะกร้าแล้ว").first().waitFor({ state: "visible", timeout: 10_000 });
     await goto(m.page, "/checkout");
     const sub = await hitTest("สั่งซื้อและชำระเงิน");

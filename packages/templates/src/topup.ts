@@ -105,7 +105,7 @@ export const topup: TemplateDefinition = {
             { q: "เงินในกระเป๋าถอนได้ไหม?", a: "กระเป๋าเงินใช้สำหรับเติมเกมในเว็บนี้เท่านั้น ไม่สามารถถอนเป็นเงินสดได้" },
           ],
         }),
-        section(cta, { variant: "glow", heading: "พร้อมแรงค์ขึ้นแล้วหรือยัง?", body: "เติมครั้งแรกวันนี้ รับโบนัสกระเป๋าเงิน 5%", primaryCta: { label: "เริ่มเติมเกม", href: "/games" } }),
+        section(cta, { variant: "glow", heading: "พร้อมแรงค์ขึ้นแล้วหรือยัง?", body: "เติมครั้งแรกวันนี้ รับโบนัสกระเป๋าเงิน 2%", primaryCta: { label: "เริ่มเติมเกม", href: "/games" } }),
       ],
     },
     {
@@ -183,7 +183,7 @@ export const topup: TemplateDefinition = {
             name,
             price,
             costPrice: cost,
-            tierPrices: { vip: Math.round(price * 0.98), agent: Math.round(price * 0.95) },
+            tierPrices: { vip: Math.round((price * 0.98) / 100) * 100, agent: Math.round((price * 0.95) / 100) * 100 },
             fulfillment: d.cat === "voucher" ? "stock" : j % 2 === 0 ? "api" : "manual",
             supplierId: manual!.id,
             estimatedMinutes: j % 2 === 0 ? 1 : 15,

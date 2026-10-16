@@ -26,6 +26,8 @@ export async function createTopupOrderAction(tenantId: string, gameSlug: string,
   const runtime = await getRuntime(tenantId);
   if (!runtime || !runtime.config.modules.includes("topup")) return { error: errorLabel("game_not_found") };
   const [customer, meta] = await Promise.all([getCurrentCustomer(tenantId), requestMeta()]);
+  const cfg = topupConfig(runtime.config.moduleConfig.topup);
+  if (cfg.otpRequiredFirstOrder && !customer) return { error: errorLabel("otp_required"), loginHref: `/account/login?next=${encodeURIComponent(`/games/${gameSlug}`)}` };
   if (!customer && !parsed.data.contact) return { error: "กรุณากรอกเบอร์โทรหรืออีเมลสำหรับติดตามรายการ", field: "contact" };
 
   const result = await tenantTx(tenantId, (tx) =>
@@ -39,7 +41,7 @@ export async function createTopupOrderAction(tenantId: string, gameSlug: string,
       ip: meta.ip,
       userAgent: meta.userAgent,
       settings: runtime.config.settings,
-      config: topupConfig(runtime.config.moduleConfig.topup),
+      config: cfg,
     }),
   );
   if (!result.ok) return { error: errorLabel(result.code ?? result.error) };

@@ -168,7 +168,7 @@ export async function createWalletTopup(tx: Tx, tenantId: string, input: CreateW
     expiresMinutes: 30,
     metadata: { walletId: wallet.id, bonus },
   });
-  const [updated] = await tx.update(walletTopups).set({ paymentId: payment.id }).where(eq(walletTopups.id, topup!.id)).returning();
+  const [updated] = await tx.update(walletTopups).set({ paymentId: payment.id }).where(and(eq(walletTopups.tenantId, tenantId), eq(walletTopups.id, topup!.id))).returning();
   await emitEvent(tx, { tenantId, type: "wallet.topup_created", payload: { walletTopupId: topup!.id, customerId: input.customerId, amount: input.amount, bonus } });
   return ok({ topup: updated!, payment });
 }
@@ -226,7 +226,7 @@ export async function onWalletTopupPaid(tx: Tx, payment: typeof payments.$inferS
     });
     if (!bonus.ok) throw new Error(`wallet bonus failed: ${bonus.error}`);
   }
-  await tx.update(walletTopups).set({ status: "credited", creditedAt: new Date() }).where(eq(walletTopups.id, topup.id));
+  await tx.update(walletTopups).set({ status: "credited", creditedAt: new Date() }).where(and(eq(walletTopups.tenantId, tenantId), eq(walletTopups.id, topup.id)));
   await emitEvent(tx, { tenantId, type: "wallet.credited", payload: { walletTopupId: topup.id, walletId: wallet.id, customerId: wallet.customerId, amount: topup.amount, bonus: topup.bonus } });
 }
 
