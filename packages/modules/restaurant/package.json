@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./register": "./src/register.ts",
     "./services": "./src/services/index.ts",
+    "./admin": "./src/admin/index.ts",
     "./components": "./src/components/index.ts",
     "./labels": "./src/labels.ts",
     "./dto": "./src/dto.ts"
