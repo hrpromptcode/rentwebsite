@@ -200,6 +200,19 @@ async function main() {
     return seen.join(", ");
   });
 
+  /* ------------------------------------------------------------------ 1z OTP-first-order gate (moduleConfig.topup.otpRequiredFirstOrder = true on demo-topup) */
+  await step("1z guest is asked to verify OTP before the first order; submit disabled; log in", async () => {
+    await goto(page, "/games/rov");
+    await page.getByText("ร้านนี้ให้ยืนยันเบอร์โทรด้วย OTP ก่อนสั่งซื้อครั้งแรก").first().waitFor();
+    const submits = page.locator('button[type="submit"]');
+    const n = await submits.count();
+    for (let i = 0; i < n; i++) assert(await submits.nth(i).isDisabled(), "submit should be disabled for guests when OTP is required");
+    const href = await page.getByRole("link", { name: "ยืนยันด้วย OTP" }).first().getAttribute("href");
+    assert(href?.includes("/account/login?next="), `OTP link should go to /account/login, got ${href}`);
+    await otpLogin(page, GUEST_PHONE, "/games/rov");
+    return `gate shown, ${n} submit button(s) disabled, logged in as ${GUEST_PHONE}`;
+  });
+
   /* ------------------------------------------------------------------ 2. /games/rov api package via PromptPay */
   await step("2a /games/rov form: UID + api package (40 คูปอง) + PromptPay → /topup/[number]?k=", async () => {
     await goto(page, "/games/rov");
@@ -209,9 +222,9 @@ async function main() {
     await pkg.click();
     assert((await pkg.getAttribute("aria-checked")) === "true", "package radio not checked");
     assert(/อัตโนมัติ/.test(await pkg.innerText()), "40 คูปอง should be flagged อัตโนมัติ (api)");
-    // guest: wallet option must be disabled, PromptPay selectable
+    // signed in via OTP with an empty wallet: the wallet option is listed, PromptPay selectable
     const walletLabel = page.locator("label").filter({ hasText: "กระเป๋าเงินในเว็บ" }).first();
-    assert(await walletLabel.locator("input[type=radio]").isDisabled(), "wallet method should be disabled for guests");
+    assert((await walletLabel.count()) === 1, "wallet method should be listed");
     await pickMethod(page, "PromptPay QR");
     await page.locator("#contact").fill(GUEST_PHONE);
     const summaryTotal = await page.locator("aside").getByText(/^฿35$/).count();
@@ -355,10 +368,11 @@ async function main() {
     await ledger.filter({ hasText: "เติมเงินเข้ากระเป๋า" }).filter({ hasText: "+฿300" }).first().waitFor();
     await ledger.filter({ hasText: "โบนัสเติมเงิน" }).filter({ hasText: "+฿6" }).first().waitFor();
     await upage.getByText("คงเหลือ ฿306", { exact: true }).waitFor();
-    // reload must not double-credit (idempotent reconcile)
+    // reload must not double-credit (idempotent reconcile) — count ledger rows, not page-wide text (the top-up form also prints "+฿6")
     await upage.reload({ waitUntil: "networkidle" });
-    assert((await upage.getByText("+฿300", { exact: true }).count()) === 1, "top-up credited twice after reload");
-    assert((await upage.getByText("+฿6", { exact: true }).count()) === 1, "bonus credited twice after reload");
+    const ledgerAfter = upage.locator("li");
+    assert((await ledgerAfter.filter({ hasText: "เติมเงินเข้ากระเป๋า" }).filter({ hasText: "+฿300" }).count()) === 1, "top-up credited twice after reload");
+    assert((await ledgerAfter.filter({ hasText: "โบนัสเติมเงิน" }).filter({ hasText: "+฿6" }).count()) === 1, "bonus credited twice after reload");
     return "balance ฿306, 2 ledger credits, idempotent on reload";
   });
 
@@ -435,20 +449,24 @@ async function main() {
   });
 
   await step("5b public /topup/[number] without key: no code, no raw UID; API authorised=false", async () => {
-    await goto(page, `/topup/${stockOrder.number}`);
-    await page.getByText(stockOrder.number, { exact: true }).first().waitFor();
-    assert((await page.getByRole("button", { name: "แสดงโค้ด" }).count()) === 0, "code reveal visible without access key");
-    assert((await page.locator("code").count()) === 0, "code element rendered without access key");
-    await page.getByText("ผู้เล่น", { exact: true }).waitFor();
-    assert((await page.getByText("qa-steam@example.com").count()) === 0, "raw contact leaked on public view");
-    assert((await page.getByText(GUEST_PHONE).count()) === 0, "guest phone leaked on public view");
-    const api = await apiGet<{ authorised: boolean; player: string }>(page, `/api/topup/orders/${stockOrder.number}`);
+    // a fresh, signed-out context: the signed-in owner would legitimately see the code
+    const pubCtx = await browser.newContext({ reducedMotion: "reduce" });
+    const pub = await newPage(pubCtx);
+    await goto(pub, `/topup/${stockOrder.number}`);
+    await pub.getByText(stockOrder.number, { exact: true }).first().waitFor();
+    assert((await pub.getByRole("button", { name: "แสดงโค้ด" }).count()) === 0, "code reveal visible without access key");
+    assert((await pub.locator("code").count()) === 0, "code element rendered without access key");
+    await pub.getByText("ผู้เล่น", { exact: true }).waitFor();
+    assert((await pub.getByText("qa-steam@example.com").count()) === 0, "raw contact leaked on public view");
+    assert((await pub.getByText(GUEST_PHONE).count()) === 0, "guest phone leaked on public view");
+    const api = await apiGet<{ authorised: boolean; player: string }>(pub, `/api/topup/orders/${stockOrder.number}`);
     assert(api.json.authorised === false, "API should not authorise without key");
     assert(api.json.player.endsWith("****"), `API player not masked: ${api.json.player}`);
-    const bad = await apiGet<{ authorised: boolean }>(page, `/api/topup/orders/${stockOrder.number}?k=wrongkey`);
+    const bad = await apiGet<{ authorised: boolean }>(pub, `/api/topup/orders/${stockOrder.number}?k=wrongkey`);
     assert(bad.json.authorised === false, "wrong key must not authorise");
-    const nf = await apiGet<unknown>(page, `/api/topup/orders/TP-999999`);
+    const nf = await apiGet<unknown>(pub, `/api/topup/orders/TP-999999`);
     assert(nf.status === 404, `unknown number should 404, got ${nf.status}`);
+    await pubCtx.close();
     return "guest-key gating holds";
   });
 
