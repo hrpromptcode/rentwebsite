@@ -1,0 +1,15 @@
+{
+  "cookies": [
+    {
+      "name": "rentweb.session_token",
+      "value": "We8xpwGs2bSuVuVJfmESjdAOzcjrhk4U.LlueFwZWem0z5PRgtWXQhPcoyEdyDmjsn%2BaSoWQCxRw%3D",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1794781250.591825,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": []
+}

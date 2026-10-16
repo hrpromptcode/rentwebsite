@@ -224,7 +224,7 @@ export function ThemeEditor(props: {
               <label>
                 {uploading === field ? <Loader2 className="animate-spin" aria-hidden /> : <ImagePlus aria-hidden />}
                 อัปโหลด
-                <input type="file" accept="image/*" className="sr-only" disabled={!canEdit || !!uploading} onChange={(e) => onUpload(field, e.target.files?.[0])} />
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/avif,image/x-icon,.ico" className="sr-only" disabled={!canEdit || !!uploading} onChange={(e) => onUpload(field, e.target.files?.[0])} />
               </label>
             </Button>
             {val && (
@@ -390,7 +390,7 @@ export function ThemeEditor(props: {
           </TabsContent>
 
           <TabsContent value="brand" className="space-y-5 p-4 sm:p-5">
-            {brandField("logo", "โลโก้", "PNG/SVG พื้นหลังโปร่ง สูงประมาณ 80–160px")}
+            {brandField("logo", "โลโก้", "PNG/WebP พื้นหลังโปร่ง สูงประมาณ 80–160px")}
             {brandField("logoDark", "โลโก้สำหรับโหมดมืด", "ถ้าเว้นว่างจะใช้โลโก้ปกติ")}
             {brandField("favicon", "Favicon", "สี่เหลี่ยมจัตุรัส 64×64 หรือใหญ่กว่า")}
             {brandField("ogImage", "รูป OG (แชร์โซเชียล)", "1200×630px แสดงเมื่อแชร์ลิงก์บน LINE/Facebook")}

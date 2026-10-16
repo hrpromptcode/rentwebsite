@@ -9,6 +9,7 @@ import type { bookingWidget } from "@rentweb/storefront/definitions";
 import { Section, SectionHeading } from "@rentweb/storefront";
 import type { PaymentMethodOption } from "@rentweb/storefront/payments";
 import { BookingWizard, type WizardCourse, type WizardService, type WizardStaff } from "../components/booking-wizard";
+import { FloatingChatOptOut } from "../components/floating-chat-opt-out";
 import { listServices, listStaff } from "../services/catalog";
 import { getPatientPackageForCustomer } from "../services/clinic";
 import { bookingConfig, type BookingConfig } from "../services/config";
@@ -111,7 +112,8 @@ export async function BookingWidgetSection({ ctx, props: p, id, preselect, bare 
     <Section id={id} tone={p.compact ? "default" : "surface"}>
       <div className={p.compact ? "container-x max-w-3xl" : "container-x"}>
         <SectionHeading heading={p.heading} subheading={p.subheading} />
-        {wizard}
+        {/* embedded on a home page: no floating LINE button over the calendar while the widget is on a phone screen */}
+        <FloatingChatOptOut>{wizard}</FloatingChatOptOut>
       </div>
     </Section>
   );

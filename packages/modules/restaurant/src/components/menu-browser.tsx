@@ -215,7 +215,8 @@ function Browser({ menu, mode, serviceChargePercent = 0, initialItemId, hideChat
 
   return (
     <div className="relative">
-      {hideChat && <style>{`a[href^="https://line.me/"]{display:none !important}`}</style>}
+      {/* shell opt-out hook: hides only the floating LINE button (the footer LINE link stays) */}
+      {hideChat && <span data-hide-floating-chat hidden />}
 
       <nav aria-label="หมวดเมนู" className={cn("sticky z-30 border-b border-border/70 bg-background/85 backdrop-blur-md", stickyTopClass)}>
         <div ref={tabsRef} className="container-x no-scrollbar flex gap-2 overflow-x-auto py-2.5">

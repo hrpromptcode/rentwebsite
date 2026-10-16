@@ -11,12 +11,16 @@ import { L } from "@rentweb/module-restaurant/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
 import { placePickupOrder } from "./actions";
-import { cmsFallback } from "@/lib/cms-fallback";
+import { cmsFallback, moduleOrCmsMetadata } from "@/lib/cms-fallback";
 
 type Params = Promise<{ tenantId: string }>;
 type Search = Promise<{ item?: string }>;
 
-export const metadata: Metadata = { title: "สั่งกลับบ้าน" };
+/** SS-13: the CMS page's title/description/og when the module is off and a CMS page owns this slug. */
+export async function generateMetadata({ params }: { params: Promise<{ tenantId: string }> }): Promise<Metadata> {
+  const runtime = await getRuntime((await params).tenantId);
+  return runtime ? moduleOrCmsMetadata(runtime, "restaurant", "order", { title: "สั่งกลับบ้าน" }) : {};
+}
 
 /** /order – pickup: menu + cart → time slot, contact, payment → /orders/r/[number]?p=<phone> */
 export default async function PickupPage({ params, searchParams }: { params: Params; searchParams: Search }) {

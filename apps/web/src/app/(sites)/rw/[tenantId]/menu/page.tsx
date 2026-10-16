@@ -9,12 +9,16 @@ import { MenuBrowser } from "@rentweb/module-restaurant/components";
 import { L } from "@rentweb/module-restaurant/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
-import { cmsFallback } from "@/lib/cms-fallback";
+import { cmsFallback, moduleOrCmsMetadata } from "@/lib/cms-fallback";
 
 type Params = Promise<{ tenantId: string }>;
 type Search = Promise<{ item?: string }>;
 
-export const metadata: Metadata = { title: "เมนู" };
+/** SS-13: the CMS page's title/description/og when the module is off and a CMS page owns this slug. */
+export async function generateMetadata({ params }: { params: Promise<{ tenantId: string }> }): Promise<Metadata> {
+  const runtime = await getRuntime((await params).tenantId);
+  return runtime ? moduleOrCmsMetadata(runtime, "restaurant", "menu", { title: "เมนู" }) : {};
+}
 
 /** /menu – browse the active menu; the cart continues into pickup (/order) or the table flow (/t/[qr]). */
 export default async function MenuPage({ params, searchParams }: { params: Params; searchParams: Search }) {

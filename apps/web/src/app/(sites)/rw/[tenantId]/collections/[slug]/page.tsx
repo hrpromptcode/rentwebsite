@@ -6,6 +6,7 @@ import { CatalogListing, cardStyleForPreset, catalogHref, parseCatalogParams } f
 import { L } from "@rentweb/module-commerce/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
+import { pageMetadata } from "@/lib/seo";
 
 type Params = Promise<{ tenantId: string; slug: string }>;
 type Props = { params: Params; searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -13,9 +14,10 @@ type Props = { params: Params; searchParams: Promise<Record<string, string | str
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { tenantId, slug: rawSlug } = await params;
   const slug = decodeSlug(rawSlug);
-  const cat = await tenantTx(tenantId, (tx) => getCategoryBySlug(tx, tenantId, slug));
-  if (!cat) return {};
-  return { title: cat.name, description: cat.description ?? undefined, openGraph: cat.image ? { images: [cat.image] } : undefined };
+  const [runtime, cat] = await Promise.all([getRuntime(tenantId), tenantTx(tenantId, (tx) => getCategoryBySlug(tx, tenantId, slug))]);
+  if (!runtime || !cat) return {};
+  // SS-07: only keys with values (undefined description / openGraph would wipe the site defaults from the layout)
+  return pageMetadata(runtime, { title: cat.name, description: cat.description, ogImage: cat.image });
 }
 
 export default async function CollectionPage({ params, searchParams }: Props) {

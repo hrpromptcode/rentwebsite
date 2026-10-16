@@ -3,6 +3,8 @@ import { customers, customerOtps, customerSessions, type Tx } from "@rentweb/db"
 import { randomOtp, randomToken, safeEqual, sha256 } from "../crypto";
 import { normalizeThaiPhone } from "../utils";
 
+export { clientIp, isHttpsRequest, normalizeIp, trustedProxyHops } from "./request-meta";
+
 /**
  * Storefront customer authentication (per tenant). Cookie name is the same on every host –
  * cookies are already scoped by hostname, so tenant A's cookie never reaches tenant B.

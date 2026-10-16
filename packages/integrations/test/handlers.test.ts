@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { createTestDb, type TestDb } from "@rentweb/db/test-utils";
-import { bookings, diningTables, eventsOutbox, notifications, orders, reservations, restaurantOrders, services, staff, tenants, withPlatform } from "@rentweb/db";
+import { bookings, customers, diningTables, eventsOutbox, notifications, orders, reservations, restaurantOrders, services, staff, tenantMembers, tenants, user, withPlatform } from "@rentweb/db";
 import { thb } from "@rentweb/core/money";
 import { HANDLERS, type OutboxEvent } from "../src/events/handlers";
 
@@ -133,5 +133,54 @@ describe("restaurant owner messages (COR-17)", () => {
     await run("reservation.created", { reservationId: r!.id, number: "RS-1001", startsAt: startsAt.toISOString(), partySize: 4, zone: null, status: "pending", deposit: 0, phone: "0815556666" });
     const [owner] = await sent("reservation.owner");
     expect((owner!.payload as { text: string }).text).toMatch(/^คุณบี 4 ท่าน/);
+  });
+});
+
+describe("recipients (auth follow-ups AC-02 / AC-03 / SS-02)", () => {
+  it("owner messages fall back to the owner's account e-mail when the shop contact e-mail is blank", async () => {
+    const [t2] = await db.insert(tenants).values({ slug: "t-notify-blank", name: "ร้านใหม่", siteType: "shop", settings: { contact: { email: "" } } }).returning({ id: tenants.id });
+    const owner = { id: `u-own-${crypto.randomUUID()}`, name: "Owner", email: "owner.account@example.com", emailVerified: true };
+    const staffUser = { id: `u-stf-${crypto.randomUUID()}`, name: "Staff", email: "staff.account@example.com", emailVerified: true };
+    await db.insert(user).values([owner, staffUser]);
+    await db.insert(tenantMembers).values([
+      { tenantId: t2!.id, userId: staffUser.id, role: "staff" },
+      { tenantId: t2!.id, userId: owner.id, role: "owner" },
+    ]);
+    const [o] = await db.insert(orders).values({ tenantId: t2!.id, number: "#2001", status: "confirmed", paymentStatus: "paid", total: 1000, phone: "0810000001", customerName: "คุณซี" }).returning();
+    await withPlatform(db, (tx) => HANDLERS["order.paid"]!(tx, { id: crypto.randomUUID(), tenantId: t2!.id, type: "order.paid", payload: { orderId: o!.id, number: "#2001", total: 1000 }, attempts: 1 }));
+    const rows = await db.select().from(notifications).where(and(eq(notifications.tenantId, t2!.id), eq(notifications.template, "order.paid.owner")));
+    expect(rows.map((r) => [r.channel, r.recipient])).toEqual([["email", "owner.account@example.com"]]);
+  });
+
+  it("the shop contact e-mail still wins when it is set", async () => {
+    const [o] = await db.insert(orders).values({ tenantId, number: "#2002", status: "confirmed", paymentStatus: "paid", total: 1000, phone: "0810000002" }).returning();
+    await run("order.paid", { orderId: o!.id, number: "#2002", total: 1000 });
+    const rows = (await sent("order.paid.owner")).filter((r) => r.channel === "email" && (r.payload as { title: string }).title.includes("#2002"));
+    expect(rows.map((r) => r.recipient)).toEqual(["owner@example.com"]);
+  });
+
+  it("customer messages prefer the e-mail / phone typed on the order or booking over the customer record", async () => {
+    const [c] = await db.insert(customers).values({ tenantId, name: "เก่า", email: "stale@example.com", phone: "0899999999" }).returning();
+    const [o] = await db.insert(orders).values({ tenantId, number: "#2003", status: "confirmed", paymentStatus: "paid", total: 1000, customerId: c!.id, email: "typed@example.com", phone: "0811112222", metadata: { accessKey: "K-2003" } }).returning();
+    await run("order.paid", { orderId: o!.id, number: "#2003", total: 1000, customerId: c!.id });
+    const orderRows = (await sent("order.paid")).filter((r) => (r.payload as { orderId?: string }).orderId === o!.id);
+    expect(orderRows.map((r) => r.recipient).sort()).toEqual(["0811112222", "typed@example.com"]);
+
+    const at = new Date(Date.now() + 9 * 86_400_000 + 5 * 3_600_000); // clear of the other tests' bookings for the same staff
+    const [b] = await db
+      .insert(bookings)
+      .values({ tenantId, number: `BK-${Math.floor(Math.random() * 1e6)}`, serviceId, staffId, startsAt: at, endsAt: new Date(at.getTime() + 3_600_000), status: "confirmed", customerId: c!.id, customerName: "สมหญิง", customerPhone: "0833334444", customerEmail: "booked@example.com", answers: { accessKey: "BK-KEY-2" } })
+      .returning();
+    await run("booking.confirmed", { bookingId: b!.id, number: b!.number, startsAt: at.toISOString() });
+    const bookingRows = (await sent("booking.confirmed")).filter((r) => (r.payload as { bookingId?: string }).bookingId === b!.id);
+    expect(bookingRows.map((r) => r.recipient).sort()).toEqual(["0833334444", "booked@example.com"]);
+  });
+
+  it("the customer record still fills a contact the order does not have", async () => {
+    const [c] = await db.insert(customers).values({ tenantId, name: "มีอีเมล", email: "record@example.com", phone: "0855556666" }).returning();
+    const [o] = await db.insert(orders).values({ tenantId, number: "#2004", status: "confirmed", paymentStatus: "paid", total: 1000, customerId: c!.id, phone: "0877778888" }).returning();
+    await run("order.paid", { orderId: o!.id, number: "#2004", total: 1000, customerId: c!.id });
+    const rows = (await sent("order.paid")).filter((r) => (r.payload as { orderId?: string }).orderId === o!.id);
+    expect(rows.map((r) => r.recipient).sort()).toEqual(["0877778888", "record@example.com"]);
   });
 });

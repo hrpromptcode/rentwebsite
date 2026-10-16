@@ -1,5 +1,5 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
-import { bookings, customers, diningTables, eventsOutbox, formSubmissions, forms, orders, reservations, restaurantOrders, services, staff, tenants, type Tx } from "@rentweb/db";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { bookings, customers, diningTables, eventsOutbox, formSubmissions, forms, orders, reservations, restaurantOrders, services, staff, tenantMembers, tenants, user, type Tx } from "@rentweb/db";
 import { thb } from "@rentweb/core/money";
 import { formatDate, isUuid } from "@rentweb/core";
 import { rootDomain } from "@rentweb/core/env";
@@ -17,6 +17,18 @@ export interface OutboxEvent {
 
 type Handler = (tx: Tx, event: OutboxEvent) => Promise<void | { retryInSeconds: number }>;
 
+/** E-mail of the tenant's owner account (first owner, verified addresses first; banned accounts skipped). */
+async function ownerAccountEmail(tx: Tx, tenantId: string): Promise<string | null> {
+  const [row] = await tx
+    .select({ email: user.email })
+    .from(tenantMembers)
+    .innerJoin(user, eq(user.id, tenantMembers.userId))
+    .where(and(eq(tenantMembers.tenantId, tenantId), eq(tenantMembers.role, "owner"), eq(user.banned, false)))
+    .orderBy(desc(user.emailVerified), asc(tenantMembers.joinedAt))
+    .limit(1);
+  return row?.email?.trim() || null;
+}
+
 async function tenantInfo(tx: Tx, tenantId: string) {
   const [t] = await tx.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1);
   if (!t) return null;
@@ -24,21 +36,30 @@ async function tenantInfo(tx: Tx, tenantId: string) {
   const theme = (t.theme ?? {}) as Record<string, any>;
   const proto = process.env.NODE_ENV === "production" ? "https" : "http";
   const host = process.env.PLATFORM_ROOT_DOMAIN ?? "localhost:3000";
+  // shop contact e-mail (public, editable in settings); new tenants start with it blank → the owner's account e-mail
+  const contactEmail = typeof settings.contact?.email === "string" ? settings.contact.email.trim() : "";
   return {
     row: t,
     name: t.name,
     origin: `${proto}://${t.slug}.${host}`,
-    ownerEmail: settings.contact?.email as string | undefined,
+    ownerEmail: (contactEmail || (await ownerAccountEmail(tx, tenantId))) ?? undefined,
     ownerLine: settings.notifications?.ownerLineUserId as string | undefined,
     accent: (theme.colors?.primary as string | undefined) ?? "#2563EB",
     settings,
   };
 }
 
-async function customerTarget(tx: Tx, customerId: string | null | undefined, fallback: { email?: string | null; phone?: string | null } = {}) {
-  if (!customerId) return { email: fallback.email ?? null, phone: fallback.phone ?? null, lineUserId: null };
+/**
+ * Who gets a customer message: the contact typed on the order / booking / reservation (`typed`) wins — guest
+ * customer rows are keyed by one contact only (SS-02), so the record's other field can be stale or unverified;
+ * the customer record fills the gaps and supplies the LINE user id.
+ */
+async function customerTarget(tx: Tx, customerId: string | null | undefined, typed: { email?: string | null; phone?: string | null } = {}) {
+  const email = typed.email?.trim() || null;
+  const phone = typed.phone?.trim() || null;
+  if (!customerId) return { email, phone, lineUserId: null };
   const [c] = await tx.select().from(customers).where(eq(customers.id, customerId)).limit(1);
-  return { email: c?.email ?? fallback.email ?? null, phone: c?.phone ?? fallback.phone ?? null, lineUserId: c?.lineUserId ?? null };
+  return { email: email ?? c?.email ?? null, phone: phone ?? c?.phone ?? null, lineUserId: c?.lineUserId ?? null };
 }
 
 const str = (v: unknown, d = "") => (typeof v === "string" ? v : v == null ? d : String(v));

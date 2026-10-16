@@ -49,7 +49,8 @@ export async function builtinTargetClosedReason(tx: Tx, payment: PaymentRow): Pr
     }
     case "patient_package": {
       const [pp] = await tx.select({ status: patientPackages.status }).from(patientPackages).where(and(eq(patientPackages.tenantId, tenantId), eq(patientPackages.id, id))).limit(1);
-      return pp?.status === "refunded" ? "package refunded" : null;
+      // pending purchase whose payment expired / was voided → "cancelled" (booking onPatientPackagePaymentClosed)
+      return pp && (pp.status === "cancelled" || pp.status === "refunded") ? `package ${pp.status}` : null;
     }
     default:
       return null;

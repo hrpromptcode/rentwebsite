@@ -194,7 +194,7 @@ export function CartView({ initial, checkoutHref = "/checkout", continueHref = "
                 <Tag className="size-4 text-primary" /> {cart.coupon.code}
                 {cart.coupon.name && <span className="text-muted-foreground">· {cart.coupon.name}</span>}
               </span>
-              <button type="button" onClick={removeCoupon} disabled={couponBusy} aria-label={L.couponRemove} className="flex size-9 items-center justify-center rounded-full transition hover:bg-background">
+              <button type="button" onClick={removeCoupon} disabled={couponBusy} aria-label={L.couponRemove} className="-my-1 -mr-1.5 flex size-11 shrink-0 items-center justify-center rounded-full transition hover:bg-background">
                 <X className="size-4" />
               </button>
             </div>

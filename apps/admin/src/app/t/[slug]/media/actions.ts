@@ -2,12 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { and, eq, media } from "@rentweb/db";
-import { getStorage, IMAGE_MIMES, MAX_UPLOAD_BYTES, objectKey } from "@rentweb/core/storage";
+import { getStorage, MAX_UPLOAD_BYTES, MEDIA_LIBRARY_KINDS, objectKey, sniffUpload } from "@rentweb/core/storage";
 import { auditLog } from "@/lib/audit";
 import { assertRole, getTenantCtx, tenantTx } from "@/lib/tenant";
 import type { ActionResult } from "@/components/ui/form";
-
-const ALLOWED = new Set([...IMAGE_MIMES, "application/pdf", "video/mp4", "video/webm"]);
 
 export async function uploadMedia(slug: string, fd: FormData): Promise<ActionResult & { uploaded?: number }> {
   const ctx = await getTenantCtx(slug);
@@ -15,22 +13,25 @@ export async function uploadMedia(slug: string, fd: FormData): Promise<ActionRes
   const files = fd.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
   if (files.length === 0) return { ok: false, error: "กรุณาเลือกไฟล์" };
   if (files.length > 20) return { ok: false, error: "อัปโหลดได้สูงสุด 20 ไฟล์ต่อครั้ง" };
-  const folder = String(fd.get("folder") ?? "media").replace(/[^a-z0-9-]/gi, "") || "media";
+  const folder = String(fd.get("folder") ?? "media").replace(/[^a-z0-9-]/gi, "").slice(0, 32) || "media";
 
   const storage = getStorage();
   const rows: Array<typeof media.$inferInsert> = [];
   const errors: string[] = [];
   for (const file of files) {
-    if (!ALLOWED.has(file.type)) {
-      errors.push(`${file.name}: ชนิดไฟล์ไม่รองรับ`);
-      continue;
-    }
     if (file.size > MAX_UPLOAD_BYTES) {
       errors.push(`${file.name}: ใหญ่เกิน 10 MB`);
       continue;
     }
-    const key = objectKey(ctx.tenant.id, folder, file.name);
-    const stored = await storage.put(key, Buffer.from(await file.arrayBuffer()), file.type);
+    // trust the bytes, not the declared type / file name: no SVG / HTML disguised as an image or PDF
+    const buf = Buffer.from(await file.arrayBuffer());
+    const sniffed = sniffUpload(buf, MEDIA_LIBRARY_KINDS);
+    if (!sniffed) {
+      errors.push(`${file.name}: ชนิดไฟล์ไม่รองรับ (JPG, PNG, WebP, GIF, AVIF, PDF, MP4, WebM)`);
+      continue;
+    }
+    const key = objectKey(ctx.tenant.id, folder, `file.${sniffed.ext}`);
+    const stored = await storage.put(key, buf, sniffed.mime);
     rows.push({ tenantId: ctx.tenant.id, key: stored.key, url: stored.url, mime: stored.mime, size: stored.size, folder: `/${folder}`, alt: file.name.replace(/\.[^.]+$/, ""), createdBy: ctx.userId });
   }
   if (rows.length) {

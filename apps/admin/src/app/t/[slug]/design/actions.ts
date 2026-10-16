@@ -5,7 +5,7 @@ import { z } from "zod";
 import { eq, getAdminDb, media, tenants } from "@rentweb/db";
 import { invalidateTenant } from "@rentweb/core/tenant";
 import { resolveTheme, themeSchema, type ThemeInput } from "@rentweb/core/theme";
-import { getStorage, IMAGE_MIMES, MAX_UPLOAD_BYTES, objectKey } from "@rentweb/core/storage";
+import { BRAND_ASSET_KINDS, getStorage, MAX_UPLOAD_BYTES, objectKey, sniffUpload } from "@rentweb/core/storage";
 import { auditLog } from "@/lib/audit";
 import { assertRole, getTenantCtx, tenantHostnames, tenantTx } from "@/lib/tenant";
 import type { ActionResult } from "@/components/ui/form";
@@ -47,12 +47,17 @@ export async function uploadBrandAsset(slug: string, fd: FormData): Promise<Acti
   assertRole(ctx, "admin");
   const file = fd.get("file");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "กรุณาเลือกไฟล์" };
-  if (!IMAGE_MIMES.has(file.type)) return { ok: false, error: "รองรับเฉพาะไฟล์รูปภาพ (JPG, PNG, WebP, GIF, SVG)" };
   if (file.size > MAX_UPLOAD_BYTES) return { ok: false, error: "ไฟล์ใหญ่เกิน 10 MB" };
-  const { folder } = uploadSchema.parse({ folder: fd.get("folder") ?? "brand" });
+  const parsedFolder = uploadSchema.safeParse({ folder: fd.get("folder") ?? "brand" });
+  if (!parsedFolder.success) return { ok: false, error: "โฟลเดอร์ไม่ถูกต้อง" };
+  const { folder } = parsedFolder.data;
+  // trust the bytes, not the declared type / file name: no SVG (script-capable) or HTML disguised as a logo
+  const buf = Buffer.from(await file.arrayBuffer());
+  const sniffed = sniffUpload(buf, BRAND_ASSET_KINDS);
+  if (!sniffed) return { ok: false, error: "รองรับเฉพาะไฟล์รูปภาพ JPG, PNG, WebP, GIF, AVIF หรือ ICO (ไม่รองรับ SVG)" };
 
-  const key = objectKey(ctx.tenant.id, folder, file.name);
-  const stored = await getStorage().put(key, Buffer.from(await file.arrayBuffer()), file.type);
+  const key = objectKey(ctx.tenant.id, folder, `${folder}.${sniffed.ext}`);
+  const stored = await getStorage().put(key, buf, sniffed.mime);
   await tenantTx(ctx.tenant.id, (tx) =>
     tx.insert(media).values({ tenantId: ctx.tenant.id, key: stored.key, url: stored.url, mime: stored.mime, size: stored.size, folder: `/${folder}`, alt: file.name, createdBy: ctx.userId }),
   );

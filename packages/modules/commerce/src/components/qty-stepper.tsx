@@ -25,7 +25,7 @@ export function QtyStepper({
   label?: string;
 }) {
   const cap = Math.min(99, max ?? 99);
-  const btn = cn("flex shrink-0 items-center justify-center text-foreground transition hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent", size === "md" ? "size-11" : "size-10");
+  const btn = cn("flex shrink-0 items-center justify-center text-foreground transition hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent", size === "md" ? "size-11" : "size-11 md:size-10"); // RA-10: 44px touch targets on phones
   return (
     <div className={cn("inline-flex items-center overflow-hidden rounded-[var(--radius-md)] border bg-background", className)} role="group" aria-label={label}>
       <button type="button" className={btn} onClick={() => onChange(Math.max(min, value - 1))} disabled={disabled || value <= min} aria-label="ลดจำนวน">
@@ -36,7 +36,7 @@ export function QtyStepper({
         inputMode="numeric"
         className={cn(
           "w-12 border-x bg-transparent text-center text-base font-medium tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
-          size === "md" ? "h-11" : "h-10",
+          size === "md" ? "h-11" : "h-11 md:h-10",
         )}
         value={value}
         min={min}

@@ -10,11 +10,12 @@ export function Breadcrumbs({ items, className }: { items: Crumb[]; className?: 
   if (!items.length) return null;
   return (
     <nav aria-label="breadcrumb" className={cn("flex min-w-0 items-center gap-1 overflow-x-auto text-xs text-muted-foreground no-scrollbar md:text-sm", className)}>
+      {/* RA-10: crumb links are 44px tall touch targets on phones */}
       {items.map((c, i) => (
         <React.Fragment key={`${c.label}-${i}`}>
           {i > 0 && <ChevronRight className="size-3.5 shrink-0 opacity-60" />}
           {c.href && i < items.length - 1 ? (
-            <Link href={c.href} className="shrink-0 py-1 transition hover:text-foreground">
+            <Link href={c.href} className="inline-flex min-h-11 shrink-0 items-center transition hover:text-foreground md:min-h-0 md:py-1">
               {c.label}
             </Link>
           ) : (

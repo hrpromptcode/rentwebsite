@@ -75,14 +75,15 @@ export function MonthCalendar({ month, onMonthChange, selected, onSelect, minDat
           <ChevronRight className="size-5" />
         </button>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground">
+      <div className="grid grid-cols-7 gap-0.5 text-center text-xs font-medium text-muted-foreground sm:gap-1">
         {THAI_WEEKDAYS_SHORT.map((w) => (
           <div key={w} className="py-1">
             {w}
           </div>
         ))}
       </div>
-      <div role="grid" aria-label="ปฏิทิน" className="mt-1 grid grid-cols-7 gap-1">
+      {/* SBR-010: 2px gaps on phones keep each day cell ≥ 44px wide at 390 */}
+      <div role="grid" aria-label="ปฏิทิน" className="mt-1 grid grid-cols-7 gap-0.5 sm:gap-1">
         {cells.map((date, i) => {
           if (!date) return <div key={`e-${i}`} aria-hidden />;
           const info = days?.[date];

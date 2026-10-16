@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
-import { CUSTOMER_COOKIE, getCustomerByToken, type CustomerSummary } from "@rentweb/core/customer";
+import { clientIp, CUSTOMER_COOKIE, getCustomerByToken, isHttpsRequest, type CustomerSummary } from "@rentweb/core/customer";
 import { tenantTx } from "./tenant";
 
 /** Currently signed-in storefront customer for this tenant (per-request cached). */
@@ -15,11 +15,12 @@ export const getCurrentCustomer = cache(async (tenantId: string): Promise<Custom
 export async function setCustomerCookie(token: string, expiresAt: Date) {
   const jar = await cookies();
   const h = await headers();
-  const host = h.get("x-tenant-host") ?? h.get("host") ?? "";
   jar.set(CUSTOMER_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: !host.includes("localhost"),
+    // from the request protocol (x-forwarded-proto, else the Origin of the server-action POST), not the host name:
+    // a custom domain served over plain http still gets a usable cookie, and https never gets a non-secure one
+    secure: isHttpsRequest(h, h.get("origin") ?? h.get("referer")),
     expires: expiresAt,
     path: "/",
   });
@@ -30,7 +31,11 @@ export async function clearCustomerCookie() {
   jar.delete(CUSTOMER_COOKIE);
 }
 
+/**
+ * IP + user agent for OTP rate limits and session records. X-Forwarded-For is only trusted when TRUSTED_PROXY
+ * declares the reverse proxies in front of the app (see clientIp in @rentweb/core/customer); otherwise X-Real-IP.
+ */
 export async function requestMeta() {
   const h = await headers();
-  return { ip: h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip")?.trim() || null, userAgent: h.get("user-agent") };
+  return { ip: clientIp(h), userAgent: h.get("user-agent") };
 }

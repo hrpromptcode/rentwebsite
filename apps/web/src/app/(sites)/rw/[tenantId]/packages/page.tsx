@@ -9,9 +9,13 @@ import { PackageCard } from "@rentweb/module-booking/ui";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
 import { PageBody } from "@/components/page-body";
-import { cmsFallback } from "@/lib/cms-fallback";
+import { cmsFallback, moduleOrCmsMetadata } from "@/lib/cms-fallback";
 
-export const metadata: Metadata = { title: "คอร์สและแพ็กเกจ" };
+/** SS-13: the CMS page's title/description/og when the module is off and a CMS page owns this slug. */
+export async function generateMetadata({ params }: { params: Promise<{ tenantId: string }> }): Promise<Metadata> {
+  const runtime = await getRuntime((await params).tenantId);
+  return runtime ? moduleOrCmsMetadata(runtime, "clinic", "packages", { title: "คอร์สและแพ็กเกจ" }) : {};
+}
 
 /** /packages – clinic courses (clinic module only). */
 export default async function PackagesPage({ params }: { params: Promise<{ tenantId: string }> }) {

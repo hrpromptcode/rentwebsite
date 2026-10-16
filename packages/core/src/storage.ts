@@ -155,3 +155,42 @@ export function sniffImage(buf: Uint8Array, allow: readonly SniffedImageKind[] =
 
 /** Slip uploads: JPG, PNG or WebP only. */
 export const SLIP_IMAGE_KINDS: readonly SniffedImageKind[] = ["jpeg", "png", "webp"];
+
+export type SniffedFileKind = SniffedImageKind | "ico" | "pdf" | "mp4" | "webm";
+export interface SniffedFile {
+  kind: SniffedFileKind;
+  mime: string;
+  ext: string;
+}
+
+const SNIFFED_FILES: Record<Exclude<SniffedFileKind, SniffedImageKind>, SniffedFile> = {
+  ico: { kind: "ico", mime: "image/x-icon", ext: "ico" },
+  pdf: { kind: "pdf", mime: "application/pdf", ext: "pdf" },
+  mp4: { kind: "mp4", mime: "video/mp4", ext: "mp4" },
+  webm: { kind: "webm", mime: "video/webm", ext: "webm" },
+};
+
+/** ISO-BMFF major brands of MP4 / M4V / QuickTime-compatible video (AVIF's "avif"/"avis" are images, see sniffImage). */
+const MP4_BRANDS = new Set(["isom", "iso2", "iso4", "iso5", "iso6", "mp41", "mp42", "avc1", "dash", "m4v ", "M4V ", "MSNV", "3gp4", "3gp5", "3gp6", "3g2a", "qt  "]);
+
+/**
+ * Like sniffImage() but for the admin uploads that also take icons, PDFs and video (media library, brand assets).
+ * Magic bytes only; SVG / HTML / scripts / anything unrecognised → null, so the stored extension and content type
+ * always come from what the bytes are, never from the client's file name or declared MIME type.
+ */
+export function sniffUpload(buf: Uint8Array, allow: readonly SniffedFileKind[]): SniffedFile | null {
+  const image = sniffImage(buf, allow.filter((k): k is SniffedImageKind => k in SNIFFED));
+  if (image) return image;
+  let kind: Exclude<SniffedFileKind, SniffedImageKind> | null = null;
+  // ICO: reserved 0, type 1 (icon), at least one image
+  if (buf.length >= 6 && buf[0] === 0 && buf[1] === 0 && buf[2] === 1 && buf[3] === 0 && (buf[4]! | buf[5]!) !== 0) kind = "ico";
+  else if (buf.length >= 5 && ascii(buf, 0, 5) === "%PDF-") kind = "pdf";
+  else if (buf.length >= 12 && ascii(buf, 4, 8) === "ftyp" && MP4_BRANDS.has(ascii(buf, 8, 12))) kind = "mp4";
+  else if (buf.length >= 4 && buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3) kind = "webm"; // EBML (WebM / Matroska)
+  return kind && allow.includes(kind) ? SNIFFED_FILES[kind] : null;
+}
+
+/** Admin media library: raster images, PDF, MP4, WebM (no SVG — it can carry script). */
+export const MEDIA_LIBRARY_KINDS: readonly SniffedFileKind[] = ["jpeg", "png", "webp", "gif", "avif", "pdf", "mp4", "webm"];
+/** Logo / favicon / share image: raster images and .ico (no SVG). */
+export const BRAND_ASSET_KINDS: readonly SniffedFileKind[] = ["jpeg", "png", "webp", "gif", "avif", "ico"];

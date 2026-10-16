@@ -25,9 +25,48 @@ export interface PaymentPanelProps {
   successHref?: string;
   pollIntervalMs?: number;
   className?: string;
+  /**
+   * Proof that this browser may pay for the payment (same gate as the page that renders the panel):
+   * the order/booking access key (`?k=`) or the reservation/pickup phone (`?p=`). Sent explicitly with the
+   * slip upload (form fields `k` / `p`) and the status poll (`x-access-key` header / `?p=`) so it does not
+   * depend on the Referer header, which a strict Referrer-Policy or privacy extension can strip.
+   * Left undefined → taken from the current page URL's `k` / `p`; pass `null` to send nothing
+   * (customer-session or table-cookie pages).
+   */
+  accessKey?: string | null;
+  phone?: string | null;
 }
 
-export function PaymentPanel({ payment, amountLabel, promptpayName, promptpayId, bankAccounts = [], successHref, pollIntervalMs = 4000, className }: PaymentPanelProps) {
+const TERMINAL = new Set(["paid", "failed", "expired", "cancelled", "refunded", "partially_refunded"]);
+
+export interface PaymentProofParams {
+  k: string | null;
+  p: string | null;
+}
+
+/** k / p for the API calls: explicit props win, otherwise the page's own query string. */
+export function resolvePaymentProof(accessKey: string | null | undefined, phone: string | null | undefined, search?: string): PaymentProofParams {
+  const q = new URLSearchParams(search ?? (typeof window !== "undefined" ? window.location.search : ""));
+  const clean = (v: string | null | undefined) => (typeof v === "string" && v.trim() ? v.trim() : null);
+  return { k: clean(accessKey === undefined ? q.get("k") : accessKey), p: clean(phone === undefined ? q.get("p") : phone) };
+}
+
+/** URL + fetch() init for the status poll (no slip) or the slip upload, carrying the proof explicitly. */
+export function paymentRequest(paymentId: string, proof: PaymentProofParams, slip?: Blob): { url: string; init: RequestInit } {
+  const base = `/api/payments/${encodeURIComponent(paymentId)}`;
+  if (slip) {
+    const fd = new FormData();
+    fd.append("slip", slip);
+    if (proof.k) fd.append("k", proof.k);
+    if (proof.p) fd.append("p", proof.p);
+    return { url: `${base}/slip`, init: { method: "POST", body: fd, cache: "no-store" } };
+  }
+  const headers: Record<string, string> = {};
+  if (proof.k) headers["x-access-key"] = proof.k;
+  return { url: proof.p ? `${base}?p=${encodeURIComponent(proof.p)}` : base, init: { cache: "no-store", headers } };
+}
+
+export function PaymentPanel({ payment, amountLabel, promptpayName, promptpayId, bankAccounts = [], successHref, pollIntervalMs = 4000, className, accessKey, phone }: PaymentPanelProps) {
   const [status, setStatus] = React.useState(payment.status);
   const [uploading, setUploading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -37,10 +76,11 @@ export function PaymentPanel({ payment, amountLabel, promptpayName, promptpayId,
 
   // poll status while pending
   React.useEffect(() => {
-    if (status === "paid" || status === "failed" || status === "expired") return;
+    if (TERMINAL.has(status)) return;
     const id = setInterval(async () => {
       try {
-        const r = await fetch(`/api/payments/${payment.id}`, { cache: "no-store" });
+        const { url, init } = paymentRequest(payment.id, resolvePaymentProof(accessKey, phone));
+        const r = await fetch(url, init);
         if (r.ok) {
           const j = (await r.json()) as { status: string; slipUrl?: string | null };
           setStatus(j.status);
@@ -51,7 +91,7 @@ export function PaymentPanel({ payment, amountLabel, promptpayName, promptpayId,
       }
     }, pollIntervalMs);
     return () => clearInterval(id);
-  }, [status, payment.id, pollIntervalMs]);
+  }, [status, payment.id, pollIntervalMs, accessKey, phone]);
 
   React.useEffect(() => {
     if (status === "paid" && successHref) {
@@ -75,11 +115,14 @@ export function PaymentPanel({ payment, amountLabel, promptpayName, promptpayId,
     setUploading(true);
     setError(null);
     try {
-      const fd = new FormData();
-      fd.append("slip", file);
-      const r = await fetch(`/api/payments/${payment.id}/slip`, { method: "POST", body: fd });
+      const { url, init } = paymentRequest(payment.id, resolvePaymentProof(accessKey, phone), file);
+      const r = await fetch(url, init);
       const j = (await r.json().catch(() => ({}))) as { status?: string; slipUrl?: string; error?: string };
-      if (!r.ok) throw new Error(j.error ?? "อัปโหลดไม่สำเร็จ");
+      if (!r.ok) {
+        // 409 = the payment closed meanwhile (expired / cancelled): show the server's text and stop polling
+        if (r.status === 409 && j.status && TERMINAL.has(j.status)) setStatus(j.status);
+        throw new Error(j.error ?? (r.status === 403 ? "ไม่มีสิทธิ์แนบสลิปสำหรับรายการนี้" : "อัปโหลดไม่สำเร็จ"));
+      }
       setStatus(j.status ?? "pending_verification");
       if (j.slipUrl) setSlipUrl(j.slipUrl);
     } catch (err) {
@@ -191,8 +234,8 @@ export function PaymentPanel({ payment, amountLabel, promptpayName, promptpayId,
           >
             {uploading ? <Loader2 className="size-7 animate-spin text-primary" /> : <Upload className="size-7 text-primary" />}
             <span className="font-medium">{uploading ? "กำลังอัปโหลด…" : "แนบสลิปโอนเงิน"}</span>
-            <span className="text-xs text-muted-foreground">รองรับ JPG, PNG ขนาดไม่เกิน 10MB</span>
-            <input type="file" accept="image/*" className="hidden" onChange={onSlip} disabled={uploading} />
+            <span className="text-xs text-muted-foreground">รองรับ JPG, PNG, WebP ขนาดไม่เกิน 8MB</span>
+            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={onSlip} disabled={uploading} />
           </label>
           {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
         </div>

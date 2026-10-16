@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { getStorage, localUploadsDir, objectKey, repoRoot, SLIP_IMAGE_KINDS, sniffImage } from "../src/storage";
+import { BRAND_ASSET_KINDS, getStorage, localUploadsDir, MEDIA_LIBRARY_KINDS, objectKey, repoRoot, SLIP_IMAGE_KINDS, sniffImage, sniffUpload } from "../src/storage";
 
 /** AC-01 (one shared uploads dir), SEC-008 (magic-byte sniffing, safe extensions), SEC-006 (crypto object keys). */
 
@@ -35,6 +35,36 @@ describe("sniffImage (SEC-008)", () => {
   it("slips accept only jpg / png / webp", () => {
     expect(sniffImage(PNG, SLIP_IMAGE_KINDS)?.ext).toBe("png");
     expect(sniffImage(GIF, SLIP_IMAGE_KINDS)).toBeNull();
+  });
+});
+
+describe("sniffUpload (admin media library / brand assets)", () => {
+  const ICO = Buffer.from([0, 0, 1, 0, 1, 0, 16, 16, 0, 0]);
+  const PDF = Buffer.concat([Buffer.from("%PDF-1.7"), Buffer.from([0x0a, 0x25, 0xe2, 0xe3])]);
+  const MP4 = Buffer.concat([Buffer.from([0, 0, 0, 0x20]), Buffer.from("ftypisom"), Buffer.alloc(4)]);
+  const WEBM = Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0x9f, 0x42, 0x86, 0x81]);
+  const AVIF = Buffer.concat([Buffer.from([0, 0, 0, 0x1c]), Buffer.from("ftypavif"), Buffer.alloc(4)]);
+  const HTML_AS_PDF = Buffer.from("<!doctype html><script>alert(1)</script>%PDF-");
+
+  it("media library: images, PDF, MP4, WebM by magic bytes; never SVG / HTML", () => {
+    expect(sniffUpload(PNG, MEDIA_LIBRARY_KINDS)).toMatchObject({ mime: "image/png", ext: "png" });
+    expect(sniffUpload(AVIF, MEDIA_LIBRARY_KINDS)).toMatchObject({ mime: "image/avif", ext: "avif" });
+    expect(sniffUpload(PDF, MEDIA_LIBRARY_KINDS)).toMatchObject({ mime: "application/pdf", ext: "pdf" });
+    expect(sniffUpload(MP4, MEDIA_LIBRARY_KINDS)).toMatchObject({ mime: "video/mp4", ext: "mp4" });
+    expect(sniffUpload(WEBM, MEDIA_LIBRARY_KINDS)).toMatchObject({ mime: "video/webm", ext: "webm" });
+    expect(sniffUpload(SVG, MEDIA_LIBRARY_KINDS)).toBeNull();
+    expect(sniffUpload(HTML, MEDIA_LIBRARY_KINDS)).toBeNull();
+    expect(sniffUpload(HTML_AS_PDF, MEDIA_LIBRARY_KINDS)).toBeNull();
+    expect(sniffUpload(ICO, MEDIA_LIBRARY_KINDS)).toBeNull();
+  });
+
+  it("brand assets: raster images and .ico only", () => {
+    expect(sniffUpload(ICO, BRAND_ASSET_KINDS)).toMatchObject({ mime: "image/x-icon", ext: "ico" });
+    expect(sniffUpload(JPEG, BRAND_ASSET_KINDS)?.ext).toBe("jpg");
+    expect(sniffUpload(SVG, BRAND_ASSET_KINDS)).toBeNull();
+    expect(sniffUpload(PDF, BRAND_ASSET_KINDS)).toBeNull();
+    expect(sniffUpload(MP4, BRAND_ASSET_KINDS)).toBeNull();
+    expect(sniffUpload(Buffer.alloc(0), BRAND_ASSET_KINDS)).toBeNull();
   });
 });
 

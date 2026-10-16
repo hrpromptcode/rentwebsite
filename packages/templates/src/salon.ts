@@ -97,7 +97,7 @@ export const salon: TemplateDefinition = {
           items: [
             { q: "ควรมาถึงก่อนเวลาไหม?", a: "แนะนำมาก่อน 10 นาที เพื่อเปลี่ยนชุดและดื่มชาสมุนไพร" },
             { q: "ยกเลิก/เลื่อนได้ไหม?", a: "ได้ฟรีก่อนเวลานัด 12 ชั่วโมง หลังจากนั้นขอสงวนสิทธิ์ริบมัดจำ" },
-            { q: "มีคู่/กลุ่มไหม?", a: "มีห้องคู่ 2 ห้อง เลือก จำนวนคน 2 ตอนจอง" },
+            { q: "มีคู่/กลุ่มไหม?", a: "มีห้องคู่ 2 ห้อง เลือก \"แพ็กเกจคู่รัก (2 ท่าน)\" จองครั้งเดียวได้ทั้ง 2 ท่าน" },
           ],
         }),
         section(cta, { variant: "banner", heading: "ให้วันนี้เป็นวันที่คุณได้พัก", body: "จองคิวล่วงหน้า รับส่วนลด 10% สำหรับการนัดครั้งแรก", primaryCta: { label: "จองคิว", href: "/book" } }),
@@ -128,7 +128,7 @@ export const salon: TemplateDefinition = {
         { tenantId, categoryId: aroma!.id, name: "นวดหินร้อน 90 นาที", slug: "hot-stone", durationMin: 90, bufferAfterMin: 20, price: 149000, depositRequired: true, depositAmount: 30000, image: u("1570172619644-dfd03ed5d881", 800), sort: 4 },
         { tenantId, categoryId: skin!.id, name: "ทรีตเมนต์หน้าสมุนไพร 60 นาที", slug: "facial", durationMin: 60, bufferAfterMin: 15, price: 99000, image: u("1519823551278-64ac92734fb1", 800), sort: 5 },
         { tenantId, categoryId: skin!.id, name: "สครับผิวทั้งตัว 45 นาที", slug: "scrub", durationMin: 45, bufferAfterMin: 15, price: 79000, image: u("1522337660859-02fbefca4702", 800), sort: 6 },
-        { tenantId, categoryId: aroma!.id, name: "แพ็กเกจคู่รัก 120 นาที (2 ท่าน)", slug: "couple", durationMin: 120, bufferAfterMin: 20, price: 299000, capacity: 2, depositRequired: true, depositAmount: 50000, image: u("1540555700478-4be289fbecef", 800), featured: true, sort: 7 },
+        { tenantId, categoryId: aroma!.id, name: "แพ็กเกจคู่รัก 120 นาที (2 ท่าน)", slug: "couple", durationMin: 120, bufferAfterMin: 20, price: 299000, capacity: 2, seatsPerBooking: 2, depositRequired: true, depositAmount: 50000, image: u("1540555700478-4be289fbecef", 800), featured: true, sort: 7 },
       ])
       .returning({ id: services.id, slug: services.slug });
 

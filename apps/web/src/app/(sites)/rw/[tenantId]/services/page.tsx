@@ -10,9 +10,13 @@ import { ServiceCard } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
-import { cmsFallback } from "@/lib/cms-fallback";
+import { cmsFallback, moduleOrCmsMetadata } from "@/lib/cms-fallback";
 
-export const metadata: Metadata = { title: "บริการทั้งหมด" };
+/** SS-13: the CMS page's title/description/og when the module is off and a CMS page owns this slug. */
+export async function generateMetadata({ params }: { params: Promise<{ tenantId: string }> }): Promise<Metadata> {
+  const runtime = await getRuntime((await params).tenantId);
+  return runtime ? moduleOrCmsMetadata(runtime, "booking", "services", { title: "บริการทั้งหมด" }) : {};
+}
 
 type Params = Promise<{ tenantId: string }>;
 type Search = Promise<{ category?: string }>;

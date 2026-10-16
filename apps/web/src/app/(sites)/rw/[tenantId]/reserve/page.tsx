@@ -9,12 +9,16 @@ import { L } from "@rentweb/module-restaurant/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
 import { createReservationAction } from "./actions";
-import { cmsFallback } from "@/lib/cms-fallback";
+import { cmsFallback, moduleOrCmsMetadata } from "@/lib/cms-fallback";
 
 type Params = Promise<{ tenantId: string }>;
 type Search = Promise<{ date?: string; time?: string; size?: string; zone?: string }>;
 
-export const metadata: Metadata = { title: "จองโต๊ะ" };
+/** SS-13: the CMS page's title/description/og when the module is off and a CMS page owns this slug. */
+export async function generateMetadata({ params }: { params: Promise<{ tenantId: string }> }): Promise<Metadata> {
+  const runtime = await getRuntime((await params).tenantId);
+  return runtime ? moduleOrCmsMetadata(runtime, "restaurant", "reserve", { title: "จองโต๊ะ" }) : {};
+}
 
 /** /reserve – date, time slots, party stepper, zone, occasion, contact → /reservations/[number]?p= */
 export default async function ReservePage({ params, searchParams }: { params: Params; searchParams: Search }) {

@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { createTestDb, type TestDb } from "@rentweb/db/test-utils";
-import { eventsOutbox, orders, payments, reservations, tenants, withTenant } from "@rentweb/db";
+import { clinicPackages, eventsOutbox, orders, patientPackages, patients, payments, reservations, tenants, withTenant } from "@rentweb/db";
 import {
   attachSlip,
   canAccessPayment,
@@ -19,6 +19,7 @@ import {
   registerPaymentHandler,
   type PaymentClosedInfo,
 } from "../src/payments";
+import { builtinTargetClosedReason } from "../src/payments/targets";
 
 /**
  * Regression tests for the payment state machine (COR-01, COR-02), refund flagging for closed targets,
@@ -118,6 +119,29 @@ describe("state machine (COR-01 / COR-02)", () => {
     expect(paidCalls).not.toContain(p.id);
     const evs = await db.select().from(eventsOutbox).where(and(eq(eventsOutbox.type, "payment.refund_required")));
     expect(evs.some((e) => (e.payload as { paymentId?: string }).paymentId === p.id)).toBe(true);
+  });
+
+  it("built-in patient_package check: cancelled (expired unpaid purchase) and refunded are closed", async () => {
+    const [pt] = await tx((t) => t.insert(patients).values({ tenantId, hn: `HN${Math.floor(Math.random() * 1e6)}`, firstName: "Test" }).returning());
+    const [pk] = await tx((t) => t.insert(clinicPackages).values({ tenantId, name: "Pack", sessions: 5, price: 10000 }).returning());
+    const pack = async (status: string) => {
+      const [pp] = await tx((t) => t.insert(patientPackages).values({ tenantId, patientId: pt!.id, packageId: pk!.id, packageName: "Pack", sessionsTotal: 5, pricePaid: 10000, status }).returning());
+      return pp!;
+    };
+    const reasonFor = async (status: string) => {
+      const pp = await pack(status);
+      const p = await tx((t) => createPayment(t, tenantId, { refType: "patient_package", refId: pp.id, amount: 10000, provider: "promptpay", method: "promptpay_qr" }));
+      return tx((t) => builtinTargetClosedReason(t, p));
+    };
+    expect(await reasonFor("cancelled")).toBe("package cancelled");
+    expect(await reasonFor("refunded")).toBe("package refunded");
+    expect(await reasonFor("pending")).toBeNull();
+    expect(await reasonFor("active")).toBeNull();
+    // markPaid on a cancelled purchase (no module handler in this process) flags the refund instead of activating
+    const pp = await pack("cancelled");
+    const p = await tx((t) => createPayment(t, tenantId, { refType: "patient_package", refId: pp.id, amount: 10000, provider: "promptpay", method: "promptpay_qr" }));
+    const paid = await tx((t) => markPaid(t, tenantId, p.id, { verifiedBy: "admin" }));
+    expect(paymentRefundRequired(paid)).toBe("package cancelled");
   });
 
   it("a paid handler can return refundRequired()", async () => {
