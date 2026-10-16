@@ -59,10 +59,10 @@ export function ServicesTable({ slug, rows, canWrite }: { slug: string; rows: Se
           <TableRow>
             <TableHead>บริการ</TableHead>
             <TableHead className="hidden sm:table-cell">ระยะเวลา</TableHead>
-            <TableHead className="text-right">ราคา</TableHead>
-            <TableHead className="hidden lg:table-cell">ผู้ให้บริการ</TableHead>
+            <TableHead className="w-px text-right">ราคา</TableHead>
+            <TableHead className="hidden 2xl:table-cell">ผู้ให้บริการ</TableHead>
             <TableHead className="hidden w-12 text-center sm:table-cell">แนะนำ</TableHead>
-            <TableHead className="w-16 text-center">เปิด</TableHead>
+            <TableHead className="w-px text-center">เปิด</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -74,10 +74,12 @@ export function ServicesTable({ slug, rows, canWrite }: { slug: string; rows: Se
                     {s.image ? <img src={s.image} alt="" className="size-full object-cover" loading="lazy" /> : <span className="grid size-full place-items-center text-[10px] text-muted-foreground">ไม่มีรูป</span>}
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate font-medium sm:max-w-[18rem]">{s.name}</span>
+                    <span className="line-clamp-2 font-medium sm:line-clamp-none sm:block sm:max-w-[18rem] sm:truncate">{s.name}</span>
                     <span className="block truncate text-xs text-muted-foreground">
                       {s.categoryName ?? "ไม่ระบุหมวดหมู่"}
                       <span className="sm:hidden"> · {durationLabel(s.durationMin)}</span>
+                      {s.depositRequired && <span className="sm:hidden"> · มัดจำ {thb(s.depositAmount)}</span>}
+                      <span className="hidden lg:inline 2xl:hidden"> · {!s.requiresStaff ? "ไม่ผูกพนักงาน" : `${s.staffCount} ผู้ให้บริการ`}</span>
                       {s.upcomingBookings > 0 && <> · คิวล่วงหน้า {s.upcomingBookings}</>}
                     </span>
                   </span>
@@ -88,15 +90,15 @@ export function ServicesTable({ slug, rows, canWrite }: { slug: string; rows: Se
                 {(s.bufferBeforeMin > 0 || s.bufferAfterMin > 0) && <span className="block text-xs">+ เตรียม/พัก {s.bufferBeforeMin + s.bufferAfterMin} นาที</span>}
               </TableCell>
               <TableCell className="whitespace-nowrap text-right tabular-nums">
-                <span className="font-medium">{s.price > 0 ? thb(s.price) : "ฟรี"}</span>
-                {s.priceNote && <span className="block text-xs text-muted-foreground">{s.priceNote}</span>}
+                <span className="block font-medium">{s.price > 0 ? thb(s.price) : "ฟรี"}</span>
+                {s.priceNote && <span className="block max-w-28 truncate text-xs text-muted-foreground sm:max-w-none">{s.priceNote}</span>}
                 {s.depositRequired && (
-                  <Badge variant="warning" className="mt-1">
-                    มัดจำ {thb(s.depositAmount)}
-                  </Badge>
+                  <span className="mt-1 hidden justify-end sm:flex">
+                    <Badge variant="warning">มัดจำ {thb(s.depositAmount)}</Badge>
+                  </span>
                 )}
               </TableCell>
-              <TableCell className="hidden text-muted-foreground lg:table-cell">
+              <TableCell className="hidden text-muted-foreground 2xl:table-cell">
                 {!s.requiresStaff ? "ไม่ผูกพนักงาน" : s.staffCount ? `${s.staffCount} คน` : <span className="text-destructive">ยังไม่มีผู้ให้บริการ</span>}
                 {s.capacity > 1 && <span className="block text-xs">รับ {s.capacity} คน/รอบ</span>}
               </TableCell>

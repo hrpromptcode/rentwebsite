@@ -54,7 +54,7 @@ export function CalendarToolbar(p: ToolbarProps) {
             <ChevronRight aria-hidden />
           </Link>
         </Button>
-        <Input type="date" value={p.date} onChange={(e) => e.target.value && router.push(href({ date: e.target.value }))} className="h-10 w-0 min-w-0 flex-1 lg:w-40 lg:flex-none" aria-label="เลือกวันที่" />
+        <Input type="date" value={p.date} onChange={(e) => e.target.value && router.push(href({ date: e.target.value }))} className="h-10 w-0 min-w-0 flex-1 px-2.5 text-sm lg:w-40 lg:flex-none lg:px-3.5" aria-label="เลือกวันที่" />
       </div>
 
       <div className="flex rounded-xl bg-muted p-1" role="tablist" aria-label="มุมมอง">

@@ -10,6 +10,7 @@ import {
   createVisit,
   deletePackage,
   loadModuleConfig,
+  openVisitFromBooking,
   saveVisit,
   savePackage,
   searchPatients,
@@ -138,6 +139,17 @@ export async function createVisitAction(slug: string, input: VisitCreateInput): 
   revalidateClinic(slug, `patients/${parsed.data.patientId}`);
   revalidatePath(`/t/${slug}/bookings`);
   return { ok: true, message: "เปิดการตรวจแล้ว", data: r.value };
+}
+
+export async function openVisitFromBookingAction(slug: string, bookingId: string): Promise<FormResult<{ id: string; patientId: string }>> {
+  const ctx = await clinicCtx(slug, "staff");
+  if (!isUuid(bookingId)) return { ok: false, error: "ไม่พบการจอง" };
+  const cfg = await loadModuleConfig(getAdminDb(), ctx.tenant.id);
+  const r = await tenantTx(ctx.tenant.id, (tx) => openVisitFromBooking(tx, ctx.tenant.id, bookingId, { hnPrefix: cfg.clinic.hnPrefix }, actorOf(ctx)));
+  if (!r.ok) return { ok: false, error: r.error };
+  revalidateClinic(slug, `patients/${r.value.patientId}`);
+  revalidatePath(`/t/${slug}/bookings`);
+  return { ok: true, message: r.value.newPatient ? "ลงทะเบียนผู้ป่วยใหม่และเปิดการตรวจแล้ว" : "เปิดการตรวจแล้ว", data: { id: r.value.id, patientId: r.value.patientId } };
 }
 
 export async function saveVisitAction(slug: string, id: string, input: VisitInput): Promise<FormResult<{ total: number }>> {

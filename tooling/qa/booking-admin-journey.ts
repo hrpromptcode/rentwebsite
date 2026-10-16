@@ -2,7 +2,7 @@ import "../load-env";
 import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium, expect, type Browser, type Page } from "@playwright/test";
-import { and, desc, eq, getAdminDb, tenants, bookings, eventsOutbox, staff as staffT, staffServices, services as servicesT, availabilityRules, clinicVisits, patients, recordAccessLogs } from "@rentweb/db";
+import { and, desc, eq, like, getAdminDb, tenants, bookings, eventsOutbox, staff as staffT, staffServices, services as servicesT, availabilityRules, clinicVisits, clinicPackages, patientPackages, patients, payments, recordAccessLogs } from "@rentweb/db";
 
 /**
  * Booking + clinic back-office journey (admin on :3001, storefront on demo-salon.localhost:3000).
@@ -102,11 +102,11 @@ async function main() {
   a.on("pageerror", (e) => adminErrors.push(`pageerror ${e.message.slice(0, 200)}`));
   const S = `${ADMIN}/t/${SALON}`;
   const C = `${ADMIN}/t/${CLINIC}`;
-  const shared: { number?: string; bookingId?: string; date?: string; serviceId?: string; serviceName?: string; staffId?: string; staffHadOwn?: boolean; patientId?: string; hn?: string; visitId?: string } = {};
+  const shared: { number?: string; bookingId?: string; date?: string; serviceId?: string; serviceName?: string; staffId?: string; staffHadOwn?: boolean; monRule?: { start: string; end: string } | null; monday?: string; serviceIdForSlots?: string; patientId?: string; hn?: string; visitId?: string } = {};
 
-  /* ───────── 1 walk-in ───────── */
-  await step("1 walk-in booking via /bookings/new", async () => {
-    await goto(a, `${S}/bookings/new`);
+  /** Walk-in wizard on /bookings/new: first service with a free slot today (else tomorrow). Ends on the booking detail page. */
+  const walkIn = async (base: string, name: string, phone: string, shotName?: string) => {
+    await goto(a, `${base}/bookings/new`);
     const svc = a.getByTestId("walkin-services").getByRole("radio");
     const n = await svc.count();
     if (!n) throw new Error("no services in walk-in form");
@@ -130,14 +130,20 @@ async function main() {
       }
     }
     if (!picked) throw new Error("no free slot today or tomorrow for any service");
-    await a.locator("#wi-name").fill(`คิวเอ วอล์กอิน ${STAMP}`);
-    await a.locator("#wi-phone").fill("0899990001");
+    await a.locator("#wi-name").fill(name);
+    await a.locator("#wi-phone").fill(phone);
     await a.locator("#wi-note").fill("ทดสอบจาก journey");
-    if (!noShots) await shot(a, "walkin-1440");
+    if (shotName) await shot(a, shotName);
     await Promise.all([a.waitForURL(/\/bookings\/[0-9a-f-]{36}$/, { timeout: 30_000 }), a.getByTestId("walkin-submit").click()]);
-    const number = (await a.getByTestId("booking-number").innerText()).trim();
+    return { number: (await a.getByTestId("booking-number").innerText()).trim(), bookingId: a.url().split("/").pop()!, picked };
+  };
+
+  /* ───────── 1 walk-in ───────── */
+  await step("1 walk-in booking via /bookings/new", async () => {
+    const w = await walkIn(S, `คิวเอ วอล์กอิน ${STAMP}`, "0899990001", "walkin-1440");
+    const { number, picked } = w;
     shared.number = number;
-    shared.bookingId = a.url().split("/").pop();
+    shared.bookingId = w.bookingId;
     await expect(a.getByTestId("booking-status")).toContainText("ยืนยันแล้ว");
     const [row] = await db.select({ startsAt: bookings.startsAt, status: bookings.status, source: bookings.source }).from(bookings).where(eq(bookings.id, shared.bookingId!)).limit(1);
     if (!row || row.status !== "confirmed" || row.source !== "walk_in") throw new Error(`db row ${JSON.stringify(row)}`);
@@ -203,18 +209,15 @@ async function main() {
 
   /* ───────── 5 staff schedule ───────── */
   await step("5 staff: close Monday → /api/booking/slots empty on Monday", async () => {
-    // a staff that performs an active service
-    const [link] = await db
+    // staff/service pairs that are bookable online; pick the first one that HAS Monday slots before the change
+    const links = await db
       .select({ staffId: staffServices.staffId, serviceId: staffServices.serviceId, name: staffT.name })
       .from(staffServices)
       .innerJoin(staffT, eq(staffServices.staffId, staffT.id))
       .innerJoin(servicesT, eq(staffServices.serviceId, servicesT.id))
-      .where(and(eq(staffServices.tenantId, salonId), eq(staffT.active, true), eq(staffT.acceptsOnlineBooking, true), eq(servicesT.active, true)))
-      .limit(1);
-    if (!link) throw new Error("no staff/service link");
-    shared.staffId = link.staffId;
-    const own = await db.select({ weekday: availabilityRules.weekday }).from(availabilityRules).where(and(eq(availabilityRules.tenantId, salonId), eq(availabilityRules.staffId, link.staffId)));
-    shared.staffHadOwn = own.length > 0;
+      .where(and(eq(staffServices.tenantId, salonId), eq(staffT.active, true), eq(staffT.acceptsOnlineBooking, true), eq(servicesT.active, true), eq(servicesT.requiresStaff, true)))
+      .limit(12);
+    if (!links.length) throw new Error("no staff/service link");
     // next Monday (Bangkok)
     const d = new Date();
     let monday = "";
@@ -227,15 +230,31 @@ async function main() {
     }
     const sf = await admin.newPage();
     await sf.goto(`${STORE}/`, { waitUntil: "domcontentloaded", timeout: 90_000 });
-    const slotsFor = async () => {
+    const slotsFor = async (l: { serviceId: string; staffId: string }) => {
       const r = await sf.evaluate(async (u) => {
         const res = await fetch(u, { cache: "no-store" });
         return { status: res.status, text: await res.text() };
-      }, `/api/booking/slots?date=${monday}&service=${link.serviceId}&staff=${link.staffId}`);
+      }, `/api/booking/slots?date=${monday}&service=${l.serviceId}&staff=${l.staffId}`);
       if (r.status !== 200) throw new Error(`slots api ${r.status} ${r.text.slice(0, 120)}`);
       return (JSON.parse(r.text) as { slots: Array<{ available: boolean }> }).slots;
     };
-    const before = await slotsFor();
+    let link: (typeof links)[number] | null = null;
+    let before: Array<{ available: boolean }> = [];
+    for (const l of links) {
+      before = await slotsFor(l);
+      if (before.length) {
+        link = l;
+        break;
+      }
+    }
+    if (!link) throw new Error(`no staff has Monday (${monday}) slots before the change — cannot prove the close`);
+    shared.staffId = link.staffId;
+    shared.serviceIdForSlots = link.serviceId;
+    shared.monday = monday;
+    const own = await db.select({ weekday: availabilityRules.weekday, start: availabilityRules.startTime, end: availabilityRules.endTime }).from(availabilityRules).where(and(eq(availabilityRules.tenantId, salonId), eq(availabilityRules.staffId, link.staffId)));
+    shared.staffHadOwn = own.length > 0;
+    const monOwn = own.find((r) => r.weekday === 1);
+    shared.monRule = monOwn ? { start: monOwn.start.slice(0, 5), end: monOwn.end.slice(0, 5) } : null;
 
     await goto(a, `${S}/staff/${link.staffId}`);
     const card = a.getByTestId("staff-schedule");
@@ -248,9 +267,12 @@ async function main() {
     await card.getByTestId("save-schedule").click();
     await toast(a, /บันทึกตารางงานแล้ว/);
     await shot(a, "staff-detail-1440");
-    const after = await slotsFor();
+    const after = await slotsFor(link);
     await sf.close();
-    if (after.length !== 0) throw new Error(`expected no slots on Monday ${monday}, got ${after.length}`);
+    if (after.length !== 0) {
+      const now = await db.select({ weekday: availabilityRules.weekday, start: availabilityRules.startTime, end: availabilityRules.endTime }).from(availabilityRules).where(and(eq(availabilityRules.tenantId, salonId), eq(availabilityRules.staffId, link.staffId)));
+      throw new Error(`expected no slots on Monday ${monday} for ${link.name}, got ${after.length}; rules before ${JSON.stringify(own)} after ${JSON.stringify(now)}`);
+    }
     return `${link.name}: Monday ${monday} slots ${before.length} → 0`;
   });
 
@@ -260,11 +282,18 @@ async function main() {
       const card = a.getByTestId("staff-schedule");
       if (!shared.staffHadOwn) {
         await card.getByRole("switch", { name: "ใช้เวลาทำการของร้าน" }).click();
-      } else {
+      } else if (shared.monRule) {
+        // Monday was open before: re-open it with the exact original hours
         await card.getByRole("switch", { name: "เปิดทำงานวันจันทร์" }).click();
+        await card.getByLabel("เวลาเริ่มวันจันทร์").fill(shared.monRule.start);
+        await card.getByLabel("เวลาเลิกวันจันทร์").fill(shared.monRule.end);
       }
       await card.getByTestId("save-schedule").click();
       await toast(a, /ใช้เวลาทำการของร้านแล้ว|บันทึกตารางงานแล้ว/);
+      const rows = await db.select({ weekday: availabilityRules.weekday, start: availabilityRules.startTime, end: availabilityRules.endTime }).from(availabilityRules).where(and(eq(availabilityRules.tenantId, salonId), eq(availabilityRules.staffId, shared.staffId)));
+      const mon = rows.find((r) => r.weekday === 1);
+      if (shared.staffHadOwn && shared.monRule && (mon?.start.slice(0, 5) !== shared.monRule.start || mon?.end.slice(0, 5) !== shared.monRule.end)) throw new Error(`Monday not restored: ${JSON.stringify(mon)} vs ${JSON.stringify(shared.monRule)}`);
+      if (!shared.staffHadOwn && rows.length) throw new Error("staff still has own rules");
     }
     if (shared.serviceId) {
       await goto(a, `${S}/services/${shared.serviceId}`);
@@ -274,7 +303,7 @@ async function main() {
       const left = await db.select({ id: servicesT.id }).from(servicesT).where(eq(servicesT.id, shared.serviceId));
       if (left.length) throw new Error("service not deleted");
     }
-    return shared.staffHadOwn ? "Monday re-opened" : "staff back on shop hours";
+    return shared.staffHadOwn ? `Monday re-opened ${shared.monRule?.start}–${shared.monRule?.end} (verified in availability_rules)` : "staff back on shop hours";
   });
 
   await step("6 salon pages render (staff list, week, new)", async () => {
@@ -317,7 +346,8 @@ async function main() {
     await a.getByRole("button", { name: /เปิดการตรวจ|สร้างการตรวจ/ }).first().click();
     const dlg = a.getByRole("dialog");
     await dlg.getByPlaceholder(/ค้นหาผู้ป่วย/).fill(shared.hn!);
-    await dlg.getByRole("option").first().click();
+    await dlg.getByRole("listbox", { name: "ผลการค้นหาผู้ป่วย" }).getByRole("option").first().click();
+    await expect(dlg.getByText(shared.hn!)).toBeVisible();
     await dlg.locator("#vc-complaint").fill("ผื่นแดงที่แขน");
     await Promise.all([a.waitForURL(/\/clinic\/visits\/[0-9a-f-]{36}$/, { timeout: 30_000 }), dlg.getByRole("button", { name: /เปิดการตรวจ/ }).click()]);
     shared.visitId = a.url().split("/").pop();
@@ -343,6 +373,122 @@ async function main() {
     return "plain text restored";
   });
 
+  await step("10b visit: add procedure → complete with cash → payment paid", async () => {
+    if (!shared.visitId) throw new Error("no visit");
+    await goto(a, `${C}/clinic/visits/${shared.visitId}`);
+    const pick = a.getByRole("combobox", { name: "เพิ่มหัตถการจากรายการบริการ" });
+    const opt = await pick.locator("option").nth(1).getAttribute("value");
+    if (!opt) throw new Error("no service to add as procedure");
+    await pick.selectOption(opt);
+    await a.getByRole("button", { name: "เพิ่มยา" }).click();
+    await a.getByLabel("ชื่อยา 1").fill("Cetirizine 10 mg");
+    await a.getByLabel("วิธีใช้ยา 1").fill("1 เม็ด ก่อนนอน");
+    await a.getByLabel("จำนวนยา 1").fill("10");
+    await a.getByLabel("ราคาต่อหน่วย 1").fill("5");
+    const total = (await a.getByTestId("visit-total").innerText()).trim();
+    await a.getByRole("button", { name: "บันทึกการตรวจ" }).click();
+    await toast(a, /บันทึกการตรวจแล้ว/);
+    await a.getByTestId("complete-visit").click();
+    const dlg = a.getByRole("dialog");
+    await expect(dlg.getByRole("radio", { name: /เงินสด/ })).toHaveAttribute("aria-checked", "true");
+    await dlg.getByTestId("confirm-complete").click();
+    await toast(a, /ปิดการตรวจและรับชำระเงินแล้ว/);
+    await expect(a.getByTestId("visit-status")).toContainText("เสร็จสิ้น");
+    const [v] = await db.select({ status: clinicVisits.status, paymentStatus: clinicVisits.paymentStatus, paymentId: clinicVisits.paymentId, total: clinicVisits.total }).from(clinicVisits).where(eq(clinicVisits.id, shared.visitId!)).limit(1);
+    if (v?.status !== "completed" || v.paymentStatus !== "paid" || !v.paymentId) throw new Error(`visit ${JSON.stringify(v)}`);
+    const [pay] = await db.select({ status: payments.status, amount: payments.amount, method: payments.method, refType: payments.refType }).from(payments).where(eq(payments.id, v.paymentId)).limit(1);
+    if (pay?.status !== "paid" || pay.amount !== v.total || pay.method !== "cash") throw new Error(`payment ${JSON.stringify(pay)}`);
+    return `total ${total} → payment ${pay.refType}/${pay.method} paid ${pay.amount / 100} THB`;
+  });
+
+  const PKG = `คิวเอ คอร์ส ${STAMP}`;
+  await step("10c packages: create a 2-session package", async () => {
+    await goto(a, `${C}/clinic/packages`);
+    await a.getByTestId("new-package").click();
+    const dlg = a.getByRole("dialog");
+    await dlg.locator("#pk-name").fill(PKG);
+    await dlg.locator("#pk-sessions").fill("2");
+    await dlg.locator("#pk-price").fill("1000");
+    await dlg.locator("#pk-compare").fill("1500");
+    await dlg.getByRole("button", { name: "สร้างแพ็กเกจ" }).click();
+    await toast(a, /สร้างแพ็กเกจแล้ว/);
+    await expect(a.locator(`[data-package="${PKG}"]`)).toBeVisible();
+    const [row] = await db.select({ price: clinicPackages.price, sessions: clinicPackages.sessions }).from(clinicPackages).where(and(eq(clinicPackages.tenantId, clinicId), eq(clinicPackages.name, PKG))).limit(1);
+    if (row?.price !== 100_000 || row.sessions !== 2) throw new Error(`db ${JSON.stringify(row)}`);
+    return `${PKG} 2 ครั้ง ฿1,000`;
+  });
+
+  await step("10d patient: consent toggle + sell package + ใช้ 1 ครั้ง ×2 → exhausted", async () => {
+    if (!shared.patientId) throw new Error("no patient");
+    await goto(a, `${C}/clinic/patients/${shared.patientId}`);
+    const consent = a.getByTestId("consents").getByRole("switch", { name: "ยินยอมรับการรักษา" });
+    if ((await consent.getAttribute("aria-checked")) !== "true") {
+      await consent.click();
+      await toast(a, /บันทึกความยินยอมแล้ว/);
+    }
+    await expect(a.getByTestId("consents")).toContainText("ยินยอมเมื่อ");
+    const [pc] = await db.select({ consents: patients.consents }).from(patients).where(eq(patients.id, shared.patientId!)).limit(1);
+    if (!pc?.consents?.treatment?.at) throw new Error(`consent not stored ${JSON.stringify(pc)}`);
+    const box = a.getByTestId("patient-packages");
+    const sel = box.getByRole("combobox", { name: "เลือกคอร์ส" });
+    const value = await sel.locator("option", { hasText: PKG }).getAttribute("value");
+    if (!value) throw new Error("test package not offered for sale");
+    await sel.selectOption(value);
+    await box.getByRole("button", { name: "ขายคอร์ส" }).click();
+    await a.getByRole("dialog").getByRole("button", { name: "ยืนยันการขาย" }).click();
+    await toast(a, /ขายแพ็กเกจ/);
+    const card = a.locator(`[data-package="${PKG}"]`);
+    await expect(card.getByTestId("sessions-left")).toContainText("2/2");
+    for (const expected of [/เหลือ 1 ครั้ง/, /ใช้ครั้งสุดท้ายแล้ว/]) {
+      await card.getByRole("button", { name: "ใช้ 1 ครั้ง" }).click();
+      await a.getByRole("dialog").getByRole("button", { name: "ใช้ 1 ครั้ง" }).click();
+      await toast(a, expected);
+      await a.waitForTimeout(600);
+    }
+    await expect(card).toContainText("ใช้ครบแล้ว");
+    await expect(card.getByRole("button", { name: "ใช้ 1 ครั้ง" })).toHaveCount(0);
+    const [pp] = await db.select({ status: patientPackages.status, used: patientPackages.sessionsUsed }).from(patientPackages).where(and(eq(patientPackages.patientId, shared.patientId!), eq(patientPackages.packageName, PKG))).limit(1);
+    if (pp?.status !== "exhausted" || pp.used !== 2) throw new Error(`patient package ${JSON.stringify(pp)}`);
+    const logs = await db.select({ id: recordAccessLogs.id }).from(recordAccessLogs).where(and(eq(recordAccessLogs.tenantId, clinicId), eq(recordAccessLogs.patientId, shared.patientId!)));
+    return `consent stored, package exhausted (2/2 used), access logs ${logs.length}`;
+  });
+
+  await step("10e packages: close sale of the test package (sold → delete refused)", async () => {
+    await goto(a, `${C}/clinic/packages`);
+    const card = a.locator(`[data-package="${PKG}"]`);
+    await card.getByRole("button", { name: `ลบ ${PKG}` }).click();
+    await a.getByRole("dialog").getByRole("button", { name: "ลบแพ็กเกจ" }).click();
+    await toast(a, /ลบไม่ได้/);
+    await card.getByRole("switch", { name: `ปิดการขาย ${PKG}` }).click();
+    await toast(a, /ปิดการขายแพ็กเกจแล้ว/);
+    const [row] = await db.select({ active: clinicPackages.active }).from(clinicPackages).where(and(eq(clinicPackages.tenantId, clinicId), eq(clinicPackages.name, PKG))).limit(1);
+    if (row?.active !== false) throw new Error("package still active");
+    return "delete refused (owned), sale closed";
+  });
+
+  await step("10f clinic: walk-in booking → queue “รับเข้าตรวจ” → visit linked (then cancel visit)", async () => {
+    const phone = `087${STAMP.padStart(4, "0")}${String(Date.now()).slice(-3)}`;
+    const w = await walkIn(C, `คิวเอ นัดคลินิก ${STAMP}`, phone);
+    const [bk] = await db.select({ startsAt: bookings.startsAt }).from(bookings).where(eq(bookings.id, w.bookingId)).limit(1);
+    const day = ymdBangkok(bk!.startsAt);
+    await goto(a, `${C}/clinic/visits?date=${day}`);
+    const row = a.getByTestId("booking-queue").locator(`[data-booking="${w.number}"]`);
+    await expect(row).toContainText("ผู้ป่วยใหม่");
+    await Promise.all([a.waitForURL(/\/clinic\/visits\/[0-9a-f-]{36}$/, { timeout: 30_000 }), row.getByRole("button", { name: /ลงทะเบียน \+ ตรวจ|รับเข้าตรวจ/ }).click()]);
+    const visitId = a.url().split("/").pop()!;
+    await expect(a.getByRole("link", { name: w.number })).toBeVisible();
+    const [v] = await db.select({ bookingId: clinicVisits.bookingId, patientId: clinicVisits.patientId, procedures: clinicVisits.procedures }).from(clinicVisits).where(eq(clinicVisits.id, visitId)).limit(1);
+    if (v?.bookingId !== w.bookingId) throw new Error(`visit not linked ${JSON.stringify(v)}`);
+    const [pt] = await db.select({ hn: patients.hn, phone: patients.phone }).from(patients).where(eq(patients.id, v.patientId)).limit(1);
+    const [b2] = await db.select({ status: bookings.status }).from(bookings).where(eq(bookings.id, w.bookingId)).limit(1);
+    if (b2?.status !== "checked_in") throw new Error(`booking status ${b2?.status}`);
+    await a.getByRole("button", { name: "ยกเลิกการตรวจ" }).click();
+    await a.getByRole("dialog").getByRole("button", { name: "ยกเลิกการตรวจ" }).click();
+    await toast(a, /ยกเลิกการตรวจแล้ว/);
+    await expect(a.getByTestId("visit-status")).toContainText("ยกเลิก");
+    return `${w.number} (${w.picked}) → new patient ${pt?.hn} ${pt?.phone}, procedure prefilled ${v.procedures.length}, booking checked_in; visit cancelled`;
+  });
+
   await step("11 clinic packages + visits list render", async () => {
     await goto(a, `${C}/clinic/packages`);
     await expect(a.getByRole("heading", { level: 1 })).toContainText(/คอร์ส|แพ็กเกจ/);
@@ -352,6 +498,17 @@ async function main() {
     await goto(a, `${C}/clinic/patients`);
     await shot(a, "patients-1440");
   });
+
+  /* ───────── 13 cleanup (runs last, see below) ───────── */
+  const cleanup = async () => {
+    // QA packages can't be deleted from the UI once sold (FK restrict) — remove them and their test ownerships here
+    const qa = await db.select({ id: clinicPackages.id }).from(clinicPackages).where(and(eq(clinicPackages.tenantId, clinicId), like(clinicPackages.name, "คิวเอ คอร์ส %")));
+    for (const p of qa) {
+      await db.delete(patientPackages).where(and(eq(patientPackages.tenantId, clinicId), eq(patientPackages.packageId, p.id)));
+      await db.delete(clinicPackages).where(eq(clinicPackages.id, p.id));
+    }
+    return `removed ${qa.length} QA package(s)`;
+  };
 
   /* ───────── 12 phone screenshots ───────── */
   await step("12 phone 390 screenshots + overflow check", async () => {
@@ -385,6 +542,7 @@ async function main() {
     return `${pages.length} pages, no page-level overflow`;
   });
 
+  await step("13 cleanup QA packages", cleanup);
   await browser.close();
   const passed = results.filter((r) => r.ok).length;
   console.log(`\n${passed}/${results.length} steps passed`);

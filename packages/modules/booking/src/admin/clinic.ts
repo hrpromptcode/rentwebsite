@@ -1,9 +1,9 @@
 import { qualified } from "./sql";
 import { and, asc, count, desc, eq, gte, ilike, inArray, lt, or, sql, type SQL } from "drizzle-orm";
-import { bookings, clinicPackages, clinicVisits, customers, nextCounter, packageUsages, patientPackages, patients, payments, recordAccessLogs, services, staff, type Tx } from "@rentweb/db";
+import { bookings, clinicPackages, clinicVisits, customers, nextCounter, packageUsages, patientPackages, patients, payments, recordAccessLogs, services, staff, user as authUser, type DbLike, type Tx } from "@rentweb/db";
 import { audit, decryptFromString, emitEvent, encryptToString, fail, normalizeThaiPhone, ok, pad, type Result } from "@rentweb/core";
 import { createPayment, markPaid, type PaymentMethod, type PaymentProvider } from "@rentweb/core/payments";
-import { listClinicPackages, sessionsLeft, type ClinicPackageWithService, type PatientRow } from "../services/clinic";
+import { ensurePatient, findPatientForCustomer, listClinicPackages, sessionsLeft, type ClinicPackageWithService, type PatientRow } from "../services/clinic";
 import type { Actor } from "./catalog";
 import type { ClinicPackageInput, PatientValues, VisitValues } from "./schemas";
 import { clinicPackageSchema, visitTotals } from "./schemas";
@@ -620,4 +620,60 @@ export async function listDoctors(tx: Tx, tenantId: string): Promise<Array<{ id:
 
 export async function listProcedureOptions(tx: Tx, tenantId: string): Promise<Array<{ id: string; name: string; price: number }>> {
   return tx.select({ id: services.id, name: services.name, price: services.price }).from(services).where(and(eq(services.tenantId, tenantId), eq(services.active, true))).orderBy(asc(services.sort), asc(services.name));
+}
+
+/* -------------------------------------------------------------------------- */
+/* booking → visit, access-log names                                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Opens a visit for a booking: finds the patient (customer link → phone) or registers one
+ * from the booking's name/phone, then creates the visit (idempotent per booking).
+ */
+export async function openVisitFromBooking(tx: Tx, tenantId: string, bookingId: string, opts: { hnPrefix: string }, actor: Actor): Promise<Result<{ id: string; patientId: string; newPatient: boolean }, string>> {
+  const [b] = await tx
+    .select({ id: bookings.id, customerId: bookings.customerId, customerName: bookings.customerName, customerPhone: bookings.customerPhone, customerEmail: bookings.customerEmail, staffId: bookings.staffId, status: bookings.status })
+    .from(bookings)
+    .where(and(eq(bookings.tenantId, tenantId), eq(bookings.id, bookingId)))
+    .limit(1);
+  if (!b) return fail("ไม่พบการจอง");
+  if (b.status === "cancelled" || b.status === "no_show") return fail("การจองนี้ถูกยกเลิกแล้ว");
+  let patientId: string | null = null;
+  let newPatient = false;
+  if (b.customerId) {
+    const ref = { id: b.customerId, name: b.customerName, phone: b.customerPhone, email: b.customerEmail };
+    const existing = await findPatientForCustomer(tx, tenantId, ref);
+    const p = existing ?? (await ensurePatient(tx, tenantId, ref, { hnPrefix: opts.hnPrefix, source: "admin" }));
+    patientId = p.id;
+    newPatient = !existing;
+  } else {
+    const phone = b.customerPhone ? normalizeThaiPhone(b.customerPhone) ?? b.customerPhone : null;
+    if (phone) {
+      const [m] = await tx.select({ id: patients.id }).from(patients).where(and(eq(patients.tenantId, tenantId), eq(patients.phone, phone))).limit(1);
+      patientId = m?.id ?? null;
+    }
+    if (!patientId) {
+      const parts = (b.customerName ?? "").trim().split(/\s+/).filter(Boolean);
+      const hn = `${opts.hnPrefix}-${pad(await nextCounter(tx, tenantId, "hn", 0), 4)}`;
+      const [row] = await tx
+        .insert(patients)
+        .values({ tenantId, hn, firstName: parts[0] ?? "ผู้ป่วย", lastName: parts.slice(1).join(" ") || null, phone, email: b.customerEmail ?? null, source: "admin" })
+        .returning({ id: patients.id });
+      patientId = row!.id;
+      newPatient = true;
+      await emitEvent(tx, { tenantId, type: "patient.created", payload: { patientId, hn, customerId: null, by: actor.userId, bookingId } });
+      await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "patient.create", targetType: "patient", targetId: patientId, diff: { hn, from: "booking" } });
+    }
+  }
+  const r = await createVisit(tx, tenantId, { patientId, bookingId: b.id, doctorId: b.staffId, chiefComplaint: null }, actor);
+  if (!r.ok) return r;
+  return ok({ id: r.value.id, patientId, newPatient });
+}
+
+/** Display names for access-log user ids (platform users table; not tenant-scoped). */
+export async function userNames(db: DbLike, ids: string[]): Promise<Record<string, string>> {
+  const uniq = [...new Set(ids)].filter(Boolean);
+  if (!uniq.length) return {};
+  const rows: Array<{ id: string; name: string; email: string }> = await db.select({ id: authUser.id, name: authUser.name, email: authUser.email }).from(authUser).where(inArray(authUser.id, uniq));
+  return Object.fromEntries(rows.map((r) => [r.id, r.name || r.email]));
 }
