@@ -5,8 +5,8 @@
  * (`<storefront>/preview?token=...`), which verifies the token and renders that page's DRAFT
  * (pages.sections + pages.draft_meta) instead of the published version.
  *
- * Self-contained on purpose (node:crypto only, no app imports) so the storefront can share it:
- * move this file to packages/core (e.g. `@rentweb/core/preview-token`) or import the same logic there.
+ * Shared by the admin (signs, apps/admin pages/actions.ts) and the storefront (verifies, apps/web
+ * rw/[tenantId]/preview). Self-contained on purpose: node:crypto only, no app imports.
  * Key: HMAC-SHA256 under a key derived from SECRETS_ENCRYPTION_KEY (both apps load the root .env), with the
  * same deterministic dev fallback as @rentweb/core/crypto.
  */

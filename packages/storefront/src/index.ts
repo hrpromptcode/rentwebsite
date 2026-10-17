@@ -1,10 +1,12 @@
 export * from "./ctx";
 export * from "./definitions";
+export { lineChat, type LineChat } from "./line";
 export { RenderSections, registerSection, hasSectionComponent, sectionsRenderH1, type SectionComponent } from "./render";
 export { SiteHeader } from "./shell/header";
 export { SiteFooter } from "./shell/footer";
 export { Logo } from "./shell/logo";
 export { ThemeEffects } from "./shell/effects";
 export { FloatingChat } from "./shell/floating-chat";
+export { FloatingChatOptOut } from "./shell/floating-chat-opt-out";
 export { ModeScript, ThemeToggle } from "./shell/theme-toggle";
 export { Section, SectionHeading, Icon, Img, Prose, SmartLink } from "./sections/_shared";

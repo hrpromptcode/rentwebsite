@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { OtpRateLimitError, parseOtpTarget, requestOtp, revokeCustomerSession, verifyOtp, CUSTOMER_COOKIE } from "@rentweb/core/customer";
+import { OtpRateLimitError, parseOtpTarget, requestOtp, revokeCustomerSession, verifyOtp, CUSTOMER_COOKIE, OTP_VERIFY_ERROR_MESSAGES } from "@rentweb/core/customer";
 import { cookies } from "next/headers";
 import { tenantTx } from "@/lib/tenant";
 import { clearCustomerCookie, requestMeta, setCustomerCookie } from "@/lib/customer";
@@ -50,14 +50,8 @@ export async function verifyOtpAction(tenantId: string, next: string, _prev: Otp
   const meta = await requestMeta();
   const result = await tenantTx(tenantId, (tx) => verifyOtp(tx, tenantId, target, parsed.data.code, { name: parsed.data.name, ...meta }));
   if (!result.ok) {
-    const msg =
-      result.error === "expired"
-        ? "รหัสหมดอายุ กรุณาขอรหัสใหม่"
-        : result.error === "too_many"
-          ? "ลองผิดหลายครั้งเกินไป กรุณาขอรหัสใหม่"
-          : result.error === "locked"
-            ? "ลองรหัสผิดหลายครั้งเกินไป กรุณาลองใหม่ภายหลัง"
-            : "รหัสไม่ถูกต้อง";
+    // ADMIN_B2-13: one Thai message per error (incl. "blocked" — the shop suspended this customer), shared with core
+    const msg = OTP_VERIFY_ERROR_MESSAGES[result.error] ?? OTP_VERIFY_ERROR_MESSAGES.invalid;
     return { step: result.error === "invalid" ? "code" : "target", target: target.value, error: msg };
   }
   await setCustomerCookie(result.token, result.expiresAt);

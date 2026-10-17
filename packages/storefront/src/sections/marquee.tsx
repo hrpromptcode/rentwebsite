@@ -11,15 +11,17 @@ export function MarqueeSection({ props: p }: { ctx: StorefrontCtx; props: Props 
   if (!p.items.length) return null;
   const giant = p.style === "giant";
   return (
-    <div className={cn("overflow-hidden border-y py-4", p.style === "badges" ? "bg-background" : "bg-foreground text-background", giant && "py-2")}>
+    <div className={cn("overflow-hidden border-y py-3", p.style === "badges" ? "bg-background" : "bg-foreground text-background", giant && "py-2")}>
       <Marquee duration={p.speed} gap={giant ? "3rem" : "2.5rem"} pauseOnHover={false} className="[mask-image:none]">
         {p.items.map((it, i) => (
           <span
             key={i}
             className={cn(
               "flex items-center gap-6 whitespace-nowrap font-heading",
-              // giant: py gives Thai tone marks + below vowels room inside the clipping track (line-height 1; RESPONSIVE_B2-01); the band itself drops to py-2
-              giant ? "heading-display py-[0.3em] text-5xl font-semibold uppercase md:text-7xl" : "text-sm font-medium tracking-wider uppercase md:text-base",
+              // py gives Thai tone marks + below vowels room inside the clipping track (RESPONSIVE_B2-01; the small band lost 1.3px
+              // of 'ส่งฟรีทั่วไทย' too, web_final) — the band padding drops (py-2 / py-3) so the height stays about the same.
+              // giant keeps leading-none: one line only, so the Thai heading leading minimum (apps/web globals.css) is not needed
+              giant ? "heading-display py-[0.3em] text-5xl leading-none font-semibold uppercase md:text-7xl md:leading-none" : "py-[0.25em] text-sm font-medium tracking-wider uppercase md:text-base",
               p.style === "outline" && "text-transparent [-webkit-text-stroke:1px_var(--background)]",
               p.style === "badges" && "rounded-full border px-4 py-1.5 text-foreground normal-case tracking-normal",
             )}

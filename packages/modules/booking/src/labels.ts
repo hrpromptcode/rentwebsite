@@ -21,6 +21,11 @@ export const L = {
   deposit: "มัดจำ",
   depositNote: (amount: string) => `ชำระมัดจำ ${amount} เพื่อยืนยันคิว ส่วนที่เหลือชำระที่ร้าน`,
   noDeposit: "ไม่ต้องมัดจำ ยืนยันทันที",
+  /** ADMIN_B2-04: deposit service, but the shop has no payment receiver yet → booked without a deposit, paid at the shop */
+  payAtShopBadge: "ไม่ต้องมัดจำ ชำระที่ร้าน",
+  /** ADMIN_B2-04: package purchase page when no PromptPay / bank receiver is configured (= PAYMENTS_NOT_CONFIGURED_MESSAGE + …) */
+  packagePaymentsNotice: "ร้านยังไม่ได้ตั้งค่าช่องทางรับชำระเงิน จึงยังซื้อคอร์สออนไลน์ไม่ได้ในขณะนี้ กรุณาติดต่อร้านเพื่อซื้อคอร์ส",
+  payAtShopNotice: "ร้านยังไม่ได้ตั้งค่าช่องทางรับชำระเงินออนไลน์ จึงไม่ต้องชำระมัดจำตอนนี้ — ชำระค่าบริการที่ร้านในวันที่มารับบริการ",
   free: "ฟรี",
   priceFrom: "เริ่มต้น",
   morning: "เช้า",
@@ -84,6 +89,9 @@ export const L = {
     package_not_usable: "ใช้สิทธิ์คอร์สนี้กับการจองนี้ไม่ได้ (คอร์สหมดอายุ ใช้ครบแล้ว หรือไม่ใช่บริการของคอร์ส)",
     consent_required: "กรุณายอมรับเงื่อนไขและการเก็บข้อมูลส่วนบุคคล (PDPA) ก่อนสั่งซื้อ",
     not_payable: "การจองนี้ไม่ต้องชำระมัดจำแล้ว",
+    /** = CUSTOMER_BLOCKED_MESSAGE in @rentweb/core/customer (not imported: these labels ship to the browser) */
+    customer_blocked: "ขออภัย ไม่สามารถทำรายการได้ กรุณาติดต่อร้านโดยตรง",
+    payments_unavailable: "ร้านยังไม่ได้ตั้งค่าช่องทางรับชำระเงิน กรุณาติดต่อร้าน",
   } as Record<string, string>,
 } as const;
 

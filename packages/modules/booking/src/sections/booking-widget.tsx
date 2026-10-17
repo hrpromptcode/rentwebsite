@@ -3,7 +3,6 @@ import type { z } from "zod";
 import { cookies } from "next/headers";
 import { getDb, withTenant, type Tx } from "@rentweb/db";
 import { CUSTOMER_COOKIE, getCustomerByToken, type CustomerSummary } from "@rentweb/core/customer";
-import { enabledMethods } from "@rentweb/core/payments";
 import type { StorefrontCtx } from "@rentweb/storefront/ctx";
 import type { bookingWidget } from "@rentweb/storefront/definitions";
 import { Section, SectionHeading } from "@rentweb/storefront";
@@ -13,6 +12,7 @@ import { FloatingChatOptOut } from "../components/floating-chat-opt-out";
 import { listServices, listStaff } from "../services/catalog";
 import { getPatientPackageForCustomer } from "../services/clinic";
 import { bookingConfig, type BookingConfig } from "../services/config";
+import { bookingDepositMethods } from "../services/bookings";
 import { addDays, bkkDateString, parseYmd, ymdToString } from "../services/time";
 import { METHOD_LABELS } from "../labels";
 
@@ -44,8 +44,9 @@ export async function loadWizardData(tx: Tx, tenantId: string): Promise<{ servic
 
 /** Payment methods the tenant accepts, with Thai labels, for the deposit step. */
 export function depositMethodOptions(settings: Record<string, unknown>): PaymentMethodOption[] {
-  return enabledMethods(settings)
-    .filter((m) => m in METHOD_LABELS && m !== "cod" && m !== "wallet")
+  // ADMIN_B2-04: exactly the methods createBooking accepts for a deposit (a receiver is configured), never card / COD
+  return bookingDepositMethods(settings)
+    .filter((m): m is PaymentMethodOption["value"] => m in METHOD_LABELS)
     .map((m) => ({ value: m, label: METHOD_LABELS[m]!.label, description: METHOD_LABELS[m]!.description || undefined }));
 }
 
@@ -91,17 +92,21 @@ export async function BookingWidgetSection({ ctx, props: p, id, preselect, bare 
   const wantService = course?.serviceId ?? preselect?.service ?? p.serviceSlug ?? null;
   const svc = wantService ? services.find((s) => s.id === wantService || s.slug === wantService) : undefined;
   const st = preselect?.staff ? staff.find((s) => s.id === preselect.staff || s.slug === preselect.staff) : undefined;
+  // ADMIN_B2-04: no deposit receiver → the server books without a deposit (answers.payAtShop); the review step must say so
+  const depositMethods = depositMethodOptions(ctx.tenant.settings);
+  const depositsLive = config.depositEnabled && depositMethods.length > 0;
 
   const wizard = (
     <BookingWizard
       services={services}
       staff={staff}
-      config={{ slotMinutes: config.slotMinutes, minNoticeHours: config.minNoticeHours, maxAdvanceDays: config.maxAdvanceDays, cancelHours: config.cancelHours, depositEnabled: config.depositEnabled }}
+      config={{ slotMinutes: config.slotMinutes, minNoticeHours: config.minNoticeHours, maxAdvanceDays: config.maxAdvanceDays, cancelHours: config.cancelHours, depositEnabled: depositsLive }}
       today={today}
       maxDate={maxDate}
       customer={customer ? { name: customer.name, phone: customer.phone, email: customer.email } : null}
       preselect={{ serviceId: svc?.id ?? null, staffId: st?.id ?? null }}
-      paymentMethods={depositMethodOptions(ctx.tenant.settings)}
+      paymentMethods={depositMethods}
+      payAtShop={config.depositEnabled && !depositsLive}
       course={course}
       compact={p.compact}
     />

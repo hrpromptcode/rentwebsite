@@ -360,8 +360,10 @@ body:has([data-sticky-bar="all"]) [data-floating-chat] { bottom: calc(5.75rem + 
 }
 [data-reveal-mask] > * { pointer-events: auto; }
 /* Thai display headings: at line-height 0.95-1 a stacked mark (ที่) reaches into the line above and reads as a below vowel
-   of that line (ใส่ → ใสุ่). The masks set the line box, so 1.2 here acts as a minimum (looser heading leading still wins). */
-[data-reveal-thai] > [data-reveal-mask] { line-height: var(--reveal-thai-leading, 1.2); }
+   of that line (ใส่ → ใสุ่). The masks set the line box, so this acts as a minimum (looser heading leading still wins).
+   1.25 (web_final): at 1.2 a 36px heading with ปู่ / ทุก under ปั้น still overlapped by ~0.8px; 1.25 leaves a gap at every
+   display size (qa/bughunt/fixes/RESPONSIVE_WEB-followups-verify.ts). apps/web uses the same value for non-reveal headings. */
+[data-reveal-thai] > [data-reveal-mask] { line-height: var(--reveal-thai-leading, 1.25); }
 
 /* Floating chat opt-out: render any element with data-hide-floating-chat (e.g. on a full-screen widget) to hide it. */
 body:has([data-hide-floating-chat]) [data-floating-chat] { display: none; }

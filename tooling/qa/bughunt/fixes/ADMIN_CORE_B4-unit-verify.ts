@@ -10,7 +10,7 @@
  */
 import { MAX_UPLOAD_BYTES, MEDIA_LIBRARY_KINDS } from "@rentweb/core/storage";
 import { effectiveMeta, hasUnpublishedChanges, planMetaSave, reservedPageSlugs } from "../../../../apps/admin/src/app/t/[slug]/pages/page-meta";
-import { signPreviewToken, verifyPreviewToken } from "../../../../apps/admin/src/lib/preview-token";
+import { signPreviewToken, verifyPreviewToken } from "@rentweb/core/preview-token";
 import { checkNavHref } from "../../../../apps/admin/src/lib/nav-href";
 import { checkName, checkPassword } from "../../../../apps/admin/src/lib/signup-rules";
 import { MAX_FILES_PER_UPLOAD, MEDIA_MAX_BYTES, MEDIA_TYPES_LABEL } from "../../../../apps/admin/src/app/t/[slug]/media/limits";

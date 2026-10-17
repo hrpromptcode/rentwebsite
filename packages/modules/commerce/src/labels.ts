@@ -118,6 +118,9 @@ export const L = {
   /** COR-23: no PromptPay ID / bank account configured (keep in sync with NO_PAYMENT_RECEIVER_MESSAGE in services/orders.ts) */
   noPaymentReceiver: "ร้านค้ายังไม่ได้ตั้งค่าช่องทางรับชำระเงิน (พร้อมเพย์หรือบัญชีธนาคาร) จึงยังสั่งซื้อออนไลน์ไม่ได้ในขณะนี้ กรุณาติดต่อร้านค้าโดยตรง",
   noPaymentForShipping: "วิธีจัดส่งนี้ยังไม่มีช่องทางชำระเงินที่รองรับ กรุณาเลือกวิธีจัดส่งอื่น",
+  /** ADMIN_B2-05: no PromptPay / bank receiver, but another delivery option can still be paid (COD or pay at pickup) */
+  noPaymentReceiverUseCod: "ร้านค้ายังไม่ได้ตั้งค่าช่องทางรับชำระเงินออนไลน์ (พร้อมเพย์หรือบัญชีธนาคาร) จึงชำระเงินล่วงหน้าไม่ได้ — เลือกวิธีจัดส่งแบบเก็บเงินปลายทางเพื่อสั่งซื้อได้",
+  noPaymentReceiverUsePickup: "ร้านค้ายังไม่ได้ตั้งค่าช่องทางรับชำระเงินออนไลน์ (พร้อมเพย์หรือบัญชีธนาคาร) จึงชำระเงินล่วงหน้าไม่ได้ — เลือกรับสินค้าที่ร้านและชำระที่ร้านเพื่อสั่งซื้อได้",
   note: "หมายเหตุถึงร้าน (ไม่บังคับ)",
   notePlaceholder: "เช่น ฝากไว้ที่ป้อมยาม, ห่อของขวัญ",
   orderSummary: "สรุปคำสั่งซื้อ",

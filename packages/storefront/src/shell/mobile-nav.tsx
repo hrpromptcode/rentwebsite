@@ -7,6 +7,7 @@ import type { NavItem } from "@rentweb/db";
 import { Button } from "@rentweb/ui/components/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@rentweb/ui/components/sheet";
 import { cn } from "@rentweb/ui/lib/utils";
+import { navTarget } from "./nav-href";
 
 /** Menu sheet. The trigger is phone-only unless `desktop` is set (header variants that inline only part of the nav). */
 export function MobileNav({
@@ -51,7 +52,7 @@ export function MobileNav({
                   {expanded === it.label && (
                     <div className="mb-3 ml-3 flex flex-col border-l pl-3">
                       {it.children.map((c, j) => (
-                        <Link key={`${c.href}-${j}`} href={c.href} onClick={() => setOpen(false)} className="py-2.5 text-base text-muted-foreground">
+                        <Link key={`${c.href}-${j}`} href={c.href} {...navTarget(c)} onClick={() => setOpen(false)} className="py-2.5 text-base text-muted-foreground">
                           {c.label}
                         </Link>
                       ))}
@@ -59,7 +60,7 @@ export function MobileNav({
                   )}
                 </>
               ) : (
-                <Link href={it.href} onClick={() => setOpen(false)} className="block px-2 py-4 font-heading text-lg">
+                <Link href={it.href} {...navTarget(it)} onClick={() => setOpen(false)} className="block px-2 py-4 font-heading text-lg">
                   {it.label}
                 </Link>
               )}

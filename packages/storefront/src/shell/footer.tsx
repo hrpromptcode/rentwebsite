@@ -5,6 +5,8 @@ import type { NavItem } from "@rentweb/db";
 import { cn } from "@rentweb/ui/lib/utils";
 import { contactOf, type StorefrontCtx } from "../ctx";
 import { Logo } from "./logo";
+import { lineChat } from "../line";
+import { navTarget, safeNav } from "./nav-href";
 
 /** Text links: 44px-tall tap rows on phones (RA-10), compact (24px min target) from md up. */
 const TAP_LINK = "inline-flex min-h-11 items-center md:min-h-6";
@@ -29,10 +31,11 @@ function Instagram({ className }: { className?: string }) {
 
 function Social({ ctx }: { ctx: StorefrontCtx }) {
   const c = contactOf(ctx);
+  const line = lineChat(c)?.href; // ADMIN_B2-10
   const items = [
     c.facebook && { href: c.facebook, icon: Facebook, label: "Facebook" },
     c.instagram && { href: c.instagram, icon: Instagram, label: "Instagram" },
-    c.lineId && { href: c.lineUrl ?? `https://line.me/R/ti/p/${encodeURIComponent(c.lineId)}`, icon: MessageCircle, label: "LINE" },
+    line && { href: line, icon: MessageCircle, label: "LINE" },
   ].filter(Boolean) as Array<{ href: string; icon: typeof Facebook; label: string }>;
   if (!items.length) return null;
   return (
@@ -81,7 +84,8 @@ function ContactLines({ ctx }: { ctx: StorefrontCtx }) {
   );
 }
 
-export function SiteFooter({ ctx, nav, legal }: { ctx: StorefrontCtx; nav: NavItem[]; legal: Array<{ label: string; href: string }> }) {
+export function SiteFooter({ ctx, nav: rawNav, legal }: { ctx: StorefrontCtx; nav: NavItem[]; legal: Array<{ label: string; href: string }> }) {
+  const nav = safeNav(rawNav); // ADMIN_B2-18
   const variant = ctx.theme.layout.footer;
   const year = new Date().getFullYear();
   const tagline = ctx.theme.brand.tagline ?? (ctx.tenant.settings.tagline as string | undefined);
@@ -117,7 +121,7 @@ export function SiteFooter({ ctx, nav, legal }: { ctx: StorefrontCtx; nav: NavIt
             <Logo ctx={ctx} />
             <nav className="flex flex-wrap gap-x-6 text-sm md:gap-y-2">
               {flat.map((n, i) => (
-                <Link key={`${n.href}-${i}`} href={n.href} className={TAP_LINK + " text-muted-foreground hover:text-foreground"}>
+                <Link key={`${n.href}-${i}`} href={n.href} {...navTarget(n)} className={TAP_LINK + " text-muted-foreground hover:text-foreground"}>
                   {n.label}
                 </Link>
               ))}
@@ -140,7 +144,7 @@ export function SiteFooter({ ctx, nav, legal }: { ctx: StorefrontCtx; nav: NavIt
           {tagline && <p className="mx-auto mt-4 max-w-md text-muted-foreground">{tagline}</p>}
           <nav className="mt-8 flex flex-wrap justify-center gap-x-8 text-sm font-medium md:gap-y-3">
             {flat.map((n, i) => (
-              <Link key={`${n.href}-${i}`} href={n.href} className={TAP_LINK + " hover:text-primary"}>
+              <Link key={`${n.href}-${i}`} href={n.href} {...navTarget(n)} className={TAP_LINK + " hover:text-primary"}>
                 {n.label}
               </Link>
             ))}
@@ -172,7 +176,7 @@ export function SiteFooter({ ctx, nav, legal }: { ctx: StorefrontCtx; nav: NavIt
                 <ul className="text-sm md:space-y-2.5">
                   {flat.map((n, i) => (
                     <li key={`${n.href}-${i}`}>
-                      <Link href={n.href} className={TAP_LINK + " text-background/85 hover:text-background"}>
+                      <Link href={n.href} {...navTarget(n)} className={TAP_LINK + " text-background/85 hover:text-background"}>
                         {n.label}
                       </Link>
                     </li>
@@ -185,7 +189,7 @@ export function SiteFooter({ ctx, nav, legal }: { ctx: StorefrontCtx; nav: NavIt
                   <ul className="text-sm md:space-y-2.5">
                     {g.children!.map((c, j) => (
                       <li key={`${c.href}-${j}`}>
-                        <Link href={c.href} className={TAP_LINK + " text-background/85 hover:text-background"}>
+                        <Link href={c.href} {...navTarget(c)} className={TAP_LINK + " text-background/85 hover:text-background"}>
                           {c.label}
                         </Link>
                       </li>
@@ -221,7 +225,7 @@ export function SiteFooter({ ctx, nav, legal }: { ctx: StorefrontCtx; nav: NavIt
             <ul className="text-sm md:space-y-2.5">
               {flat.map((n, i) => (
                 <li key={`${n.href}-${i}`}>
-                  <Link href={n.href} className={TAP_LINK + " hover:text-primary"}>
+                  <Link href={n.href} {...navTarget(n)} className={TAP_LINK + " hover:text-primary"}>
                     {n.label}
                   </Link>
                 </li>
@@ -234,7 +238,7 @@ export function SiteFooter({ ctx, nav, legal }: { ctx: StorefrontCtx; nav: NavIt
               <ul className="text-sm md:space-y-2.5">
                 {groups[0].children!.map((c, j) => (
                   <li key={`${c.href}-${j}`}>
-                    <Link href={c.href} className={TAP_LINK + " hover:text-primary"}>
+                    <Link href={c.href} {...navTarget(c)} className={TAP_LINK + " hover:text-primary"}>
                       {c.label}
                     </Link>
                   </li>

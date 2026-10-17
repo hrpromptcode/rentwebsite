@@ -9,6 +9,7 @@ import { Logo } from "./logo";
 import { HeaderShell } from "./header-shell";
 import { MobileNav } from "./mobile-nav";
 import { ThemeToggle } from "./theme-toggle";
+import { isSafeNavHref, navTarget, safeNav } from "./nav-href";
 
 function NavLinks({ items, className, itemClass }: { items: NavItem[]; className?: string; itemClass?: string }) {
   return (
@@ -17,6 +18,7 @@ function NavLinks({ items, className, itemClass }: { items: NavItem[]; className
         <div key={`${it.href}-${i}`} className="group relative">
           <Link
             href={it.href}
+            {...navTarget(it)}
             className={cn(
               "inline-flex h-10 items-center gap-1 rounded-full px-3.5 text-sm font-medium opacity-85 transition hover:bg-foreground/5 hover:opacity-100",
               itemClass,
@@ -29,7 +31,7 @@ function NavLinks({ items, className, itemClass }: { items: NavItem[]; className
             <div className="invisible absolute top-full left-0 z-50 min-w-56 translate-y-2 pt-2 opacity-0 transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
               <div className="card flex flex-col gap-0.5 p-2 text-foreground">
                 {it.children.map((c, j) => (
-                  <Link key={`${c.href}-${j}`} href={c.href} className="rounded-[var(--radius-md)] px-3 py-2 text-sm hover:bg-muted">
+                  <Link key={`${c.href}-${j}`} href={c.href} {...navTarget(c)} className="rounded-[var(--radius-md)] px-3 py-2 text-sm hover:bg-muted">
                     {c.label}
                   </Link>
                 ))}
@@ -74,10 +76,11 @@ function Actions({ ctx, cta, compact }: { ctx: StorefrontCtx; cta: { label: stri
   );
 }
 
-export function SiteHeader({ ctx, nav }: { ctx: StorefrontCtx; nav: NavItem[] }) {
+export function SiteHeader({ ctx, nav: rawNav }: { ctx: StorefrontCtx; nav: NavItem[] }) {
+  const nav = safeNav(rawNav); // ADMIN_B2-18: never render a javascript:/data:/… href; honour `external`
   const layout = ctx.theme.layout;
   const headerSettings = (ctx.tenant.settings.header as { cta?: { label: string; href: string } } | undefined) ?? {};
-  const cta = headerSettings.cta ?? null;
+  const cta = headerSettings.cta?.label && isSafeNavHref(headerSettings.cta.href) ? headerSettings.cta : null;
   const variant = layout.header;
 
   const mobile = <MobileNav items={nav} title={ctx.tenant.name} cta={cta} />;

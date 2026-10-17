@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { CalendarClock, ChevronLeft, Layers, Sparkles } from "lucide-react";
+import { CalendarClock, ChevronLeft, Layers, Phone, Sparkles, Wallet } from "lucide-react";
+import { Button } from "@rentweb/ui/components/button";
 import { Reveal } from "@rentweb/ui/motion";
 import { Img, Prose } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
 import { isUuid } from "@rentweb/core";
-import { getClinicPackage } from "@rentweb/module-booking/services";
+import { getClinicPackage, packagePaymentMethods } from "@rentweb/module-booking/services";
 import { depositMethodOptions } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -30,7 +31,10 @@ export default async function BuyPackagePage({ params }: { params: Params }) {
   const customer = await getCurrentCustomer(tenantId);
   if (!customer) redirect(`/account/login?next=${encodeURIComponent(`/packages/${id}/buy`)}`);
 
-  const methods = depositMethodOptions(runtime.config.settings).filter((m) => m.value === "promptpay_qr" || m.value === "slip");
+  // ADMIN_B2-04: the methods purchasePackage accepts; none configured → explain instead of a form that can only fail
+  const allowed = packagePaymentMethods(runtime.config.settings);
+  const methods = depositMethodOptions(runtime.config.settings).filter((m) => allowed.includes(m.value));
+  const phone = (runtime.config.settings.contact as { phone?: string } | undefined)?.phone;
   const perSession = Math.round(pkg.price / Math.max(1, pkg.sessions));
   const save = pkg.compareAtPrice && pkg.compareAtPrice > pkg.price ? Math.round(((pkg.compareAtPrice - pkg.price) / pkg.compareAtPrice) * 100) : 0;
 
@@ -70,7 +74,22 @@ export default async function BuyPackagePage({ params }: { params: Params }) {
                   {customer.phone && customer.name && <span className="text-muted-foreground"> · {customer.phone}</span>}
                 </p>
                 <div className="mt-5">
-                  <BuyForm methods={methods} amountLabel={thb(pkg.price)} action={purchasePackageAction.bind(null, tenantId, pkg.id)} />
+                  {methods.length ? (
+                    <BuyForm methods={methods} amountLabel={thb(pkg.price)} action={purchasePackageAction.bind(null, tenantId, pkg.id)} />
+                  ) : (
+                    <div role="status" data-payment-notice className="grid gap-3 rounded-[var(--radius-md)] border border-amber-300/70 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-200">
+                      <p className="flex items-start gap-2 font-medium">
+                        <Wallet className="mt-0.5 size-4 shrink-0" /> {L.packagePaymentsNotice}
+                      </p>
+                      {phone && (
+                        <Button asChild variant="outline" size="lg" className="w-full bg-background">
+                          <a href={`tel:${phone.replace(/[^0-9+]/g, "")}`}>
+                            <Phone className="size-4" /> โทร {phone}
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </Reveal>

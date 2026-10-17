@@ -196,6 +196,8 @@ export default async function BookingPage({ params, searchParams }: { params: Pa
                 <Row label={L.total} value={booking.price === 0 ? service.priceNote || L.free : thb(booking.price)} />
               )}
               {booking.depositAmount > 0 && <Row label={L.deposit} value={thb(booking.depositAmount)} />}
+              {/* ADMIN_B2-04: booked while the shop had no payment receiver: no deposit was asked, everything is paid at the shop */}
+              {!course && (booking.answers as { payAtShop?: boolean } | null)?.payAtShop === true && <Row label={L.deposit} value={L.payAtShopBadge} />}
               <Row label="สถานะการชำระ" value={course ? L.courseBookingNote : (PAYMENT_STATUS[booking.paymentStatus] ?? booking.paymentStatus)} />
               {payment && <Row label="ช่องทาง" value={METHOD_LABELS[payment.method]?.label ?? payment.method} />}
               {remaining > 0 && booking.price > 0 && <Row label={L.payAtShop} value={thb(remaining)} />}

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Clock, Lock, MapPin, Search, Store } from "lucide-react";
+import { Clock, Lock, MapPin, Phone, Search, Store, Wallet } from "lucide-react";
 import { Badge } from "@rentweb/ui/components/badge";
 import { Button } from "@rentweb/ui/components/button";
 import { Reveal } from "@rentweb/ui/motion";
-import { getActiveMenu, parseHours, pickupSlots, restaurantConfigOf, restaurantPaymentOptions } from "@rentweb/module-restaurant/services";
+import { getActiveMenu, parseHours, pickupSlots, restaurantConfigOf, restaurantPaymentNotice, restaurantPaymentOptions } from "@rentweb/module-restaurant/services";
 import { MenuBrowser } from "@rentweb/module-restaurant/components";
 import { L } from "@rentweb/module-restaurant/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -31,10 +31,12 @@ export default async function PickupPage({ params, searchParams }: { params: Par
   if (!runtime.config.modules.includes("restaurant")) return cmsFallback(runtime, "order");
   const cfg = restaurantConfigOf(runtime.config);
   const settings = runtime.config.settings;
-  const contact = (settings.contact as { hours?: Array<{ day?: string; time?: string }>; address?: string } | undefined) ?? {};
+  const contact = (settings.contact as { hours?: Array<{ day?: string; time?: string }>; address?: string; phone?: string } | undefined) ?? {};
   const hours = parseHours(contact.hours);
   const slots = pickupSlots({ hours, leadMinutes: cfg.pickupLeadMinutes, stepMinutes: 15, prepMinutes: cfg.prepMinutesDefault, dayLabels: [L.today, L.tomorrow] });
   const methods = restaurantPaymentOptions(settings, "pickup");
+  // ADMIN_B2-04: no way to pay for a pickup order → keep the menu browsable, explain why ordering is off and offer the phone
+  const payNotice = cfg.pickup ? restaurantPaymentNotice(settings, "pickup") : null;
   const menu = cfg.pickup ? await tenantTx(tenantId, (tx) => getActiveMenu(tx, tenantId)) : null;
   const place = placePickupOrder.bind(null, tenantId);
   const firstDay = slots[0]?.day;
@@ -73,7 +75,26 @@ export default async function PickupPage({ params, searchParams }: { params: Par
         </Reveal>
       </section>
 
-      {cfg.pickup && menu && menu.categories.length ? (
+      {payNotice && menu && menu.categories.length ? (
+        <>
+          <section className="container-x pb-6">
+            <div role="status" data-payment-notice className="card flex flex-col items-start gap-3 p-5 sm:flex-row sm:items-center md:p-6">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
+                <Wallet className="size-5" />
+              </span>
+              <p className="flex-1 text-sm leading-relaxed font-medium md:text-base">{payNotice}</p>
+              {contact.phone && (
+                <Button asChild size="lg" className="w-full sm:w-auto">
+                  <a href={`tel:${contact.phone.replace(/[^0-9+]/g, "")}`}>
+                    <Phone className="size-4" /> โทรสั่ง {contact.phone}
+                  </a>
+                </Button>
+              )}
+            </div>
+          </section>
+          <MenuBrowser menu={menu} mode={{ kind: "browse" }} serviceChargePercent={0} initialItemId={item ?? null} />
+        </>
+      ) : cfg.pickup && menu && menu.categories.length ? (
         <MenuBrowser menu={menu} mode={{ kind: "pickup", place, slots, methods }} serviceChargePercent={0} initialItemId={item ?? null} />
       ) : (
         <section className="container-x pb-24">

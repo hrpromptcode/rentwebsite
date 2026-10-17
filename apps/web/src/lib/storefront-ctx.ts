@@ -4,15 +4,19 @@ import type { TenantRuntime } from "@rentweb/core/tenant";
 import type { StorefrontCtx } from "@rentweb/storefront/ctx";
 import { CART_COOKIE, cartItemCount } from "@rentweb/module-commerce/services";
 import { currentHost, makeT, tenantTx } from "./tenant";
+import { getCurrentCustomer } from "./customer";
 
 async function currentCartCount(runtime: TenantRuntime): Promise<number> {
   if (!runtime.config.modules.includes("commerce")) return 0;
   try {
     const jar = await cookies();
-    const token = jar.get(CART_COOKIE)?.value;
-    if (!token) return 0;
+    const token = jar.get(CART_COOKIE)?.value ?? null;
     const tenantId = runtime.config.id;
-    return await tenantTx(tenantId, (tx) => cartItemCount(tx, tenantId, token));
+    // SS-12 polish: a signed-in customer's badge counts the account cart (findActiveCart merges the customer's carts,
+    // as /cart does), so right after logging in on a second device it no longer shows that device's guest count
+    const customer = await getCurrentCustomer(tenantId);
+    if (!token && !customer) return 0;
+    return await tenantTx(tenantId, (tx) => cartItemCount(tx, tenantId, token, { customerId: customer?.id ?? null }));
   } catch {
     return 0;
   }

@@ -9,7 +9,7 @@ import { isUuid, slugify } from "@rentweb/core";
 import { SECTION_DEFS } from "@rentweb/storefront/definitions";
 import { auditLog } from "@/lib/audit";
 import { checkNavHref } from "@/lib/nav-href";
-import { signPreviewToken } from "@/lib/preview-token";
+import { signPreviewToken } from "@rentweb/core/preview-token";
 import { assertRole, getTenantCtx, tenantHostnames, tenantTx } from "@/lib/tenant";
 import type { ActionResult } from "@/components/ui/form";
 import { cleanSeo, hasUnpublishedChanges, planMetaSave, reservedPageSlugs } from "./page-meta";

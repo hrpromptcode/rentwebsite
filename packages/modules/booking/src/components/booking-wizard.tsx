@@ -77,6 +77,8 @@ export interface BookingWizardProps {
   customer: { name: string | null; phone: string | null; email: string | null } | null;
   preselect?: { serviceId?: string | null; staffId?: string | null };
   paymentMethods: PaymentMethodOption[];
+  /** ADMIN_B2-04: deposits are on but the shop has no payment receiver: deposit services are booked without one (pay at the shop) */
+  payAtShop?: boolean;
   /** redeem a course session (price 0, no deposit) */
   course?: WizardCourse | null;
   compact?: boolean;
@@ -123,7 +125,7 @@ function priceLabel(s: WizardService, party = 1) {
 /* Wizard                                                               */
 /* ------------------------------------------------------------------ */
 
-export function BookingWizard({ services: allServices, staff, config, today, maxDate, customer, preselect, paymentMethods, course, compact, className }: BookingWizardProps) {
+export function BookingWizard({ services: allServices, staff, config, today, maxDate, customer, preselect, paymentMethods, payAtShop = false, course, compact, className }: BookingWizardProps) {
   const reduce = useReducedMotion();
   // a course booking is limited to the course's service
   const services = React.useMemo(() => (course?.serviceId ? allServices.filter((s) => s.id === course.serviceId) : allServices), [allServices, course]);
@@ -275,6 +277,7 @@ export function BookingWizard({ services: allServices, staff, config, today, max
 
   const unitDeposit = service && !course && config.depositEnabled && service.depositRequired ? service.depositAmount : 0;
   const deposit = perPerson ? (service && service.price > 0 ? Math.min(unitDeposit * party, service.price * party) : unitDeposit * party) : unitDeposit;
+  const depositWaived = payAtShop && !!service && !course && service.depositRequired && service.depositAmount > 0;
   const changeParty = (n: number) => {
     setPartyWanted(n);
     setStart(null);
@@ -460,6 +463,10 @@ export function BookingWizard({ services: allServices, staff, config, today, max
                           <p className="text-xs text-muted-foreground">{L.dueNow} ({L.deposit})</p>
                           <p className="font-heading text-2xl font-semibold text-primary">{thb(deposit)}</p>
                         </div>
+                      ) : depositWaived ? (
+                        <Badge variant="outline" className="px-3 py-1">
+                          {L.payAtShopBadge}
+                        </Badge>
                       ) : (
                         <Badge variant="success" className="px-3 py-1">
                           <Check className="size-3" /> {L.noDeposit}
@@ -467,6 +474,12 @@ export function BookingWizard({ services: allServices, staff, config, today, max
                       )}
                     </div>
                   </div>
+
+                  {depositWaived && (
+                    <p role="status" data-pay-at-shop className="rounded-[var(--radius-md)] border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-200">
+                      {L.payAtShopNotice}
+                    </p>
+                  )}
 
                   {deposit > 0 && paymentMethods.length > 0 && (
                     <div>

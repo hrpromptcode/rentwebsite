@@ -7,7 +7,7 @@ import { Button } from "@rentweb/ui/components/button";
 import { Reveal, Stagger, StaggerItem } from "@rentweb/ui/motion";
 import { Img, Prose } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
-import { bookingConfig, getServiceBySlug, listServices, listStaffForService } from "@rentweb/module-booking/services";
+import { bookingConfig, bookingDepositMethods, getServiceBySlug, listServices, listStaffForService } from "@rentweb/module-booking/services";
 import { ServiceCard, StaffCard, servicePriceLabel } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -41,7 +41,10 @@ export default async function ServicePage({ params }: { params: Params }) {
   });
   if (!data) notFound();
   const { service, team, related } = data;
-  const depositOn = config.depositEnabled && service.depositRequired && service.depositAmount > 0;
+  const depositWanted = config.depositEnabled && service.depositRequired && service.depositAmount > 0;
+  // ADMIN_B2-04: without a deposit receiver the booking is taken without one and paid at the shop
+  const depositOn = depositWanted && bookingDepositMethods(runtime.config.settings).length > 0;
+  const payAtShop = depositWanted && !depositOn;
   const bookHref = `/book?service=${encodeURIComponent(service.slug)}`;
 
   const facts = [
@@ -91,7 +94,7 @@ export default async function ServicePage({ params }: { params: Params }) {
             </dl>
 
             <p className="mt-4 text-sm text-muted-foreground">
-              {depositOn ? L.depositNote(thb(service.depositAmount)) : L.noDeposit} · {L.policy(config.cancelHours)}
+              {depositOn ? L.depositNote(thb(service.depositAmount)) : payAtShop ? L.payAtShopNotice : L.noDeposit} · {L.policy(config.cancelHours)}
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">

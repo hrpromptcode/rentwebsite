@@ -9,7 +9,7 @@
  * Run from tooling/:  pnpm exec tsx qa/bughunt/fixes/ADMIN_B2-01-02-03-verify.ts
  */
 import { and, eq, pages } from "@rentweb/db";
-import { verifyPreviewToken } from "../../../../apps/admin/src/lib/preview-token";
+import { verifyPreviewToken } from "@rentweb/core/preview-token";
 import { ADMIN, done, go, hreq, launch, newCtx, newPage, rand, readCreds, shot, stateFor, toast, tt } from "../admin_b2-lib";
 import { isolateHmr } from "./_dev-stable";
 

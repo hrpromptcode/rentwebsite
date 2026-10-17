@@ -3,6 +3,7 @@ import type { z } from "zod";
 import { Clock, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import { Reveal } from "@rentweb/ui/motion";
 import { contactOf, type StorefrontCtx } from "../ctx";
+import { lineChat } from "../line";
 import type { contact } from "../definitions";
 import { Prose, Section, SectionHeading } from "./_shared";
 import { ContactForm } from "./contact-form";
@@ -13,7 +14,8 @@ export function Contact({ ctx, props: p }: { ctx: StorefrontCtx; props: Props })
   const c = contactOf(ctx);
   const phone = p.phone ?? c.phone;
   const email = p.email ?? c.email;
-  const lineId = p.lineId ?? c.lineId;
+  // ADMIN_B2-10: a section-level LINE ID replaces the shop's (and its lineUrl); see ../line.ts for the accepted shapes
+  const line = p.lineId ? lineChat({ lineId: p.lineId }) : lineChat(c);
   const address = p.address ?? c.address;
   const mapUrl = p.mapEmbedUrl ?? c.mapUrl;
   const hours = c.hours ?? [];
@@ -35,17 +37,28 @@ export function Contact({ ctx, props: p }: { ctx: StorefrontCtx; props: Props })
                 </span>
               </a>
             )}
-            {lineId && (
-              <a href={c.lineUrl ?? `https://line.me/R/ti/p/${encodeURIComponent(lineId)}`} target="_blank" rel="noreferrer" className="flex items-start gap-4 rounded-[var(--radius-lg)] p-3 transition hover:bg-muted">
-                <span className="flex size-11 items-center justify-center rounded-full bg-[#06C755]/15 text-[#06C755]">
-                  <MessageCircle className="size-5" />
-                </span>
-                <span>
-                  <span className="block text-sm text-muted-foreground">LINE</span>
-                  <span className="text-lg font-medium">{lineId}</span>
-                </span>
-              </a>
-            )}
+            {line &&
+              (() => {
+                const body = (
+                  <>
+                    <span className="flex size-11 items-center justify-center rounded-full bg-[#06C755]/15 text-[#06C755]">
+                      <MessageCircle className="size-5" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm text-muted-foreground">LINE</span>
+                      <span className="text-lg font-medium break-all">{line.display}</span>
+                    </span>
+                  </>
+                );
+                // no usable link (e.g. an ID with Thai characters): still show the ID so customers can search for it in LINE
+                return line.href ? (
+                  <a href={line.href} target="_blank" rel="noopener noreferrer" className="flex items-start gap-4 rounded-[var(--radius-lg)] p-3 transition hover:bg-muted">
+                    {body}
+                  </a>
+                ) : (
+                  <div className="flex items-start gap-4 p-3">{body}</div>
+                );
+              })()}
             {email && (
               <a href={`mailto:${email}`} className="flex items-start gap-4 rounded-[var(--radius-lg)] p-3 transition hover:bg-muted">
                 <span className="flex size-11 items-center justify-center rounded-full bg-primary-soft text-primary">

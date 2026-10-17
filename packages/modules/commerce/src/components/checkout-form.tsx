@@ -64,22 +64,37 @@ function Field({ id, label: text, error, children, className, hint }: { id: stri
 
 const selectClass = "flex h-11 w-full rounded-md border border-input bg-background px-3.5 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30 aria-invalid:border-destructive md:text-sm";
 
+/** Payment methods usable with one delivery option: COD-only shipping takes COD; otherwise the prepaid methods, plus cash for pickup. */
+function methodsFor(methods: CheckoutMethod[], quote: { requiresCod?: boolean; isPickup?: boolean } | null): CheckoutMethod[] {
+  if (quote?.requiresCod) return methods.includes("cod") ? ["cod"] : [];
+  return methods.filter((m) => m !== "cod" && m !== "wallet" && (m !== "cash" || !!quote?.isPickup));
+}
+
 export function CheckoutForm({ cart, shipping, methods, customer, provinces, loginHref, action }: CheckoutFormProps) {
   const [state, submit, pending] = useActionState(action, {} as CheckoutState);
   const errors = state.fieldErrors ?? {};
-  const [shippingId, setShippingId] = React.useState<string>(shipping[0]?.id ?? "");
+  // ADMIN_B2-05: pre-select a delivery option that can actually be paid for (e.g. COD when no PromptPay / bank is set up)
+  const [shippingId, setShippingId] = React.useState<string>(() => (shipping.find((s) => methodsFor(methods, s).length) ?? shipping[0])?.id ?? "");
   const quote = shipping.find((s) => s.id === shippingId) ?? shipping[0] ?? null;
 
-  const options = React.useMemo<PaymentMethodOption[]>(() => {
-    let values: CheckoutMethod[];
-    if (quote?.requiresCod) values = ["cod"];
-    else values = methods.filter((m) => m !== "cod" && m !== "wallet" && (m !== "cash" || quote?.isPickup));
-    return values.map((v) => ({ value: v, label: PAYMENT_LABELS[v]?.label ?? v, description: PAYMENT_LABELS[v]?.description, extra: v === "cod" && quote?.codFee ? `+${thb(quote.codFee)}` : undefined }));
-  }, [methods, quote]);
+  const options = React.useMemo<PaymentMethodOption[]>(
+    () => methodsFor(methods, quote).map((v) => ({ value: v, label: PAYMENT_LABELS[v]?.label ?? v, description: PAYMENT_LABELS[v]?.description, extra: v === "cod" && quote?.codFee ? `+${thb(quote.codFee)}` : undefined })),
+    [methods, quote],
+  );
 
   const [method, setMethod] = React.useState<CheckoutMethod>(options[0]?.value ?? "promptpay_qr");
-  // COR-23: nothing to pay with (no receiver configured, or none fits the chosen shipping) → explain and block
-  const paymentNotice = options.length ? null : methods.length ? L.noPaymentForShipping : L.noPaymentReceiver;
+  // COR-23 / ADMIN_B2-05: nothing to pay with for this delivery option → say why. Without a PromptPay / bank receiver the
+  // shop has not set up payments (not a shipping problem); point to COD / pickup when one of those can still be paid.
+  const hasReceiver = methods.some((m) => m === "promptpay_qr" || m === "slip" || m === "card");
+  const paymentNotice = options.length
+    ? null
+    : hasReceiver
+      ? L.noPaymentForShipping
+      : shipping.some((s) => s.requiresCod && methodsFor(methods, s).length)
+        ? L.noPaymentReceiverUseCod
+        : shipping.some((s) => s.isPickup && methodsFor(methods, s).length)
+          ? L.noPaymentReceiverUsePickup
+          : L.noPaymentReceiver;
   const canSubmit = !pending && shipping.length > 0 && options.length > 0;
   React.useEffect(() => {
     if (!options.some((o) => o.value === method)) setMethod(options[0]?.value ?? "promptpay_qr");

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { contactOf, type StorefrontCtx } from "../ctx";
+import { lineChat } from "../line";
 import { FloatingChatLink } from "./floating-chat-link";
 
 /**
@@ -12,7 +13,7 @@ const HIDE_ON_SEGMENTS = ["book", "bookings"];
 /** Floating LINE chat button (very common expectation for Thai customers). */
 export function FloatingChat({ ctx }: { ctx: StorefrontCtx }) {
   const c = contactOf(ctx);
-  if (!c.lineId && !c.lineUrl) return null;
-  const href = c.lineUrl ?? `https://line.me/R/ti/p/${encodeURIComponent(c.lineId!)}`;
+  const href = lineChat(c)?.href; // ADMIN_B2-10: "@oa" / personal id / full LINE URL, never a dead link
+  if (!href) return null;
   return <FloatingChatLink href={href} label={ctx.t("common.lineChat")} hideOnSegments={HIDE_ON_SEGMENTS} />;
 }

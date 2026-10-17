@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CalendarCheck, Clock, Home, Phone, Trees, Users } from "lucide-react";
+import { CalendarCheck, Clock, Home, Phone, Trees, Users, Wallet } from "lucide-react";
+import { Button } from "@rentweb/ui/components/button";
+import { FloatingChatOptOut } from "@rentweb/storefront";
 import { Reveal } from "@rentweb/ui/motion";
 import { thb } from "@rentweb/core/money";
-import { bangkokParts, lastBookableDay, listZones, parseHours, restaurantConfigOf, restaurantPaymentOptions } from "@rentweb/module-restaurant/services";
+import { bangkokParts, lastBookableDay, listZones, parseHours, restaurantConfigOf, restaurantPaymentNotice, restaurantPaymentOptions } from "@rentweb/module-restaurant/services";
 import { ReserveForm } from "@rentweb/module-restaurant/components";
 import { L } from "@rentweb/module-restaurant/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -36,6 +38,9 @@ export default async function ReservePage({ params, searchParams }: { params: Pa
   const zones = await tenantTx(tenantId, (tx) => listZones(tx, tenantId));
   const deposit = cfg.reservationDeposit;
   const methods = deposit > 0 ? restaurantPaymentOptions(settings, "reservation") : [];
+  // ADMIN_B2-04: a deposit is required but no receiver is configured → say so (and offer the phone) instead of a form that cannot be sent
+  const payNotice = deposit > 0 ? restaurantPaymentNotice(settings, "reservation") : null;
+  const tel = contact.phone ? `tel:${contact.phone.replace(/[^0-9+]/g, "")}` : null;
   const action = createReservationAction.bind(null, tenantId);
   const size = sp.size ? Number.parseInt(sp.size, 10) : undefined;
 
@@ -52,6 +57,23 @@ export default async function ReservePage({ params, searchParams }: { params: Pa
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-10">
           <Reveal delay={0.1} className="card p-5 md:p-8">
+            {payNotice ? (
+              <div role="status" data-payment-notice className="flex flex-col items-center gap-4 py-8 text-center">
+                <span className="flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary">
+                  <Wallet className="size-6" />
+                </span>
+                <p className="max-w-md text-base leading-relaxed font-medium">{payNotice}</p>
+                {tel && (
+                  <Button asChild size="lg">
+                    <a href={tel}>
+                      <Phone className="size-4" /> โทรจอง {contact.phone}
+                    </a>
+                  </Button>
+                )}
+              </div>
+            ) : (
+            /* modules_finish follow-up: on phones the floating LINE button covered the zone cards; hide it while the form is in view */
+            <FloatingChatOptOut>
             <ReserveForm
               hours={hours}
               zones={zones}
@@ -63,6 +85,8 @@ export default async function ReservePage({ params, searchParams }: { params: Pa
               initial={{ date: sp.date, time: sp.time, size: Number.isFinite(size) ? size : undefined, zone: sp.zone }}
               action={action}
             />
+            </FloatingChatOptOut>
+            )}
           </Reveal>
 
           <Reveal delay={0.2} className="grid content-start gap-4">
@@ -101,7 +125,7 @@ export default async function ReservePage({ params, searchParams }: { params: Pa
               </ul>
             </div>
             {contact.phone && (
-              <a href={`tel:${contact.phone.replace(/[^0-9+]/g, "")}`} className="card flex min-h-14 items-center gap-3 p-4 transition hover:bg-muted">
+              <a href={tel ?? undefined} className="card flex min-h-14 items-center gap-3 p-4 transition hover:bg-muted">
                 <span className="flex size-10 items-center justify-center rounded-full bg-primary-soft text-primary">
                   <Phone className="size-4" />
                 </span>

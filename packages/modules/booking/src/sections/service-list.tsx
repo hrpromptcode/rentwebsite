@@ -33,7 +33,8 @@ export function ServiceMenu({ services, className }: { services: ServiceWithCate
           <ul className="space-y-4">
             {list.map((s) => (
               <li key={s.id}>
-                <Link href={`/services/${s.slug}`} className="group block">
+                {/* RA-10: the two-line row is ~42px; keep the whole tap target at least 44px */}
+                <Link href={`/services/${s.slug}`} className="group block min-h-11">
                   <div className="flex items-baseline gap-2">
                     <span className="font-medium leading-snug group-hover:text-primary">{s.name}</span>
                     <span aria-hidden className="mb-1 flex-1 border-b border-dotted border-foreground/30" />

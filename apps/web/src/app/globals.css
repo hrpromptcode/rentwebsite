@@ -2,3 +2,21 @@
 @source "../../../../packages/storefront/src";
 @source "../../../../packages/templates/src";
 @source "../../../../packages/modules";
+
+/* Thai typography on the storefront (responsive_web follow-ups, web_final packet) ---------------------------------------
+   1. Clamped text: line-clamp-* clips at the padding box, and Thai upper vowels + tone marks (ที่, ปั้น, ชิ้น) rise above
+      the line box, so the first line lost 1-2.5px of its marks (product titles, clinic service / staff blurbs). A small
+      padding-top inside the clamp box gives them room. Base layer: a utility that sets padding on the element still wins. */
+@layer base {
+  :lang(th) :is(.line-clamp-1, .line-clamp-2, .line-clamp-3, .line-clamp-4) {
+    padding-top: 0.2em;
+  }
+}
+/* 2. Display headings rendered without TextReveal (hero fallback with reveal off, page titles, section titles) sit at
+      line-height 0.95-1 (.heading-display / text-5xl…), so a stacked mark (ที่) reaches into the line above and reads as a
+      below vowel of that line. Thai pages get the same 1.25 minimum the TextReveal masks use (--reveal-thai-leading,
+      packages/ui globals.css); a heading that sets its own leading-* keeps it. Unlayered on purpose: it must beat the
+      text-* utilities' line-height. */
+:lang(th) .heading-display:not([class*="leading-"]) {
+  line-height: var(--reveal-thai-leading, 1.25);
+}

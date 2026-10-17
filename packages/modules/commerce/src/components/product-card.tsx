@@ -97,7 +97,8 @@ export function ProductCardView({ product: p, style = "standard", index = 0, pri
     <Link href={href} className="card group block h-full overflow-hidden">
       <Picture p={p} aspect="aspect-[4/5]" swap={style === "hover-swap"} priority={priority} />
       <div className="p-4">
-        <h3 className="line-clamp-2 min-h-[2.75rem] font-medium leading-snug">{p.name}</h3>
+        {/* 2 lines + the Thai clamp padding (apps/web globals.css) so 1- and 2-line titles keep equal card heights */}
+        <h3 className="line-clamp-2 min-h-[calc(2.75rem+0.2em)] font-medium leading-snug">{p.name}</h3>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <Price amount={p.price} compareAt={p.compareAtPrice} />
           <Stars value={p.ratingAvg} count={p.ratingCount} />

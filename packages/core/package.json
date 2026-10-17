@@ -15,7 +15,8 @@
     "./env": "./src/env.ts",
     "./customer": "./src/customer/index.ts",
     "./storage": "./src/storage.ts",
-    "./payments": "./src/payments/index.ts"
+    "./payments": "./src/payments/index.ts",
+    "./preview-token": "./src/preview-token.ts"
   },
   "scripts": {
     "test": "vitest run",
