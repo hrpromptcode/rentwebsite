@@ -15,10 +15,18 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const SHOTS = path.resolve(here, "../screenshots");
 const BASE = "http://demo-restaurant.localhost:3000";
 const OTHER = "http://demo-shop.localhost:3000";
-const QR = {
-  A1: "01a14020-a1-w9ntoj", A2: "01a14020-a2-jr07k6", A3: "01a14020-a3-jtaqtt", A4: "01a14020-a4-vvnnxu",
-  A5: "01a14020-a5-15g2go", A6: "01a14020-a6-ez9tkj", A7: "01a14020-a7-c38hft", A8: "01a14020-a8-dubqou",
-};
+// Table QR tokens are read from the DB at start-up (they change whenever demo-restaurant is re-provisioned).
+const QR: Record<"A1" | "A2" | "A3" | "A4" | "A5" | "A6" | "A7" | "A8", string> = { A1: "", A2: "", A3: "", A4: "", A5: "", A6: "", A7: "", A8: "" };
+async function loadTableTokens() {
+  const { and, asc, eq, getAdminDb, tenants, diningTables } = await import("@rentweb/db");
+  const db = getAdminDb();
+  const [t] = await db.select({ id: tenants.id }).from(tenants).where(eq(tenants.slug, "demo-restaurant")).limit(1);
+  if (!t) throw new Error("demo-restaurant tenant not found");
+  const rows = await db.select({ name: diningTables.name, qrToken: diningTables.qrToken }).from(diningTables).where(and(eq(diningTables.tenantId, t.id), eq(diningTables.active, true))).orderBy(asc(diningTables.sort));
+  for (const r of rows) if (r.name in QR && r.qrToken) QR[r.name as keyof typeof QR] = r.qrToken;
+  const missing = Object.entries(QR).filter(([, v]) => !v).map(([k]) => k);
+  if (missing.length) throw new Error(`no active table / QR token for ${missing.join(", ")} on demo-restaurant`);
+}
 const PHONE = "0812345678";
 const RES_PHONE = "0891234567";
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
@@ -110,6 +118,7 @@ function addDays(ymd: string, n: number): string {
 }
 
 async function main() {
+  await loadTableTokens();
   await mkdir(SHOTS, { recursive: true });
   const browser = await chromium.launch();
   const shared: { pickupNumber?: string; cashNumber?: string; tableToken?: string; dineInNumber?: string; menuItemId?: string } = {};
