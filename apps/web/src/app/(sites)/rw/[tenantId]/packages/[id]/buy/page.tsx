@@ -7,7 +7,7 @@ import { Reveal } from "@rentweb/ui/motion";
 import { Img, Prose } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
 import { isUuid } from "@rentweb/core";
-import { getClinicPackage, packagePaymentMethods } from "@rentweb/module-booking/services";
+import { getClinicPackage, packagePaymentMethods, packagesEnabled } from "@rentweb/module-booking/services";
 import { depositMethodOptions } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -24,7 +24,7 @@ export const metadata: Metadata = { title: "ซื้อคอร์ส" };
 export default async function BuyPackagePage({ params }: { params: Params }) {
   const { tenantId, id } = await params;
   const runtime = await getRuntime(tenantId);
-  if (!runtime || !runtime.config.modules.includes("clinic")) notFound();
+  if (!runtime || !packagesEnabled(runtime.config.modules, runtime.config.moduleConfig)) notFound();
   if (!isUuid(id)) notFound();
   const pkg = await tenantTx(tenantId, (tx) => getClinicPackage(tx, tenantId, id));
   if (!pkg || !pkg.active) notFound();
@@ -35,6 +35,7 @@ export default async function BuyPackagePage({ params }: { params: Params }) {
   const allowed = packagePaymentMethods(runtime.config.settings);
   const methods = depositMethodOptions(runtime.config.settings).filter((m) => allowed.includes(m.value));
   const phone = (runtime.config.settings.contact as { phone?: string } | undefined)?.phone;
+  const clinic = runtime.config.modules.includes("clinic");
   const perSession = Math.round(pkg.price / Math.max(1, pkg.sessions));
   const save = pkg.compareAtPrice && pkg.compareAtPrice > pkg.price ? Math.round(((pkg.compareAtPrice - pkg.price) / pkg.compareAtPrice) * 100) : 0;
 
@@ -43,12 +44,12 @@ export default async function BuyPackagePage({ params }: { params: Params }) {
       <section className="container-x pt-8 pb-16 md:pt-12 md:pb-24">
         <div className="mx-auto max-w-4xl">
           <Link href="/packages" className="inline-flex h-11 items-center gap-1 text-sm text-muted-foreground transition hover:text-foreground">
-            <ChevronLeft className="size-4" /> คอร์สทั้งหมด
+            <ChevronLeft className="size-4" /> {clinic ? "คอร์สทั้งหมด" : "คลาสพาสทั้งหมด"}
           </Link>
           <div className="mt-2 grid gap-8 md:grid-cols-[1fr_minmax(0,380px)] md:gap-10">
             <Reveal>
               <div className="overflow-hidden rounded-[var(--radius-xl)] bg-muted">{pkg.image ? <Img src={pkg.image} alt={pkg.name} className="aspect-[16/10] w-full object-cover" /> : <div className="aspect-[16/10]" aria-hidden />}</div>
-              <p className="mt-6 text-sm font-medium uppercase tracking-[0.2em] text-primary">{pkg.serviceName ?? "คอร์ส"}</p>
+              <p className="mt-6 text-sm font-medium uppercase tracking-[0.2em] text-primary">{pkg.serviceName ?? (clinic ? "คอร์ส" : "ใช้ได้ทุกคลาส")}</p>
               <h1 className="heading-display mt-2 text-3xl font-semibold md:text-5xl">{pkg.name}</h1>
               {pkg.description && <Prose text={pkg.description} className="mt-4 text-muted-foreground" />}
               <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -75,7 +76,7 @@ export default async function BuyPackagePage({ params }: { params: Params }) {
                 </p>
                 <div className="mt-5">
                   {methods.length ? (
-                    <BuyForm methods={methods} amountLabel={thb(pkg.price)} action={purchasePackageAction.bind(null, tenantId, pkg.id)} />
+                    <BuyForm methods={methods} amountLabel={thb(pkg.price)} action={purchasePackageAction.bind(null, tenantId, pkg.id)} venue={clinic ? "คลินิก" : "สตูดิโอ"} itemLabel={clinic ? "คอร์ส" : "คลาสพาส"} />
                   ) : (
                     <div role="status" data-payment-notice className="grid gap-3 rounded-[var(--radius-md)] border border-amber-300/70 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-200">
                       <p className="flex items-start gap-2 font-medium">

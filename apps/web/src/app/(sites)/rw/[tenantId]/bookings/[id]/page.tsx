@@ -9,7 +9,7 @@ import { PaymentPanel } from "@rentweb/storefront/payments";
 import { paymentRefundRequired, paymentSettings, promptpayQrDataUrl } from "@rentweb/core/payments";
 import { thb } from "@rentweb/core/money";
 import { isUuid } from "@rentweb/core";
-import { bookingConfig, canCustomerModify, formatBkkTime, formatThaiDate, getBookingForCustomer } from "@rentweb/module-booking/services";
+import { bookingConfig, canCustomerModify, formatBkkTime, formatThaiDate, getBookingForCustomer, packagesEnabled } from "@rentweb/module-booking/services";
 import { BookingStatusBadge, wizardDates } from "@rentweb/module-booking/ui";
 import { L, METHOD_LABELS, PAYMENT_STATUS } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -244,7 +244,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pa
                 <History className="size-4" /> การจองของฉัน
               </Link>
             </Button>
-            {runtime.config.modules.includes("clinic") && customer && (
+            {packagesEnabled(runtime.config.modules, runtime.config.moduleConfig) && customer && (
               <Button asChild size="lg" variant="ghost">
                 <Link href="/account/packages">
                   <Wallet className="size-4" /> คอร์สของฉัน

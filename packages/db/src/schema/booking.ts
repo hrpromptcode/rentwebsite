@@ -48,6 +48,8 @@ export const services = pgTable(
     requiresStaff: boolean("requires_staff").notNull().default(true), // true = every guest is served by one staff member
     /** fixed number of guests per booking (package "for 2", price per booking); null = per person (customer picks 1..capacity, price per guest) */
     seatsPerBooking: integer("seats_per_booking"),
+    /** classes (course template): beginner | intermediate | advanced | all; null = not a levelled class */
+    level: text("level"),
     active: boolean("active").notNull().default(true),
     featured: boolean("featured").notNull().default(false),
     sort: integer("sort").notNull().default(0),
@@ -96,18 +98,23 @@ export const staffServices = pgTable(
   (t) => [primaryKey({ columns: [t.staffId, t.serviceId] })],
 );
 
-/** Weekly recurring availability. staffId null = business hours (default for all staff). */
+/**
+ * Weekly recurring availability. staffId null = business hours (default for all staff).
+ * serviceId set = a recurring CLASS SESSION of that service (course template): weekday + startTime is one timetable
+ * slot, staffId its instructor. Session rows are not working hours – every working-hours reader filters serviceId IS NULL.
+ */
 export const availabilityRules = pgTable(
   "availability_rules",
   {
     id: id(),
     tenantId: tenantRef(),
     staffId: uuid("staff_id").references(() => staff.id, { onDelete: "cascade" }),
+    serviceId: uuid("service_id").references(() => services.id, { onDelete: "cascade" }),
     weekday: smallint("weekday").notNull(), // 0 = Sunday … 6 = Saturday
     startTime: time("start_time").notNull(),
     endTime: time("end_time").notNull(),
   },
-  (t) => [index("availability_rules_staff_idx").on(t.tenantId, t.staffId, t.weekday)],
+  (t) => [index("availability_rules_staff_idx").on(t.tenantId, t.staffId, t.weekday), index("availability_rules_service_idx").on(t.tenantId, t.serviceId, t.weekday)],
 );
 
 /** Date-specific overrides: holidays, time off, special opening. */

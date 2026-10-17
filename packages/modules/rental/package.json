@@ -1,0 +1,51 @@
+{
+  "name": "@rentweb/module-rental",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./register": "./src/register.ts",
+    "./services": "./src/services/index.ts",
+    "./sections": "./src/sections/index.ts",
+    "./components": "./src/components/index.ts",
+    "./ui": "./src/ui.ts",
+    "./labels": "./src/labels.ts",
+    "./time": "./src/services/time.ts",
+    "./admin": "./src/admin/index.ts",
+    "./admin/labels": "./src/admin/labels.ts",
+    "./admin/schemas": "./src/admin/schemas.ts",
+    "./admin/ui": "./src/admin/ui/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@rentweb/core": "workspace:*",
+    "@rentweb/db": "workspace:*",
+    "@rentweb/i18n": "workspace:*",
+    "@rentweb/storefront": "workspace:*",
+    "@rentweb/ui": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "lucide-react": "catalog:",
+    "motion": "catalog:",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@rentweb/config": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

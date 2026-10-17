@@ -4,6 +4,7 @@ import { randomOtp, randomToken, safeEqual, sha256 } from "../crypto";
 import { isUuid, normalizeThaiPhone } from "../utils";
 
 export { clientIp, isHttpsRequest, normalizeIp, trustedProxyHops } from "./request-meta";
+export * from "./line";
 
 /**
  * Storefront customer authentication (per tenant). Cookie name is the same on every host –

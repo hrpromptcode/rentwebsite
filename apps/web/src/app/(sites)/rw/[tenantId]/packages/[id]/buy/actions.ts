@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { isUuid } from "@rentweb/core";
-import { clinicConfig, purchasePackage } from "@rentweb/module-booking/services";
+import { clinicConfig, memberNumberPrefix, packagesEnabled, purchasePackage } from "@rentweb/module-booking/services";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
@@ -21,7 +21,7 @@ export async function purchasePackageAction(tenantId: string, packageId: string,
   const parsed = schema.safeParse({ paymentMethod: form.get("paymentMethod"), consent: form.get("consent") });
   if (!parsed.success) return { error: msg(parsed.error.issues.some((i) => i.path[0] === "consent") ? "consent_required" : "invalid_input") };
   const runtime = await getRuntime(tenantId);
-  if (!runtime || !runtime.config.modules.includes("clinic")) return { error: msg("unknown") };
+  if (!runtime || !packagesEnabled(runtime.config.modules, runtime.config.moduleConfig)) return { error: msg("unknown") };
   const customer = await getCurrentCustomer(tenantId);
   if (!customer) redirect(`/account/login?next=${encodeURIComponent(`/packages/${packageId}/buy`)}`);
 
@@ -30,7 +30,7 @@ export async function purchasePackageAction(tenantId: string, packageId: string,
       tx,
       tenantId,
       { packageId, customer: { id: customer.id, name: customer.name, phone: customer.phone, email: customer.email }, paymentMethod: parsed.data.paymentMethod, consent: { version: clinicConfig(runtime.config.moduleConfig).consentVersion } },
-      { settings: runtime.config.settings, hnPrefix: clinicConfig(runtime.config.moduleConfig).hnPrefix },
+      { settings: runtime.config.settings, hnPrefix: memberNumberPrefix(runtime.config.modules, runtime.config.moduleConfig) },
     ),
   );
   if (!result.ok) return { error: msg(result.error) };

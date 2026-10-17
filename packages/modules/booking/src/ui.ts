@@ -2,4 +2,6 @@
 export { BookingWidgetSection, loadWizardData, depositMethodOptions, wizardDates, type BookingWidgetExtra } from "./sections/booking-widget";
 export { ServiceMenu } from "./sections/service-list";
 export { ServiceCard, StaffCard, PackageCard, BookingStatusBadge, PackageStatusBadge, servicePriceLabel } from "./components/cards";
+export { ClassCard, InstructorCard, InstructorAvatar, LevelBadge, SeatsPill, SessionRow, enrolHref, weeklyRhythm } from "./components/class-cards";
+export { WeekTimetable, type WeekTimetableProps } from "./components/week-timetable";
 export { L, BOOKING_STATUS, PAYMENT_STATUS, PACKAGE_STATUS, METHOD_LABELS } from "./labels";

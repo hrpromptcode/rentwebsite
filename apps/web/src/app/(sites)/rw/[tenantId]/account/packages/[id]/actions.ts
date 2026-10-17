@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { isUuid } from "@rentweb/core";
 import type { PaymentMethod } from "@rentweb/core/payments";
-import { createPackagePayment, getPatientPackageForCustomer } from "@rentweb/module-booking/services";
+import { createPackagePayment, getPatientPackageForCustomer, packagesEnabled } from "@rentweb/module-booking/services";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
 
@@ -12,7 +12,7 @@ import { getCurrentCustomer } from "@/lib/customer";
 export async function renewPackagePaymentAction(tenantId: string, patientPackageId: string): Promise<void> {
   if (!isUuid(patientPackageId)) return;
   const runtime = await getRuntime(tenantId);
-  if (!runtime || !runtime.config.modules.includes("clinic")) return;
+  if (!runtime || !packagesEnabled(runtime.config.modules, runtime.config.moduleConfig)) return;
   const customer = await getCurrentCustomer(tenantId);
   if (!customer) redirect(`/account/login?next=${encodeURIComponent(`/account/packages/${patientPackageId}`)}`);
   await tenantTx(tenantId, async (tx) => {

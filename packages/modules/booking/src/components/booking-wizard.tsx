@@ -75,7 +75,8 @@ export interface BookingWizardProps {
   today: string;
   maxDate: string;
   customer: { name: string | null; phone: string | null; email: string | null } | null;
-  preselect?: { serviceId?: string | null; staffId?: string | null };
+  /** date (YYYY-MM-DD) / start (ISO) jump straight to the time / details step – used by class timetables ("สมัครเรียน" on a session) */
+  preselect?: { serviceId?: string | null; staffId?: string | null; date?: string | null; start?: string | null };
   paymentMethods: PaymentMethodOption[];
   /** ADMIN_B2-04: deposits are on but the shop has no payment receiver: deposit services are booked without one (pay at the shop) */
   payAtShop?: boolean;
@@ -132,12 +133,16 @@ export function BookingWizard({ services: allServices, staff, config, today, max
   const initialService = services.find((s) => s.id === (course?.serviceId ?? preselect?.serviceId)) ?? null;
   const initialStaff = staff.find((s) => s.id === preselect?.staffId && (!initialService || s.serviceIds.includes(initialService.id))) ?? null;
 
+  // a timetable link preselects the session: date (+ start) must be inside the booking window and belong to the service
+  const initialDate = initialService && preselect?.date && /^\d{4}-\d{2}-\d{2}$/.test(preselect.date) && preselect.date >= today && preselect.date <= maxDate ? preselect.date : null;
+  const initialStart = initialDate && preselect?.start && !Number.isNaN(Date.parse(preselect.start)) ? new Date(preselect.start).toISOString() : null;
+
   const [serviceId, setServiceId] = React.useState<string | null>(initialService?.id ?? null);
   /** undefined = not chosen yet, null = ใครก็ได้ */
   const [staffChoice, setStaffChoice] = React.useState<string | null | undefined>(initialStaff ? initialStaff.id : initialService && isGroup(initialService) ? null : undefined);
-  const [month, setMonth] = React.useState(today.slice(0, 7));
-  const [date, setDate] = React.useState<string | null>(null);
-  const [start, setStart] = React.useState<string | null>(null);
+  const [month, setMonth] = React.useState((initialDate ?? today).slice(0, 7));
+  const [date, setDate] = React.useState<string | null>(initialDate);
+  const [start, setStart] = React.useState<string | null>(initialStart);
   const [details, setDetails] = React.useState({ name: customer?.name ?? "", phone: customer?.phone ?? "", email: customer?.email ?? "", note: "" });
   const [method, setMethod] = React.useState<PaymentMethodOption["value"]>(paymentMethods[0]?.value ?? "promptpay_qr");
   const [error, setError] = React.useState<string | null>(null);
@@ -154,7 +159,7 @@ export function BookingWizard({ services: allServices, staff, config, today, max
   const steps = React.useMemo<StepKey[]>(() => (group ? ALL_STEPS.filter((k) => k !== "staff") : ALL_STEPS), [group]);
   const eligibleStaff = React.useMemo(() => (service ? staff.filter((s) => s.serviceIds.includes(service.id)) : []), [staff, service]);
 
-  const initialStep = initialService ? (initialStaff || isGroup(initialService) ? "date" : "staff") : "service";
+  const initialStep: StepKey = initialStart ? "details" : initialDate ? "time" : initialService ? (initialStaff || isGroup(initialService) ? "date" : "staff") : "service";
   const [step, setStep] = React.useState<StepKey>(initialStep);
   const stepIndex = steps.indexOf(step);
 
@@ -201,7 +206,8 @@ export function BookingWizard({ services: allServices, staff, config, today, max
   }, [step, serviceId, month, staffParam, partyQs, daysKey, days]);
 
   React.useEffect(() => {
-    if (step !== "time" || !serviceId || !date || slots[slotsKey]) return;
+    // also fetch once a start is preselected (details step) so the chosen session's seats / instructor can be shown
+    if ((step !== "time" && !start) || !serviceId || !date || slots[slotsKey]) return;
     const ctrl = new AbortController();
     fetch(`/api/booking/slots?date=${date}&service=${serviceId}${staffParam ? `&staff=${staffParam}` : ""}${partyQs}`, { signal: ctrl.signal, cache: "no-store" })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
@@ -210,7 +216,12 @@ export function BookingWizard({ services: allServices, staff, config, today, max
         if (!ctrl.signal.aborted) setSlots((s) => ({ ...s, [slotsKey]: [] }));
       });
     return () => ctrl.abort();
-  }, [step, serviceId, date, staffParam, partyQs, slotsKey, slots]);
+  }, [step, start, serviceId, date, staffParam, partyQs, slotsKey, slots]);
+
+  // class sessions carry their instructor on the slot (group services only) – shown on chips and in the summary
+  const staffNames = React.useMemo(() => (group ? Object.fromEntries(staff.map((s) => [s.id, s.name])) : undefined), [group, staff]);
+  const chosenSlot = start ? (slots[slotsKey] ?? []).find((s) => s.start === start) : undefined;
+  const instructorName = chosenSlot?.staffId && staffNames ? (staffNames[chosenSlot.staffId] ?? null) : null;
 
   const go = (next: StepKey) => {
     const from = steps.indexOf(step);
@@ -328,6 +339,7 @@ export function BookingWizard({ services: allServices, staff, config, today, max
       staffLabel={group ? L.noStaffNeeded : staffChoice === undefined ? null : chosenStaff ? chosenStaff.name : L.anyStaff}
       date={date}
       start={start}
+      instructorName={instructorName}
       deposit={deposit}
       party={party}
       course={course ?? null}
@@ -344,7 +356,7 @@ export function BookingWizard({ services: allServices, staff, config, today, max
         <StepHeader steps={steps} current={step} reached={stepIndex} onJump={(k) => steps.indexOf(k) < stepIndex && go(k)} />
 
         {/* compact selection strip (mobile + compact mode) */}
-        <SelectionStrip service={service ?? null} staffLabel={group ? null : staffChoice === undefined ? null : chosenStaff ? chosenStaff.name : L.anyStaff} date={date} start={start} className={cn("mt-4", !compact && "lg:hidden")} />
+        <SelectionStrip service={service ?? null} staffLabel={group ? instructorName : staffChoice === undefined ? null : chosenStaff ? chosenStaff.name : L.anyStaff} date={date} start={start} className={cn("mt-4", !compact && "lg:hidden")} />
 
         {/* clip only the horizontal step slide: overflow-hidden also cut the tone marks of the step heading (ที่) */}
         <div className="relative mt-6 min-h-[320px] overflow-x-clip">
@@ -401,7 +413,7 @@ export function BookingWizard({ services: allServices, staff, config, today, max
                   </button>
                   {perPerson && service && <PartyStepper value={party} max={service.capacity} onChange={changeParty} />}
                   {service?.seatsPerBooking ? <p className="mb-4 flex items-center gap-2 text-sm text-muted-foreground"><Users className="size-4 text-primary" /> {L.packageFor(service.seatsPerBooking)}</p> : null}
-                  <SlotPicker slots={slots[slotsKey] ?? null} selected={start} onSelect={chooseTime} showRemaining={perPerson} />
+                  <SlotPicker slots={slots[slotsKey] ?? null} selected={start} onSelect={chooseTime} showRemaining={perPerson} staffNames={staffNames} />
                 </div>
               )}
 
@@ -740,6 +752,7 @@ function Summary({
   staffLabel,
   date,
   start,
+  instructorName,
   deposit,
   party,
   course,
@@ -750,6 +763,8 @@ function Summary({
   staffLabel: string | null;
   date: string | null;
   start: string | null;
+  /** class session instructor (group services with a timetable) */
+  instructorName?: string | null;
   deposit: number;
   party: number;
   course: WizardCourse | null;
@@ -780,6 +795,7 @@ function Summary({
         {steps.includes("staff") && <Item k="staff" label={L.staff} value={staffLabel} icon={UserRound} />}
         <Item k="date" label="วัน" value={date ? formatThaiYmd(date, { weekday: true }) : null} icon={CalendarDays} />
         <Item k="time" label="เวลา" value={start ? `${formatBkkTime(start)} น.${service ? ` · ${L.minutes(service.durationMin)}` : ""}` : null} icon={Clock} />
+        {instructorName && <Item k="time" label={L.instructor} value={instructorName} icon={UserRound} />}
       </ul>
       {service && (
         <div className="mt-5 border-t pt-4 text-sm">

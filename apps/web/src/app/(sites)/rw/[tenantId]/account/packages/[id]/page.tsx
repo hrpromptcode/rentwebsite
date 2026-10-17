@@ -9,7 +9,7 @@ import { PaymentPanel } from "@rentweb/storefront/payments";
 import { paymentSettings, promptpayQrDataUrl } from "@rentweb/core/payments";
 import { thb } from "@rentweb/core/money";
 import { isUuid } from "@rentweb/core";
-import { formatThaiDate, getPatientPackageForCustomer } from "@rentweb/module-booking/services";
+import { formatThaiDate, getPatientPackageForCustomer, packagesEnabled } from "@rentweb/module-booking/services";
 import { PackageStatusBadge } from "@rentweb/module-booking/ui";
 import { L, METHOD_LABELS } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -25,7 +25,7 @@ export const metadata: Metadata = { title: "รายละเอียดคอ
 export default async function AccountPackagePage({ params }: { params: Params }) {
   const { tenantId, id } = await params;
   const runtime = await getRuntime(tenantId);
-  if (!runtime || !runtime.config.modules.includes("clinic")) notFound();
+  if (!runtime || !packagesEnabled(runtime.config.modules, runtime.config.moduleConfig)) notFound();
   if (!isUuid(id)) notFound();
   const customer = await getCurrentCustomer(tenantId);
   if (!customer) redirect(`/account/login?next=${encodeURIComponent(`/account/packages/${id}`)}`);

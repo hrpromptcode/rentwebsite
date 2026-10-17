@@ -66,8 +66,8 @@ async function currentCustomer(tx: Tx, tenantId: string): Promise<CustomerSummar
 }
 
 export interface BookingWidgetExtra {
-  /** preselect by id or slug (?service= / ?staff= on /book); package = patient package id (?package=, SBR-016) */
-  preselect?: { service?: string | null; staff?: string | null; package?: string | null };
+  /** preselect by id or slug (?service= / ?staff= on /book); package = patient package id (?package=, SBR-016); date/start = a class session */
+  preselect?: { service?: string | null; staff?: string | null; package?: string | null; date?: string | null; start?: string | null };
   /** render without the Section wrapper (used by the /book page) */
   bare?: boolean;
 }
@@ -104,7 +104,7 @@ export async function BookingWidgetSection({ ctx, props: p, id, preselect, bare 
       today={today}
       maxDate={maxDate}
       customer={customer ? { name: customer.name, phone: customer.phone, email: customer.email } : null}
-      preselect={{ serviceId: svc?.id ?? null, staffId: st?.id ?? null }}
+      preselect={{ serviceId: svc?.id ?? null, staffId: st?.id ?? null, date: preselect?.date ?? null, start: preselect?.start ?? null }}
       paymentMethods={depositMethods}
       payAtShop={config.depositEnabled && !depositsLive}
       course={course}

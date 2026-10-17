@@ -6,7 +6,7 @@ import { Button } from "@rentweb/ui/components/button";
 import { Reveal, Stagger, StaggerItem } from "@rentweb/ui/motion";
 import { Img } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
-import { formatThaiDate, listPatientPackages, type PatientPackageItem } from "@rentweb/module-booking/services";
+import { formatThaiDate, listPatientPackages, packagesEnabled, type PatientPackageItem } from "@rentweb/module-booking/services";
 import { PackageStatusBadge } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -19,7 +19,7 @@ export const metadata: Metadata = { title: "คอร์สของฉัน" }
 export default async function AccountPackagesPage({ params }: { params: Promise<{ tenantId: string }> }) {
   const { tenantId } = await params;
   const runtime = await getRuntime(tenantId);
-  if (!runtime || !runtime.config.modules.includes("clinic")) notFound();
+  if (!runtime || !packagesEnabled(runtime.config.modules, runtime.config.moduleConfig)) notFound();
   const customer = await getCurrentCustomer(tenantId);
   if (!customer) redirect(`/account/login?next=${encodeURIComponent("/account/packages")}`);
   const list = await tenantTx(tenantId, (tx) => listPatientPackages(tx, tenantId, customer));

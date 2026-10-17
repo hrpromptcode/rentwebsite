@@ -9,7 +9,7 @@ import type { payments, Tx } from "@rentweb/db";
 
 export type PaymentRow = typeof payments.$inferSelect;
 
-export type PaymentRefType = "order" | "booking" | "topup" | "wallet_topup" | "rest_order" | "reservation" | "patient_package" | "invoice";
+export type PaymentRefType = "order" | "booking" | "topup" | "wallet_topup" | "rest_order" | "reservation" | "patient_package" | "invoice" | "stay";
 
 export type PaymentStatus = "pending" | "pending_verification" | "paid" | "failed" | "refunded" | "partially_refunded" | "cancelled" | "expired";
 

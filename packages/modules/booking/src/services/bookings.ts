@@ -38,6 +38,8 @@ export interface BookingAnswers {
   /** ADMIN_B2-04: the service asks for a deposit but the shop has no way to receive it, so it is booked without one (pay at the shop) */
   payAtShop?: boolean;
   depositWaivedReason?: "no_payment_receiver";
+  /** course template: instructor of the class session this enrolment is for (bookings.staffId stays null for shared seats) */
+  instructorId?: string;
   [k: string]: unknown;
 }
 
@@ -270,6 +272,8 @@ export async function createBooking(tx: Tx, tenantId: string, input: CreateBooki
   const prevAnswers = prev ? answersOf(prev) : null;
   const answers: BookingAnswers = { accessKey };
   if (group) answers.preferredStaffId = preferred;
+  // class session (course template): remember the instructor for the roster / account pages
+  if (group && !slotService.requiresStaff && slot.staffId) answers.instructorId = slot.staffId;
   if (depositWaived) {
     answers.payAtShop = true;
     answers.depositWaivedReason = "no_payment_receiver";

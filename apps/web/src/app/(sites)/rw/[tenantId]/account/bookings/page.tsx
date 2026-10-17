@@ -7,7 +7,7 @@ import { Reveal, Stagger, StaggerItem } from "@rentweb/ui/motion";
 import { cn } from "@rentweb/ui/lib/utils";
 import { Img } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
-import { formatBkkTime, formatThaiDate, listCustomerBookings, type BookingListItem } from "@rentweb/module-booking/services";
+import { formatBkkTime, formatThaiDate, listCustomerBookings, packagesEnabled, type BookingListItem } from "@rentweb/module-booking/services";
 import { BookingStatusBadge } from "@rentweb/module-booking/ui";
 import { L, PAYMENT_STATUS } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -34,7 +34,7 @@ export default async function AccountBookingsPage({ params, searchParams }: { pa
     past: await listCustomerBookings(tx, tenantId, customer.id, { scope: "past", limit: 100 }),
   }));
   const list = scope === "upcoming" ? upcoming : past;
-  const hasClinic = runtime.config.modules.includes("clinic");
+  const hasClinic = packagesEnabled(runtime.config.modules, runtime.config.moduleConfig);
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>

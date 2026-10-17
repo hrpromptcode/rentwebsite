@@ -18,12 +18,12 @@ export async function generateMetadata({ params }: { params: Promise<{ tenantId:
 }
 
 type Params = Promise<{ tenantId: string }>;
-type Search = Promise<{ service?: string; staff?: string; package?: string }>;
+type Search = Promise<{ service?: string; staff?: string; package?: string; date?: string; start?: string }>;
 
-/** /book?service=<slug|id>&staff=<slug|id>&package=<patient package id> – full-page booking wizard (package = redeem a course session). */
+/** /book?service=<slug|id>&staff=<slug|id>&package=<patient package id>&date=YYYY-MM-DD&start=<iso> – full-page booking wizard (package = redeem a course session; date/start = a class session). */
 export default async function BookPage({ params, searchParams }: { params: Params; searchParams: Search }) {
   const { tenantId } = await params;
-  const { service, staff, package: pkg } = await searchParams;
+  const { service, staff, package: pkg, date, start } = await searchParams;
   const runtime = await getRuntime(tenantId);
   if (!runtime) notFound();
   if (!runtime.config.modules.includes("booking")) return cmsFallback(runtime, "book");
@@ -51,7 +51,7 @@ export default async function BookPage({ params, searchParams }: { params: Param
             ))}
           </ul>
         </Reveal>
-        <BookingWidgetSection ctx={ctx} props={props} id="book" index={0} preselect={{ service: typeof service === "string" ? service : null, staff: typeof staff === "string" ? staff : null, package: typeof pkg === "string" ? pkg : null }} bare />
+        <BookingWidgetSection ctx={ctx} props={props} id="book" index={0} preselect={{ service: typeof service === "string" ? service : null, staff: typeof staff === "string" ? staff : null, package: typeof pkg === "string" ? pkg : null, date: typeof date === "string" ? date : null, start: typeof start === "string" ? start : null }} bare />
       </section>
     </PageBody>
   );

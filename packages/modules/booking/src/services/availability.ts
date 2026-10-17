@@ -24,6 +24,8 @@ export interface SlotService {
 
 export interface RuleInput {
   staffId: string | null;
+  /** set = a recurring class session of that service (course template), not working hours; staffId = instructor */
+  serviceId?: string | null;
   weekday: number;
   /** "HH:MM" or "HH:MM:SS" */
   startTime: string;
@@ -181,7 +183,9 @@ function dayContext(input: SlotEngineInput) {
  * "open" overrides add windows, "closed" overrides cut them.
  */
 export function workingWindows(input: SlotEngineInput, staffKey: string | null, ctx: { ymd: Ymd; weekday: number; dayStart: number; dayEnd: number }): Interval[] {
-  const { rules, overrides } = input;
+  const { overrides } = input;
+  // class session rules (serviceId set) are a timetable, never working hours
+  const rules = input.rules.filter((r) => !r.serviceId);
   let base: RuleInput[];
   if (staffKey) {
     const own = rules.filter((r) => r.staffId === staffKey);
@@ -249,10 +253,44 @@ function staffFreeFor(input: SlotEngineInput, ctx: DayCtx, staffId: string, star
   return !input.bookings.some((b) => bookingStaffIds(b).includes(staffId) && overlaps(occ, bookingOccupied(b)));
 }
 
+/** Session rules (weekly timetable) of a service: `rules` rows whose serviceId is this service (course template). */
+export function sessionRulesOf(rules: readonly RuleInput[], serviceId: string): RuleInput[] {
+  return rules.filter((r) => r.serviceId === serviceId);
+}
+
+/** True when the service is booked per timetable session (has at least one session rule) instead of stepped slots. */
+export function hasClassSessions(rules: readonly RuleInput[], serviceId: string): boolean {
+  return rules.some((r) => r.serviceId === serviceId);
+}
+
+/**
+ * Timetable sessions of one day: one candidate per session rule of that weekday (start = rule start, end = start +
+ * duration), with the rule's instructor. A session is dropped when a "closed" override (business-wide or for the
+ * instructor) overlaps it; "open" overrides never add sessions. Rules whose start is not strictly before their end
+ * still count (end_time is informational – the service duration is authoritative).
+ */
+function sessionStarts(input: SlotEngineInput, ctx: DayCtx): Array<{ start: number; instructorId: string | null }> {
+  const { service } = input;
+  const durationMs = service.durationMin * 60_000;
+  const out = new Map<number, string | null>();
+  for (const r of sessionRulesOf(input.rules, service.id)) {
+    if (r.weekday !== ctx.weekday) continue;
+    const hm = parseHm(r.startTime);
+    const start = bkkTime(ctx.ymd, Math.floor(hm / 60), hm % 60).getTime();
+    const session: Interval = { start, end: start + durationMs };
+    const closed = input.overrides.some((o) => o.kind === "closed" && (o.staffId === null || (r.staffId !== null && o.staffId === r.staffId)) && overlaps(session, { start: o.startsAt.getTime(), end: o.endsAt.getTime() }));
+    if (closed) continue;
+    if (!out.has(start)) out.set(start, r.staffId ?? null);
+  }
+  return [...out.entries()].sort((a, b) => a[0] - b[0]).map(([start, instructorId]) => ({ start, instructorId }));
+}
+
 /**
  * Slots for a shared-capacity service. Seats = capacity − guests of overlapping bookings of this service.
  * Classes / rooms (no staff) use business hours; staffed groups use the eligible staff schedules and are also
  * limited by the number of eligible staff free for the whole slot (one per guest).
+ * A service with session rules (weekly class timetable) yields exactly one slot per session instead of stepped
+ * slots; `staffId` on those slots is the session's instructor (informational – enrolments are not staff-bound).
  */
 export function computeGroupSlots(input: SlotEngineInput): Slot[] {
   const ctx = dayContext(input);
@@ -262,28 +300,36 @@ export function computeGroupSlots(input: SlotEngineInput): Slot[] {
   const needed = partySizeFor(service, input.partySize);
   const durationMs = service.durationMin * 60_000;
   const stepMs = input.config.slotMinutes * 60_000;
-  let windows: Interval[];
-  if (staffed) windows = mergeIntervals(input.eligibleStaffIds.flatMap((id) => workingWindows(input, id, ctx)));
+  const sessions = hasClassSessions(input.rules, service.id);
+  let candidates: Array<{ start: number; instructorId: string | null }>;
+  if (sessions) candidates = sessionStarts(input, ctx);
   else {
-    windows = workingWindows(input, null, ctx);
-    // no business-hours rules → union of eligible staff schedules
-    if (!input.rules.some((r) => r.staffId === null)) windows = mergeIntervals(input.eligibleStaffIds.flatMap((id) => workingWindows(input, id, ctx)));
+    let windows: Interval[];
+    if (staffed) windows = mergeIntervals(input.eligibleStaffIds.flatMap((id) => workingWindows(input, id, ctx)));
+    else {
+      windows = workingWindows(input, null, ctx);
+      // no business-hours rules → union of eligible staff schedules
+      if (!input.rules.some((r) => r.staffId === null && !r.serviceId)) windows = mergeIntervals(input.eligibleStaffIds.flatMap((id) => workingWindows(input, id, ctx)));
+    }
+    candidates = candidateStarts(windows, durationMs, stepMs).map((start) => ({ start, instructorId: null }));
   }
   const taken = input.bookings.filter((b) => b.serviceId === service.id && (staffed || b.staffId === null));
   const out: Slot[] = [];
-  for (const s of candidateStarts(windows, durationMs, stepMs)) {
+  for (const { start: s, instructorId } of candidates) {
     if (s < ctx.earliest) continue;
     const e = s + durationMs;
     const occ: Interval = { start: s - service.bufferBeforeMin * 60_000, end: e + service.bufferAfterMin * 60_000 };
     const used = taken.filter((b) => overlaps(occ, bookingOccupied(b))).reduce((n, b) => n + (b.partySize ?? 1), 0);
     let remaining = Math.max(0, service.capacity - used);
     let available = remaining >= needed;
-    if (staffed) {
+    if (staffed && !sessions) {
       const free = input.eligibleStaffIds.filter((id) => staffFreeFor(input, ctx, id, s));
       remaining = Math.min(remaining, free.length);
       available = remaining >= needed && (!input.staffId || free.includes(input.staffId));
     }
-    out.push({ start: new Date(s).toISOString(), end: new Date(e).toISOString(), staffId: null, available, remaining });
+    // a timetable filtered by instructor (/schedule?instructor=) only lists that instructor's sessions
+    if (sessions && input.staffId && instructorId !== input.staffId) continue;
+    out.push({ start: new Date(s).toISOString(), end: new Date(e).toISOString(), staffId: sessions ? instructorId : null, available, remaining });
   }
   return out;
 }
@@ -376,7 +422,7 @@ export async function loadAvailabilityData(tx: Tx, tenantId: string, opts: { ser
   const from = new Date(opts.from.getTime() - pad);
   const to = new Date(opts.to.getTime() + pad);
   const [rules, overrides, booked, eligible] = await Promise.all([
-    tx.select({ staffId: availabilityRules.staffId, weekday: availabilityRules.weekday, startTime: availabilityRules.startTime, endTime: availabilityRules.endTime }).from(availabilityRules).where(eq(availabilityRules.tenantId, tenantId)),
+    tx.select({ staffId: availabilityRules.staffId, serviceId: availabilityRules.serviceId, weekday: availabilityRules.weekday, startTime: availabilityRules.startTime, endTime: availabilityRules.endTime }).from(availabilityRules).where(eq(availabilityRules.tenantId, tenantId)),
     tx
       .select({ staffId: availabilityOverrides.staffId, startsAt: availabilityOverrides.startsAt, endsAt: availabilityOverrides.endsAt, kind: availabilityOverrides.kind })
       .from(availabilityOverrides)

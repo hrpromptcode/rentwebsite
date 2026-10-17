@@ -9,7 +9,7 @@ import { L } from "@rentweb/module-booking/labels";
 import type { BuyState } from "./actions";
 
 /** Payment-method picker + submit for /packages/[id]/buy. */
-export function BuyForm({ methods, amountLabel, action }: { methods: PaymentMethodOption[]; amountLabel: string; action: (prev: BuyState, form: FormData) => Promise<BuyState> }) {
+export function BuyForm({ methods, amountLabel, action, venue = "คลินิก", itemLabel = "คอร์ส" }: { methods: PaymentMethodOption[]; amountLabel: string; action: (prev: BuyState, form: FormData) => Promise<BuyState>; /** who stores the data in the PDPA line (คลินิก / สตูดิโอ / ร้าน) */ venue?: string; /** คอร์ส / คลาสพาส */ itemLabel?: string }) {
   const [method, setMethod] = React.useState<string>(methods[0]?.value ?? "promptpay_qr");
   const [state, submit, pending] = useActionState(action, {} as BuyState);
 
@@ -21,7 +21,7 @@ export function BuyForm({ methods, amountLabel, action }: { methods: PaymentMeth
       </div>
       <label className="flex items-start gap-3 text-sm text-muted-foreground">
         <input type="checkbox" name="consent" required className="mt-1 size-4 accent-[var(--color-primary)]" />
-        <span>ข้าพเจ้ารับทราบว่าคอร์สมีอายุการใช้งานตามที่ระบุ สิทธิ์เฉพาะบุคคล และยินยอมให้คลินิกจัดเก็บข้อมูลเพื่อให้บริการ (PDPA)</span>
+        <span>ข้าพเจ้ารับทราบว่า{itemLabel}มีอายุการใช้งานตามที่ระบุ สิทธิ์เฉพาะบุคคล และยินยอมให้{venue}จัดเก็บข้อมูลเพื่อให้บริการ (PDPA)</span>
       </label>
       {state.error && (
         <p role="alert" className="flex items-center gap-2 rounded-[var(--radius-md)] bg-destructive/10 p-3 text-sm text-destructive">
@@ -33,7 +33,7 @@ export function BuyForm({ methods, amountLabel, action }: { methods: PaymentMeth
         {pending ? "กำลังสร้างรายการ…" : `${L.buyPackage} · ${amountLabel}`}
       </Button>
       <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-        <ShieldCheck className="size-3.5" /> คอร์สจะเปิดใช้งานทันทีเมื่อยืนยันการชำระเงิน
+        <ShieldCheck className="size-3.5" /> {itemLabel}จะเปิดใช้งานทันทีเมื่อยืนยันการชำระเงิน
       </p>
     </form>
   );

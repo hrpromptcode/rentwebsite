@@ -3,7 +3,7 @@ import { availabilityRules, clinicPackages, serviceCategories, services, staff, 
 import type { BookingConfig } from "../src/services/config";
 import { bkkTime, parseYmd } from "../src/services/time";
 
-export const CONFIG: BookingConfig = { slotMinutes: 30, minNoticeHours: 1, maxAdvanceDays: 30, cancelHours: 12, depositEnabled: true, reminderHours: [24, 2] };
+export const CONFIG: BookingConfig = { slotMinutes: 30, minNoticeHours: 1, maxAdvanceDays: 30, cancelHours: 12, depositEnabled: true, reminderHours: [24, 2], packages: false, memberPrefix: "ST" };
 
 export const SETTINGS = {
   contact: { phone: "089-111-2222" },

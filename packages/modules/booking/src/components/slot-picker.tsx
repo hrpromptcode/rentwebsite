@@ -11,6 +11,8 @@ export interface SlotChip {
   end: string;
   available: boolean;
   remaining: number;
+  /** class sessions: the instructor (null for stepped slots of group services) */
+  staffId?: string | null;
 }
 
 export interface SlotPickerProps {
@@ -19,6 +21,8 @@ export interface SlotPickerProps {
   onSelect: (start: string) => void;
   /** show "เหลือ n ที่" on chips (capacity services) */
   showRemaining?: boolean;
+  /** staff id → name, to label class sessions with their instructor */
+  staffNames?: Record<string, string>;
   className?: string;
 }
 
@@ -29,7 +33,7 @@ const PARTS = [
 ] as const;
 
 /** Time chips grouped เช้า / บ่าย / เย็น. Every chip is at least 44px tall. */
-export function SlotPicker({ slots, selected, onSelect, showRemaining, className }: SlotPickerProps) {
+export function SlotPicker({ slots, selected, onSelect, showRemaining, staffNames, className }: SlotPickerProps) {
   if (slots === null) {
     return (
       <div className={cn("flex items-center gap-2 py-8 text-sm text-muted-foreground", className)}>
@@ -64,7 +68,9 @@ export function SlotPicker({ slots, selected, onSelect, showRemaining, className
                   )}
                 >
                   {formatBkkTime(s.start)}
+                  {staffNames && s.staffId && staffNames[s.staffId] && <span className={cn("max-w-full truncate text-[10px] font-normal", active ? "text-primary-foreground/85" : "text-foreground/80")}>{staffNames[s.staffId]}</span>}
                   {showRemaining && s.available && s.remaining > 0 && <span className={cn("text-[10px] font-normal", active ? "text-primary-foreground/80" : "text-muted-foreground")}>เหลือ {s.remaining} ที่</span>}
+                  {showRemaining && !s.available && s.remaining === 0 && <span className="text-[10px] font-normal no-underline">{L.full}</span>}
                 </button>
               );
             })}

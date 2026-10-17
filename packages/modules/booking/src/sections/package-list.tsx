@@ -8,13 +8,14 @@ import type { StorefrontCtx } from "@rentweb/storefront/ctx";
 import type { packageList } from "@rentweb/storefront/definitions";
 import { Section, SectionHeading } from "@rentweb/storefront";
 import { listClinicPackages } from "../services/clinic";
+import { packagesEnabled } from "../services/config";
 import { PackageCard } from "../components/cards";
 import { L } from "../labels";
 
 type Props = z.output<typeof packageList.schema>;
 
 export async function PackageListSection({ ctx, props: p, id }: { ctx: StorefrontCtx; props: Props; id: string; index: number }) {
-  if (!ctx.tenant.modules.includes("clinic")) return null;
+  if (!packagesEnabled(ctx.tenant.modules, ctx.tenant.moduleConfig)) return null;
   const packages = await withTenant(getDb(), ctx.tenant.id, (tx) => listClinicPackages(tx, ctx.tenant.id, { limit: p.limit }));
   if (!packages.length) return null;
   return (

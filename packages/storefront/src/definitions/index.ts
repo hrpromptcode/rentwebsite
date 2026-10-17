@@ -410,6 +410,69 @@ export const packageList = defineSection({
   defaults: {},
 });
 
+/* ------------------------------------------------------------------ */
+/* Course / studio template (booking module): classes, timetable, instructors, passes */
+/* ------------------------------------------------------------------ */
+
+export const classHighlights = defineSection({
+  type: "class-highlights",
+  module: "booking",
+  name: { th: "คลาสแนะนำ", en: "Class highlights" },
+  category: "booking",
+  schema: z.object({
+    eyebrow: z.string().default("คลาสเรียน"),
+    heading: z.string().default("คลาสยอดนิยม"),
+    subheading: z.string().default(""),
+    /** featured only, or every class */
+    featured: z.boolean().default(true),
+    level: z.enum(["", "beginner", "intermediate", "advanced", "all"]).default(""),
+    limit: z.number().default(6),
+    variant: z.enum(["cards", "editorial"]).default("cards"),
+  }),
+  defaults: {},
+});
+
+export const weeklySchedule = defineSection({
+  type: "weekly-schedule",
+  module: "booking",
+  name: { th: "ตารางเรียนรายสัปดาห์", en: "Weekly schedule" },
+  category: "booking",
+  schema: z.object({
+    eyebrow: z.string().default("ตารางเรียน"),
+    heading: z.string().default("ตารางเรียนสัปดาห์นี้"),
+    subheading: z.string().default("เลือกรอบที่สะดวก ที่นั่งคงเหลืออัปเดตแบบเรียลไทม์"),
+    /** 7 = full week; 3 = today + 2 days */
+    days: z.number().min(1).max(7).default(7),
+    showPrice: z.boolean().default(false),
+  }),
+  defaults: {},
+});
+
+export const instructorGrid = defineSection({
+  type: "instructor-grid",
+  module: "booking",
+  name: { th: "ครูผู้สอน", en: "Instructor grid" },
+  category: "booking",
+  schema: z.object({ eyebrow: z.string().default("ทีมครู"), heading: z.string().default("ครูผู้สอนของเรา"), subheading: z.string().default(""), limit: z.number().default(8) }),
+  defaults: {},
+});
+
+export const passPricing = defineSection({
+  type: "pass-pricing",
+  module: "booking",
+  name: { th: "คลาสพาส / แพ็กเกจ", en: "Class pass pricing" },
+  category: "booking",
+  schema: z.object({
+    eyebrow: z.string().default("คลาสพาส"),
+    heading: z.string().default("เลือกพาสที่เหมาะกับคุณ"),
+    subheading: z.string().default("ซื้อครั้งเดียว ใช้ได้ทุกคลาส ยิ่งซื้อมากยิ่งคุ้ม"),
+    limit: z.number().default(3),
+    /** also show a single-class row from the cheapest class price */
+    showDropIn: z.boolean().default(true),
+  }),
+  defaults: {},
+});
+
 export const SECTION_DEFS: Record<string, SectionDefinition> = Object.fromEntries(
   [
     hero,
@@ -440,6 +503,10 @@ export const SECTION_DEFS: Record<string, SectionDefinition> = Object.fromEntrie
     menuHighlight,
     reservationCta,
     packageList,
+    classHighlights,
+    weeklySchedule,
+    instructorGrid,
+    passPricing,
   ].map((d) => [d.type, d as SectionDefinition]),
 );
 
