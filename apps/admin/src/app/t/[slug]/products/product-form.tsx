@@ -270,7 +270,13 @@ export function ProductForm({ slug, productId, initial, categories: initialCateg
               <div className="flex flex-1 gap-2">
                 <span className="relative flex-1">
                   <Link2 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                  {/* RESPONSIVE_B2-16: a real label for the URL field (the placeholder is not a name) */}
+                  <Label htmlFor="product-image-url" className="sr-only">
+                    ลิงก์รูปภาพสินค้า
+                  </Label>
                   <Input
+                    id="product-image-url"
+                    inputMode="url"
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
                     onKeyDown={(e) => {
@@ -281,7 +287,6 @@ export function ProductForm({ slug, productId, initial, categories: initialCateg
                     }}
                     placeholder="หรือวางลิงก์รูป https://…"
                     className="pl-9"
-                    aria-label="ลิงก์รูปภาพ"
                   />
                 </span>
                 <Button type="button" variant="secondary" onClick={addImageUrl} disabled={!imageUrl.trim()}>

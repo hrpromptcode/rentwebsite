@@ -64,18 +64,40 @@ export const bankAccountSchema = z.object({
   number: z.string().trim().min(1, "ระบุเลขบัญชี").max(30),
 });
 
+/**
+ * ADMIN_B2-09: client-safe mirror of normalizeValidPromptpayId() in @rentweb/core/payments (that module imports the DB,
+ * so client forms cannot use it; the server action re-checks with the core function). A PromptPay ID is a Thai mobile
+ * number (06/08/09, 10 digits or +66…), a 13-digit citizen / tax ID or a 15-digit e-wallet ID — a landline never is.
+ * Returns the digits to store, or null.
+ */
+export function validPromptpayId(raw: string | null | undefined): string | null {
+  const v = (raw ?? "").trim();
+  if (!v || !/^[0-9+\s-]+$/.test(v)) return null;
+  let d = v.replace(/[^0-9]/g, "");
+  if (d.length === 13 || d.length === 15) return d;
+  if (d.length === 11 && d.startsWith("66")) d = `0${d.slice(2)}`;
+  return /^0[689][0-9]{8}$/.test(d) ? d : null;
+}
+
+/** Thai mobile number usable as a PromptPay ID (mirror of thaiMobilePromptpay() in @rentweb/core/payments). */
+export function mobilePromptpay(raw: string | null | undefined): string | null {
+  const d = validPromptpayId(raw);
+  return d && d.length === 10 ? d : null;
+}
+
+export const PROMPTPAY_ID_ERROR = "PromptPay ID ไม่ถูกต้อง — ใช้เบอร์มือถือ 10 หลัก (ขึ้นต้น 06 / 08 / 09) เลขประจำตัวประชาชนหรือผู้เสียภาษี 13 หลัก หรือเลข e-Wallet 15 หลัก";
+
 export const paymentsSchema = z.object({
   promptpayId: z
     .string()
     .trim()
-    .max(20)
-    .refine((v) => {
-      const d = v.replace(/[^0-9]/g, "");
-      return !v || d.length === 10 || d.length === 13;
-    }, "PromptPay ID ต้องเป็นเบอร์โทร 10 หลัก หรือเลขประจำตัว 13 หลัก")
+    .max(20, PROMPTPAY_ID_ERROR)
+    .refine((v) => !v || !!validPromptpayId(v), PROMPTPAY_ID_ERROR)
     .optional()
     .or(z.literal("")),
   promptpayName: optStr(80),
+  /** ADMIN_B2-09: opt-in — use the shop's contact phone (Thai mobile only) when no PromptPay ID is saved */
+  promptpayUseContactPhone: z.boolean().optional(),
   bankAccounts: z.array(bankAccountSchema).max(10),
   enabled: z.object({
     promptpay: z.boolean(),
@@ -97,6 +119,7 @@ export function readPayments(settings: Record<string, unknown>): PaymentsInput {
   return {
     promptpayId: String(p.promptpayId ?? ""),
     promptpayName: String(p.promptpayName ?? ""),
+    promptpayUseContactPhone: p.promptpayUseContactPhone === true,
     bankAccounts: accounts.map((a) => ({ bank: String(a.bank ?? ""), name: String(a.name ?? ""), number: String(a.number ?? "") })),
     enabled: {
       promptpay: e.promptpay ?? true,

@@ -6,12 +6,13 @@ import { and, eq, getAdminDb, ne, tenantInvitations, tenantMembers, tenants, use
 import { claimCustomDomain, invalidateTenant, removeCustomDomain, verifyCustomDomain } from "@rentweb/core/tenant";
 import { isUuid } from "@rentweb/core";
 import { randomToken } from "@rentweb/core/crypto";
+import { normalizeValidPromptpayId, paymentSetupStatus } from "@rentweb/core/payments";
 import { auditLog } from "@/lib/audit";
 import { OWN_ACTION_AUDIT, ownStatusTransition, type OwnStatusAction, type TenantStatus } from "@/lib/tenant-status";
 import { loadTenantStatusState } from "@/lib/tenant-status-server";
 import { assertRole, getTenantCtx, hasRole, ROLE_RANK, tenantHostnames, type MemberRole, type TenantCtx } from "@/lib/tenant";
 import type { ActionResult } from "@/components/ui/form";
-import { generalSchema, MEMBER_ROLES, paymentsSchema, type GeneralInput, type PaymentsInput } from "./shared";
+import { generalSchema, MEMBER_ROLES, paymentsSchema, PROMPTPAY_ID_ERROR, type GeneralInput, type PaymentsInput } from "./shared";
 
 function actor(ctx: TenantCtx) {
   return { actorType: ctx.impersonating ? ("superadmin" as const) : ("user" as const), actorId: ctx.userId };
@@ -76,15 +77,21 @@ export async function savePayments(slug: string, input: PaymentsInput): Promise<
     autoApproveSlips: d.autoApproveSlips,
     expiresMinutes: d.expiresMinutes,
   };
-  const ppId = d.promptpayId?.replace(/[^0-9]/g, "") ?? "";
+  // ADMIN_B2-09: store only an ID checkout can use (core rule — a landline or a typo is never saved as the receiver)
+  const ppId = d.promptpayId ? normalizeValidPromptpayId(d.promptpayId) : null;
+  if (d.promptpayId && !ppId) return { ok: false, error: PROMPTPAY_ID_ERROR };
   if (ppId) payments.promptpayId = ppId;
   else delete payments.promptpayId;
   if (d.promptpayName) payments.promptpayName = d.promptpayName;
   else delete payments.promptpayName;
+  if (d.promptpayUseContactPhone === true) payments.promptpayUseContactPhone = true;
+  else delete payments.promptpayUseContactPhone;
 
-  await getAdminDb().update(tenants).set({ settings: { ...prev, payments } }).where(eq(tenants.id, ctx.tenant.id));
-  await auditLog({ tenantId: ctx.tenant.id, ...actor(ctx), action: "settings.update", targetType: "tenant", targetId: ctx.tenant.id, diff: { section: "payments", methods: d.enabled } });
+  const settings = { ...prev, payments };
+  await getAdminDb().update(tenants).set({ settings }).where(eq(tenants.id, ctx.tenant.id));
+  await auditLog({ tenantId: ctx.tenant.id, ...actor(ctx), action: "settings.update", targetType: "tenant", targetId: ctx.tenant.id, diff: { section: "payments", methods: d.enabled, promptpayUseContactPhone: d.promptpayUseContactPhone === true } });
   await refresh(ctx, ["/settings/payments", "/dashboard"]);
+  if (!paymentSetupStatus(settings).ready) return { ok: true, message: "บันทึกแล้ว — แต่ลูกค้ายังชำระเงินออนไลน์ไม่ได้ จนกว่าจะตั้งค่า PromptPay หรือบัญชีธนาคาร" };
   return { ok: true, message: "บันทึกช่องทางรับเงินแล้ว" };
 }
 

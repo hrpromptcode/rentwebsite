@@ -9,11 +9,15 @@ import { toast } from "@rentweb/ui/components/sonner";
 import { fieldErrors, patientSchema } from "@rentweb/module-booking/admin/schemas";
 import { createPatientAction } from "../actions";
 import { EMPTY_PATIENT, patientFormToInput, type PatientFormValues } from "../form-values";
+import { useReturnFocus } from "@/lib/use-return-focus";
 import { IdentityFields, MedicalFields } from "./patient-form";
 
 export function CreatePatientDialog({ slug, defaultOpen = false, label = "เพิ่มผู้ป่วย", variant = "default" }: { slug: string; defaultOpen?: boolean; label?: string; variant?: ButtonProps["variant"] }) {
   const router = useRouter();
   const [open, setOpen] = React.useState(defaultOpen);
+  // RESPONSIVE_B2-11: controlled dialog (no DialogTrigger) — give focus back to the opener on close
+  const openerRef = React.useRef<HTMLButtonElement>(null);
+  const returnFocus = useReturnFocus(openerRef);
   const [v, setV] = React.useState<PatientFormValues>({ ...EMPTY_PATIENT });
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [pending, setPending] = React.useState(false);
@@ -49,11 +53,11 @@ export function CreatePatientDialog({ slug, defaultOpen = false, label = "เพ
 
   return (
     <>
-      <Button type="button" variant={variant} onClick={() => setOpen(true)}>
+      <Button ref={openerRef} type="button" variant={variant} onClick={() => setOpen(true)}>
         <UserPlus aria-hidden /> {label}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent {...returnFocus} className="max-h-[92dvh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>ลงทะเบียนผู้ป่วยใหม่</DialogTitle>
             <DialogDescription>ระบบออกเลข HN ให้อัตโนมัติ — กรอกเท่าที่ทราบ แก้ไขเพิ่มเติมได้ภายหลัง</DialogDescription>

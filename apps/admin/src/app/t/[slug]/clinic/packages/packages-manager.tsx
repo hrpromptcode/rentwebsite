@@ -17,6 +17,7 @@ import { ConfirmButton } from "@/components/ui/confirm-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/form";
 import { thb } from "@/lib/format";
+import { useReturnFocus } from "@/lib/use-return-focus";
 import { uploadBookingImageAction } from "../../services/actions";
 import { deletePackageAction, savePackageAction, setPackageActiveAction } from "../actions";
 import { EMPTY_PACKAGE, type PackageFormValues } from "../form-values";
@@ -183,6 +184,8 @@ function PackageDialog({ slug, pkg, services, assetBase, onClose, onSaved }: { s
   const [v, setV] = React.useState<PackageFormValues>(pkg ? toForm(pkg) : EMPTY_PACKAGE);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [pending, setPending] = React.useState(false);
+  // RESPONSIVE_B2-11: dialog mounted with `editing` (no DialogTrigger) — give focus back to the opener on close
+  const returnFocus = useReturnFocus();
   const set = <K extends keyof PackageFormValues>(k: K, val: PackageFormValues[K]) => setV((s) => ({ ...s, [k]: val }));
   const sessions = Number(v.sessions) || 0;
   const price = bahtToSatang(v.price || 0);
@@ -226,7 +229,7 @@ function PackageDialog({ slug, pkg, services, assetBase, onClose, onSaved }: { s
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent {...returnFocus} className="max-h-[92dvh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{pkg ? "แก้ไขแพ็กเกจ" : "เพิ่มแพ็กเกจ"}</DialogTitle>
           <DialogDescription>คอร์สที่ขายเป็นจำนวนครั้ง — ผู้ป่วยจะเห็นในหน้าร้านและใช้ได้ภายในอายุที่กำหนด</DialogDescription>

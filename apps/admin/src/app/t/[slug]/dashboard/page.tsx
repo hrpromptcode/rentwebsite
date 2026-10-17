@@ -75,14 +75,14 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
           <CardContent>
             <ul className="divide-y">
               {data.checklist.map((item) => (
-                <li key={item.key}>
+                <li key={item.key} data-checklist={item.key} data-done={item.done ? "true" : "false"}>
                   <Link href={item.href} className="group -mx-2 flex min-h-14 items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-muted">
                     <span className={item.done ? "grid size-6 shrink-0 place-items-center rounded-full bg-emerald-500 text-white" : "grid size-6 shrink-0 place-items-center rounded-full border-2 border-border text-transparent"}>
                       {item.done ? <Check className="size-3.5" aria-hidden /> : <Circle className="size-3" aria-hidden />}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className={item.done ? "block text-sm font-medium text-muted-foreground line-through" : "block text-sm font-medium"}>{item.label}</span>
-                      <span className="block truncate text-xs text-muted-foreground">{item.description}</span>
+                      <span className={item.warning ? "block text-xs text-pretty text-amber-700 dark:text-amber-400" : "block text-xs text-pretty text-muted-foreground"}>{item.description}</span>
                     </span>
                     <ArrowRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
                   </Link>

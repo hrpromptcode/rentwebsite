@@ -11,11 +11,15 @@ import { toast } from "@rentweb/ui/components/sonner";
 import type { PatientHit } from "@rentweb/module-booking/admin";
 import { Avatar, NativeSelect } from "@rentweb/module-booking/admin/ui";
 import { Field } from "@/components/ui/form";
+import { useReturnFocus } from "@/lib/use-return-focus";
 import { createVisitAction, openVisitFromBookingAction, searchPatientsAction } from "../actions";
 
 export function CreateVisitDialog({ slug, doctors }: { slug: string; doctors: Array<{ id: string; name: string; title: string | null }> }) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
+  // RESPONSIVE_B2-11: controlled dialog (no DialogTrigger) — give focus back to the opener on close
+  const openerRef = React.useRef<HTMLButtonElement>(null);
+  const returnFocus = useReturnFocus(openerRef);
   const [q, setQ] = React.useState("");
   const [hits, setHits] = React.useState<PatientHit[]>([]);
   const [searching, setSearching] = React.useState(false);
@@ -73,7 +77,7 @@ export function CreateVisitDialog({ slug, doctors }: { slug: string; doctors: Ar
 
   return (
     <>
-      <Button type="button" onClick={() => setOpen(true)} data-testid="open-visit">
+      <Button ref={openerRef} type="button" onClick={() => setOpen(true)} data-testid="open-visit">
         <Stethoscope aria-hidden /> เปิดการตรวจใหม่
       </Button>
       <Dialog
@@ -83,7 +87,7 @@ export function CreateVisitDialog({ slug, doctors }: { slug: string; doctors: Ar
           if (!o) reset();
         }}
       >
-        <DialogContent className="max-h-[92dvh] overflow-y-auto">
+        <DialogContent {...returnFocus} className="max-h-[92dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>เปิดการตรวจ (walk-in)</DialogTitle>
             <DialogDescription>ค้นหาผู้ป่วยเดิม หรือ ลงทะเบียนผู้ป่วยใหม่ก่อนเปิดการตรวจ</DialogDescription>

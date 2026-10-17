@@ -6,6 +6,7 @@ import { Badge } from "@rentweb/ui/components/badge";
 import { Button } from "@rentweb/ui/components/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@rentweb/ui/components/dialog";
 import { Input } from "@rentweb/ui/components/input";
+import { Label } from "@rentweb/ui/components/label";
 import { toast } from "@rentweb/ui/components/sonner";
 import { cn } from "@rentweb/ui/lib/utils";
 import type { Tone } from "../labels";
@@ -87,6 +88,7 @@ export function ImageField({ value, onChange, upload, folder = "booking", assetB
   const [url, setUrl] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const ref = React.useRef<HTMLInputElement>(null);
+  const urlId = React.useId();
   const src = value ? (value.startsWith("/") ? `${assetBase}${value}` : value) : null;
   async function pick(files: FileList | null) {
     const f = files?.[0];
@@ -138,7 +140,13 @@ export function ImageField({ value, onChange, upload, folder = "booking", assetB
             </>
           )}
           <div className="flex min-w-0 flex-1 gap-2">
+            {/* RESPONSIVE_B2-16: a real label, not only the placeholder (same as the page builder's ImageField) */}
+            <Label htmlFor={urlId} className="sr-only">
+              {label === "รูปภาพ" ? "ลิงก์รูปภาพ" : `ลิงก์รูปภาพ (${label})`}
+            </Label>
             <Input
+              id={urlId}
+              inputMode="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="หรือวางลิงก์รูป https://…"

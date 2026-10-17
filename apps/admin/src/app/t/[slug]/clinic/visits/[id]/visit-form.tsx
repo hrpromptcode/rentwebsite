@@ -7,6 +7,7 @@ import { Button } from "@rentweb/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@rentweb/ui/components/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@rentweb/ui/components/dialog";
 import { Input } from "@rentweb/ui/components/input";
+import { Label } from "@rentweb/ui/components/label";
 import { Textarea } from "@rentweb/ui/components/textarea";
 import { toast } from "@rentweb/ui/components/sonner";
 import { cn } from "@rentweb/ui/lib/utils";
@@ -16,6 +17,7 @@ import { MoneyInput, NativeSelect } from "@rentweb/module-booking/admin/ui";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Field } from "@/components/ui/form";
 import { thb } from "@/lib/format";
+import { useReturnFocus } from "@/lib/use-return-focus";
 import { uploadBookingImageAction } from "../../../services/actions";
 import { cancelVisitAction, completeVisitAction, saveVisitAction, usePackageSessionAction } from "../../actions";
 import { rowKey, type VisitFormValues } from "../../form-values";
@@ -65,6 +67,8 @@ export function VisitForm({ slug, visitId, patientId, status, paymentStatus, ini
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [pending, setPending] = React.useState<"save" | "complete" | null>(null);
   const [completeOpen, setCompleteOpen] = React.useState(false);
+  // RESPONSIVE_B2-11: controlled dialog (no DialogTrigger) — give focus back to the opener on close
+  const completeFocus = useReturnFocus();
   const [method, setMethod] = React.useState<"cash" | "transfer" | "none">("cash");
   const [addSvc, setAddSvc] = React.useState("");
   React.useEffect(() => {
@@ -365,7 +369,7 @@ export function VisitForm({ slug, visitId, patientId, status, paymentStatus, ini
       </div>
 
       <Dialog open={completeOpen} onOpenChange={setCompleteOpen}>
-        <DialogContent>
+        <DialogContent {...completeFocus}>
           <DialogHeader>
             <DialogTitle>ปิดการตรวจ</DialogTitle>
             <DialogDescription>{totals.total > 0 ? `ยอดสุทธิ ${thb(totals.total)} — เลือกวิธีรับชำระ ระบบจะบันทึกรายการรับเงินให้อัตโนมัติ` : "ไม่มีค่าใช้จ่าย — ปิดการตรวจได้ทันที"}</DialogDescription>
@@ -409,6 +413,7 @@ function PhotoList({ label, photos, onChange, upload, assetBase, disabled }: { l
   const [busy, setBusy] = React.useState(false);
   const [url, setUrl] = React.useState("");
   const ref = React.useRef<HTMLInputElement>(null);
+  const urlId = React.useId();
   const src = (u: string) => (u.startsWith("/") ? `${assetBase}${u}` : u);
   async function pick(files: FileList | null) {
     if (!files?.length) return;
@@ -463,7 +468,13 @@ function PhotoList({ label, photos, onChange, upload, assetBase, disabled }: { l
       <input ref={ref} type="file" accept="image/*" multiple className="sr-only" onChange={(e) => pick(e.target.files)} tabIndex={-1} aria-hidden />
       {!disabled && (
         <div className="flex gap-2">
+          {/* RESPONSIVE_B2-16: a real label for the URL field (the placeholder is not a name) */}
+          <Label htmlFor={urlId} className="sr-only">
+            ลิงก์รูป{label}
+          </Label>
           <Input
+            id={urlId}
+            inputMode="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => {
@@ -474,7 +485,6 @@ function PhotoList({ label, photos, onChange, upload, assetBase, disabled }: { l
             }}
             placeholder="หรือวางลิงก์รูป https://…"
             className="h-9 min-w-0"
-            aria-label={`ลิงก์รูป${label}`}
           />
           <Button type="button" variant="secondary" size="sm" onClick={addUrl} disabled={!url.trim()}>
             เพิ่ม

@@ -1,5 +1,6 @@
 import "server-only";
 import { and, auditLogs, desc, eq, eventsOutbox, getAdminDb, pages, tenantDomains } from "@rentweb/db";
+import { paymentSetupStatus } from "@rentweb/core/payments";
 import { daysAgo, startOfTodayBangkok } from "@/lib/format";
 import { tenantTx, type TenantCtx } from "@/lib/tenant";
 import { computeKpis, PAYMENT_MODULES, type Kpis } from "./kpis";
@@ -14,6 +15,8 @@ export interface ChecklistItem {
   href: string;
   /** "(ถ้ามี)" items do not hold back the progress bar */
   optional?: boolean;
+  /** description is a warning (e.g. customers cannot pay online yet) */
+  warning?: boolean;
 }
 
 export interface ActivityItem {
@@ -65,7 +68,8 @@ export async function getDashboardData(ctx: TenantCtx): Promise<DashboardData> {
   const colors = (theme.colors ?? {}) as Record<string, unknown>;
   const fonts = (theme.fonts ?? {}) as Record<string, unknown>;
   const settings = (ctx.tenant.settings ?? {}) as Record<string, unknown>;
-  const payments = (settings.payments ?? {}) as Record<string, unknown>;
+  // ADMIN_B2-09: "done" only when checkout really has a receiver (same rule as the storefront), not when a field is filled
+  const paySetup = paymentSetupStatus(settings);
   const contact = (settings.contact ?? {}) as Record<string, unknown>;
   const steps = ((ctx.tenant.onboarding ?? {}) as { steps?: Record<string, boolean> }).steps ?? {};
   const base = `/t/${ctx.tenant.slug}`;
@@ -77,7 +81,18 @@ export async function getDashboardData(ctx: TenantCtx): Promise<DashboardData> {
       ? { key: "content", label: "เพิ่มรายการจริงอย่างน้อย 1 รายการ", description: "สินค้า บริการ เมนูอาหาร หรือเกมของคุณเอง แทนข้อมูลตัวอย่าง", done: realItem || !!steps.content, href: hasCommerce ? `${base}/products` : hasRestaurant ? `${base}/restaurant/menu` : hasBooking ? `${base}/services` : `${base}/topup/games` }
       : { key: "content", label: "แก้ไขและเผยแพร่หน้าเว็บของคุณ", description: "เปลี่ยนข้อความและรูปตัวอย่างบนหน้าแรกให้เป็นของธุรกิจคุณ แล้วกด “เผยแพร่”", done: ownPagePublished || !!steps.content, href: homePage ? `${base}/pages/${homePage.id}` : `${base}/pages` },
     ...(takesPayments
-      ? [{ key: "payments", label: "ตั้งค่าช่องทางรับเงิน", description: "PromptPay ID หรือบัญชีธนาคารสำหรับรับโอน", done: !!payments.promptpayId || (Array.isArray(payments.bankAccounts) && payments.bankAccounts.length > 0) || !!steps.payments, href: `${base}/settings/payments` }]
+      ? [
+          {
+            key: "payments",
+            label: "ตั้งค่าช่องทางรับเงิน",
+            description: paySetup.ready
+              ? `รับเงินออนไลน์ผ่าน ${paySetup.online.map((m) => (m === "promptpay_qr" ? "PromptPay QR" : "โอนเงิน + แนบสลิป")).join(" และ ")}`
+              : "ลูกค้ายังชำระเงินออนไลน์ไม่ได้ — ใส่ PromptPay ID หรือบัญชีธนาคารสำหรับรับโอน",
+            done: paySetup.ready,
+            warning: !paySetup.ready,
+            href: `${base}/settings/payments`,
+          },
+        ]
       : []),
     { key: "line", label: "เชื่อม LINE", description: "ใส่ LINE ID เพื่อให้ลูกค้าติดต่อได้ทันที", done: !!contact.lineId || !!(settings.line as Record<string, unknown> | undefined)?.channelId || !!steps.line, href: `${base}/settings` },
     { key: "domain", label: "ตั้งค่าโดเมนส่วนตัว (ถ้ามี)", description: "เชื่อมโดเมนของคุณเอง เช่น www.myshop.com", done: domainsRows.some((d) => d.kind === "custom") || !!steps.domain, href: `${base}/settings/domains`, optional: true },
