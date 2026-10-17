@@ -13,6 +13,10 @@ export const clinic: TemplateDefinition = {
   themePreset: "porcelain",
   // ADMIN_B2-07: the sample brand; new (non-demo) shops get their own name instead
   sampleBrand: ["Lumière Clinic Co., Ltd.","Lumière Clinic"],
+  // AC-02: the sample business's location / opening-hours copy; new (non-demo) shops get a placeholder or neutral copy
+  neutralText: [
+    ["คลินิกอยู่ชั้น 3 เอ็มควอเทียร์ ติด BTS พร้อมพงษ์ ทางออก 1 มีที่จอดรถในห้าง", "[ที่ตั้งคลินิก · การเดินทาง · ที่จอดรถ]"],
+  ],
   recommendedPresets: ["porcelain", "zen", "quartz"],
   complexity: 4,
   previewImage: u("1570172619644-dfd03ed5d881", 1200),

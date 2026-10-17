@@ -144,6 +144,38 @@ export async function openOrGetSession(tx: Tx, tenantId: string, tableId: string
   throw new Error("could not allocate session token");
 }
 
+/** how long after the table was settled the paying guests' browser keeps showing the paid state */
+export const SETTLED_VIEW_MINUTES = 60;
+
+/**
+ * The settled session the guest's own browser belongs to (its rw_table cookie): paid, or closed by staff after
+ * payment, at this table, not superseded by a newer session and recent. Reloading the table page shows that paid
+ * state (no call-staff / bill / ordering, which the API refuses) instead of quietly opening a fresh session for the
+ * same guests; "สั่งรอบใหม่" drops the cookie to start one. Anyone else scanning the QR still gets an open session.
+ */
+export async function getSettledGuestSession(
+  tx: Tx,
+  tenantId: string,
+  tableId: string,
+  token: string | null | undefined,
+  opts: SessionLifetime = {},
+): Promise<TableSession | null> {
+  if (!token || !isSessionToken(token)) return null;
+  const s = await getSessionByToken(tx, tenantId, token);
+  if (!s || s.tableId !== tableId || (s.status !== "paid" && s.status !== "closed")) return null;
+  // newer guests already opened the table: they (and this browser) share that session
+  if (await getOpenSessionForTable(tx, tenantId, tableId)) return null;
+  const now = (opts.now ?? new Date()).getTime();
+  if (now - s.openedAt.getTime() > (opts.maxHours ?? SESSION_MAX_HOURS) * 3_600_000) return null;
+  // only a table that was actually paid (an empty session closed by staff is not a "paid" state)
+  const summary = await sessionSummary(tx, tenantId, s.id);
+  if (!summary || summary.paidTotal <= 0 || summary.dueTotal > 0) return null;
+  const paidAt = s.paymentId ? ((await getPayment(tx, tenantId, s.paymentId))?.paidAt ?? null) : null;
+  const settledAt = s.closedAt ?? paidAt ?? (await lastActivity(tx, tenantId, s));
+  if (now - settledAt.getTime() > SETTLED_VIEW_MINUTES * 60_000) return null;
+  return s;
+}
+
 export async function getSessionByToken(tx: Tx, tenantId: string, token: string): Promise<TableSession | null> {
   if (!isSessionToken(token)) return null;
   const [row] = await tx.select().from(tableSessions).where(and(eq(tableSessions.tenantId, tenantId), eq(tableSessions.token, token.toUpperCase()))).limit(1);

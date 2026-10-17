@@ -13,6 +13,12 @@ export const salon: TemplateDefinition = {
   themePreset: "zen",
   // ADMIN_B2-07: the sample brand; new (non-demo) shops get their own name instead
   sampleBrand: ["สบาย สบาย"],
+  // AC-02: the sample business's location / opening-hours copy; new (non-demo) shops get a placeholder or neutral copy
+  neutralText: [
+    ["สปาและนวดไทย · สุขุมวิท 31", "สปาและนวดไทย · [ย่านของร้าน]"],
+    ["บ้านเก่าในซอยสวัสดี ที่เงียบจนได้ยินเสียงใบไม้", "มุมสงบ ให้คุณได้พักอย่างเต็มที่"],
+    ["เราปรับบ้านไม้สองชั้นให้เป็นห้องนวดส่วนตัว 6 ห้อง ล้อมด้วยสวนเล็ก ๆ ทุกห้องมีห้องอาบน้ำในตัว ใช้น้ำมันหอมระเหยออร์แกนิกจากเชียงใหม่", "ห้องนวดส่วนตัว บรรยากาศเงียบสงบ ใช้น้ำมันหอมระเหยคุณภาพ ให้ทุกการมาใช้บริการเป็นเวลาพักผ่อนของคุณ"],
+  ],
   recommendedPresets: ["zen", "porcelain", "candy", "midnight"],
   complexity: 2,
   previewImage: u("1560066984-138dadb4c035", 1200),

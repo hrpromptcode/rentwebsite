@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { BellRing, CheckCircle2, ChevronDown, Loader2, QrCode, Receipt, Store, Users } from "lucide-react";
+import { BellRing, CheckCircle2, ChevronDown, Loader2, QrCode, Receipt, RotateCcw, Store, Users } from "lucide-react";
 import { thb } from "@rentweb/core/money";
 import { Button } from "@rentweb/ui/components/button";
 import { Badge } from "@rentweb/ui/components/badge";
@@ -40,6 +41,7 @@ export function TablePanel({ initial, promptpayEnabled, promptpayName, promptpay
   const [busy, setBusy] = React.useState<"staff" | "promptpay_qr" | "counter" | null>(null);
   const [historyOpen, setHistoryOpen] = React.useState(true);
   const reduce = useReducedMotion();
+  const router = useRouter();
   const token = initial.token;
 
   React.useEffect(() => {
@@ -84,6 +86,21 @@ export function TablePanel({ initial, promptpayEnabled, promptpayName, promptpay
   };
 
   const paid = data.status === "paid" || data.status === "closed";
+  // paid while the page is open: re-render on the server, which then shows the paid table instead of the ordering
+  // menu, and bring the paid state into view (the guests are usually scrolled down in the menu)
+  const wasPaid = React.useRef(paid);
+  React.useEffect(() => {
+    if (paid && !wasPaid.current) {
+      window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+      router.refresh();
+    }
+    wasPaid.current = paid;
+  }, [paid, router, reduce]);
+  /** next guests' round on this phone: forget the paid session, the table page then opens a fresh one */
+  const orderAgain = () => {
+    document.cookie = `${TABLE_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
+    window.location.reload();
+  };
   // only an open bill QR is shown; a QR for an older amount (rounds ordered after the bill) is never offered (COR-07)
   const open = data.payment && (data.payment.status === "pending" || data.payment.status === "pending_verification") ? data.payment : null;
   const payment: PaymentPanelData | null = open && (open.status === "pending_verification" || open.amount === data.dueTotal) ? open : null;
@@ -138,9 +155,15 @@ export function TablePanel({ initial, promptpayEnabled, promptpayName, promptpay
           </div>
         )}
         {paid && (
-          <p className="relative mt-5 flex items-center gap-2 rounded-[var(--radius-lg)] bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">
-            <CheckCircle2 className="size-4" /> {L.billPaid}
-          </p>
+          // the session is settled: call-staff / bill are refused by the API, so they are replaced by the paid state
+          <div className="relative mt-5 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+            <p className="flex items-center gap-2 rounded-[var(--radius-lg)] bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">
+              <CheckCircle2 className="size-4 shrink-0" /> {L.billPaid}
+            </p>
+            <Button type="button" variant="outline" size="lg" className="h-12" onClick={orderAgain}>
+              <RotateCcw className="size-5" /> {L.orderAgain}
+            </Button>
+          </div>
         )}
 
         <AnimatePresence>

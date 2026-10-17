@@ -72,6 +72,8 @@ export function htmlToDescription(html: string | null | undefined): string {
     .replace(/<[^>]+>/g, "")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
+    .replace(/&quot;|&#34;/g, '"')
+    .replace(/&#39;|&#x27;/gi, "'")
     .replace(/&amp;/g, "&")
     .trim();
 }

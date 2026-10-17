@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { CalendarCheck, Lock } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
 import { paymentSettings, resolvePromptpayId } from "@rentweb/core/payments";
-import { getActiveMenu, getTableByQr, openOrGetSession, restaurantConfigOf } from "@rentweb/module-restaurant/services";
+import { TABLE_COOKIE, getActiveMenu, getSettledGuestSession, getTableByQr, openOrGetSession, restaurantConfigOf } from "@rentweb/module-restaurant/services";
 import { loadSessionDto } from "@rentweb/module-restaurant/dto";
 import { MenuBrowser, TablePanel } from "@rentweb/module-restaurant/components";
 import { L } from "@rentweb/module-restaurant/labels";
@@ -22,15 +23,20 @@ export default async function TablePage({ params }: { params: Params }) {
   const runtime = await getRuntime(tenantId);
   if (!runtime || !runtime.config.modules.includes("restaurant")) notFound();
   const cfg = restaurantConfigOf(runtime.config);
+  const guestToken = (await cookies()).get(TABLE_COOKIE)?.value ?? null;
 
   const data = await tenantTx(tenantId, async (tx) => {
     const table = await getTableByQr(tx, tenantId, qrToken);
     if (!table) return null;
+    const lifetime = { idleMinutes: cfg.tableSessionIdleMinutes, maxHours: cfg.tableSessionMaxHours };
+    // the guests who just paid keep seeing their paid table on reload (no call-staff / bill / ordering that the API
+    // would refuse), instead of a fresh session being opened for them; "สั่งรอบใหม่" in the panel starts one
+    const settled = await getSettledGuestSession(tx, tenantId, table.id, guestToken, lifetime);
     // a session left open by earlier guests (idle / too old) is retired, the next guests start fresh (SBR-006)
-    const { session } = await openOrGetSession(tx, tenantId, table.id, { idleMinutes: cfg.tableSessionIdleMinutes, maxHours: cfg.tableSessionMaxHours });
+    const session = settled ?? (await openOrGetSession(tx, tenantId, table.id, lifetime)).session;
     const dto = await loadSessionDto(tx, tenantId, session.id);
-    const menu = await getActiveMenu(tx, tenantId);
-    return { session, dto, menu };
+    const menu = settled ? null : await getActiveMenu(tx, tenantId);
+    return { session, dto, menu, settled: !!settled };
   });
   if (!data || !data.dto) notFound();
 
@@ -39,12 +45,12 @@ export default async function TablePage({ params }: { params: Params }) {
   const promptpayId = resolvePromptpayId(settings);
   const promptpayEnabled = (pay.enabled?.promptpay ?? true) && !!promptpayId;
   const submit = submitDineInOrder.bind(null, tenantId, data.session.token);
-  const canOrder = cfg.dineIn && !!data.menu && data.menu.categories.length > 0;
+  const canOrder = !data.settled && cfg.dineIn && !!data.menu && data.menu.categories.length > 0;
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
       <TablePanel initial={data.dto} promptpayEnabled={promptpayEnabled} promptpayName={pay.promptpayName} promptpayId={promptpayId ?? undefined} />
-      {canOrder ? (
+      {data.settled ? null /* paid table: the panel shows the paid state + "สั่งรอบใหม่", no ordering menu */ : canOrder ? (
         <MenuBrowser menu={data.menu!} mode={{ kind: "dine_in", sessionToken: data.session.token, submit }} serviceChargePercent={cfg.serviceChargePercent} />
       ) : (
         <section className="container-x py-10">

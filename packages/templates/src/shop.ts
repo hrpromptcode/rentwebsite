@@ -13,6 +13,11 @@ export const shop: TemplateDefinition = {
   themePreset: "aurora",
   // ADMIN_B2-07: the sample brand; new (non-demo) shops get their own name instead
   sampleBrand: ["Siam Atelier"],
+  // AC-02: the sample business's location / opening-hours copy; new (non-demo) shops get a placeholder or neutral copy
+  neutralText: [
+    ["มีค่ะ ที่ถ.นิมมานเหมินท์ เชียงใหม่ เปิดทุกวัน 10:00–20:00", "[มีหน้าร้านไหม · ที่ตั้งร้าน · วัน–เวลาเปิด]"],
+    ["ทีมงานตอบ LINE 9:00–21:00", "ทีมงานตอบ LINE ในเวลาทำการ"],
+  ],
   recommendedPresets: ["aurora", "quartz", "candy", "midnight"],
   complexity: 3,
   previewImage: u("1441986300917-64674bd600d8", 1200),

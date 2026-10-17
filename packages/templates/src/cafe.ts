@@ -13,6 +13,14 @@ export const cafe: TemplateDefinition = {
   themePreset: "candy",
   // ADMIN_B2-07: the sample brand; new (non-demo) shops get their own name instead
   sampleBrand: ["Sugar Puff Bakery","Sugar Puff"],
+  // AC-02: the sample business's location / opening-hours copy; new (non-demo) shops get a placeholder or neutral copy
+  neutralText: [
+    ["อบใหม่ทุกเช้า 6 โมง", "อบใหม่ทุกเช้า"],
+    ["รับที่ร้านหรือส่งทั่วกรุงเทพฯ", "รับที่ร้านหรือส่งในพื้นที่ใกล้ร้าน"],
+    ["(สั่งก่อน 18:00 รับพรุ่งนี้)", "(สั่งวันนี้ รับพรุ่งนี้)"],
+    ["ส่งผ่าน Grab/Lalamove ในกรุงเทพฯ", "ส่งผ่าน Grab/Lalamove ในพื้นที่ใกล้ร้าน"],
+    ["สั่งก่อน 18:00 วันนี้ รับได้พรุ่งนี้ตั้งแต่ 8 โมง", "สั่งวันนี้ รับได้พรุ่งนี้ตามเวลาเปิดร้าน"],
+  ],
   recommendedPresets: ["candy", "ember", "aurora"],
   complexity: 2,
   previewImage: u("1517686469429-8bdb88b9f907", 1200),

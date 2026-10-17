@@ -16,6 +16,9 @@ export const restaurant: TemplateDefinition = {
   neutralText: [
     ["เสิร์ฟในบ้านไม้อายุ 70 ปี", "เสิร์ฟร้อน ๆ ทุกวัน"],
     ["อารีย์ · กรุงเทพฯ", "[ย่าน · จังหวัดของร้าน]"],
+    // AC-02: the sample business's location / opening-hours copy; new (non-demo) shops get a placeholder or neutral copy
+    ["มีที่จอดหน้าร้าน 6 คัน และจอดเพิ่มได้ที่ซอยอารีย์ 4 (ฟรี) หรือเดินจาก BTS อารีย์ 5 นาที", "[ที่จอดรถ · การเดินทางมาร้าน]"],
+    ["BTS อารีย์ ทางออก 3 เดิน 5 นาที มีที่จอดรถหน้าร้าน", "[การเดินทางมาร้าน · ที่จอดรถ]"],
   ],
   recommendedPresets: ["ember", "midnight", "candy", "aurora"],
   complexity: 3,

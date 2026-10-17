@@ -4,6 +4,7 @@ import { audit, fail, ok, slugify, type Result } from "@rentweb/core";
 import type { CategoryRow, ProductRow, VariantRow } from "../services/products";
 import type { Actor } from "./orders";
 import { descriptionToHtml, type ProductValues } from "./schemas";
+import { sanitizeHtml } from "../lib/sanitize";
 import type { z } from "zod";
 import type { categorySchema } from "./schemas";
 import { qualified } from "./sql";
@@ -237,7 +238,8 @@ export async function saveProduct(tx: Tx, tenantId: string, id: string | null, v
     name: v.name,
     slug,
     shortDescription: v.shortDescription,
-    description: descriptionToHtml(v.description),
+    // stored already sanitized (the storefront sanitizes again when rendering): no raw markup reaches the DB
+    description: sanitizeHtml(descriptionToHtml(v.description)) || null,
     categoryId: v.categoryId,
     images: v.images.map((im) => ({ url: im.url, alt: im.alt || v.name, ...(im.mediaId ? { mediaId: im.mediaId } : {}) })),
     price: basePrice,
