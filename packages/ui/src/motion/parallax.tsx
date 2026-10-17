@@ -18,7 +18,8 @@ export function Parallax({ children, speed = 0.3, className, scale = false }: { 
   const active = mounted && !reduce;
   return (
     <div ref={ref} className={className} style={{ overflow: "hidden" }}>
-      <motion.div style={active ? { y, scale: scale ? s : 1, willChange: "transform" } : undefined}>{children}</motion.div>
+      {/* h-full: a fill-height child (fullscreen hero image, size-full) must get the outer height; auto-height uses are unaffected */}
+      <motion.div className="h-full" style={active ? { y, scale: scale ? s : 1, willChange: "transform" } : undefined}>{children}</motion.div>
     </div>
   );
 }

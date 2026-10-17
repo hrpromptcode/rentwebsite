@@ -10,7 +10,7 @@ import { Input } from "@rentweb/ui/components/input";
 import { Textarea } from "@rentweb/ui/components/textarea";
 import { toast } from "@rentweb/ui/components/sonner";
 import { cn } from "@rentweb/ui/lib/utils";
-import { ACTION_LABEL, PAYMENT_ROW_STATUS, type BookingAction } from "@rentweb/module-booking/admin/labels";
+import { ACTION_LABEL, PAY_AT_SHOP_DETAIL, PAY_AT_SHOP_LABEL, PAYMENT_ROW_STATUS, type BookingAction } from "@rentweb/module-booking/admin/labels";
 import { addDays, Avatar, formatBkkTime, formatThaiYmd, parseYmd, SlipPreview, SlotPicker, StatusPill, ymdToString, type SlotChip } from "@rentweb/module-booking/admin/ui";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { thb } from "@/lib/format";
@@ -149,7 +149,7 @@ export interface PaymentVM {
 
 const METHOD: Record<string, string> = { slip: "โอนเงิน (สลิป)", promptpay_qr: "PromptPay QR", cash: "เงินสด", card: "บัตร", wallet: "วอลเล็ต" };
 
-export function DepositCard({ slug, bookingId, depositAmount, bookingPaymentStatus, bookingStatus, payment, canApprove, canWrite }: { slug: string; bookingId: string; depositAmount: number; bookingPaymentStatus: string; bookingStatus: string; payment: PaymentVM | null; canApprove: boolean; canWrite: boolean }) {
+export function DepositCard({ slug, bookingId, depositAmount, bookingPaymentStatus, bookingStatus, payment, canApprove, canWrite, payAtShop = false }: { slug: string; bookingId: string; depositAmount: number; bookingPaymentStatus: string; bookingStatus: string; payment: PaymentVM | null; canApprove: boolean; canWrite: boolean; payAtShop?: boolean }) {
   const router = useRouter();
   const [rejectOpen, setRejectOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
@@ -177,8 +177,15 @@ export function DepositCard({ slug, bookingId, depositAmount, bookingPaymentStat
         <CardTitle className="flex items-center gap-2">
           <Wallet className="size-4" aria-hidden /> มัดจำ
         </CardTitle>
-        <CardDescription>{depositAmount > 0 ? `ยอดมัดจำ ${thb(depositAmount)}` : "บริการนี้ไม่ต้องชำระมัดจำ"}</CardDescription>
+        <CardDescription>{depositAmount > 0 ? `ยอดมัดจำ ${thb(depositAmount)}` : payAtShop ? `ไม่ได้เก็บมัดจำ · ${PAY_AT_SHOP_LABEL}` : "บริการนี้ไม่ต้องชำระมัดจำ"}</CardDescription>
       </CardHeader>
+      {payAtShop && !payment && depositAmount <= 0 && (
+        <CardContent>
+          <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm text-sky-950 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-50" data-testid="pay-at-shop">
+            <span className="font-semibold">{PAY_AT_SHOP_LABEL}</span> — {PAY_AT_SHOP_DETAIL}
+          </p>
+        </CardContent>
+      )}
       {(payment || (depositAmount > 0 && bookingPaymentStatus === "unpaid")) && (
         <CardContent className="space-y-4">
           {payment && (

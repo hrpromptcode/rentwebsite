@@ -13,6 +13,8 @@ async function main() {
   const tally = res.reduce<Record<string, number>>((m, r) => ((m[r] = (m[r] ?? 0) + 1), m), {});
   const [row] = await tt(t, (tx) => tx.select({ attempts: customerOtps.attempts }).from(customerOtps).where(and(eq(customerOtps.tenantId, t), eq(customerOtps.target, phone))));
   console.log(`40 parallel wrong guesses (limit ${5}) → results`, JSON.stringify(tally), "stored attempts", row?.attempts);
+  const checked = res.filter((r) => r === "invalid").length; // "too_many" / "locked" = refused without comparing
+  console.log(!tally.OK && (row?.attempts ?? 0) <= 5 && checked <= 5 ? "PASS COR-31 at most 5 guesses checked under 40 parallel verifies" : `FAIL COR-31 bug reproduces (${checked} guesses checked)`);
   await done();
 }
 main().catch(async (e) => { console.error(e); await done(); process.exit(1); });

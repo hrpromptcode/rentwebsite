@@ -178,7 +178,8 @@ export function TablePanel({ initial, promptpayEnabled, promptpayName, promptpay
                         </span>
                       </div>
                       <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium", STATUS_TONE[o.status] ?? "bg-muted")}>
-                        {(o.status === "received" || o.status === "preparing") && !reduce && <span className="size-1.5 animate-pulse rounded-full bg-current" />}
+                        {/* motion-safe via CSS, not useReducedMotion(): the hook is null on the server but true on a reduced-motion client's first render → hydration mismatch */}
+                        {(o.status === "received" || o.status === "preparing") && <span className="size-1.5 rounded-full bg-current motion-safe:animate-pulse" />}
                         {ORDER_STATUS_LABEL[o.status] ?? o.status}
                       </span>
                     </div>

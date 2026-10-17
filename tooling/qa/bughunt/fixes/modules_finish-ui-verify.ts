@@ -164,10 +164,11 @@ async function sbr010(browser: Browser) {
     await measure("staff");
     // staff: first option ("ใครก็ได้" / first staff) → date step
     await page.locator("main button[aria-pressed]").first().click();
-    await page.locator(".grid-cols-7 button:not([disabled])").first().waitFor({ timeout: 60_000 }).catch(() => {});
+    await page.locator(`.grid-cols-7 button[data-date]:not([aria-disabled="true"])`).first().waitFor({ timeout: 60_000 }).catch(() => {});
     await page.waitForTimeout(800);
     await measure("date");
-    const day = page.locator(".grid-cols-7 button:not([disabled])").first();
+    // reverify-repro 2026-10-17: unavailable days are now aria-disabled (still focusable, not disabled) and picked by data-date
+    const day = page.locator(`.grid-cols-7 button[data-date]:not([aria-disabled="true"])`).first();
     if (await day.count()) {
       await day.click();
       await page.waitForTimeout(1500);

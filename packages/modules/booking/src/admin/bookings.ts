@@ -41,6 +41,8 @@ export interface CalendarBooking {
   paymentStatus: string;
   partySize: number;
   note: string | null;
+  /** ADMIN_B2-04: booked while the shop had no payment receiver — no deposit taken, the customer pays at the shop */
+  payAtShop: boolean;
 }
 
 export interface CalendarFilters {
@@ -86,6 +88,7 @@ export async function listBookingsBetween(tx: Tx, tenantId: string, f: CalendarF
       paymentStatus: bookings.paymentStatus,
       partySize: bookings.partySize,
       note: bookings.note,
+      payAtShop: sql<boolean>`coalesce(${bookings.answers}->>'payAtShop' = 'true', false)`,
     })
     .from(bookings)
     .innerJoin(services, and(eq(bookings.serviceId, services.id), eq(services.tenantId, tenantId)))
@@ -166,6 +169,8 @@ export interface AdminBookingDetail {
   rescheduledFrom: Pick<BookingRow, "id" | "number" | "startsAt" | "status"> | null;
   rescheduledTo: Pick<BookingRow, "id" | "number" | "startsAt" | "status"> | null;
   timeline: BookingTimelineItem[];
+  /** ADMIN_B2-04: answers.payAtShop — no deposit was taken because the shop had no payment receiver; collect payment at the shop */
+  payAtShop: boolean;
   /** other bookings of the same customer (recent) */
   customerHistory: Array<Pick<BookingRow, "id" | "number" | "startsAt" | "status" | "price"> & { serviceName: string }>;
 }
@@ -202,7 +207,7 @@ export async function getBookingAdmin(tx: Tx, tenantId: string, id: string): Pro
       : Promise.resolve([]),
   ]);
   const sorted = [...pays].sort((a, c) => c.createdAt.getTime() - a.createdAt.getTime());
-  const answers = (b.answers ?? {}) as { paymentId?: string };
+  const answers = (b.answers ?? {}) as { paymentId?: string; payAtShop?: unknown };
   const payment = sorted.find((p) => p.id === answers.paymentId) ?? sorted[0] ?? null;
   const timeline: BookingTimelineItem[] = [{ at: b.createdAt, label: `สร้างการจอง (${b.source})`, tone: "muted" }];
   if (b.confirmedAt) timeline.push({ at: b.confirmedAt, label: "ยืนยันนัดแล้ว", tone: "success" });
@@ -217,7 +222,7 @@ export async function getBookingAdmin(tx: Tx, tenantId: string, id: string): Pro
   if (b.completedAt) timeline.push({ at: b.completedAt, label: "ให้บริการเสร็จสิ้น", tone: "success" });
   if (b.cancelledAt) timeline.push({ at: b.cancelledAt, label: b.status === "no_show" ? "ไม่มาตามนัด" : `ยกเลิก (${b.cancelledBy ?? "-"})${b.cancelReason ? `: ${b.cancelReason}` : ""}`, tone: "destructive" });
   timeline.sort((a, c) => a.at.getTime() - c.at.getTime());
-  return { booking: b, service, staff: st, extraStaff, customer: cust, payments: sorted, payment, rescheduledFrom: from, rescheduledTo: to, timeline, customerHistory: history };
+  return { booking: b, service, staff: st, extraStaff, customer: cust, payments: sorted, payment, rescheduledFrom: from, rescheduledTo: to, timeline, payAtShop: answers.payAtShop === true, customerHistory: history };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -444,6 +449,11 @@ export async function createAdminBooking(tx: Tx, tenantId: string, input: AdminC
     answers.patientPackageId = prevAnswers.patientPackageId;
     answers.packageName = prevAnswers.packageName;
     answers.packageUsageId = prevAnswers.packageUsageId;
+  }
+  // ADMIN_B2-04: a pay-at-shop booking stays pay-at-shop when the shop moves it (same as the customer reschedule)
+  if (prevAnswers?.payAtShop) {
+    answers.payAtShop = true;
+    if (prevAnswers.depositWaivedReason) answers.depositWaivedReason = prevAnswers.depositWaivedReason;
   }
   const status = prev && prev.status === "pending" ? "pending" : "confirmed";
   let row: BookingRow | null = null;

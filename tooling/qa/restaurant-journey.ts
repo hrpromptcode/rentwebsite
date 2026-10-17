@@ -2,7 +2,7 @@ import "../load-env";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdir } from "node:fs/promises";
-import { chromium, expect, type BrowserContext, type Page } from "@playwright/test";
+import { chromium, expect, type APIResponse, type BrowserContext, type Page } from "@playwright/test";
 import { isolateHmr } from "./bughunt/fixes/_dev-stable";
 
 /**
@@ -70,8 +70,33 @@ async function newCtx(browser: Awaited<ReturnType<typeof chromium.launch>>, tag:
 
 const cartBar = (page: Page) => page.locator("[data-rw-cartbar] button");
 
+/**
+ * Node-side requests (ctx.request) cannot resolve *.localhost on Windows (getaddrinfo ENOTFOUND), so send them to
+ * 127.0.0.1 with the tenant Host header and the context's cookies for the original URL (same as the browser would).
+ */
+function api(ctx: BrowserContext) {
+  const map = async (url: string) => {
+    const u = new URL(url);
+    const headers: Record<string, string> = { host: u.host };
+    const cookies = await ctx.cookies(url);
+    if (cookies.length) headers.cookie = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
+    u.hostname = "127.0.0.1";
+    return { url: u.toString(), headers };
+  };
+  return {
+    get: async (url: string): Promise<APIResponse> => {
+      const m = await map(url);
+      return ctx.request.get(m.url, { headers: m.headers });
+    },
+    post: async (url: string, opts: { data?: unknown } = {}): Promise<APIResponse> => {
+      const m = await map(url);
+      return ctx.request.post(m.url, { data: opts.data, headers: m.headers });
+    },
+  };
+}
+
 async function sessionApi(ctx: BrowserContext, token: string) {
-  const r = await ctx.request.get(`${BASE}/api/restaurant/session/${token}`);
+  const r = await api(ctx).get(`${BASE}/api/restaurant/session/${token}`);
   return { status: r.status(), json: r.ok() ? ((await r.json()) as { token: string; status: string; orders: Array<{ number: string; total: number }>; total: number; dueTotal: number; payment: null | { id: string; amount: number; status: string; method: string } }) : null };
 }
 
@@ -133,7 +158,11 @@ async function main() {
       await expect(dlg).toBeVisible();
       await expect(dlg.getByText("ระดับความเผ็ด")).toBeVisible();
       await expect(dlg.getByText("จำเป็น").first()).toBeVisible();
-      await dlg.getByRole("button", { name: /เพิ่มในออเดอร์/ }).click();
+      // the add button is aria-disabled (still tappable) until the required group is chosen; Playwright treats aria-disabled
+      // as not actionable, so tap it like a user would with force and expect the required group to be flagged
+      const blocked = dlg.getByRole("button", { name: /เพิ่มในออเดอร์/ });
+      await expect(blocked).toHaveAttribute("aria-disabled", "true");
+      await blocked.click({ force: true });
       await page.waitForTimeout(300);
       await expect(dlg).toBeVisible();
       await expect(dlg.locator("fieldset").first()).toHaveClass(/bg-destructive/);
@@ -172,11 +201,16 @@ async function main() {
       await expect(dlg.getByRole("link", { name: /สั่งกลับบ้าน/ })).toHaveAttribute("href", "/order");
       await page.keyboard.press("Escape");
       await expect(dlg).toBeHidden();
+      // SBR-011 (intended): the rw_rcart cookie only carries the cart id; the lines live in localStorage under the same id
       const cookie = (await ctx.cookies()).find((c) => c.name === "rw_rcart");
       if (!cookie) throw new Error("rw_rcart cookie missing");
-      const items = JSON.parse(decodeURIComponent(cookie.value)) as Array<{ menuItemId: string; qty: number }>;
+      if (!/^c[a-z0-9]{6,24}$/.test(cookie.value)) throw new Error(`rw_rcart cookie is not a cart id: ${cookie.value.slice(0, 60)}`);
+      const stored = (await page.evaluate(() => JSON.parse(localStorage.getItem("rw_rcart") ?? "null"))) as { id: string; items: Array<{ menuItemId: string; qty: number }> } | null;
+      if (!stored || stored.id !== cookie.value) throw new Error(`localStorage cart id ${stored?.id} != cookie ${cookie.value}`);
+      const items = stored.items;
+      if (items.length !== 2) throw new Error(`localStorage cart has ${items.length} lines (expected 2)`);
       shared.menuItemId = items[0]?.menuItemId;
-      return `cookie has ${items.length} lines`;
+      return `cookie = cart id ${cookie.value}, localStorage has ${items.length} lines`;
     });
     await ctx.close();
   }
@@ -335,7 +369,7 @@ async function main() {
       return `session paid; payment covered ฿${billAmount / 100} of total ฿${s.json.total / 100}; all orders marked paid: ${allPaid}`;
     });
     await step("2.10 after paid: ordering/bill/call on this session are refused", async () => {
-      const r = await ctx.request.post(`${BASE}/api/restaurant/session/${token}/call`, { data: { kind: "staff" } });
+      const r = await api(ctx).post(`${BASE}/api/restaurant/session/${token}/call`, { data: { kind: "staff" } });
       if (r.status() !== 400) throw new Error(`call staff on paid session → ${r.status()}`);
       await page.reload({ waitUntil: "networkidle" });
       const hasButtons = await page.getByRole("button", { name: /เรียกพนักงาน/ }).count();
@@ -413,16 +447,20 @@ async function main() {
       const cookie = (await ctx.cookies()).find((c) => c.name === "rw_rcart" && c.value);
       return `${number}, cart cookie cleared: ${!cookie}`;
     });
-    await step("3.2 upload slip → ชำระเงินสำเร็จ → tracker shows ชำระแล้ว; API paymentStatus=paid", async () => {
+    // intended rule (payments packet): a pickup tracker opened with ?p=<phone> is a phone-only proof — the slip is accepted
+    // but never auto-approved (even with DEV_AUTO_APPROVE_SLIPS); the shop verifies it in admin.
+    await step("3.2 upload slip (phone-only proof) → รอตรวจสอบ, not auto-approved; API payment pending_verification", async () => {
       await page.locator('input[type="file"]').setInputFiles({ name: "slip.png", mimeType: "image/png", buffer: PNG });
-      await expect(page.getByText("ชำระเงินสำเร็จ")).toBeVisible({ timeout: 20000 });
-      await page.waitForLoadState("networkidle");
-      await expect(page.getByText("ชำระแล้ว").first()).toBeVisible({ timeout: 15000 });
-      if ((await page.locator('img[alt="PromptPay QR"]').count()) > 0) throw new Error("QR still shown after payment");
-      const r = await ctx.request.get(`${BASE}/api/restaurant/orders/${shared.pickupNumber}?p=${PHONE}`);
-      const j = (await r.json()) as { paymentStatus: string; status: string };
-      if (j.paymentStatus !== "paid") throw new Error(`API paymentStatus=${j.paymentStatus}`);
-      return `status=${j.status}`;
+      await expect(page.getByText("ได้รับสลิปแล้ว รอตรวจสอบ")).toBeVisible({ timeout: 20000 });
+      if ((await page.getByText("ชำระเงินสำเร็จ").count()) > 0) throw new Error("phone-only proof auto-approved the slip");
+      if ((await page.locator('img[alt="PromptPay QR"]').count()) > 0) throw new Error("QR still shown after the slip was sent");
+      const r = await api(ctx).get(`${BASE}/api/restaurant/orders/${shared.pickupNumber}?p=${PHONE}`);
+      const j = (await r.json()) as { paymentStatus: string; status: string; payment: { status: string } | null };
+      if (j.paymentStatus === "paid") throw new Error("API paymentStatus=paid after a phone-only slip");
+      if (j.payment?.status !== "pending_verification") throw new Error(`API payment.status=${j.payment?.status} (expected pending_verification)`);
+      await page.reload({ waitUntil: "networkidle" });
+      await expect(page.getByText("ได้รับสลิปแล้ว รอตรวจสอบ")).toBeVisible({ timeout: 15000 });
+      return `order ${j.status}, paymentStatus=${j.paymentStatus}, payment=${j.payment?.status}; still รอตรวจสอบ after reload`;
     });
     await step("3.3 cash option creates the order without a QR (ชำระเมื่อมารับ)", async () => {
       await page.goto(`${BASE}/order`, { waitUntil: "networkidle" });
@@ -471,7 +509,10 @@ async function main() {
       if (!res || res.status() !== 200) throw new Error(`status ${res?.status()}`);
       await expect(page.getByRole("heading", { level: 1, name: "จองโต๊ะล่วงหน้า" })).toBeVisible();
       await page.locator("#res-date").fill(ymd);
-      await page.getByRole("radiogroup", { name: "เวลา" }).getByRole("radio", { name: TIME }).click();
+      // only the first 12 time chips are shown; later ones sit behind "แสดงเวลาอื่น (n)" (intended)
+      const timeRadio = page.getByRole("radiogroup", { name: "เวลา" }).getByRole("radio", { name: TIME });
+      if (!(await timeRadio.count())) await page.getByRole("button", { name: /แสดงเวลาอื่น/ }).click();
+      await timeRadio.click();
       const plus = page.getByRole("group", { name: "จำนวนคน" }).getByRole("button", { name: "เพิ่มจำนวน" });
       const pbox = await plus.boundingBox();
       if (!pbox || pbox.height < 44) throw new Error(`stepper button ${pbox?.height}px`);
@@ -497,6 +538,8 @@ async function main() {
     await step("4.1 fill the garden zone (4 tables) with 3 more overlapping bookings via ?date&time&size&zone", async () => {
       for (let i = 0; i < 3; i++) {
         await page.goto(reserveUrl, { waitUntil: "networkidle" });
+        // the deep-linked time must be visible as the selected chip even when it is past the first 12
+        await expect(page.getByRole("radiogroup", { name: "เวลา" }).getByRole("radio", { name: TIME })).toHaveAttribute("aria-checked", "true");
         await expect(page.getByText("ว่าง สามารถจองได้")).toBeVisible({ timeout: 10000 });
         await page.locator("#res-name").fill(`คุณจอง ${i + 2}`);
         await page.locator("#res-phone").fill(RES_PHONE);
@@ -515,11 +558,12 @@ async function main() {
       await page.locator("#res-phone").fill(RES_PHONE);
       await btn.evaluate((b) => b.removeAttribute("disabled"));
       await btn.click();
-      await expect(page.getByRole("alert")).toContainText(/เต็ม/, { timeout: 20000 });
+      // target the form's <p role=alert>: Next's <next-route-announcer> is a second role=alert element
+      await expect(page.locator('p[role="alert"]')).toContainText(/เต็ม/, { timeout: 20000 });
       if (!/\/reserve/.test(page.url())) throw new Error(`navigated to ${page.url()}`);
     });
     await step("4.3 availability API: 19:30 garden full (overlap), 20:30 garden free, 19:00 indoor free", async () => {
-      const get = async (time: string, zone: string) => (await (await ctx.request.get(`${BASE}/api/restaurant/reservations/availability?date=${ymd}&time=${time}&size=4&zone=${encodeURIComponent(zone)}`)).json()) as { available: boolean; capacity: number; booked: number; remaining: number };
+      const get = async (time: string, zone: string) => (await (await api(ctx).get(`${BASE}/api/restaurant/reservations/availability?date=${ymd}&time=${time}&size=4&zone=${encodeURIComponent(zone)}`)).json()) as { available: boolean; capacity: number; booked: number; remaining: number };
       const a = await get("19:30", "สวน");
       const b = await get("20:30", "สวน");
       const c = await get("19:00", "ในบ้าน");
@@ -531,7 +575,9 @@ async function main() {
     await step("4.4 wrong phone on /reservations/<n> is refused", async () => {
       await page.goto(`${BASE}/reservations/${made[0]}?p=0800000000`, { waitUntil: "networkidle" });
       await expect(page.getByText("กรอกเบอร์โทรศัพท์ที่ใช้จอง")).toBeVisible();
-      if ((await page.getByText("รายละเอียดการจอง").count()) > 0) throw new Error("reservation details leaked with wrong phone");
+      // the phone prompt itself says "…เพื่อเปิดดูรายละเอียดการจอง", so look for the details heading and the guest's data instead
+      if ((await page.getByRole("heading", { name: "รายละเอียดการจอง" }).count()) > 0) throw new Error("reservation details heading shown with wrong phone");
+      if ((await page.getByText("คุณจองทดสอบ").count()) > 0) throw new Error("guest name leaked with wrong phone");
     });
     await step("4.5 self-service cancel (two-tap) frees the tables (cleanup of the 4 test bookings)", async () => {
       for (const n of made) {
@@ -540,7 +586,7 @@ async function main() {
         await page.getByRole("button", { name: "แตะอีกครั้งเพื่อยืนยันยกเลิก" }).click();
         await expect(page.getByText("ยกเลิกแล้ว").first()).toBeVisible({ timeout: 15000 });
       }
-      const j = (await (await ctx.request.get(`${BASE}/api/restaurant/reservations/availability?date=${ymd}&time=${TIME}&size=4&zone=${encodeURIComponent("สวน")}`)).json()) as { remaining: number };
+      const j = (await (await api(ctx).get(`${BASE}/api/restaurant/reservations/availability?date=${ymd}&time=${TIME}&size=4&zone=${encodeURIComponent("สวน")}`)).json()) as { remaining: number };
       if (j.remaining < 4) throw new Error(`remaining after cancel ${j.remaining}`);
       return `cancelled ${made.length}, garden remaining ${j.remaining}`;
     });
@@ -552,36 +598,36 @@ async function main() {
     const ctx = await browser.newContext();
     currentPage = null;
     await step("5.0 GET /api/restaurant/orders/<n>?p= → 200 DTO; without proof → 404", async () => {
-      const ok = await ctx.request.get(`${BASE}/api/restaurant/orders/${shared.pickupNumber}?p=${PHONE}`);
+      const ok = await api(ctx).get(`${BASE}/api/restaurant/orders/${shared.pickupNumber}?p=${PHONE}`);
       if (ok.status() !== 200) throw new Error(`status ${ok.status()}`);
       const j = (await ok.json()) as { number: string; items: unknown[]; payment: { status: string } | null };
       if (j.number !== shared.pickupNumber || !Array.isArray(j.items) || !j.items.length) throw new Error(JSON.stringify(j).slice(0, 200));
-      const noProof = await ctx.request.get(`${BASE}/api/restaurant/orders/${shared.pickupNumber}`);
+      const noProof = await api(ctx).get(`${BASE}/api/restaurant/orders/${shared.pickupNumber}`);
       if (noProof.status() !== 404) throw new Error(`no proof → ${noProof.status()}`);
       const cc = ok.headers()["cache-control"];
       return `items=${j.items.length}, payment=${j.payment?.status}, cache-control=${cc}`;
     });
     await step("5.1 GET /api/restaurant/session/<token> → 200 DTO; unknown token → 404", async () => {
-      const r = await ctx.request.get(`${BASE}/api/restaurant/session/${shared.tableToken}`);
+      const r = await api(ctx).get(`${BASE}/api/restaurant/session/${shared.tableToken}`);
       if (r.status() !== 200) throw new Error(`status ${r.status()}`);
       const j = (await r.json()) as { token: string; status: string; orders: unknown[]; total: number };
       if (j.token !== shared.tableToken || !j.orders.length) throw new Error(JSON.stringify(j).slice(0, 200));
-      const bad = await ctx.request.get(`${BASE}/api/restaurant/session/ZZZZZZ`);
+      const bad = await api(ctx).get(`${BASE}/api/restaurant/session/ZZZZZZ`);
       if (bad.status() !== 404) throw new Error(`unknown token → ${bad.status()}`);
       return `status=${j.status}, orders=${j.orders.length}, total=฿${j.total / 100}`;
     });
     await step("5.2 POST /api/restaurant/cart/price prices server-side; invalid body → 400", async () => {
-      const r = await ctx.request.post(`${BASE}/api/restaurant/cart/price`, { data: { items: [{ menuItemId: shared.menuItemId, qty: 2, modifierIds: [] }], type: "pickup" } });
+      const r = await api(ctx).post(`${BASE}/api/restaurant/cart/price`, { data: { items: [{ menuItemId: shared.menuItemId, qty: 2, modifierIds: [] }], type: "pickup" } });
       const j = (await r.json()) as { ok: boolean; error?: string; code?: string; subtotal?: number; total?: number };
-      const bad = await ctx.request.post(`${BASE}/api/restaurant/cart/price`, { data: { items: "x" } });
+      const bad = await api(ctx).post(`${BASE}/api/restaurant/cart/price`, { data: { items: "x" } });
       if (bad.status() !== 400) throw new Error(`invalid → ${bad.status()}`);
       return `status ${r.status()} ok=${j.ok} ${j.ok ? `subtotal ฿${j.subtotal! / 100}` : `error="${j.error}" (${j.code}) – expected: green curry needs the required spice group`}`;
     });
     await step("5.3 tenant isolation: another tenant host cannot read this tenant's order / session / table", async () => {
-      const a = await ctx.request.get(`${OTHER}/api/restaurant/orders/${shared.pickupNumber}?p=${PHONE}`);
-      const b = await ctx.request.get(`${OTHER}/api/restaurant/session/${shared.tableToken}`);
-      const c = await ctx.request.get(`${OTHER}/t/${QR.A1}`);
-      const d = await ctx.request.get(`${OTHER}/api/restaurant/reservations/availability?date=2030-01-01&time=19:00`);
+      const a = await api(ctx).get(`${OTHER}/api/restaurant/orders/${shared.pickupNumber}?p=${PHONE}`);
+      const b = await api(ctx).get(`${OTHER}/api/restaurant/session/${shared.tableToken}`);
+      const c = await api(ctx).get(`${OTHER}/t/${QR.A1}`);
+      const d = await api(ctx).get(`${OTHER}/api/restaurant/reservations/availability?date=2030-01-01&time=19:00`);
       const bad = [a, b, c, d].map((r) => r.status()).filter((s) => s !== 404);
       if (bad.length) throw new Error(`statuses: order ${a.status()}, session ${b.status()}, table page ${c.status()}, availability ${d.status()}`);
       return "all 404";

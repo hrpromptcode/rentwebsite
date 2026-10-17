@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { desc, eq, payments, tenants } from "@rentweb/db";
-import { anyToast, done, go, hreq, launch, newCtx, newPage, out, plat, readCreds, shot, store, tenantIdOf, tt, type Browser, type Page } from "./admin_b2-lib";
+import { anyToast, done, go, hreq, launch, newCtx, newPage, out, plat, readCreds, shot, store, tenantIdOf, tt, type Browser, type Page, OWNER_STATE } from "./admin_b2-lib";
 const C = readCreds();
 const SHOP = C.tenants.find((t: any) => t.key === "shop").slug as string;
 
@@ -39,7 +39,7 @@ async function checkout(browser: Browser, slug: string, method?: string) {
 async function main() {
   const tid = await tenantIdOf(SHOP);
   const browser = await launch();
-  const st = JSON.parse(readFileSync("qa/bughunt/admin_b2-state-owner.json", "utf8"));
+  const st = JSON.parse(readFileSync(OWNER_STATE, "utf8"));
   const ctx = await newCtx(browser, { storageState: st });
   const page = await newPage(ctx);
   const saveGeneral = async () => anyToast(page, () => page.locator("form").getByRole("button", { name: /บันทึก/ }).last().click());

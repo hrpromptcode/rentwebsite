@@ -5,11 +5,13 @@ import { ArrowLeft, ExternalLink, Star, Users } from "lucide-react";
 import { isUuid } from "@rentweb/core";
 import { Badge } from "@rentweb/ui/components/badge";
 import { Button } from "@rentweb/ui/components/button";
-import { getServiceById, listCategoriesAdmin, listStaffForServiceAdmin } from "@rentweb/module-booking/admin";
+import { getAdminDb } from "@rentweb/db";
+import { depositSetupStatus, getServiceById, listCategoriesAdmin, listStaffForServiceAdmin, loadModuleConfig } from "@rentweb/module-booking/admin";
 import { Avatar } from "@rentweb/module-booking/admin/ui";
 import { assetUrl, fmtDate } from "@/lib/format";
 import { getTenantCtx, hasRole, tenantTx } from "@/lib/tenant";
 import { durationLabel, serviceToForm } from "../form-values";
+import { DepositSetupNotice } from "../deposit-setup-notice";
 import { ServiceForm } from "../service-form";
 
 export const metadata: Metadata = { title: "แก้ไขบริการ" };
@@ -25,6 +27,7 @@ export default async function EditServicePage({ params }: { params: Promise<{ sl
   }));
   if (!svc) notFound();
   const canWrite = hasRole(ctx, "manager");
+  const depositSetup = depositSetupStatus((ctx.tenant.settings ?? {}) as Record<string, unknown>, (await loadModuleConfig(getAdminDb(), ctx.tenant.id)).booking);
 
   return (
     <div className="space-y-6">
@@ -80,7 +83,7 @@ export default async function EditServicePage({ params }: { params: Promise<{ sl
       </div>
 
       {canWrite ? (
-        <ServiceForm slug={slug} serviceId={svc.id} initial={serviceToForm(svc)} categories={cats.map((c) => ({ id: c.id, name: c.name }))} assetBase={assetUrl("/").replace(/\/$/, "")} canDelete />
+        <ServiceForm slug={slug} serviceId={svc.id} initial={serviceToForm(svc)} categories={cats.map((c) => ({ id: c.id, name: c.name }))} assetBase={assetUrl("/").replace(/\/$/, "")} canDelete depositNotice={<DepositSetupNotice slug={slug} status={depositSetup} count={1} compact />} />
       ) : (
         <p className="card p-6 text-sm text-muted-foreground">คุณมีสิทธิ์ดูอย่างเดียว — ติดต่อผู้จัดการร้านเพื่อแก้ไขบริการ</p>
       )}

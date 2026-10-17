@@ -80,7 +80,8 @@ export function Hero({ ctx, props: p, index }: { ctx: StorefrontCtx; props: Prop
 
   if (p.variant === "fullscreen") {
     return (
-      <section className="relative isolate flex min-h-[92svh] items-end overflow-hidden text-white">
+      // data-hero-dark: HeaderShell switches a transparent header to light text over this photo (its logo/menu were dark-on-dark)
+      <section data-hero-dark={index === 0 ? "" : undefined} className="relative isolate flex min-h-[92svh] items-end overflow-hidden text-white">
         <div className="absolute inset-0 -z-10">
           <Parallax speed={0.25} scale className="h-full">
             <Img src={p.image.url} alt={p.image.alt} className="size-full object-cover" priority />

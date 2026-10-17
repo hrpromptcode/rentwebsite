@@ -3,13 +3,15 @@ import Link from "next/link";
 import { CalendarClock, Plus, Search, Sparkles, X } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
 import { Input } from "@rentweb/ui/components/input";
-import { listCategoriesAdmin, listServicesAdmin } from "@rentweb/module-booking/admin";
+import { getAdminDb } from "@rentweb/db";
+import { depositSetupStatus, listCategoriesAdmin, listServicesAdmin, loadModuleConfig } from "@rentweb/module-booking/admin";
 import { FilterTabs, NativeSelect, qs } from "@rentweb/module-booking/admin/ui";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { assetUrl, fmtNumber } from "@/lib/format";
 import { getTenantCtx, hasRole, tenantTx } from "@/lib/tenant";
 import { CategoriesManager } from "./categories-manager";
+import { DepositSetupNotice } from "./deposit-setup-notice";
 import { ServicesTable } from "./services-table";
 
 export const metadata: Metadata = { title: "บริการ" };
@@ -26,10 +28,16 @@ export default async function ServicesPage({ params, searchParams }: { params: P
   const base = `/t/${slug}/services`;
   const canWrite = hasRole(ctx, "manager");
 
-  const { all, cats } = await tenantTx(ctx.tenant.id, async (tx) => ({
-    all: await listServicesAdmin(tx, ctx.tenant.id),
-    cats: await listCategoriesAdmin(tx, ctx.tenant.id),
-  }));
+  const [{ all, cats }, moduleCfg] = await Promise.all([
+    tenantTx(ctx.tenant.id, async (tx) => ({
+      all: await listServicesAdmin(tx, ctx.tenant.id),
+      cats: await listCategoriesAdmin(tx, ctx.tenant.id),
+    })),
+    loadModuleConfig(getAdminDb(), ctx.tenant.id),
+  ]);
+  // ADMIN_B2-04: deposits the shop cannot receive online (no PromptPay / bank account) → warn, bookings become pay-at-shop
+  const depositSetup = depositSetupStatus((ctx.tenant.settings ?? {}) as Record<string, unknown>, moduleCfg.booking);
+  const depositServices = all.filter((s) => s.active && s.depositRequired && s.depositAmount > 0).length;
   const ql = q.toLowerCase();
   const rows = all
     .filter((s) => (status === "active" ? s.active : status === "inactive" ? !s.active : true))
@@ -61,6 +69,8 @@ export default async function ServicesPage({ params, searchParams }: { params: P
           </>
         }
       />
+
+      <DepositSetupNotice slug={slug} status={depositSetup} count={depositServices} />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-4">

@@ -7,10 +7,15 @@ import { cn } from "@rentweb/ui/lib/utils";
 /** Animated check mark with a little burst, used after an order / reservation is accepted. */
 export function SuccessBurst({ className, size = 96 }: { className?: string; size?: number }) {
   const reduce = useReducedMotion();
+  // the burst dots mount only after hydration: useReducedMotion() is null on the server but true on a reduced-motion
+  // client's first render, so rendering them from `!reduce` made the SSR'd /reservations/<n> page fail hydration
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
   const dots = Array.from({ length: 8 });
   return (
     <div className={cn("relative mx-auto", className)} style={{ width: size, height: size }} aria-hidden>
-      {!reduce &&
+      {mounted &&
+        !reduce &&
         dots.map((_, i) => {
           const angle = (i / dots.length) * Math.PI * 2;
           return (
@@ -25,12 +30,12 @@ export function SuccessBurst({ className, size = 96 }: { className?: string; siz
         })}
       <motion.div
         className="flex size-full items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30"
-        initial={reduce ? false : { scale: 0.3, opacity: 0 }}
+        initial={{ scale: 0.3, opacity: 0 }} /* same on server and client (no useReducedMotion branch → no attribute mismatch); MotionRoot's reducedMotion="user" skips the scale */
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 260, damping: 16 }}
       >
         <svg viewBox="0 0 48 48" className="size-1/2" fill="none" stroke="currentColor" strokeWidth={4.5} strokeLinecap="round" strokeLinejoin="round">
-          <motion.path d="M12 25 L21 33 L37 15" initial={reduce ? false : { pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.45, delay: 0.2, ease: "easeOut" }} />
+          <motion.path d="M12 25 L21 33 L37 15" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.45, delay: 0.2, ease: "easeOut" }} />
         </svg>
       </motion.div>
     </div>

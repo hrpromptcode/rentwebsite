@@ -8,7 +8,7 @@ import { Button } from "@rentweb/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@rentweb/ui/components/card";
 import { cn } from "@rentweb/ui/lib/utils";
 import { bkkDateString, formatBkkTime, formatThaiDate, getBookingAdmin, listStaffForServiceAdmin } from "@rentweb/module-booking/admin";
-import { BOOKING_STATUS, CANCELLABLE_STATUSES, PAYMENT_STATUS, RESCHEDULABLE_STATUSES, SOURCE_LABEL, STATUS_ACTIONS } from "@rentweb/module-booking/admin/labels";
+import { BOOKING_STATUS, CANCELLABLE_STATUSES, PAY_AT_SHOP_LABEL, PAYMENT_STATUS, RESCHEDULABLE_STATUSES, SOURCE_LABEL, STATUS_ACTIONS } from "@rentweb/module-booking/admin/labels";
 import { Avatar, StatusPill } from "@rentweb/module-booking/admin/ui";
 import { assetUrl, fmtDate, fmtNumber, thb } from "@/lib/format";
 import { getTenantCtx, hasRole, tenantTx } from "@/lib/tenant";
@@ -31,7 +31,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
     return { ...d, eligible: staff };
   });
   if (!data) notFound();
-  const { booking: b, service, staff, extraStaff, customer, payment, rescheduledFrom, rescheduledTo, timeline, customerHistory, eligible } = data;
+  const { booking: b, service, staff, extraStaff, customer, payment, rescheduledFrom, rescheduledTo, timeline, customerHistory, eligible, payAtShop } = data;
   const canWrite = hasRole(ctx, "staff");
   const canApprove = hasRole(ctx, "manager");
   const actions = STATUS_ACTIONS[b.status] ?? [];
@@ -61,6 +61,11 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                 <StatusPill map={BOOKING_STATUS} status={b.status} />
               </span>
               <Badge variant="outline">{SOURCE_LABEL[b.source] ?? b.source}</Badge>
+              {payAtShop && (
+                <Badge variant="outline" className="border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-100" data-testid="pay-at-shop-badge">
+                  {PAY_AT_SHOP_LABEL}
+                </Badge>
+              )}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
               {service?.name ?? "บริการ"} · {formatThaiDate(b.startsAt, { weekday: true })} · {formatBkkTime(b.startsAt)}–{formatBkkTime(b.endsAt)}
@@ -157,7 +162,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                   <div>
                     <dt className="text-xs text-muted-foreground">ราคา</dt>
                     <dd className="font-medium tabular-nums">
-                      {b.price ? thb(b.price) : "ฟรี"} <span className="font-normal text-muted-foreground">· {PAYMENT_STATUS[b.paymentStatus] ?? b.paymentStatus}</span>
+                      {b.price ? thb(b.price) : "ฟรี"} <span className="font-normal text-muted-foreground">· {PAYMENT_STATUS[b.paymentStatus] ?? b.paymentStatus}{payAtShop && b.paymentStatus === "unpaid" ? ` (${PAY_AT_SHOP_LABEL})` : ""}</span>
                     </dd>
                   </div>
                 </div>
@@ -197,6 +202,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             depositAmount={b.depositAmount}
             bookingPaymentStatus={b.paymentStatus}
             bookingStatus={b.status}
+            payAtShop={payAtShop}
             canApprove={canApprove}
             canWrite={canWrite}
             payment={

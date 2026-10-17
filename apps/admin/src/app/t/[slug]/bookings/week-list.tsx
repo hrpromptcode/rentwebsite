@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@rentweb/ui/lib/utils";
-import { BOOKING_STATUS, SOURCE_LABEL, THAI_WEEKDAYS } from "@rentweb/module-booking/admin/labels";
+import { BOOKING_STATUS, PAY_AT_SHOP_LABEL, SOURCE_LABEL, THAI_WEEKDAYS } from "@rentweb/module-booking/admin/labels";
 import { ColorDot, StatusPill } from "@rentweb/module-booking/admin/ui";
 import { thb } from "@/lib/format";
 import { bkkMinutes, hm, STATUS_DOT } from "./calendar-style";
@@ -19,6 +19,8 @@ export interface WeekBooking {
   staffName: string | null;
   staffColor: string | null;
   price: number;
+  /** ADMIN_B2-04: no deposit taken (no payment receiver) — pay at the shop */
+  payAtShop?: boolean;
   day: string;
 }
 
@@ -67,6 +69,11 @@ export function WeekList({ slug, days, bookings, today, dayHref }: { slug: strin
                       <span className="flex flex-col items-end gap-1">
                         <StatusPill map={BOOKING_STATUS} status={b.status} />
                         <span className="text-xs tabular-nums text-muted-foreground">{b.price ? thb(b.price) : ""}</span>
+                        {b.payAtShop && b.status !== "cancelled" && b.status !== "no_show" && (
+                          <span data-testid="pay-at-shop-chip" className="rounded bg-sky-100 px-1.5 py-0.5 text-[11px] font-medium text-sky-900 dark:bg-sky-500/15 dark:text-sky-100">
+                            {PAY_AT_SHOP_LABEL}
+                          </span>
+                        )}
                       </span>
                     </Link>
                   </li>

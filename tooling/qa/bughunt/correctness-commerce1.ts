@@ -16,9 +16,12 @@ const PRODUCT = "01a14029-0996-762b-99c5-f1ccda07f220"; // ปลอกหมอ
 const KERRY = "01a14029-0a1d-76dc-8672-4707ad476130".replace("4707ad476130", "4707ad476130");
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
 
-async function uploadSlip(paymentId: string) {
+// reverify-repro 2026-10-17: guest pages pass payment proof explicitly (SEC-009) -> send the order access key (?k=),
+// otherwise the route answers 403 before the state machine is reached and the repro proves nothing.
+async function uploadSlip(paymentId: string, accessKey?: string) {
   const m = multipart("slip", "slip.png", "image/png", PNG);
-  const r = await hreq("demo-shop.localhost:3000", `/api/payments/${paymentId}/slip`, { method: "POST", headers: { "content-type": m.contentType, "content-length": String(m.body.length) }, body: m.body });
+  const q = accessKey ? `?k=${encodeURIComponent(accessKey)}` : "";
+  const r = await hreq("demo-shop.localhost:3000", `/api/payments/${paymentId}/slip${q}`, { method: "POST", headers: { "content-type": m.contentType, "content-length": String(m.body.length) }, body: m.body });
   return { status: r.status, body: r.body.slice(0, 300) };
 }
 
@@ -35,7 +38,7 @@ async function placeOrder(t: string, settings: Record<string, unknown>, phone: s
       cartToken: cart.token, customer: null, contact: { name: "QA correctness", phone, email: null }, address: { name: "QA", phone, line1: "1 ถ.ทดสอบ", subdistrict: "สุเทพ", district: "เมือง", province: "เชียงใหม่", postalCode: "50200", country: "TH" },
       shippingMethodId: "01a14029-0a1d-76dc-8672-49f55d69cea6", paymentMethod: "promptpay_qr", settings,
     });
-    if (!r.ok) throw new Error("order " + r.error);
+    if (!r.ok) throw new Error("order " + (r as { code?: string }).code + " " + r.error);
     return r.value;
   });
 }
@@ -60,32 +63,45 @@ async function main() {
     console.log("  placed", o.number, "total", o.total, await state(t, o.orderId));
     const c = await tt(t, (tx) => cancelUnpaidOrder(tx, t, o.orderId, { accessKey: o.accessKey }));
     console.log("  cancel", c.ok, JSON.stringify(await state(t, o.orderId)));
-    const up = await uploadSlip(o.paymentId);
+    const up = await uploadSlip(o.paymentId, o.accessKey);
     console.log("  slip upload after cancel →", up.status, up.body);
-    console.log("  AFTER", JSON.stringify(await state(t, o.orderId)));
+    const sa = await state(t, o.orderId);
+    console.log("  AFTER", JSON.stringify(sa));
+    const okA = up.status === 409 && sa.o?.status === "cancelled" && sa.o?.pay === "unpaid" && sa.ps.every((p) => p.status === "cancelled");
+    console.log(okA ? "PASS COR-01 slip on cancelled payment refused (409), order stays cancelled/unpaid" : "FAIL COR-01 bug reproduces");
   }
   if (which.includes("B")) {
     console.log("=== B: paid → full refund → slip re-upload ===");
+    const s0 = (await tt(t, (tx) => tx.select({ stock: products.stock }).from(products).where(eq(products.id, PRODUCT))))[0]!.stock;
     const o = await placeOrder(t, settings, "0899000102");
-    const up1 = await uploadSlip(o.paymentId);
+    const up1 = await uploadSlip(o.paymentId, o.accessKey);
     console.log("  slip 1 →", up1.status, up1.body);
     const adminId = (await tt(t, (tx) => tx.execute(sql`select user_id from tenant_members where tenant_id=${t} limit 1`)) as any)[0]?.user_id ?? null;
     const rf = await tt(t, (tx) => refundOrderPayment(tx, t, o.orderId, o.paymentId, o.total, "QA refund", { userId: adminId, actorType: "user" }));
     console.log("  refund", JSON.stringify(rf), JSON.stringify(await state(t, o.orderId)));
-    const up2 = await uploadSlip(o.paymentId);
+    const sr = await state(t, o.orderId);
+    const up2 = await uploadSlip(o.paymentId, o.accessKey);
     console.log("  slip 2 after refund →", up2.status, up2.body);
-    console.log("  AFTER", JSON.stringify(await state(t, o.orderId)));
+    const sb = await state(t, o.orderId);
+    console.log("  AFTER", JSON.stringify(sb));
+    const paidRow = sb.ps.find((p) => p.id === o.paymentId);
+    const okB = JSON.parse(up1.body).status === "paid" && up2.status === 409 && paidRow?.status === "refunded" && sb.o?.pay !== "paid";
+    console.log(okB ? "PASS COR-02 slip after full refund refused (409), payment stays refunded" : "FAIL COR-02 bug reproduces");
+    // COR-24: a full refund of an unshipped order releases its reservation (stock back to the pre-order value)
+    console.log(sr.p.stock === s0 && sb.p.stock === s0 ? `PASS COR-24 full refund of unshipped order restocked (${s0} -> ${sr.p.stock}, order ${sr.o?.status})` : `FAIL COR-24 stock before ${s0}, after refund ${sr.p.stock}, after slip ${sb.p.stock}`);
   }
   if (which.includes("C")) {
     console.log("=== C: guest reuses WELCOME10 (perCustomerLimit=1) ===");
     const phone = "08990" + String(Date.now()).slice(-5);
     const o1 = await placeOrder(t, settings, phone, "WELCOME10");
-    const o2 = await placeOrder(t, settings, phone, "WELCOME10");
-    const s1 = await state(t, o1.orderId), s2 = await state(t, o2.orderId);
+    // COR-03 intended: checkout refuses (code "coupon") instead of placing a second discounted order
+    const o2 = await placeOrder(t, settings, phone, "WELCOME10").catch((e: Error) => e);
+    const s1 = await state(t, o1.orderId), s2 = o2 instanceof Error ? { o: null } : await state(t, o2.orderId);
     console.log("  order1", JSON.stringify(s1.o));
-    console.log("  order2", JSON.stringify(s2.o));
+    console.log("  order2", o2 instanceof Error ? `refused: ${o2.message}` : JSON.stringify(s2.o));
     const d = await tt(t, (tx) => tx.select({ used: discounts.usedCount, per: discounts.perCustomerLimit }).from(discounts).where(and(eq(discounts.tenantId, t), eq(discounts.code, "WELCOME10"))));
     console.log("  WELCOME10", JSON.stringify(d));
+    console.log(s1.o?.coupon === "WELCOME10" && !s2.o?.coupon && (o2 instanceof Error ? /coupon/.test(o2.message) : true) ? "PASS COR-03 second guest order with the same phone does not get WELCOME10" : "FAIL COR-03 bug reproduces");
   }
   await done();
 }

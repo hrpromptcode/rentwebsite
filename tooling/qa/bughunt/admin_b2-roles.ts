@@ -28,7 +28,15 @@ async function main() {
     await page.getByRole("dialog").locator("button.flex.min-h-14", { hasText: "ฮีโร่" }).first().click();
     const png = await page.screenshot({ type: "png", clip: { x: 0, y: 0, width: 80, height: 60 } });
     const fileInput = page.locator('label[aria-label="อัปโหลดรูป"] input[type=file], input[type=file][accept="image/*"]').first();
-    if (await fileInput.count()) out(`${role} section image upload`, await anyToast(page, () => fileInput.setInputFiles({ name: "hero.png", mimeType: "image/png", buffer: png }), 30_000));
+    // reverify-repro 2026-10-17: a successful section-image upload fills the image URL field and shows NO toast (only failures
+    // toast, ADMIN_B2-14 fix), so "(no toast)" alone proves nothing — read the URL field as well
+    if (await fileInput.count()) {
+      const t = await anyToast(page, () => fileInput.setInputFiles({ name: "hero.png", mimeType: "image/png", buffer: png }), 30_000);
+      await page.waitForFunction(() => [...document.querySelectorAll('fieldset input[id$="-url"]')].some((i) => (i as HTMLInputElement).value.includes("/uploads/")), null, { timeout: 60_000 }).catch(() => {});
+      const urls = await page.locator('fieldset input[id$="-url"]').evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value).filter(Boolean));
+      out(`${role} section image upload`, { toast: t, url: urls.find((u) => u.includes("/uploads/")) ?? null });
+      console.log(urls.some((u) => u.includes("/uploads/")) && !page.__errors.length ? `PASS ADMIN_B2-14 ${role} section image upload fills the URL` : `FAIL ADMIN_B2-14 ${role} section image upload`);
+    }
     else out(`${role} section image upload`, "no upload control");
     // remove the added hero again (do not save it)
     await page.reload({ waitUntil: "networkidle" });

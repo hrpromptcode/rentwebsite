@@ -14,6 +14,7 @@ async function main() {
   const res = await Promise.all([1, 2, 3].map(mk));
   const a = await tt(t, (tx) => checkAvailability(tx, t, { startsAt, zone }));
   console.log("parallel reservations in 1-table zone", zone, res, "availability after", JSON.stringify(a));
+  console.log(res.filter((r) => r.startsWith("ok")).length === 1 ? "PASS COR-10 only one of 3 parallel reservations accepted for a 1-table zone" : "FAIL COR-10 bug reproduces");
   await done();
 }
 main().catch(async (e) => { console.error(e); await done(); process.exit(1); });

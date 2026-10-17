@@ -13,8 +13,10 @@ async function main() {
       return createOrderFromCart(tx, t, { cartToken: cart.token, customer: null, contact: { name: "QA email reuse", phone, email }, address: { name: "QA", phone, line1: "1", subdistrict: "a", district: "b", province: "เชียงใหม่", postalCode: "50200", country: "TH" }, shippingMethodId: "01a14029-0a1d-76dc-8672-49f55d69cea6", paymentMethod: "promptpay_qr", settings });
     }).then((r) => (r.ok ? `ok ${r.value.number}` : `fail ${r.code}`), (e) => `THROW ${String(e.cause?.message ?? e.message).slice(0, 160)}`);
   const s = String(Date.now()).slice(-4);
-  console.log("first order  phone 08996" + s + "1 + email:", await place(`08996${s}1`));
-  console.log("second order phone 08996" + s + "2 + same email:", await place(`08996${s}2`));
+  const r1 = await place(`08996${s}1`), r2 = await place(`08996${s}2`);
+  console.log("first order  phone 08996" + s + "1 + email:", r1);
+  console.log("second order phone 08996" + s + "2 + same email:", r2);
+  console.log(r1.startsWith("ok") && r2.startsWith("ok") ? "PASS COR-28 guest checkout with an e-mail owned by another customer does not crash" : "FAIL COR-28 bug reproduces");
   await done();
 }
 main().catch(async (e) => { console.error(e); await done(); process.exit(1); });

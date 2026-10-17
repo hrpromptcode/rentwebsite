@@ -19,9 +19,12 @@ async function main() {
   out("customer row", { id: cust?.id, name: cust?.name, email: cust?.email, ordersCount: cust?.ordersCount, totalSpent: cust?.totalSpent });
   await go(page, `/t/${SHOP}/customers/${cust!.id}`);
   out("detail text", (await page.locator("main").innerText()).replace(/\s+/g, " ").slice(0, 400));
-  await page.fill("#cust-tag", "QA-B2-Tag");
+  // reverify-repro 2026-10-17: unique tag/notes per run — re-running with the hunt's values leaves the form clean, so the
+  // save button stays disabled (dirty tracking) and the click times out
+  const RUN = Date.now().toString(36).slice(-4);
+  await page.fill("#cust-tag", `QA-B2-Tag-${RUN}`);
   await page.keyboard.press("Enter");
-  await page.fill("#cust-notes", "โน้ต QA B2 <script>x</script>");
+  await page.fill("#cust-notes", `โน้ต QA B2 ${RUN} <script>x</script>`);
   out("save customer", await anyToast(page, () => page.getByRole("button", { name: /บันทึก/ }).last().click()));
   const [c2] = await tt(tid, (tx) => tx.select({ tags: customers.tags, notes: customers.notes, tier: customers.tier }).from(customers).where(eq(customers.id, cust!.id)));
   out("db after save", c2);

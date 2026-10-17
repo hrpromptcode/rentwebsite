@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { cn } from "@rentweb/ui/lib/utils";
 
 /**
@@ -28,8 +29,17 @@ export function HeaderShell({
   const [onDark, setOnDark] = React.useState(false);
   const ref = React.useRef<HTMLElement>(null);
 
+  const pathname = usePathname();
+
+  // re-detect on every client navigation: the header persists across pages, the hero under it does not
   React.useEffect(() => {
-    setOnDark(!!document.querySelector("[data-hero-dark]"));
+    const detect = () => setOnDark(!!document.querySelector("[data-hero-dark]"));
+    detect();
+    const raf = requestAnimationFrame(detect);
+    return () => cancelAnimationFrame(raf);
+  }, [pathname]);
+
+  React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });

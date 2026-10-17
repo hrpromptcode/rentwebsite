@@ -38,7 +38,7 @@ function finalizeSlug(input: string, max = 80): string {
 
 const autoSlug = (name: string) => finalizeSlug(name);
 
-export function ServiceForm({ slug, serviceId, initial, categories, assetBase, canDelete }: { slug: string; serviceId: string | null; initial: ServiceFormValues; categories: Array<{ id: string; name: string }>; assetBase: string; canDelete: boolean }) {
+export function ServiceForm({ slug, serviceId, initial, categories, assetBase, canDelete, depositNotice }: { slug: string; serviceId: string | null; initial: ServiceFormValues; categories: Array<{ id: string; name: string }>; assetBase: string; canDelete: boolean; /** ADMIN_B2-04: shown under the deposit switch while it is on (shop cannot receive deposits online) */ depositNotice?: React.ReactNode }) {
   const router = useRouter();
   const [v, setV] = React.useState<ServiceFormValues>(initial);
   const [slugTouched, setSlugTouched] = React.useState(!!serviceId);
@@ -192,6 +192,7 @@ export function ServiceForm({ slug, serviceId, initial, categories, assetBase, c
                   <MoneyInput id="svc-dep" value={v.depositAmount} onChange={(e) => set("depositAmount", e.target.value)} placeholder="0" invalid={!!err("depositAmount")} />
                 </Field>
               )}
+              {v.depositRequired && depositNotice ? <div className="mt-4">{depositNotice}</div> : null}
             </div>
           </CardContent>
         </Card>

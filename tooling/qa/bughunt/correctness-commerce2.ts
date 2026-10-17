@@ -43,6 +43,7 @@ async function main() {
     const [d] = await tt(t, (tx) => tx.select({ used: discounts.usedCount, max: discounts.maxUses }).from(discounts).where(and(eq(discounts.tenantId, t), eq(discounts.code, code))));
     const n = await tt(t, (tx) => tx.select({ number: orders.number, discount: orders.discountTotal }).from(orders).where(and(eq(orders.tenantId, t), eq(orders.couponCode, code))));
     console.log("=== D maxUses race", code, res, "discount row", JSON.stringify(d), "orders with code", JSON.stringify(n));
+    console.log(n.length <= 1 && (d?.used ?? 0) <= 1 ? "PASS COR-06 maxUses=1 coupon used at most once under parallel checkouts" : "FAIL COR-06 bug reproduces");
   }
   if (which.includes("E")) {
     const before = (await tt(t, (tx) => tx.select({ s: products.stock }).from(products).where(eq(products.id, PILLOW))))[0]!.s;
@@ -50,6 +51,7 @@ async function main() {
     const res = await Promise.all([checkout(t, settings, tok, "0899100003"), checkout(t, settings, tok, "0899100003")]);
     const after = (await tt(t, (tx) => tx.select({ s: products.stock }).from(products).where(eq(products.id, PILLOW))))[0]!.s;
     console.log("=== E double-submit same cart", res, "pillow stock", before, "->", after);
+    console.log(res.filter((r) => r.startsWith("ok")).length === 1 && before - after === 2 ? "PASS COR-05 double submit -> one order, stock -2 once" : "FAIL COR-05 bug reproduces");
   }
   if (which.includes("F")) {
     const slug = `qa-cor-stock-${tag.toLowerCase()}`;
@@ -66,6 +68,7 @@ async function main() {
     const r = await checkout(t, settings, token, "0899100004");
     const after = (await tt(t, (tx) => tx.select({ s: products.stock }).from(products).where(eq(products.id, p!.id))))[0]!.s;
     console.log("  checkout", r, "stock 2 ->", after);
+    console.log(lines.length <= 1 && after >= 0 ? "PASS COR-04 parallel add-to-cart merges into one line, no oversell" : "FAIL COR-04 bug reproduces");
   }
   await done();
 }

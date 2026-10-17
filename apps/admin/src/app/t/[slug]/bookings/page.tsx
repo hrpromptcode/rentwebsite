@@ -149,6 +149,7 @@ export default async function BookingsPage({ params, searchParams }: { params: P
               partySize: b.partySize,
               paymentStatus: b.paymentStatus,
               depositAmount: b.depositAmount,
+              payAtShop: b.payAtShop,
             }))}
           />
         </>
@@ -175,6 +176,7 @@ export default async function BookingsPage({ params, searchParams }: { params: P
             staffName: b.staffName,
             staffColor: b.staffColor,
             price: b.price,
+            payAtShop: b.payAtShop,
             day: bkkDateString(b.startsAt),
           }))}
         />

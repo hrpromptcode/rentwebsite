@@ -10,6 +10,7 @@ async function main() {
   const res = await Promise.all([1, 2, 3, 4, 5, 6, 7, 8].map(() => tt(t, (tx) => openOrGetSession(tx, t, table!.id))));
   const open = await tt(t, (tx) => tx.select({ id: tableSessions.id, token: tableSessions.token }).from(tableSessions).where(and(eq(tableSessions.tenantId, t), eq(tableSessions.tableId, table!.id), inArray(tableSessions.status, ["open", "bill_requested"]))));
   console.log("8 parallel QR scans → created flags", JSON.stringify(res.map((r) => r.created)), "open sessions for table", table!.name, ":", JSON.stringify(open));
+  console.log(open.length === 1 && res.filter((r) => r.created).length <= 1 && new Set(res.map((r) => r.session.id)).size === 1 ? "PASS COR-26 8 parallel scans -> one open session" : "FAIL COR-26 bug reproduces");
   await done();
 }
 main().catch(async (e) => { console.error(e); await done(); process.exit(1); });

@@ -16,12 +16,18 @@ const [pay] = await sql`select id, status from payments where tenant_id=${t.id} 
 console.log("victim order", orderId, "payment", pay);
 // attacker: status route with just paymentId (no cookie/accessKey)
 const st = await fetch(`${WEB}/api/payments/${pay.id}`, { headers: { "x-forwarded-host": host } });
-console.log("GET /api/payments/<id> (anon):", st.status, JSON.stringify(await st.json()));
+console.log("GET /api/payments/<id> (anon):", st.status, JSON.stringify(await st.json().catch(() => ({}))));
 // attacker: upload a slip (1x1 png) with NO cookie and NO access key
 const png = Buffer.from("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a49444154789c6360000002000154a24f3e0000000049454e44ae426082", "hex");
 const fd = new FormData(); fd.append("slip", new Blob([png], { type: "image/png" }), "s.png");
 const up = await fetch(`${WEB}/api/payments/${pay.id}/slip`, { method: "POST", headers: { "x-forwarded-host": host }, body: fd });
-console.log("POST slip (anon, no access key):", up.status, JSON.stringify(await up.json()));
-console.log("payment after:", (await sql`select status, verified_by from payments where id=${pay.id}`)[0]);
-console.log("order after:", (await sql`select status, payment_status from orders where id=${orderId}`)[0]);
+console.log("POST slip (anon, no access key):", up.status, JSON.stringify(await up.json().catch(() => ({}))));
+const payAfter = (await sql`select status, verified_by from payments where id=${pay.id}`)[0];
+const orderAfter = (await sql`select status, payment_status from orders where id=${orderId}`)[0];
+console.log("payment after:", payAfter);
+console.log("order after:", orderAfter);
+// reverify-repro 2026-10-17: explicit verdict (the attack must be refused: anon status 404, anon slip 403, nothing paid)
+console.log(st.status === 404 && up.status === 403 && payAfter.status === "pending" && orderAfter.payment_status !== "paid" ? "PASS SEC-009/SEC-010 anonymous status 404 + anonymous slip 403, order stays unpaid" : "FAIL SEC-009 bug reproduces");
+await sql`update payments set status='cancelled' where id=${pay.id} and status='pending'`;
+await sql`update orders set status='cancelled' where id=${orderId} and status='pending'`;
 process.exit(0);

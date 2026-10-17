@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { UserRound } from "lucide-react";
 import { cn } from "@rentweb/ui/lib/utils";
-import { BOOKING_STATUS } from "@rentweb/module-booking/admin/labels";
+import { BOOKING_STATUS, PAY_AT_SHOP_LABEL } from "@rentweb/module-booking/admin/labels";
 import { Avatar } from "@rentweb/module-booking/admin/ui";
 import { bkkMinutes, hm, STATUS_CHIP } from "./calendar-style";
 
@@ -17,6 +17,8 @@ export interface GridBooking {
   partySize: number;
   paymentStatus: string;
   depositAmount: number;
+  /** ADMIN_B2-04: no deposit taken (no payment receiver) — pay at the shop */
+  payAtShop?: boolean;
 }
 
 export interface GridColumn {
@@ -164,6 +166,7 @@ export function DayGrid({
                   {placed.map((b) => {
                     const st = BOOKING_STATUS[b.status];
                     const short = b.height < ROW_H * 1.5;
+                    const payAtShop = !!b.payAtShop && b.status !== "cancelled" && b.status !== "no_show";
                     return (
                       <Link
                         key={b.id}
@@ -172,14 +175,19 @@ export function DayGrid({
                         data-booking={b.number}
                         className={cn("absolute z-[5] overflow-hidden rounded-lg px-2 py-1 text-xs shadow-xs ring-1 ring-inset transition hover:z-10 hover:shadow-md focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-ring", STATUS_CHIP[b.status] ?? STATUS_CHIP.confirmed)}
                         style={{ top: b.top + 2, height: b.height, left: `calc(${(b.lane / b.lanes) * 100}% + 3px)`, width: `calc(${100 / b.lanes}% - 6px)`, borderLeft: `4px solid ${c.color}` }}
-                        title={`${hm(b.startMin)}–${hm(b.endMin)} · ${b.serviceName} · ${b.customerName} · ${st?.label ?? b.status}`}
+                        title={`${hm(b.startMin)}–${hm(b.endMin)} · ${b.serviceName} · ${b.customerName} · ${st?.label ?? b.status}${payAtShop ? ` · ${PAY_AT_SHOP_LABEL}` : ""}`}
                       >
                         <span className="flex items-center justify-between gap-1">
-                          <span className="truncate font-semibold tabular-nums">
+                          <span className={cn("truncate font-semibold tabular-nums", payAtShop && "shrink-0")}>
                             {hm(b.startMin)}
                             {!short && `–${hm(b.endMin)}`}
                           </span>
                           {b.status === "pending" && b.depositAmount > 0 && b.paymentStatus === "unpaid" && <span className="shrink-0 rounded bg-amber-500 px-1 text-[10px] font-semibold text-white">มัดจำ</span>}
+                          {payAtShop && (
+                            <span data-testid="pay-at-shop-chip" className="min-w-0 truncate rounded bg-sky-700 px-1 text-[10px] font-semibold text-white">
+                              {PAY_AT_SHOP_LABEL}
+                            </span>
+                          )}
                         </span>
                         <span className="block truncate font-medium">{b.serviceName}</span>
                         {!short && (

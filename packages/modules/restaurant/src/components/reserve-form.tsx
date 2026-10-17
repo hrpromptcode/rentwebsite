@@ -53,7 +53,8 @@ export function ReserveForm({ hours, zones, deposit, methods, today, maxDate, no
   const [occasion, setOccasion] = React.useState("");
   const [method, setMethod] = React.useState<PaymentMethodOption["value"]>(methods[0]?.value ?? "promptpay_qr");
   const [avail, setAvail] = React.useState<Avail>({ state: "idle" });
-  const [showAllSlots, setShowAllSlots] = React.useState(false);
+  // a deep-linked time (/reserve?time=19:00) past the first 12 chips must stay visible as the selected chip
+  const [showAllSlots, setShowAllSlots] = React.useState(() => !!time && slots.indexOf(time) >= 12);
 
   // when the date changes, drop a time that no longer exists; auto-pick the first slot if none chosen
   React.useEffect(() => {

@@ -2,6 +2,7 @@ import "../load-env";
 import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import { and, eq, getDb, services, sql, tenants, withPlatform } from "@rentweb/db";
 
 /**
  * Independent QA journey for the booking deliverable (round 1).
@@ -75,6 +76,18 @@ async function newPage(browser: Browser, label: string, viewport = DESKTOP): Pro
   return { ctx, page };
 }
 
+/** active services of a demo tenant (admin QA runs toggle demo services, so the expected "n รายการ" comes from the DB) */
+async function activeServiceCount(slug: string): Promise<number> {
+  return withPlatform(getDb(), async (tx) => {
+    const [r] = await tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(services)
+      .innerJoin(tenants, eq(tenants.id, services.tenantId))
+      .where(and(eq(tenants.slug, slug), eq(services.active, true)));
+    return Number(r?.n ?? 0);
+  });
+}
+
 /* ------------------------------------------------------------------ */
 /* Bangkok date helpers                                                 */
 /* ------------------------------------------------------------------ */
@@ -128,7 +141,8 @@ async function pickSlot(page: Page, which: number | string = 0): Promise<string>
   await page.getByText("กำลังโหลดเวลาว่าง…").waitFor({ state: "hidden", timeout: 30_000 }).catch(() => {});
   const enabled = slotChips(page).locator(":scope:not([disabled])");
   await enabled.first().waitFor({ timeout: 30_000 });
-  const chip = typeof which === "number" ? enabled.nth(which) : enabled.filter({ hasText: which }).first();
+  // demo days fill up with bookings from earlier runs: fall back to the last free chip when fewer than which+1 remain
+  const chip = typeof which === "number" ? enabled.nth(Math.min(which, (await enabled.count()) - 1)) : enabled.filter({ hasText: which }).first();
   const label = (await chip.innerText()).trim().slice(0, 5);
   await chip.click();
   return label;
@@ -217,9 +231,10 @@ async function main() {
     assert(res?.status() === 200, `status ${res?.status()}`);
     await s.getByRole("heading", { level: 1, name: "บริการทั้งหมด" }).waitFor();
     const cards = await s.locator('a[href^="/services/"]').evaluateAll((els) => new Set(els.map((e) => e.getAttribute("href"))).size);
-    assert(cards >= 8, `expected >= 8 service links, got ${cards}`);
+    const expected = await activeServiceCount("demo-salon");
+    assert(cards >= expected, `expected >= ${expected} service links, got ${cards}`);
     const txt = await bodyText(s);
-    assert(/8 รายการ/.test(txt), "count copy '8 รายการ' missing");
+    assert(txt.includes(`${expected} รายการ`), `count copy '${expected} รายการ' (active services in DB) missing`);
     assert(/มัดจำ/.test(txt), "deposit badge missing on aroma/hot-stone cards");
     return `${cards} services, overflow=${await overflow(s)}px`;
   });
@@ -263,7 +278,7 @@ async function main() {
     await pickStaff(s, "any");
     await s.getByText("เลือกวันที่สะดวก").waitFor();
     const date = await pickDate(s, { minOffsetDays: 2 });
-    await s.getByText("เลือกเวลา").waitFor();
+    await s.locator('h3[data-step="time"]').waitFor() /* the slot_taken alert also contains "เลือกเวลา…" */;
     const time = await pickSlot(s, 1);
     assert(/\/api\/booking\/slots\?date=/.test(lastSlotsUrl), "slot chips did not come from /api/booking/slots");
     await s.getByText("ข้อมูลสำหรับติดต่อ").waitFor();
@@ -348,7 +363,7 @@ async function main() {
       const msg = (await alertBox(b).allInnerTexts()).join(" | ");
       assert(msg.includes("เวลานี้เพิ่งถูกจองไป"), `expected slot_taken message, got: ${msg}`);
       // wizard should bounce back to the time step with the chip now disabled
-      await b.getByText("เลือกเวลา").waitFor();
+      await b.locator('h3[data-step="time"]').waitFor() /* the slot_taken alert also contains "เลือกเวลา…" */;
       await b.getByText("กำลังโหลดเวลาว่าง…").waitFor({ state: "hidden" }).catch(() => {});
       const chipB = slotChips(b).filter({ hasText: time }).first();
       await chipB.waitFor();
@@ -502,41 +517,38 @@ async function main() {
     assert(t2.includes("ยืนยันเมื่อ"), "confirmedAt row missing");
   });
 
-  await step("S6", "group service (couple, capacity 2): staff step skipped, 'เหลือ n ที่' chips, seats decrement, full slot blocked", s, async () => {
+  // Intended rule (bug-hunt fix SBR-001/004): the couple package is ONE booking for 2 guests (capacity 2, seatsPerBooking 2),
+  // so a single booking takes both seats (and two therapists) and the slot is then full for the next customer.
+  await step("S6", "couple package (capacity 2, 2 seats per booking): staff step skipped, one booking fills the slot, next customer blocked", s, async () => {
     await s.goto(`${salon}/book?service=couple`);
     await s.getByText("เลือกวันที่สะดวก").waitFor();
     assert(!(await bodyText(s)).includes("เลือกผู้ให้บริการ"), "staff step should be skipped for a capacity service");
     const date = await pickDate(s, { minOffsetDays: 3 });
     await s.getByText("กำลังโหลดเวลาว่าง…").waitFor({ state: "hidden" }).catch(() => {});
+    assert((await bodyText(s)).includes("แพ็กเกจสำหรับ 2 ท่าน"), "time step should say แพ็กเกจสำหรับ 2 ท่าน");
     const chip = slotChips(s).locator(":scope:not([disabled])").nth(4);
     const label0 = await chip.innerText();
-    assert(/เหลือ 2 ที่/.test(label0), `expected 'เหลือ 2 ที่' on chip, got '${label0.replace(/\n/g, " ")}'`);
+    assert(!/เหลือ \d+ ที่/.test(label0), `a fixed 2-guest package must not offer per-seat counts, chip says '${label0.replace(/\n/g, " ")}'`);
     const time = label0.trim().slice(0, 5);
     await chip.click();
     await fillDetails(s, { name: "คู่รัก หนึ่ง", phone: "0855555551" });
-    assert((await bodyText(s)).includes("฿500"), "couple deposit ฿500 missing");
+    const t0 = await bodyText(s);
+    assert(t0.includes("฿500"), "couple deposit ฿500 missing");
     const b1 = await confirmBooking(s);
-    assert((await bodyText(s)).includes("รอชำระมัดจำ"), "first couple booking pending deposit");
-    // second (unrelated) customer, same slot
+    const t1 = await bodyText(s);
+    assert(t1.includes("รอชำระมัดจำ"), "couple booking pending deposit");
+    assert(/2 ท่าน/.test(t1), "booking page should show the 2-guest party");
+    // an unrelated customer can no longer take the same slot: both seats belong to booking 1
     await s.goto(`${salon}/book?service=couple`);
     await s.locator('button[role="gridcell"]:not(.animate-pulse)').first().waitFor();
-    await s.locator(`button[role="gridcell"][data-date="${date}"]`).click();
+    const cell = s.locator(`button[role="gridcell"][data-date="${date}"]`);
+    if ((await cell.getAttribute("aria-disabled")) === "true") return `${date} ${time}: ${b1.id.slice(0, 8)} took the last slot of the day (day now unavailable)`;
+    await cell.click();
     await s.getByText("กำลังโหลดเวลาว่าง…").waitFor({ state: "hidden" }).catch(() => {});
     const chip2 = slotChips(s).filter({ hasText: time }).first();
-    const label1 = await chip2.innerText();
-    assert(/เหลือ 1 ที่/.test(label1), `expected 'เหลือ 1 ที่' after first booking, got '${label1.replace(/\n/g, " ")}'`);
-    await chip2.click();
-    await fillDetails(s, { name: "คู่รัก สอง", phone: "0855555552" });
-    const b2 = await confirmBooking(s);
-    // third: slot must be full
-    await s.goto(`${salon}/book?service=couple`);
-    await s.locator('button[role="gridcell"]:not(.animate-pulse)').first().waitFor();
-    await s.locator(`button[role="gridcell"][data-date="${date}"]`).click();
-    await s.getByText("กำลังโหลดเวลาว่าง…").waitFor({ state: "hidden" }).catch(() => {});
-    const chip3 = slotChips(s).filter({ hasText: time }).first();
-    await chip3.waitFor();
-    assert(await chip3.isDisabled(), `chip ${time} should be disabled when capacity is exhausted`);
-    return `${date} ${time}: ${b1.id.slice(0, 8)} + ${b2.id.slice(0, 8)} (two unrelated customers share the couple room – see finding)`;
+    await chip2.waitFor();
+    assert(await chip2.isDisabled(), `chip ${time} should be disabled: the couple booking took both seats`);
+    return `${date} ${time}: ${b1.id.slice(0, 8)} holds both seats; next customer sees the slot disabled`;
   });
 
   /* ============================== demo-clinic (mobile 390) ============================== */
@@ -549,7 +561,8 @@ async function main() {
     assert(r?.status() === 200, `status ${r?.status()}`);
     await c.getByRole("heading", { level: 1, name: "บริการทั้งหมด" }).waitFor();
     const txt = await bodyText(c);
-    assert(/8 รายการ/.test(txt), "'8 รายการ' missing");
+    const expected = await activeServiceCount("demo-clinic");
+    assert(txt.includes(`${expected} รายการ`), `'${expected} รายการ' (active services in DB) missing`);
     assert(txt.includes("ฟรี"), "free consult should show ฟรี");
     assert(txt.includes("เริ่มต้น"), "priceNote เริ่มต้น missing");
     const ov1 = await overflow(c);

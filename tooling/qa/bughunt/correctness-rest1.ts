@@ -34,10 +34,15 @@ async function main() {
   const before = await tt(t, (tx) => sessionSummary(tx, t, session.id));
   console.log("before slip: session", before!.session.status, "total", before!.total, "due", before!.dueTotal, "payment.amount", before!.payment?.amount);
   const m = multipart("slip", "slip.png", "image/png", PNG);
-  const up = await hreq("demo-restaurant.localhost:3000", `/api/payments/${bill.value.payment!.id}/slip`, { method: "POST", headers: { "content-type": m.contentType, "content-length": String(m.body.length) }, body: m.body });
+  const up = await hreq("demo-restaurant.localhost:3000", `/api/payments/${bill.value.payment!.id}/slip`, { method: "POST", headers: { "content-type": m.contentType, "content-length": String(m.body.length), cookie: `rw_table=${session.token}` }, body: m.body });
+  // reverify-repro 2026-10-17: the guest at the table proves access with the table-session cookie (rw_table, SEC-009)
   console.log("slip upload →", up.status, up.body.slice(0, 120));
   const after = await tt(t, (tx) => sessionSummary(tx, t, session.id));
   console.log("after slip: session", after!.session.status, "total", after!.total, "paidTotal", after!.paidTotal, "due", after!.dueTotal, "orders", JSON.stringify(after!.orders.map((o) => [o.number, o.total, o.paymentStatus])), "payment", JSON.stringify(after!.payment));
+  const o2paid = after!.orders.find((o) => o.number === o2.number)?.paymentStatus === "paid";
+  console.log(up.status === 409 && !o2paid && after!.session.status !== "closed" && Number(after!.dueTotal) > 0
+    ? "PASS COR-07/SBR-005 stale bill QR voided by the new round: slip refused (409), round 2 stays unpaid, session still due"
+    : `FAIL COR-07/SBR-005 bug reproduces (slip ${up.status}, round2 paid=${o2paid}, session ${after!.session.status}, due ${after!.dueTotal})`);
   await done();
 }
 main().catch(async (e) => { console.error(e); await done(); process.exit(1); });

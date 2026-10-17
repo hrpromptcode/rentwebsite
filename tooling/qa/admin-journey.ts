@@ -4,8 +4,9 @@ import path from "node:path";
 import zlib from "node:zlib";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium, type Browser, type BrowserContext, type Page } from "@playwright/test";
-import { and, count, customers, eq, getAdminDb, navigation, pages, plans, tenantDomains, tenantInvitations, tenants } from "@rentweb/db";
+import { and, count, customers, eq, getAdminDb, like, navigation, pages, plans, tenantDomains, tenantInvitations, tenants } from "@rentweb/db";
 import { PRESETS } from "@rentweb/core/theme";
+import { isolateHmr } from "./bughunt/fixes/_dev-stable";
 
 /**
  * Independent QA journey for the admin app (round 1). Drives http://localhost:3001 with Playwright,
@@ -181,17 +182,20 @@ async function goto(page: Page, pathname: string) {
 }
 
 /** Runs `action` and waits for a NEW toast matching `re` (ignores toasts that were already on screen). */
-async function expectToast(page: Page, re: RegExp, action?: () => Promise<unknown>, timeout = 20_000) {
+async function expectToast(page: Page, re: RegExp, action?: () => Promise<unknown>, timeout = 45_000) { // server actions can sit behind a shared dev-server recompile
   const loc = page.locator("[data-sonner-toast]").filter({ hasText: re });
   const before = await loc.count();
+  // mark the toasts already on screen: counting alone races when an earlier identical toast (e.g. the previous
+  // "เผยแพร่แล้ว") times out at the moment the new one appears (count stays 1 → 1)
+  await page.evaluate(() => document.querySelectorAll("[data-sonner-toast]").forEach((t) => t.setAttribute("data-qa-seen", "1")));
   if (action) await action();
   try {
     await page.waitForFunction(
-      ({ before, src }) => {
+      ({ src }) => {
         const r = new RegExp(src);
-        return Array.from(document.querySelectorAll("[data-sonner-toast]")).filter((t) => r.test(t.textContent ?? "")).length > before;
+        return Array.from(document.querySelectorAll("[data-sonner-toast]:not([data-qa-seen])")).some((t) => r.test(t.textContent ?? ""));
       },
-      { before, src: re.source },
+      { src: re.source },
       { timeout },
     );
   } catch {
@@ -238,6 +242,7 @@ async function main() {
   console.log(`run ${RAND} · demo-shop ${demo.id} · theme.preset=${(origTheme as { preset?: string }).preset}`);
 
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+  await isolateHmr(ctx); // shared dev server: drop HMR full-reload frames so a reload does not wipe unsaved editor state mid-step
   const page = await newPage(ctx);
 
   /* 1. login */
@@ -320,11 +325,15 @@ async function main() {
     await page.locator("#color-foreground").fill("#f2f2f2");
     await page.locator("#color-background").fill("#ffffff");
     const alert = page.getByRole("alert").filter({ hasText: "คอนทราสต์ต่ำ" });
-    await alert.waitFor({ state: "visible", timeout: 10_000 });
+    // the text/background line is the one caused by this edit; the alert itself can stay for the saved primary
+    // (#0ea5e9 from 4.1 fails the newer "primary used as text on the background" 4.5:1 check — intended)
+    const fgLine = alert.locator("li").filter({ hasText: "ข้อความหลักกับพื้นหลัง" });
+    await fgLine.first().waitFor({ state: "visible", timeout: 10_000 });
     const text = (await alert.innerText()).replace(/\s+/g, " ").slice(0, 200);
     await page.getByRole("button", { name: "ยกเลิก" }).click();
     await page.waitForTimeout(300);
-    assert((await alert.count()) === 0 || !(await alert.isVisible()), "warning still visible after cancel");
+    assert((await fgLine.count()) === 0, "text/background warning still visible after cancel");
+    assert((await page.locator("#color-foreground").inputValue()).toLowerCase() !== "#f2f2f2", "cancel did not restore the saved text colour");
     return text;
   });
 
@@ -363,6 +372,7 @@ async function main() {
     await page.getByRole("tab", { name: "ธีม" }).click();
     const card = page.locator("button[aria-pressed]").filter({ hasText: name }).first();
     await card.click();
+    await page.waitForFunction((n) => [...document.querySelectorAll("button[aria-pressed='true']")].some((b) => b.textContent?.includes(n)), name, { timeout: 15_000 });
     await expectToast(page, /บันทึก/, () => page.getByRole("button", { name: "บันทึกและเผยแพร่" }).click());
     let t = await tenantRow(SLUG);
     const same = JSON.stringify(t.theme) === JSON.stringify(origTheme);
@@ -494,13 +504,20 @@ async function main() {
   for (const r of navRows) await db.update(navigation).set({ items: r.items }).where(eq(navigation.id, r.id));
 
   /* 7. media */
+  // media delete = detail dialog "ลบไฟล์" → confirm dialog (usage check, "ลบไฟล์" / "ลบทั้งที่ยังใช้อยู่") → toast
+  const deleteOpenMedia = async () => {
+    await page.getByRole("dialog").getByRole("button", { name: "ลบไฟล์" }).click();
+    const confirm = page.getByRole("dialog").filter({ hasText: "กู้คืนไม่ได้" });
+    await confirm.waitFor({ state: "visible", timeout: 15_000 });
+    await expectToast(page, /ลบไฟล์แล้ว/, () => confirm.getByRole("button", { name: /^(ลบไฟล์|ลบทั้งที่ยังใช้อยู่)$/ }).click());
+  };
   await step("7", "media: upload PNG → appears in grid (image loads) → delete", async () => {
     const status = await goto(page, `/t/${SLUG}/media`);
     assert(status === 200, `HTTP ${status}`);
     // clean leftovers from earlier runs so the demo tenant stays tidy
     for (const old of await page.locator("li").filter({ hasText: /qa-upload-/ }).all()) {
       await old.locator("button").first().click();
-      await expectToast(page, /ลบไฟล์แล้ว/, () => page.getByRole("dialog").getByRole("button", { name: "ลบไฟล์" }).click());
+      await deleteOpenMedia();
       await page.waitForTimeout(500);
     }
     const name = `qa-upload-${RAND}`;
@@ -516,7 +533,7 @@ async function main() {
     const probe = await fetchTenant(SLUG, u.pathname, u.host);
     // delete regardless of the outcome so nothing is left behind
     await card.getByRole("button", { name: new RegExp(`^เปิด ${name}`) }).click();
-    await expectToast(page, /ลบไฟล์แล้ว/, () => page.getByRole("dialog").getByRole("button", { name: "ลบไฟล์" }).click());
+    await deleteOpenMedia();
     await page.locator("li").filter({ hasText: name }).first().waitFor({ state: "hidden", timeout: 10_000 });
     assert(loaded && probe.status === 200, `grid shows the card but the file is unreachable: GET ${src} → HTTP ${probe.status} (admin writes to apps/admin/public/uploads via process.cwd(), the URL is served by apps/web)`);
     return `uploaded ${name}.png (${src}) loads (HTTP ${probe.status}); deleted`;
@@ -579,22 +596,25 @@ async function main() {
 
   const qaHost = `qa-${RAND}.example.com`;
   await step("9.3", "settings/domains: add custom domain → pending row with DNS instructions; remove", async () => {
+    await db.delete(tenantDomains).where(and(eq(tenantDomains.tenantId, demo.id), like(tenantDomains.hostname, "qa-%.example.com"), eq(tenantDomains.status, "pending")));
     const status = await goto(page, `/t/${SLUG}/settings/domains`);
     assert(status === 200, `HTTP ${status}`);
     await page.locator("#d-host").fill(qaHost);
     await page.getByRole("button", { name: "เพิ่มโดเมน" }).click();
-    const li = page.locator("li").filter({ hasText: qaHost }).first();
+    // toasts are <li> too (and now name the host) — only the domain list rows count
+    const li = page.locator("li:not([data-sonner-toast])").filter({ hasText: qaHost }).first();
     await li.waitFor({ state: "visible", timeout: 20_000 });
     const text = (await li.innerText()).replace(/\s+/g, " ");
     assert(/รอตั้งค่า DNS/.test(text), `status badge missing: ${text.slice(0, 160)}`);
-    assert(/ตั้งค่า DNS ที่ผู้ให้บริการโดเมนของคุณ/.test(text) && /CNAME/.test(text) && /TXT _rentweb/.test(text) && /rentweb-verify=/.test(text), `DNS instructions incomplete: ${text.slice(0, 300)}`);
+    // copy is now "เพิ่ม 2 record นี้ที่ผู้ให้บริการโดเมนของคุณ" with TXT + CNAME cards
+    assert(/ที่ผู้ให้บริการโดเมนของคุณ/.test(text) && /CNAME/.test(text) && /TXT/.test(text) && text.includes(`_rentweb.${qaHost}`) && /rentweb-verify=/.test(text), `DNS instructions incomplete: ${text.slice(0, 300)}`);
     const [row] = await db.select().from(tenantDomains).where(eq(tenantDomains.hostname, qaHost));
     assert(row && row.tenantId === demo.id && row.status === "pending" && row.kind === "custom", "DB row missing/incorrect");
     await li.getByRole("button", { name: "ลบ", exact: true }).click();
     const dlg = page.getByRole("dialog");
     await expectToast(page, /ลบโดเมนแล้ว|ดำเนินการแล้ว/, () => dlg.getByRole("button", { name: "ลบโดเมน" }).click());
     await page.waitForTimeout(800);
-    assert((await page.locator("li").filter({ hasText: qaHost }).count()) === 0, "row still visible after remove");
+    assert((await page.locator("li:not([data-sonner-toast])").filter({ hasText: qaHost }).count()) === 0, "row still visible after remove");
     const left = await db.select({ id: tenantDomains.id }).from(tenantDomains).where(eq(tenantDomains.hostname, qaHost));
     assert(left.length === 0, "DB row still present after remove");
     return `pending row + CNAME/TXT instructions shown; removed`;
@@ -602,11 +622,12 @@ async function main() {
 
   const inviteEmail = `qa-invite-${RAND}@example.com`;
   await step("9.4", "settings/team: invite member by email → invitation row; revoke", async () => {
+    await db.delete(tenantInvitations).where(and(eq(tenantInvitations.tenantId, demo.id), like(tenantInvitations.email, "qa-invite-%@example.com")));
     const status = await goto(page, `/t/${SLUG}/settings/team`);
     assert(status === 200, `HTTP ${status}`);
     await page.locator("#inv-email").fill(inviteEmail);
     await page.getByRole("button", { name: "สร้างคำเชิญ" }).click();
-    await page.getByText("คำเชิญที่รอตอบรับ").waitFor({ state: "visible", timeout: 20_000 });
+    await page.getByText("คำเชิญที่รอตอบรับ").waitFor({ state: "visible", timeout: 60_000 }); // slow while the shared dev server compiles
     const row = page.locator("div").filter({ has: page.locator("p", { hasText: inviteEmail }) }).filter({ has: page.getByRole("button", { name: "คัดลอกลิงก์" }) }).last();
     await row.waitFor({ state: "visible" });
     const [inv] = await db.select().from(tenantInvitations).where(eq(tenantInvitations.email, inviteEmail));
@@ -635,6 +656,7 @@ async function main() {
   const qaEmail = `qa-${RAND}@example.com`;
   const qaPass = `QaPass-${RAND}-1234`;
   const signupCtx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+  await isolateHmr(signupCtx);
   const sp = await newPage(signupCtx);
   await step("10.1", "signup creates a user → /onboarding", async () => {
     const status = await goto(sp, "/signup");
@@ -696,9 +718,13 @@ async function main() {
     const rows = page.locator("table tbody tr");
     const n = await rows.count();
     const text = await page.locator("table").innerText();
-    assert(n >= 7 && text.includes("demo-shop"), `table rows=${n}`);
-    assert(!qaTenantId || text.includes(qaSlug), `new tenant ${qaSlug} missing from console table`);
-    return `${n} rows incl. demo-shop${qaTenantId ? ` and ${qaSlug}` : ""}`;
+    assert(n >= 7, `table rows=${n}`);
+    // paginated (25/page, newest first): the tenant from 10.2 is on page 1, demo-shop may not be → use the search box
+    assert(!qaTenantId || text.includes(qaSlug), `new tenant ${qaSlug} missing from console table page 1`);
+    status = await goto(page, "/console/tenants?q=demo-shop");
+    assert(status === 200, `tenants search HTTP ${status}`);
+    assert((await page.locator("table").innerText()).includes("demo-shop"), "search q=demo-shop does not list demo-shop");
+    return `${n} rows on page 1${qaTenantId ? ` incl. ${qaSlug}` : ""}; search finds demo-shop`;
   });
 
   await step("11.2", "console: tenant detail → change plan", async () => {

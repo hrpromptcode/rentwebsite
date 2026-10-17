@@ -2,7 +2,8 @@ import "../load-env";
 import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium, type Browser, type Page } from "@playwright/test";
-import { getStock } from "./stock";
+import { and, eq, getDb, productVariants, products, shippingMethods, withTenant } from "@rentweb/db";
+import { getStock, tenantIdBySlug } from "./stock";
 import { orderState } from "./order-state";
 
 /**
@@ -98,7 +99,12 @@ async function newPage(browser: Browser, slug: string, viewport = { width: 1440,
   const ctx = await browser.newContext({ viewport, reducedMotion: "reduce", locale: "th-TH" });
   const page = await ctx.newPage();
   const errors: string[] = [];
-  page.on("console", (m) => m.type() === "error" && errors.push(m.text().slice(0, 200)));
+  page.on("console", (m) => {
+    if (m.type() !== "error") return;
+    // 3b-3d submit invalid / unseeded coupons on purpose: /api/cart answers 400 {ok:false,error} and Chromium logs the 400 as a console error
+    if (/status of 400/.test(m.text()) && /\/api\/cart(\?|$)/.test(m.location().url ?? "")) return;
+    errors.push(`${m.text().slice(0, 200)}${m.location().url ? ` @ ${m.location().url.replace(/^https?:\/\/[^/]+/, "").slice(0, 80)}` : ""}`);
+  });
   page.on("pageerror", (e) => errors.push(`pageerror: ${e.message.slice(0, 200)}`));
   (page as any).__slug = slug;
   return { ctx, page, errors };
@@ -147,6 +153,42 @@ async function clickVisible(page: Page, name: string) {
   throw new Error(`no visible button "${name}"`);
 }
 
+/**
+ * Demo data drifts between QA runs (admin journeys sell out variants and switch shipping methods off). Restock the
+ * journey's own variant/product when it is low (allowed test-data repair) and make sure the seeded COD method is on
+ * for step 7 — the previous `active` flag is put back afterwards so other suites see the data as they left it.
+ */
+async function ensureStock(slug: string, productSlug: string, sku: string | null, min: number) {
+  const tenantId = await tenantIdBySlug(slug);
+  await withTenant(getDb(), tenantId, async (tx) => {
+    const [p] = await tx.select().from(products).where(and(eq(products.tenantId, tenantId), eq(products.slug, productSlug))).limit(1);
+    if (!p) throw new Error(`product ${productSlug} not found in ${slug}`);
+    if (sku) {
+      const [v] = await tx.select().from(productVariants).where(and(eq(productVariants.tenantId, tenantId), eq(productVariants.productId, p.id), eq(productVariants.sku, sku))).limit(1);
+      if (v && v.stock !== null && v.stock < min) {
+        await tx.update(productVariants).set({ stock: min + 20 }).where(eq(productVariants.id, v.id));
+        console.log(`      (restocked ${sku}: ${v.stock} -> ${min + 20})`);
+      }
+    } else if (p.trackInventory && p.stock < min) {
+      await tx.update(products).set({ stock: min + 20 }).where(eq(products.id, p.id));
+      console.log(`      (restocked ${productSlug}: ${p.stock} -> ${min + 20})`);
+    }
+  });
+}
+async function ensureShippingActive(slug: string, name: string): Promise<() => Promise<void>> {
+  const tenantId = await tenantIdBySlug(slug);
+  const prev = await withTenant(getDb(), tenantId, async (tx) => {
+    const [m] = await tx.select().from(shippingMethods).where(and(eq(shippingMethods.tenantId, tenantId), eq(shippingMethods.name, name))).limit(1);
+    if (!m) throw new Error(`shipping method "${name}" not seeded in ${slug}`);
+    if (!m.active) await tx.update(shippingMethods).set({ active: true }).where(eq(shippingMethods.id, m.id));
+    return { id: m.id, active: m.active };
+  });
+  if (!prev.active) console.log(`      ("${name}" was inactive in ${slug}; switched on for step 7, restored afterwards)`);
+  return async () => {
+    if (!prev.active) await withTenant(getDb(), tenantId, (tx) => tx.update(shippingMethods).set({ active: false }).where(eq(shippingMethods.id, prev.id)));
+  };
+}
+
 async function runTenant(browser: Browser, cfg: TenantCfg) {
   const slug = cfg.slug;
   current.tenant = slug;
@@ -155,6 +197,8 @@ async function runTenant(browser: Browser, cfg: TenantCfg) {
   current.page = page;
   let orderUrl = "";
   let orderNumber = "";
+  await ensureStock(slug, cfg.productSlug, cfg.variantSku, 4);
+  if (cfg.codVariantSku) await ensureStock(slug, cfg.productSlug, cfg.codVariantSku, 2);
   const stockBefore = await getStock(slug, cfg.productSlug, cfg.variantSku);
   const codStockBefore = cfg.codVariantSku ? await getStock(slug, cfg.productSlug, cfg.codVariantSku) : null;
 
@@ -186,9 +230,18 @@ async function runTenant(browser: Browser, cfg: TenantCfg) {
     await page.selectOption('select[name="sort"]', "price_asc");
     await page.waitForURL(/sort=price_asc/, { timeout: 30_000 });
     await page.waitForLoadState("networkidle");
+    // demo data accumulates QA products from earlier runs (often the cheapest), so assert the ordering itself rather than a fixed first name:
+    // every card's selling price (first tabular-nums span of <Price>) must be non-decreasing, and the seeded cheapest product must still be listed.
+    const prices = await page.locator("article").evaluateAll((els) =>
+      els.map((el) => Number((el.querySelector("span.font-semibold.tabular-nums")?.textContent ?? "").replace(/[^\d.]/g, "")) || NaN),
+    );
+    if (prices.length < 4 || prices.some((n) => Number.isNaN(n))) throw new Error(`could not read card prices: ${prices.join(",")}`);
+    const bad = prices.findIndex((n, i) => i > 0 && n < prices[i - 1]!);
+    if (bad > 0) throw new Error(`price_asc not ascending at card ${bad}: ${prices.slice(0, bad + 1).join(" ≤ ")}`);
     const first = await txt(page.locator("article").first());
-    if (!first.includes(cfg.cheapestName)) throw new Error(`first card after price_asc is "${first.slice(0, 60)}"`);
-    return `first card = ${cfg.cheapestName}`;
+    const seededListed = (await page.locator("article", { hasText: cfg.cheapestName }).count()) > 0;
+    if (!seededListed) throw new Error(`seeded cheapest product "${cfg.cheapestName}" not on the price_asc page`);
+    return `${prices.length} cards ascending (${prices.slice(0, 4).join(" ≤ ")} …); first = "${first.slice(0, 40)}"`;
   });
   await step("1d search filters", async () => {
     await goto(page, "/products");
@@ -243,7 +296,7 @@ async function runTenant(browser: Browser, cfg: TenantCfg) {
     await clickVisible(page, "เพิ่มลงตะกร้า");
     const toast = page.getByText("เพิ่มลงตะกร้าแล้ว").first();
     await toast.waitFor({ state: "visible", timeout: 10_000 });
-    const okBadge = await poll(async () => (await headerBadge(page)) === "2");
+    const okBadge = await poll(async () => (await headerBadge(page)) === "2", 45_000); // badge = server-rendered header, updated by router.refresh() (slow RSC on the dev server)
     if (!okBadge) throw new Error(`header badge = "${await headerBadge(page)}" (expected 2)`);
     return "toast shown, header badge = 2";
   });
@@ -436,12 +489,13 @@ async function runTenant(browser: Browser, cfg: TenantCfg) {
 
   // ---------------- 7. COD ----------------
   if (cfg.codLabel) {
+    const restoreCod = await ensureShippingActive(slug, cfg.codLabel);
     await step("7a COD order: add again, FREESHIP, choose COD shipping", async () => {
       await goto(page, `/products/${cfg.productSlug}`);
       if (cfg.codVariant) await page.locator("button[aria-pressed]", { hasText: new RegExp(`^${cfg.codVariant}$`) }).first().click();
       await clickVisible(page, "เพิ่มลงตะกร้า");
       await page.getByText("เพิ่มลงตะกร้าแล้ว").first().waitFor({ state: "visible", timeout: 10_000 });
-      const okBadge = await poll(async () => (await headerBadge(page)) === "1");
+      const okBadge = await poll(async () => (await headerBadge(page)) === "1", 45_000);
       if (!okBadge) throw new Error(`badge after new cart = "${await headerBadge(page)}" (expected 1 — previous cart should be converted)`);
       await goto(page, "/cart");
       if (cfg.coupons.freeship) {
@@ -471,6 +525,7 @@ async function runTenant(browser: Browser, cfg: TenantCfg) {
       const badge = body.includes("ยืนยันแล้ว");
       return `${h1.match(/#\d+/)?.[0]}, status ยืนยันแล้ว=${badge}, fee row present`;
     });
+    await restoreCod();
   } else {
     results.push({ tenant: slug, step: "7 COD order", ok: true, note: "N/A — tenant seeds no COD shipping method" });
     console.log(`SKIP  [${slug}] 7 COD order — N/A (no cod shipping method seeded)`);
@@ -518,10 +573,12 @@ async function runTenant(browser: Browser, cfg: TenantCfg) {
     const problems: string[] = [];
     if (!add.hit.isTarget) problems.push(`product sticky bar: tap on "เพิ่มลงตะกร้า" (${Math.round(add.box.width)}x${Math.round(add.box.height)}) lands on <${add.hit.tag}> "${add.hit.text}"`);
     // add via the API-backed button anyway so checkout has a cart (force bypasses the overlay)
-    const added = m.page.waitForResponse((r) => r.url().includes("/api/cart") && r.request().method() === "POST", { timeout: 15_000 });
+    const added = m.page.waitForResponse((r) => r.url().includes("/api/cart") && r.request().method() === "POST", { timeout: 45_000 });
+    // the success toast opens optimistically on click and auto-hides after ~4 s, so watch for it from the click on (a slow dev POST outlives it)
+    const toastSeen = m.page.getByText("เพิ่มลงตะกร้าแล้ว").first().waitFor({ state: "visible", timeout: 20_000 });
     await m.page.getByRole("button", { name: "เพิ่มลงตะกร้า" }).filter({ visible: true }).first().click({ force: true });
+    await toastSeen;
     if ((await added).status() !== 200) throw new Error("add to cart failed on mobile");
-    await m.page.getByText("เพิ่มลงตะกร้าแล้ว").first().waitFor({ state: "visible", timeout: 10_000 });
     await goto(m.page, "/checkout");
     const sub = await hitTest("สั่งซื้อและชำระเงิน");
     if (!sub.hit.isTarget) problems.push(`checkout sticky bar: tap on "สั่งซื้อและชำระเงิน" (${Math.round(sub.box.width)}x${Math.round(sub.box.height)}) lands on <${sub.hit.tag}> "${sub.hit.text}"`);

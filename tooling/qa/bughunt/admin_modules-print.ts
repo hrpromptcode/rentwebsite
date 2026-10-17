@@ -14,7 +14,9 @@ async function main() {
     const info = await p.evaluate(() => {
       const vis = (el: Element | null) => { if (!el) return "missing"; const r = (el as HTMLElement).getBoundingClientRect(); return getComputedStyle(el).display !== "none" && r.height > 0 ? "visible" : "HIDDEN"; };
       const sheet = document.querySelector(".print-sheet");
-      const sheetHeader = sheet?.querySelector("header") ?? null;
+      // reverify-repro 2026-10-17: the AM-04 fix turned the sheet head into <div data-print-sheet-head> (print CSS hides
+      // every <header> outside the sheet), so look for either form
+      const sheetHeader = sheet?.querySelector("[data-print-sheet-head], header") ?? null;
       const appHeaders = [...document.querySelectorAll("header")].filter((h) => !sheet?.contains(h)).map((h) => vis(h));
       const asides = [...document.querySelectorAll("aside")].map((a) => vis(a));
       const sender = [...(sheet?.querySelectorAll("p") ?? [])].find((x) => x.textContent?.includes("ผู้ส่ง")) ?? null;
@@ -22,6 +24,7 @@ async function main() {
       return { sheetHeader: vis(sheetHeader), sender: vis(sender), orderNo: sheetHeader?.textContent?.match(/#\d+/)?.[0], appHeaders, asides, visibleButtons: btns, w: document.documentElement.scrollWidth };
     });
     console.log(`order print @${vp.width}:`, JSON.stringify(info));
+    console.log(info.sheetHeader === "visible" && info.sender === "visible" && !!info.orderNo && info.appHeaders.every((h: string) => h !== "visible") && info.asides.every((x: string) => x !== "visible") && !info.visibleButtons.length ? `PASS AM-04 order label @${vp.width}: sender + order number ${info.orderNo} visible, app shell hidden` : `FAIL AM-04 order label @${vp.width}`);
     await p.screenshot({ path: shot(`print-order-${vp.width}`), fullPage: true });
     if (vp.width === 1440) await p.pdf({ path: path.join(shotsDir, "bughunt-admin_modules-print-order.pdf"), format: "A4" });
     await p.emulateMedia({ media: "screen" });

@@ -4,12 +4,15 @@ import path from "node:path";
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { chromium, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { eq, getAdminDb, getDb, tenants, withPlatform, withTenant, type Tx } from "@rentweb/db";
+import { isolateHmr } from "./fixes/_dev-stable";
 
 export const ADMIN = "http://localhost:3001";
 export const here = path.resolve(process.cwd(), "qa", "bughunt");
 export const shot = (name: string) => path.resolve(process.cwd(), "screenshots", `bughunt-admin_b2-${name}.png`);
 export const store = (slug: string) => `http://${slug}.localhost:3000`;
-export const CREDS = path.join(here, "admin_b2-creds.json");
+// reverify-repro: ADMIN_B2_CREDS / ADMIN_B2_STATE_OWNER let a re-run onboard fresh tenants without clobbering the hunt's files
+export const CREDS = process.env.ADMIN_B2_CREDS ? path.resolve(process.env.ADMIN_B2_CREDS) : path.join(here, "admin_b2-creds.json");
+export const OWNER_STATE = process.env.ADMIN_B2_STATE_OWNER ? path.resolve(process.env.ADMIN_B2_STATE_OWNER) : path.join(here, "admin_b2-state-owner.json");
 export function readCreds(): Record<string, any> { return existsSync(CREDS) ? JSON.parse(readFileSync(CREDS, "utf8")) : {}; }
 export function writeCreds(patch: Record<string, unknown>) { writeFileSync(CREDS, JSON.stringify({ ...readCreds(), ...patch }, null, 2)); }
 
@@ -55,7 +58,7 @@ export async function launch(): Promise<Browser> { return chromium.launch({ head
 
 export async function newCtx(browser: Browser, opts: Parameters<Browser["newContext"]>[0] = {}): Promise<BrowserContext> {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, ...opts });
-  await ctx.route(/_next\/(webpack-hmr|hmr)/, (r) => r.abort());
+  await isolateHmr(ctx); // reverify-repro: drop only HMR reload frames instead of aborting the socket (keeps hydration)
   await ctx.addInitScript({ content: "window.__name = window.__name || ((f) => f);" });
   return ctx;
 }

@@ -3,7 +3,9 @@ import { and, eq, tenantDomains, tenantInvitations, tenantMembers, user } from "
 import { anyToast, done, go, hreq, launch, newCtx, newPage, out, plat, rand, readCreds, shot, writeCreds, ADMIN } from "./admin_b2-lib";
 const C = readCreds();
 const T = Object.fromEntries(C.tenants.map((t: any) => [t.key, t]));
-const R = C.rand as string;
+// reverify-repro 2026-10-17: a re-run needs its own suffix — with the hunt's C.rand the domain is already claimed and the
+// staff/manager accounts already exist (invite says 'already a member', sign-up of an existing e-mail never leaves /signup)
+const R = process.env.ADMIN_B2_TEAM_RAND ?? rand();
 async function main() {
   const browser = await launch();
   const st = JSON.parse(readFileSync("qa/bughunt/admin_b2-state-owner.json", "utf8"));
@@ -31,9 +33,10 @@ async function main() {
   await page.fill("#d-host", host);
   out("same host on 2nd tenant", await anyToast(page, () => page.locator("form").getByRole("button").last().click()));
   await page.fill("#d-host", "demo-shop.localhost");
-  out("platform subdomain", await anyToast(page, () => page.locator("form").getByRole("button").last().click()));
+  const formMsg = async () => (await page.locator("form [role=alert], form .text-destructive").allInnerTexts().catch(() => [])).join(" | ");
+  out("platform subdomain", { toast: await anyToast(page, () => page.locator("form").getByRole("button").last().click(), 8_000), form: await formMsg() });
   await page.fill("#d-host", "bad_host!!");
-  out("invalid host", await anyToast(page, () => page.locator("form").getByRole("button").last().click()));
+  out("invalid host", { toast: await anyToast(page, () => page.locator("form").getByRole("button").last().click(), 8_000), form: await formMsg() });
   // ---------- invites ----------
   const people = { staff: `qa-b2-staff-${R}@example.com`, manager: `qa-b2-mgr-${R}@example.com` } as const;
   const roleLabel = { staff: "พนักงาน", manager: "ผู้จัดการ" } as const;

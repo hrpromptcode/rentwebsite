@@ -29,6 +29,7 @@ async function main() {
   const end = (await tt(t, (tx) => tx.select({ s: products.stock, price: products.price }).from(products).where(eq(products.id, p!.id))))[0]!;
   const [mv] = await tt(t, (tx) => tx.select({ n: count() }).from(inventoryMovements).where(and(eq(inventoryMovements.tenantId, t), eq(inventoryMovements.productId, p!.id))));
   console.log(`form loaded with stock 10; order ${r.ok ? r.value.number : r.error} took 3 → stock ${mid}; admin saved price only (${s.ok}) → stock ${end.s}, price ${end.price}; inventory movements for product: ${mv!.n}`);
+  console.log(mid === 7 && end.s === 7 && end.price === 19900 ? "PASS COR-32 saving the price keeps the live stock (7)" : `FAIL COR-32 bug reproduces (stock ${end.s})`);
   await done();
 }
 main().catch(async (e) => { console.error(e); await done(); process.exit(1); });

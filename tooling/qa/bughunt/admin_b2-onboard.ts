@@ -1,5 +1,5 @@
 import { eq, navigation, pages, tenants, tenantModules } from "@rentweb/db";
-import { ADMIN, done, go, launch, newCtx, newPage, out, plat, rand, readCreds, sget, shot, writeCreds } from "./admin_b2-lib";
+import { ADMIN, done, go, launch, newCtx, newPage, out, plat, rand, readCreds, sget, shot, writeCreds, OWNER_STATE } from "./admin_b2-lib";
 
 const R = rand();
 const TPL: Array<{ key: string; label: RegExp; name: string }> = [
@@ -73,7 +73,7 @@ async function main() {
     out(`tenant ${t.key}`, { slug, status: row!.status, modules: mods.filter((m) => m.enabled).map((m) => m.moduleKey), payments: st.payments, contact: st.contact, checklist, home: home.status, contactPage: contact.status, sampleHits, lineBtn });
   }
   writeCreds({ tenants: created });
-  await ctx.storageState({ path: `${process.cwd()}/qa/bughunt/admin_b2-state-owner.json` });
+  await ctx.storageState({ path: OWNER_STATE });
   out("errors", page.__errors.slice(0, 10));
   await browser.close();
   await done();

@@ -41,6 +41,10 @@ export const ACTION_LABEL: Record<BookingAction, string> = {
   no_show: "ไม่มาตามนัด",
 };
 
+/** ADMIN_B2-04: booking.answers.payAtShop — booked while the shop had no payment receiver, so no deposit was taken */
+export const PAY_AT_SHOP_LABEL = "ชำระที่ร้าน";
+export const PAY_AT_SHOP_DETAIL = "ลูกค้าจองตอนที่ร้านยังไม่ได้ตั้งค่าช่องทางรับชำระเงินออนไลน์ จึงไม่ได้เก็บมัดจำ — เก็บค่าบริการเต็มจำนวนที่หน้าร้าน";
+
 export const CANCELLABLE_STATUSES = ["pending", "confirmed", "checked_in"] as const;
 export const RESCHEDULABLE_STATUSES = ["pending", "confirmed"] as const;
 

@@ -46,8 +46,16 @@ async function main() {
   out("storefront while draft", { status: s1.status, hasMarker: s1.body.includes(`QAB2-HERO-${r}`) });
 
   // preview button target
-  const prevHref = await page.getByRole("link", { name: "ดูตัวอย่าง" }).getAttribute("href");
-  out("preview href", prevHref);
+  // reverify-repro 2026-10-17 (ADMIN_B2-02 intended): "ดูตัวอย่าง" is now a button that opens /preview?token=... in a new
+  // tab (signed draft preview) instead of a link to the live URL, so read the popup instead of an href.
+  const [prev] = await Promise.all([page.waitForEvent("popup", { timeout: 60_000 }), page.getByRole("button", { name: /ดูตัวอย่าง/ }).first().click()]);
+  await prev.waitForLoadState("load", { timeout: 120_000 });
+  await prev.getByText(`QAB2-HERO-${r}`).first().waitFor({ timeout: 60_000 }).catch(() => {});
+  const prevBody = await prev.locator("body").innerText().catch(() => "");
+  const prevUrl = new URL(prev.url());
+  out("preview popup", { path: prevUrl.pathname, token: prevUrl.searchParams.has("token"), showsDraftHero: prevBody.includes(`QAB2-HERO-${r}`), banner: await prev.locator("[data-preview-banner]").count() });
+  console.log(prevUrl.pathname === "/preview" && prevUrl.searchParams.has("token") && prevBody.includes(`QAB2-HERO-${r}`) ? "PASS ADMIN_B2-02 preview of a never-published draft opens /preview?token= and shows the draft" : "FAIL ADMIN_B2-02 preview does not show the draft");
+  await prev.close();
 
   // publish
   const t2 = await anyToast(page, () => page.getByRole("button", { name: "เผยแพร่" }).first().click());
@@ -85,6 +93,8 @@ async function main() {
   const title3 = s3.body.match(/<title>([^<]*)<\/title>/)?.[1];
   const desc3 = s3.body.match(/<meta name="description" content="([^"]*)"/)?.[1];
   out("storefront after DRAFT save (expect old content)", { status: s3.status, hero1: s3.body.includes(`QAB2-HERO-${r}`), hero2: s3.body.includes(`QAB2-HERO2-${r}`), textVisible: s3.body.includes(`QAB2-TEXT-BODY-${r}`), title: title3, desc: desc3 });
+  // reverify-repro: ADMIN_B2-01 intended — a draft save never changes the live title / SEO / sections
+  console.log(s3.status === 200 && s3.body.includes(`QAB2-HERO-${r}`) && !s3.body.includes(`QAB2-HERO2-${r}`) && !String(title3).includes(`QAB2-SEO-TITLE-${r}`) && !String(desc3).includes(`QAB2-SEO-DESC-${r}`) ? "PASS ADMIN_B2-01 draft save keeps live sections, title and SEO" : "FAIL ADMIN_B2-01 draft save leaked to the live page");
   // publish again
   const t4 = await anyToast(page, () => page.getByRole("button", { name: "เผยแพร่" }).first().click());
   out("publish2 toast", t4);
