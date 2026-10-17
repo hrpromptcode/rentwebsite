@@ -39,6 +39,8 @@ async function main() {
   console.log("slip upload →", up.status, up.body.slice(0, 120));
   const after = await tt(t, (tx) => sessionSummary(tx, t, session.id));
   console.log("after slip: session", after!.session.status, "total", after!.total, "paidTotal", after!.paidTotal, "due", after!.dueTotal, "orders", JSON.stringify(after!.orders.map((o) => [o.number, o.total, o.paymentStatus])), "payment", JSON.stringify(after!.payment));
+  // reverify-repro 2026-10-17: retire the probe table so it does not show up in the demo's public reserve form / capacity
+  await tt(t, (tx) => tx.update(diningTables).set({ active: false }).where(and(eq(diningTables.tenantId, t), eq(diningTables.id, table.id))));
   const o2paid = after!.orders.find((o) => o.number === o2.number)?.paymentStatus === "paid";
   console.log(up.status === 409 && !o2paid && after!.session.status !== "closed" && Number(after!.dueTotal) > 0
     ? "PASS COR-07/SBR-005 stale bill QR voided by the new round: slip refused (409), round 2 stays unpaid, session still due"

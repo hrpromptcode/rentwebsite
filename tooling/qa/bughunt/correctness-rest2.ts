@@ -1,6 +1,6 @@
 /** correctness bughunt – reservation capacity under parallel requests (zone with exactly one table). */
 import { done, tenantIdOf, tt } from "./correctness-lib";
-import { diningTables } from "@rentweb/db";
+import { and, eq, diningTables } from "@rentweb/db";
 import { checkAvailability, createReservation } from "../../../packages/modules/restaurant/src/services/index";
 
 async function main() {
@@ -14,6 +14,8 @@ async function main() {
   const res = await Promise.all([1, 2, 3].map(mk));
   const a = await tt(t, (tx) => checkAvailability(tx, t, { startsAt, zone }));
   console.log("parallel reservations in 1-table zone", zone, res, "availability after", JSON.stringify(a));
+  // reverify-repro 2026-10-17: retire the probe table so it does not show up in the demo's public reserve form / capacity
+  await tt(t, (tx) => tx.update(diningTables).set({ active: false }).where(and(eq(diningTables.tenantId, t), eq(diningTables.zone, zone))));
   console.log(res.filter((r) => r.startsWith("ok")).length === 1 ? "PASS COR-10 only one of 3 parallel reservations accepted for a 1-table zone" : "FAIL COR-10 bug reproduces");
   await done();
 }

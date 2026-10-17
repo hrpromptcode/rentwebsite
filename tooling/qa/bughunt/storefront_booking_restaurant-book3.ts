@@ -76,7 +76,11 @@ async function main() {
       await p.waitForTimeout(1500);
       const tb = await body(p);
       log(`P2 CTA → ${p.url().replace(clinic, "")} serviceStep=${tb.includes("เลือกบริการ")} staffStep=${tb.includes("เลือกผู้ให้บริการ")} mentionsPackage=${/คอร์ส|แพ็กเกจ|สิทธิ์/.test(tb)}`);
-      await p.goto(`${clinic}/book?service=pico`);
+      // reverify-repro 2026-10-17: SBR-016 fix — the CTA now carries the course (/book?service=<slug>&package=<id>); the hunt
+      // re-opened a plain /book?service=pico (the old CTA lost the service), which drops the package and books at list price.
+      // Continue on the CTA URL so the redemption path is what gets tested.
+      const ctaUrl = p.url();
+      await p.goto(ctaUrl);
       await p.getByText("เลือกผู้ให้บริการ").waitFor();
       await p.getByRole("button", { name: /ใครก็ได้ที่ว่าง/ }).click();
       await pickDate(p, 3);

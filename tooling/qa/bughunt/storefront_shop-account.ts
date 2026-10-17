@@ -180,9 +180,14 @@ async function main() {
     log("== D. OTP brute-force limits ==");
     const d = await ctxPage(browser);
     const phone = `08${rnd()}`;
+    let dRefused = 0;
     for (let round = 1; round <= 2; round++) {
       await d.page.goto(`${ORIGIN}/account/login`, { waitUntil: "networkidle" });
       const code = await requestCode(d.page, phone);
+      // reverify-repro 2026-10-17 (SEC-007/SS-03 intended): a second code for the same phone within 60 s is refused
+      // ("ขอรหัสบ่อยเกินไป กรุณารอ … วินาที"), so the old "new code resets the 5-attempt budget" round 2 cannot start —
+      // that refusal IS the fix; record it instead of waiting for #otp-code
+      if (!code) { log(`D round ${round}: new code refused (cooldown) — attempt budget not reset`); dRefused++; continue; }
       const msgs: string[] = [];
       for (let i = 0; i < 6; i++) {
         const wrong = String((Number(code) + 1 + i) % 1_000_000).padStart(6, "0");
@@ -200,6 +205,7 @@ async function main() {
       if (await requestCode(d.page, phone)) ok++;
     }
     log(`D3 ${ok}/8 back-to-back OTP requests for the same phone succeeded in ${Date.now() - t0}ms`);
+    console.log(dRefused >= 1 && ok === 0 ? "PASS SS-03 new codes for the same phone are rate limited (no fresh 5-guess budget, 0/8 back-to-back requests)" : `FAIL SS-03 refused=${dRefused} backToBack=${ok}/8`);
     await d.ctx.close();
     log("otpPhone", phone);
   }

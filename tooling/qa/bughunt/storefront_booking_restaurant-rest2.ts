@@ -113,6 +113,9 @@ async function main() {
       await ctx.close();
     });
 
+  // reverify-repro 2026-10-17: reservations made by "zone" are collected here and cancelled after the block even when it
+  // throws (an aborted run used to leave ~25 bookings blocking demo-restaurant 2026-12-08 12:00)
+  const made: string[] = [];
   if (want("zone"))
     await run("zone", async () => {
       const { page: p, ctx } = await newPage(browser, false);
@@ -120,7 +123,6 @@ async function main() {
       const time = "12:00";
       await p.goto(`${BASE}/reserve`, { waitUntil: "networkidle" });
       const cap0 = JSON.parse((await inPage(p, `/api/restaurant/reservations/availability?date=${date}&time=${time}&size=2`)).text) as { capacity: number; booked: number };
-      const made: string[] = [];
       const target = cap0.capacity - cap0.booked;
       for (let i = 0; i < target; i++) {
         await p.goto(`${BASE}/reserve?date=${date}&time=${time}&size=2`, { waitUntil: "networkidle" });
@@ -162,9 +164,14 @@ async function main() {
       await p.locator("#res-name").fill("คิวเอ 40 คน");
       await p.locator("#res-phone").fill(RPHONE);
       await p.waitForTimeout(1500);
-      const warn = (await body(p)).match(/[^\n]*(กลุ่มใหญ่|โทร|หลายโต๊ะ)[^\n]*/)?.[0];
-      await p.getByRole("button", { name: /ยืนยันการจอง/ }).click();
-      await p.waitForURL(/\/reservations\/RS-\d+/, { timeout: 30_000 }).catch(() => {});
+      const warn = (await body(p)).match(/[^\n]*(กลุ่มใหญ่|โทร|หลายโต๊ะ|ใหญ่เกิน|ที่นั่ง)[^\n]*/)?.[0];
+      // SBR-014 intended: a party larger than the zone's total seats is refused up front (too_large message, no submit)
+      const submit = p.getByRole("button", { name: /ยืนยันการจอง/ });
+      const canSubmit = (await submit.count()) > 0 && !(await submit.first().isDisabled());
+      if (canSubmit) {
+        await submit.first().click();
+        await p.waitForURL(/\/reservations\/RS-\d+/, { timeout: 30_000 }).catch(() => {});
+      } else log(`R5 submit ${(await submit.count()) ? "disabled" : "not offered"}; alerts: ${(await p.locator('p[role="alert"], [role="status"]').allInnerTexts()).join(" | ").slice(0, 200)}`);
       const big = p.url().match(/RS-\d+/)?.[0];
       const after = JSON.parse((await inPage(p, `/api/restaurant/reservations/availability?date=2026-12-09&time=12:00&size=2&zone=${encodeURIComponent("สวน")}`)).text);
       log(`R5 party 40 in garden (4x6 seats): warning="${warn}" → ${big ?? "rejected"}; garden after=${JSON.stringify(after)}`);
@@ -183,21 +190,24 @@ async function main() {
       const far = p.url().match(/RS-\d+/)?.[0];
       log(`R6 date 2031-01-15 (form max today+60) → ${far ?? "rejected: " + (await body(p)).match(/[^\n]*(เวลา|วันที่)[^\n]*ไม่[^\n]*/)?.[0]}`);
       if (far) made.push(far);
-      log(`R made: ${made.join(",")}`);
-      // cleanup: self-service cancel
-      let cancelled = 0;
-      for (const n of made) {
-        await p.goto(`${BASE}/reservations/${n}?p=${RPHONE}`, { waitUntil: "networkidle" });
-        const b = p.getByRole("button", { name: "ยกเลิกการจอง" });
-        if (!(await b.count())) continue;
-        await b.click();
-        await p.getByRole("button", { name: "แตะอีกครั้งเพื่อยืนยันยกเลิก" }).click();
-        await p.waitForTimeout(1500);
-        cancelled++;
-      }
-      log(`R cleanup cancelled ${cancelled}/${made.length}`);
       await ctx.close();
     });
+  if (made.length) {
+    const { page: p } = await newPage(browser, false);
+    log(`R made: ${made.join(",")}`);
+    // cleanup: self-service cancel
+    let cancelled = 0;
+    for (const n of made) {
+      await p.goto(`${BASE}/reservations/${n}?p=${RPHONE}`, { waitUntil: "networkidle" });
+      const b = p.getByRole("button", { name: "ยกเลิกการจอง" });
+      if (!(await b.count())) continue;
+      await b.click();
+      await p.getByRole("button", { name: "แตะอีกครั้งเพื่อยืนยันยกเลิก" }).click();
+      await p.waitForTimeout(1500);
+      cancelled++;
+    }
+    log(`R cleanup cancelled ${cancelled}/${made.length}`);
+  }
 
   await browser.close();
   process.exit(0);
