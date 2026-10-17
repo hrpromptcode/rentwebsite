@@ -2,10 +2,10 @@ import { launch, newCtx, newPage, out, readCreds, shot, store, type Page } from 
 const T = Object.fromEntries(readCreds().tenants.map((t: any) => [t.key, t.slug]));
 const bkkToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
 async function pickDate(page: Page, minOffset: number) {
-  await page.locator('button[role="gridcell"]:not([disabled]):not(.animate-pulse)').first().waitFor({ timeout: 60_000 });
-  const labels = (await page.locator('button[role="gridcell"]:not([disabled])').evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")))) as string[];
+  await page.locator('button[role="gridcell"]:not([aria-disabled]):not(.animate-pulse)').first().waitFor({ timeout: 60_000 });
+  const labels = (await page.locator('button[role="gridcell"]:not([aria-disabled])').evaluateAll((els) => els.map((e) => e.getAttribute("data-date")))) as string[];
   const t = labels.find((d) => (Date.parse(d) - Date.parse(bkkToday())) / 86400000 >= minOffset);
-  await page.locator(`button[role="gridcell"][aria-label="${t}"]`).click();
+  await page.locator(`button[role="gridcell"][data-date="${t}"]`).click();
 }
 async function pickSlot(page: Page) {
   await page.getByText("กำลังโหลดเวลาว่าง…").waitFor({ state: "hidden" }).catch(() => {});

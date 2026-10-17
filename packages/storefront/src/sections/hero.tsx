@@ -213,7 +213,7 @@ export function Hero({ ctx, props: p, index }: { ctx: StorefrontCtx; props: Prop
           <div className="max-w-3xl">
             {p.eyebrow && (
               <Reveal>
-                <p className="mb-4 text-xs font-semibold tracking-[0.25em] text-primary uppercase">{p.eyebrow}</p>
+                <p className="mb-4 text-xs font-semibold tracking-[0.25em] text-primary-ink uppercase">{p.eyebrow}</p>
               </Reveal>
             )}
             <Heading p={p} className="heading-display text-5xl font-semibold md:text-7xl" />

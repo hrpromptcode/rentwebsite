@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gte, inArray, lt, nextCounter, or, sql, type Tx } from "@rentweb/db";
 import { bookings, payments, services, staff, staffServices } from "@rentweb/db";
 import { emitEvent, fail, isUuid, ok, randomToken, safeEqual, type Result } from "@rentweb/core";
-import { upsertGuestCustomer } from "@rentweb/core/customer";
+import { isCustomerBlocked, upsertGuestCustomer } from "@rentweb/core/customer";
 import {
   cancelPayment,
   createPayment,
@@ -35,6 +35,9 @@ export interface BookingAnswers {
   patientPackageId?: string;
   packageName?: string;
   packageUsageId?: string;
+  /** ADMIN_B2-04: the service asks for a deposit but the shop has no way to receive it, so it is booked without one (pay at the shop) */
+  payAtShop?: boolean;
+  depositWaivedReason?: "no_payment_receiver";
   [k: string]: unknown;
 }
 
@@ -64,7 +67,7 @@ export interface CreateBookingInput {
   rescheduleOf?: BookingRow | null;
 }
 
-export type CreateBookingError = "service_not_found" | "staff_not_found" | "invalid_slot" | "slot_taken" | "invalid_customer" | "package_not_usable";
+export type CreateBookingError = "service_not_found" | "staff_not_found" | "invalid_slot" | "slot_taken" | "invalid_customer" | "package_not_usable" | "customer_blocked";
 
 export interface CreateBookingResult {
   booking: BookingRow;
@@ -135,10 +138,23 @@ export async function voidBookingPayments(tx: Tx, tenantId: string, list: Paymen
   return n;
 }
 
-/** Creates the deposit payment for a booking and remembers its id in answers.paymentId. */
-export async function createBookingPayment(tx: Tx, tenantId: string, booking: BookingRow, method: PaymentMethod | null | undefined, settings: Record<string, unknown>): Promise<PaymentRow> {
-  const allowed = enabledMethods(settings);
-  const m: PaymentMethod = method && allowed.includes(method as (typeof allowed)[number]) ? method : allowed[0]!;
+/**
+ * Deposit methods that can actually take the money (ADMIN_B2-04): PromptPay QR with a PromptPay ID, a bank
+ * transfer slip with an account number, or cash at the shop when the owner enabled it. Empty = the shop has not
+ * set up payments, so deposits are skipped (booking.answers.payAtShop) instead of asking for an impossible payment.
+ */
+export function bookingDepositMethods(settings: Record<string, unknown>): PaymentMethod[] {
+  return enabledMethods(settings).filter((m): m is "promptpay_qr" | "slip" | "cash" => m === "promptpay_qr" || m === "slip" || m === "cash");
+}
+
+/**
+ * Creates the deposit payment for a booking and remembers its id in answers.paymentId. Returns null when the
+ * shop has no deposit method with a receiver (nothing is written then).
+ */
+export async function createBookingPayment(tx: Tx, tenantId: string, booking: BookingRow, method: PaymentMethod | null | undefined, settings: Record<string, unknown>): Promise<PaymentRow | null> {
+  const allowed = bookingDepositMethods(settings);
+  if (!allowed.length) return null;
+  const m: PaymentMethod = method && allowed.includes(method) ? method : allowed[0]!;
   const payment = await createPayment(tx, tenantId, {
     refType: "booking",
     refId: booking.id,
@@ -216,6 +232,8 @@ export async function createBooking(tx: Tx, tenantId: string, input: CreateBooki
 
   // customer
   let customerId = input.customer.id ?? null;
+  // ADMIN_B2-13: the shop blocked this customer (signed in, or a guest whose phone / e-mail is theirs)
+  if (!prev && (await isCustomerBlocked(tx, tenantId, { customerId, phone: input.customer.phone, email: input.customer.email }))) return fail("customer_blocked");
   if (!customerId) {
     const guest = await upsertGuestCustomer(tx, tenantId, { phone: input.customer.phone, email: input.customer.email, name: input.customer.name });
     if (!guest) return fail("invalid_customer");
@@ -237,9 +255,11 @@ export async function createBooking(tx: Tx, tenantId: string, input: CreateBooki
     }
     return perPerson ? unit * partySize : unit;
   };
+  // ADMIN_B2-04: no PromptPay ID / bank account (and no cash) means the deposit cannot be paid online: skip it
+  const depositWaived = !prev && !pkg && opts.config.depositEnabled && service.depositRequired && service.depositAmount > 0 && bookingDepositMethods(opts.settings).length === 0;
   const depositFor = (price: number): number => {
     if (prev) return prev.depositAmount;
-    if (pkg || !opts.config.depositEnabled || !service.depositRequired) return 0;
+    if (pkg || depositWaived || !opts.config.depositEnabled || !service.depositRequired) return 0;
     const d = service.depositAmount * (perPerson ? partySize : 1);
     return price > 0 ? Math.min(d, price) : d;
   };
@@ -250,6 +270,13 @@ export async function createBooking(tx: Tx, tenantId: string, input: CreateBooki
   const prevAnswers = prev ? answersOf(prev) : null;
   const answers: BookingAnswers = { accessKey };
   if (group) answers.preferredStaffId = preferred;
+  if (depositWaived) {
+    answers.payAtShop = true;
+    answers.depositWaivedReason = "no_payment_receiver";
+  } else if (prevAnswers?.payAtShop) {
+    answers.payAtShop = true;
+    if (prevAnswers.depositWaivedReason) answers.depositWaivedReason = prevAnswers.depositWaivedReason;
+  }
   if (prevAnswers?.patientPackageId) {
     answers.patientPackageId = prevAnswers.patientPackageId;
     answers.packageName = prevAnswers.packageName;
@@ -317,7 +344,7 @@ export async function createBooking(tx: Tx, tenantId: string, input: CreateBooki
   let payment: PaymentRow | null = null;
   if (!prev && booking.status === "pending" && booking.depositAmount > 0 && booking.paymentStatus === "unpaid") {
     payment = await createBookingPayment(tx, tenantId, booking, input.paymentMethod ?? null, opts.settings);
-    booking = { ...booking, answers: { ...answersOf(booking), paymentId: payment.id } };
+    if (payment) booking = { ...booking, answers: { ...answersOf(booking), paymentId: payment.id } };
   }
 
   await emitEvent(tx, {
@@ -339,6 +366,7 @@ export async function createBooking(tx: Tx, tenantId: string, input: CreateBooki
       accessKey,
       depositAmount: booking.depositAmount,
       status: booking.status,
+      payAtShop: answersOf(booking).payAtShop === true,
       patientPackageId: answersOf(booking).patientPackageId ?? null,
       rescheduledFromId: prev?.id ?? null,
     },
@@ -413,7 +441,7 @@ export async function onBookingPaymentClosed(tx: Tx, payment: PaymentRow, info: 
   });
 }
 
-export type RenewPaymentError = "not_payable";
+export type RenewPaymentError = "not_payable" | "payments_unavailable";
 
 /**
  * Re-issues the deposit payment (new QR) for a pending, unpaid booking: returns the live payment when there is
@@ -431,7 +459,7 @@ export async function renewBookingPayment(tx: Tx, tenantId: string, bookingId: s
   const last = [...pays].reverse()[0];
   await voidBookingPayments(tx, tenantId, pays, "ออก QR ใหม่");
   const payment = await createBookingPayment(tx, tenantId, b, method ?? ((last?.method as PaymentMethod | undefined) ?? null), settings);
-  return ok(payment);
+  return payment ? ok(payment) : fail("payments_unavailable");
 }
 
 /* ------------------------------------------------------------------ */
@@ -509,7 +537,7 @@ export async function carryPaymentsOnReschedule(
   const needsDeposit = next.status === "pending" && next.paymentStatus === "unpaid" && next.depositAmount > 0;
   if (needsDeposit && moved?.status !== "pending_verification" && opts.settings) {
     const payment = await createBookingPayment(tx, tenantId, next, currentMethod, opts.settings);
-    return { booking: { ...next, answers: { ...answersOf(next), paymentId: payment.id } }, payment };
+    if (payment) return { booking: { ...next, answers: { ...answersOf(next), paymentId: payment.id } }, payment };
   }
   const answers: BookingAnswers = { ...answersOf(next) };
   if (moved) answers.paymentId = moved.id;

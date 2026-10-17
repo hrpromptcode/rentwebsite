@@ -1,7 +1,7 @@
 import type { TemplateDefinition } from "@rentweb/core/tenant";
 import { categories, products, shippingMethods } from "@rentweb/db";
 import { section, hero, marquee, productGrid, imageText, gallery, testimonials, features, faq, cta } from "@rentweb/storefront/definitions";
-import { aboutPage, contactPage, legalPages, u, avatar } from "./shared";
+import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, u, avatar } from "./shared";
 
 export const cafe: TemplateDefinition = {
   key: "cafe",
@@ -11,6 +11,8 @@ export const cafe: TemplateDefinition = {
   siteType: "cafe",
   modules: ["commerce"],
   themePreset: "candy",
+  // ADMIN_B2-07: the sample brand; new (non-demo) shops get their own name instead
+  sampleBrand: ["Sugar Puff Bakery","Sugar Puff"],
   recommendedPresets: ["candy", "ember", "aurora"],
   complexity: 2,
   previewImage: u("1517686469429-8bdb88b9f907", 1200),
@@ -92,7 +94,7 @@ export const cafe: TemplateDefinition = {
         section(cta, { variant: "card", heading: "พรุ่งนี้เช้าอยากกินอะไร?", body: "สั่งก่อน 18:00 วันนี้ รับได้พรุ่งนี้ตั้งแต่ 8 โมง", primaryCta: { label: "สั่งล่วงหน้า", href: "/products" } }),
       ],
     },
-    aboutPage({ heading: "Sugar Puff — ครัวเล็ก ๆ ที่เริ่มจากเตาอบในคอนโด", body: "เริ่มจากการอบคุกกี้ให้เพื่อนในปี 2020 จนมีคนขอซื้อ จึงเปิดร้านเล็ก ๆ ที่เจริญกรุงในปี 2022 เราทำทุกอย่างเองในครัวหลังร้าน ใช้เนยฝรั่งเศสและไข่ไก่อารมณ์ดี และลดน้ำตาลลง 30% เพราะอยากให้กินได้ทุกวัน" }),
+    aboutPage({ neutral: NEUTRAL_ABOUT.cafe, heading: "Sugar Puff — ครัวเล็ก ๆ ที่เริ่มจากเตาอบในคอนโด", body: "เริ่มจากการอบคุกกี้ให้เพื่อนในปี 2020 จนมีคนขอซื้อ จึงเปิดร้านเล็ก ๆ ที่เจริญกรุงในปี 2022 เราทำทุกอย่างเองในครัวหลังร้าน ใช้เนยฝรั่งเศสและไข่ไก่อารมณ์ดี และลดน้ำตาลลง 30% เพราะอยากให้กินได้ทุกวัน" }),
     contactPage(),
     ...legalPages("Sugar Puff"),
   ],

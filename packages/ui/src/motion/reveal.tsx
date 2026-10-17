@@ -17,6 +17,23 @@ export interface RevealProps extends Omit<HTMLMotionProps<"div">, "children"> {
 }
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+
+/**
+ * Shared by Reveal / Stagger: `forced` flips to true when focus lands inside a block before it has been in view, and the
+ * block then animates to its shown state via `animate` (whileInView is dropped so it does not replay later).
+ */
+export function useRevealOnFocus() {
+  const seenRef = React.useRef(false);
+  const [forced, setForced] = React.useState(false);
+  return {
+    forced,
+    seen: () => seenRef.current || forced,
+    markSeen: () => {
+      seenRef.current = true;
+    },
+    revealOnFocus: () => setForced(true),
+  };
+}
 const DEFAULT_DISTANCE = 28;
 
 /**
@@ -26,6 +43,8 @@ const DEFAULT_DISTANCE = 28;
  * The start state uses the `transform` property — the same one motion animates inline — so the inline end state
  * (`opacity: 1; transform: none`) fully replaces it. (Tailwind v4 `translate-*`/`scale-*` classes set the separate
  * CSS `translate`/`scale` properties, which motion never clears — that left every block offset; RA-02.)
+ * Keyboard focus entering a block that has not revealed yet (e.g. Tab stops at the bottom edge of the viewport, inside
+ * the excluded in-view band) reveals it immediately, so a focused control is never invisible (RESPONSIVE_B2-06).
  */
 function keyframes(direction: Direction, distance: number) {
   switch (direction) {
@@ -55,17 +74,30 @@ export function Reveal({
   once = true,
   as = "div",
   style,
+  onViewportEnter,
+  onFocusCapture,
   ...rest
 }: RevealProps) {
   const reduce = useReducedMotion();
+  const { seen, forced, markSeen, revealOnFocus } = useRevealOnFocus();
+  const target = keyframes(direction, distance);
   const Comp = ((motion as unknown as Record<string, typeof motion.div>)[as] ?? motion.div) as typeof motion.div;
   return (
     <Comp
       data-reveal={direction}
       style={distance === DEFAULT_DISTANCE ? style : ({ ...style, "--reveal-distance": `${distance}px` } as HTMLMotionProps<"div">["style"])}
       initial={false}
-      whileInView={reduce ? undefined : keyframes(direction, distance)}
+      whileInView={reduce || forced ? undefined : target}
+      animate={!reduce && forced ? target : undefined}
       viewport={{ once, margin: "0px 0px -12% 0px" }}
+      onViewportEnter={(entry) => {
+        markSeen();
+        onViewportEnter?.(entry);
+      }}
+      onFocusCapture={(e) => {
+        if (!reduce && !seen()) revealOnFocus();
+        onFocusCapture?.(e);
+      }}
       transition={{ duration, delay, ease: EASE }}
       {...rest}
     >

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Copy, ExternalLink, Globe, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { AlertTriangle, Check, Clock, Copy, ExternalLink, Globe, Loader2, Plus, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
 import { Badge } from "@rentweb/ui/components/badge";
 import { Button } from "@rentweb/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@rentweb/ui/components/card";
@@ -24,9 +24,38 @@ export interface DomainRow {
   lastCheckedAt: string | null;
   verifiedAt: string | null;
   lastError: string | null;
+  /** records to add at the DNS provider (custom domains), from domainDnsInstructions() in @rentweb/core/tenant */
+  dns: { txt: { name: string; value: string }; cname: { name: string; value: string } } | null;
 }
 
+/** ADMIN_B2-11: what each state means for visitors (only "active" domains route to the storefront). */
+const STATUS_HELP: Record<DomainRow["status"], string> = {
+  pending: "ยังไม่เปิดใช้ — ลูกค้าจะเข้าเว็บผ่านโดเมนนี้ได้หลังยืนยัน DNS สำเร็จเท่านั้น",
+  verifying: "กำลังตรวจสอบ DNS…",
+  active: "ยืนยันความเป็นเจ้าของแล้ว ลูกค้าเข้าเว็บผ่านโดเมนนี้ได้",
+  failed: "ตรวจสอบไม่ผ่าน โดเมนยังไม่เปิดใช้ — แก้ค่า DNS ตามด้านล่างแล้วกด “ตรวจสอบ DNS” อีกครั้ง",
+};
+
 const DOMAIN_STATUS: Record<DomainRow["status"], string> = { pending: "รอตั้งค่า DNS", verifying: "กำลังตรวจสอบ", active: "ใช้งานได้", failed: "ตรวจสอบไม่ผ่าน" };
+
+function DnsRecord({ step, type, purpose, name, value }: { step: number; type: string; purpose: string; name: string; value: string }) {
+  return (
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5 rounded-lg border bg-background p-3">
+      <p className="text-xs text-muted-foreground">
+        <span className="font-medium text-foreground">
+          {step}. {type}
+        </span>{" "}
+        — {purpose}
+      </p>
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-1.5 sm:grid-cols-[4.5rem_minmax(0,1fr)] sm:items-center sm:gap-x-3">
+        <span className="text-xs text-muted-foreground">ชื่อ (Host)</span>
+        <CopyValue value={name} label={`ชื่อ ${type}`} />
+        <span className="text-xs text-muted-foreground">ค่า (Value)</span>
+        <CopyValue value={value} label={`ค่า ${type}`} />
+      </div>
+    </div>
+  );
+}
 
 function CopyValue({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = React.useState(false);
@@ -43,7 +72,7 @@ function CopyValue({ value, label }: { value: string; label: string }) {
           toast.error("คัดลอกไม่สำเร็จ");
         }
       }}
-      className="group inline-flex min-h-11 max-w-full items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2 text-left font-mono text-xs hover:bg-muted sm:text-sm"
+      className="group inline-flex min-h-11 min-w-0 max-w-full items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2 text-left font-mono text-xs hover:bg-muted sm:text-sm"
       aria-label={`คัดลอก${label}: ${value}`}
     >
       <span className="truncate">{value}</span>
@@ -60,7 +89,7 @@ export function DomainsPanel({ slug, domains, systemHost, cnameTarget, storefron
   const custom = domains.filter((d) => d.kind === "custom");
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -84,7 +113,7 @@ export function DomainsPanel({ slug, domains, systemHost, cnameTarget, storefron
           <CardTitle>โดเมนส่วนตัว</CardTitle>
           <CardDescription>เชื่อมโดเมนที่คุณเป็นเจ้าของ เช่น www.myshop.com (ใช้ได้ตามแพ็กเกจ)</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-5">
+        <CardContent className="grid grid-cols-[minmax(0,1fr)] gap-5">
           {canEdit && (
             <form
               className="flex flex-col gap-2 sm:flex-row sm:items-end"
@@ -105,7 +134,7 @@ export function DomainsPanel({ slug, domains, systemHost, cnameTarget, storefron
           {custom.length === 0 ? (
             <p className="text-sm text-muted-foreground">ยังไม่มีโดเมนส่วนตัว</p>
           ) : (
-            <ul className="grid gap-4">
+            <ul className="grid grid-cols-[minmax(0,1fr)] gap-4">
               {custom.map((d) => (
                 <li key={d.id} className="rounded-xl border p-4">
                   <div className="flex flex-wrap items-center gap-2">
@@ -114,17 +143,25 @@ export function DomainsPanel({ slug, domains, systemHost, cnameTarget, storefron
                     {d.isPrimary && <Badge variant="soft">หลัก</Badge>}
                     <span className="ml-auto text-xs text-muted-foreground">{d.lastCheckedAt ? `ตรวจล่าสุด ${fmtRelative(d.lastCheckedAt)}` : "ยังไม่เคยตรวจสอบ"}</span>
                   </div>
+                  <p className={`mt-2 flex items-start gap-1.5 text-xs ${d.status === "failed" ? "text-destructive" : d.status === "active" ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}>
+                    {d.status === "failed" ? <AlertTriangle className="mt-px size-3.5 shrink-0" aria-hidden /> : d.status === "active" ? <ShieldCheck className="mt-px size-3.5 shrink-0" aria-hidden /> : <Clock className="mt-px size-3.5 shrink-0" aria-hidden />}
+                    <span>{STATUS_HELP[d.status]}</span>
+                  </p>
                   {d.status !== "active" && (
-                    <div className="mt-4 grid gap-3 rounded-lg bg-muted/40 p-3 text-sm">
-                      <p className="font-medium">ตั้งค่า DNS ที่ผู้ให้บริการโดเมนของคุณ</p>
-                      <div className="grid gap-2 sm:grid-cols-[auto_1fr] sm:items-center sm:gap-x-4">
-                        <span className="text-xs text-muted-foreground">CNAME {d.hostname.split(".").slice(0, -2).join(".") || "@"} →</span>
-                        <CopyValue value={cnameTarget} label="ค่า CNAME" />
-                        <span className="text-xs text-muted-foreground">TXT _rentweb →</span>
-                        <CopyValue value={d.verificationToken ?? ""} label="ค่า TXT" />
+                    <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-3 rounded-lg bg-muted/40 p-3 text-sm">
+                      <p className="font-medium">เพิ่ม 2 record นี้ที่ผู้ให้บริการโดเมนของคุณ</p>
+                      <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
+                        <DnsRecord step={1} type="TXT" purpose="ยืนยันว่าคุณเป็นเจ้าของโดเมน" name={d.dns?.txt.name ?? `_rentweb.${d.hostname}`} value={d.dns?.txt.value ?? d.verificationToken ?? ""} />
+                        <DnsRecord step={2} type="CNAME" purpose="ชี้โดเมนมาที่หน้าร้านของคุณ" name={d.dns?.cname.name ?? d.hostname} value={d.dns?.cname.value ?? cnameTarget} />
                       </div>
-                      <p className="text-xs text-muted-foreground">DNS อาจใช้เวลา 5 นาที – 24 ชั่วโมงในการอัปเดต จากนั้นกด “ตรวจสอบ”</p>
-                      {d.lastError && <p className="text-xs text-destructive">{d.lastError}</p>}
+                      <p className="text-xs text-muted-foreground">
+                        บางผู้ให้บริการให้ใส่ชื่อเฉพาะส่วนหน้า (เช่น <span className="font-mono">_rentweb.www</span> และ <span className="font-mono">www</span>) · DNS อาจใช้เวลา 5 นาที – 24 ชั่วโมงในการอัปเดต จากนั้นกด “ตรวจสอบ DNS”
+                      </p>
+                      {d.lastError && (
+                        <p role="status" className="rounded-md bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
+                          ผลตรวจล่าสุด: {d.lastError}
+                        </p>
+                      )}
                     </div>
                   )}
                   {d.status === "active" && (

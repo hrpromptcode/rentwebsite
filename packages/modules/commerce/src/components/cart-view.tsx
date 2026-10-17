@@ -181,7 +181,7 @@ export function CartView({ initial, checkoutHref = "/checkout", continueHref = "
         </Link>
       </Stagger>
 
-      <Reveal delay={0.1} className="card p-5 md:p-6 lg:sticky lg:top-28">
+      <Reveal delay={0.1} className="card p-5 md:p-6 lg:sticky lg:top-[calc(var(--header-h,0px)+1rem)]">
         <h2 className="font-heading text-xl font-semibold">{L.orderSummary}</h2>
 
         <form onSubmit={applyCoupon} className="mt-5 grid gap-2">

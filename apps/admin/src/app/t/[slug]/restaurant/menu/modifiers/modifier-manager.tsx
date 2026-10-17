@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ListChecks, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@rentweb/ui/components/badge";
 import { Button } from "@rentweb/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@rentweb/ui/components/dialog";
+import { Dialog, DialogDescription, DialogTitle } from "@rentweb/ui/components/dialog";
 import { Input } from "@rentweb/ui/components/input";
 import { Switch } from "@rentweb/ui/components/switch";
 import { toast } from "@rentweb/ui/components/sonner";
@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/form";
 import { thb } from "@/lib/format";
 import { deleteModifierAction, deleteModifierGroupAction, saveModifierAction, saveModifierGroupAction } from "../actions";
+import { SCROLL_DIALOG_FORM, ScrollDialogBody, ScrollDialogContent, ScrollDialogFooter, ScrollDialogHeader } from "../../_components/scroll-dialog";
 
 type GroupDraft = { id: string | null; name: string; minSelect: string; maxSelect: string; required: boolean };
 type ModDraft = { id: string | null; groupId: string; name: string; priceDelta: string; available: boolean };
@@ -165,70 +166,74 @@ export function ModifierManager({ slug, groups, canEdit }: { slug: string; group
       )}
 
       <Dialog open={!!group} onOpenChange={(v) => !v && !pending && setGroup(null)}>
-        <DialogContent className="max-w-md">
+        <ScrollDialogContent className="sm:max-w-md">
           {group && (
-            <form onSubmit={saveGroup} className="grid gap-4" noValidate>
-              <DialogHeader>
+            <form onSubmit={saveGroup} className={SCROLL_DIALOG_FORM} noValidate>
+              <ScrollDialogHeader>
                 <DialogTitle>{group.id ? "แก้ไขกลุ่มตัวเลือก" : "เพิ่มกลุ่มตัวเลือก"}</DialogTitle>
                 <DialogDescription>“จำเป็น” บังคับให้ลูกค้าเลือกก่อนเพิ่มลงออเดอร์</DialogDescription>
-              </DialogHeader>
-              <Field label="ชื่อกลุ่ม" htmlFor="g-name" error={errors.name}>
-                <Input id="g-name" autoFocus value={group.name} onChange={(e) => setGroup({ ...group, name: e.target.value })} placeholder="เช่น ระดับความเผ็ด" maxLength={80} />
-              </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="เลือกขั้นต่ำ" htmlFor="g-min" error={errors.minSelect}>
-                  <Input id="g-min" inputMode="numeric" value={group.minSelect} onChange={(e) => setGroup({ ...group, minSelect: e.target.value })} />
+              </ScrollDialogHeader>
+              <ScrollDialogBody className="grid content-start gap-4">
+                <Field label="ชื่อกลุ่ม" htmlFor="g-name" error={errors.name}>
+                  <Input id="g-name" autoFocus value={group.name} onChange={(e) => setGroup({ ...group, name: e.target.value })} placeholder="เช่น ระดับความเผ็ด" maxLength={80} />
                 </Field>
-                <Field label="เลือกได้สูงสุด" htmlFor="g-max" error={errors.maxSelect}>
-                  <Input id="g-max" inputMode="numeric" value={group.maxSelect} onChange={(e) => setGroup({ ...group, maxSelect: e.target.value })} />
-                </Field>
-              </div>
-              <label className="flex min-h-11 items-center justify-between text-sm">
-                จำเป็นต้องเลือก
-                <Switch checked={group.required} onCheckedChange={(v) => setGroup({ ...group, required: v, minSelect: v && Number(group.minSelect) < 1 ? "1" : group.minSelect })} />
-              </label>
-              <DialogFooter>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="เลือกขั้นต่ำ" htmlFor="g-min" error={errors.minSelect}>
+                    <Input id="g-min" inputMode="numeric" value={group.minSelect} onChange={(e) => setGroup({ ...group, minSelect: e.target.value })} />
+                  </Field>
+                  <Field label="เลือกได้สูงสุด" htmlFor="g-max" error={errors.maxSelect}>
+                    <Input id="g-max" inputMode="numeric" value={group.maxSelect} onChange={(e) => setGroup({ ...group, maxSelect: e.target.value })} />
+                  </Field>
+                </div>
+                <label className="flex min-h-11 items-center justify-between text-sm">
+                  จำเป็นต้องเลือก
+                  <Switch checked={group.required} onCheckedChange={(v) => setGroup({ ...group, required: v, minSelect: v && Number(group.minSelect) < 1 ? "1" : group.minSelect })} />
+                </label>
+              </ScrollDialogBody>
+              <ScrollDialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setGroup(null)} disabled={pending}>
                   ยกเลิก
                 </Button>
                 <Button type="submit" disabled={pending}>
                   {pending && <Loader2 className="animate-spin" aria-hidden />} บันทึก
                 </Button>
-              </DialogFooter>
+              </ScrollDialogFooter>
             </form>
           )}
-        </DialogContent>
+        </ScrollDialogContent>
       </Dialog>
 
       <Dialog open={!!mod} onOpenChange={(v) => !v && !pending && setMod(null)}>
-        <DialogContent className="max-w-md">
+        <ScrollDialogContent className="sm:max-w-md">
           {mod && (
-            <form onSubmit={saveMod} className="grid gap-4" noValidate>
-              <DialogHeader>
+            <form onSubmit={saveMod} className={SCROLL_DIALOG_FORM} noValidate>
+              <ScrollDialogHeader>
                 <DialogTitle>{mod.id ? "แก้ไขตัวเลือก" : "เพิ่มตัวเลือก"}</DialogTitle>
                 <DialogDescription>ราคาเพิ่มเป็นบาท ใส่ 0 เมื่อไม่คิดเพิ่ม ใส่ติดลบเพื่อลดราคา</DialogDescription>
-              </DialogHeader>
-              <Field label="ชื่อตัวเลือก" htmlFor="m-name" error={errors.name}>
-                <Input id="m-name" autoFocus value={mod.name} onChange={(e) => setMod({ ...mod, name: e.target.value })} placeholder="เช่น เผ็ดกลาง, ไข่ดาว" maxLength={80} />
-              </Field>
-              <Field label="ราคาเพิ่ม (บาท)" htmlFor="m-price" error={errors.priceDelta}>
-                <Input id="m-price" inputMode="decimal" value={mod.priceDelta} onChange={(e) => setMod({ ...mod, priceDelta: e.target.value })} />
-              </Field>
-              <label className="flex min-h-11 items-center justify-between text-sm">
-                เปิดให้เลือก
-                <Switch checked={mod.available} onCheckedChange={(v) => setMod({ ...mod, available: v })} />
-              </label>
-              <DialogFooter>
+              </ScrollDialogHeader>
+              <ScrollDialogBody className="grid content-start gap-4">
+                <Field label="ชื่อตัวเลือก" htmlFor="m-name" error={errors.name}>
+                  <Input id="m-name" autoFocus value={mod.name} onChange={(e) => setMod({ ...mod, name: e.target.value })} placeholder="เช่น เผ็ดกลาง, ไข่ดาว" maxLength={80} />
+                </Field>
+                <Field label="ราคาเพิ่ม (บาท)" htmlFor="m-price" error={errors.priceDelta}>
+                  <Input id="m-price" inputMode="decimal" value={mod.priceDelta} onChange={(e) => setMod({ ...mod, priceDelta: e.target.value })} />
+                </Field>
+                <label className="flex min-h-11 items-center justify-between text-sm">
+                  เปิดให้เลือก
+                  <Switch checked={mod.available} onCheckedChange={(v) => setMod({ ...mod, available: v })} />
+                </label>
+              </ScrollDialogBody>
+              <ScrollDialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setMod(null)} disabled={pending}>
                   ยกเลิก
                 </Button>
                 <Button type="submit" disabled={pending}>
                   {pending && <Loader2 className="animate-spin" aria-hidden />} บันทึก
                 </Button>
-              </DialogFooter>
+              </ScrollDialogFooter>
             </form>
           )}
-        </DialogContent>
+        </ScrollDialogContent>
       </Dialog>
     </div>
   );

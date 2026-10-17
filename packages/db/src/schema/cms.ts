@@ -10,6 +10,8 @@ export type SeoJson = {
   noindex?: boolean;
   canonical?: string;
 };
+/** Unpublished edits to a published page's meta (title / slug / SEO / nav flag). The live columns only change on publish. */
+export type PageDraftMeta = { title: string; slug: string; showInNav: boolean; seo: SeoJson };
 
 export const pages = pgTable(
   "pages",
@@ -23,6 +25,7 @@ export const pages = pgTable(
     sections: jsonb("sections").$type<SectionJson[]>().notNull().default([]),
     publishedSections: jsonb("published_sections").$type<SectionJson[]>(),
     seo: jsonb("seo").$type<SeoJson>().notNull().default({}),
+    draftMeta: jsonb("draft_meta").$type<PageDraftMeta>(), // null = no pending meta edits
     showInNav: boolean("show_in_nav").notNull().default(false),
     sort: integer("sort").notNull().default(0),
     publishedAt: tz("published_at"),

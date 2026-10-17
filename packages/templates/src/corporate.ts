@@ -1,7 +1,7 @@
 import type { TemplateDefinition } from "@rentweb/core/tenant";
 import { forms, posts } from "@rentweb/db";
 import { section, hero, logos, features, stats, imageText, team, testimonials, pricing, faq, cta, steps } from "@rentweb/storefront/definitions";
-import { aboutPage, contactPage, legalPages, u, avatar } from "./shared";
+import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, u, avatar } from "./shared";
 
 export const corporate: TemplateDefinition = {
   key: "corporate",
@@ -11,6 +11,8 @@ export const corporate: TemplateDefinition = {
   siteType: "corporate",
   modules: [],
   themePreset: "quartz",
+  // ADMIN_B2-07: the sample brand; new (non-demo) shops get their own name instead
+  sampleBrand: ["Northstar"],
   recommendedPresets: ["quartz", "aurora", "midnight", "studio"],
   complexity: 1,
   previewImage: u("1497366216548-37526070297c", 1200),
@@ -151,7 +153,7 @@ export const corporate: TemplateDefinition = {
       ],
     },
     { slug: "careers", title: "ร่วมงานกับเรา", sections: [section(features, { variant: "icons", heading: "ทำไมต้องร่วมงานกับ Northstar", items: [{ icon: "Laptop", title: "Hybrid 3 วัน", description: "เข้าออฟฟิศ 2 วัน/สัปดาห์" }, { icon: "GraduationCap", title: "งบเรียนรู้ ฿30,000/ปี", description: "คอร์ส หนังสือ คอนเฟอเรนซ์" }, { icon: "HeartPulse", title: "ประกันสุขภาพกลุ่ม", description: "รวมทันตกรรมและสายตา" }, { icon: "Sun", title: "ลาพักร้อน 15 วัน", description: "เพิ่มตามอายุงาน" }] }), section(cta, { variant: "card", heading: "ส่งเรซูเม่มาคุยกัน", body: "เปิดรับ Frontend, Backend และ Product Designer", primaryCta: { label: "ส่งเรซูเม่", href: "mailto:jobs@northstar.co.th" } })] },
-    aboutPage({ eyebrow: "เกี่ยวกับเรา", heading: "Northstar — สตูดิโอซอฟต์แวร์ที่เชื่อในงานที่ใช้ได้จริง", body: "ก่อตั้งปี 2017 โดยวิศวกร 3 คนที่เบื่อระบบองค์กรที่ไม่มีใครอยากใช้ เราเติบโตเป็นทีม 35 คน ส่งมอบมากกว่า 120 โปรเจกต์ให้ธุรกิจค้าปลีก การเงิน และสุขภาพ\n\nเราวัดความสำเร็จจากตัวเลขของลูกค้า ไม่ใช่จำนวนฟีเจอร์" }),
+    aboutPage({ neutral: NEUTRAL_ABOUT.corporate, eyebrow: "เกี่ยวกับเรา", heading: "Northstar — สตูดิโอซอฟต์แวร์ที่เชื่อในงานที่ใช้ได้จริง", body: "ก่อตั้งปี 2017 โดยวิศวกร 3 คนที่เบื่อระบบองค์กรที่ไม่มีใครอยากใช้ เราเติบโตเป็นทีม 35 คน ส่งมอบมากกว่า 120 โปรเจกต์ให้ธุรกิจค้าปลีก การเงิน และสุขภาพ\n\nเราวัดความสำเร็จจากตัวเลขของลูกค้า ไม่ใช่จำนวนฟีเจอร์" }),
     contactPage({ heading: "ขอใบเสนอราคา / นัดคุย", body: "เล่าโปรเจกต์ของคุณคร่าว ๆ ทีมจะติดต่อกลับภายใน 1 วันทำการ" }),
     ...legalPages("Northstar"),
   ],

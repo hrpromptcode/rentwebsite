@@ -19,8 +19,10 @@ import { SECTION_DEFS } from "@rentweb/storefront/definitions";
 import type { SectionJson, SeoJson } from "@rentweb/db";
 import { describeSchema, type ObjectSpec } from "@/lib/zod-introspect";
 import { AutoForm } from "./auto-form";
-import { deletePage, publishPage, savePageDraft, unpublishPage } from "@/app/t/[slug]/pages/actions";
-import { uploadBrandAsset } from "@/app/t/[slug]/design/actions";
+import { createPagePreviewLink, deletePage, publishPage, savePageDraft, unpublishPage } from "@/app/t/[slug]/pages/actions";
+import { uploadSectionImage } from "@/app/t/[slug]/media/actions";
+import { MEDIA_MAX_BYTES, tooLargeMessage } from "@/app/t/[slug]/media/limits";
+import { useReturnFocus } from "@/lib/use-return-focus";
 
 const CATEGORY_TH: Record<string, string> = {
   hero: "ส่วนเปิดหน้า",
@@ -52,8 +54,14 @@ export interface SectionEditorProps {
   publishedAt: string | null;
   initialSections: SectionJson[];
   initialMeta: PageMeta;
+  /** slug the storefront serves right now (differs from initialMeta.slug while a rename waits for publish) */
+  liveSlug: string;
+  /** published page whose sections or meta differ from what the storefront shows */
+  hasUnpublishedChanges: boolean;
   enabledModules: string[];
   storefrontUrl: string;
+  /** staff+: may save drafts and upload section images */
+  canEdit: boolean;
   canPublish: boolean;
   canDelete: boolean;
 }
@@ -87,6 +95,13 @@ export function SectionEditor(props: SectionEditorProps) {
   const [seoOpen, setSeoOpen] = React.useState(false);
   const [pending, setPending] = React.useState<"save" | "publish" | null>(null);
   const [query, setQuery] = React.useState("");
+  const [liveSlug, setLiveSlug] = React.useState(props.liveSlug);
+  const [unpublished, setUnpublished] = React.useState(props.hasUnpublishedChanges);
+  const [previewing, setPreviewing] = React.useState(false);
+  // RESPONSIVE_B2-11: these dialogs are controlled (no DialogTrigger) - give focus back to whatever opened them
+  const addFocus = useReturnFocus();
+  const seoFocus = useReturnFocus();
+  const sheetFocus = useReturnFocus();
 
   const dirty = JSON.stringify({ sections, meta }) !== JSON.stringify(saved);
 
@@ -116,17 +131,27 @@ export function SectionEditor(props: SectionEditorProps) {
     return CATEGORY_ORDER.filter((c) => groups[c]?.length).map((c) => ({ key: c, label: CATEGORY_TH[c] ?? c, defs: groups[c]! }));
   }, [enabledModules, query]);
 
+  // ADMIN_B2-14: section images go to the media library with the same role as saving a draft (staff+); every
+  // failure (size, type, permission, network) is a toast instead of a silent no-op
   const upload = React.useCallback(
     async (file: File) => {
-      const fd = new FormData();
-      fd.set("file", file);
-      fd.set("folder", "media");
-      const r = await uploadBrandAsset(tenantSlug, fd);
-      if (!r.ok) {
-        toast.error(r.error);
+      if (file.size > MEDIA_MAX_BYTES) {
+        toast.error(tooLargeMessage(file.name, file.size));
         return null;
       }
-      return r.url ?? null;
+      try {
+        const fd = new FormData();
+        fd.set("file", file);
+        const r = await uploadSectionImage(tenantSlug, fd);
+        if (!r.ok) {
+          toast.error(r.error);
+          return null;
+        }
+        return r.url ?? null;
+      } catch (e) {
+        toast.error(e instanceof Error && e.message ? e.message : "อัปโหลดรูปไม่สำเร็จ");
+        return null;
+      }
     },
     [tenantSlug],
   );
@@ -162,19 +187,64 @@ export function SectionEditor(props: SectionEditorProps) {
   };
   const updateProps = (id: string, props: Record<string, unknown>) => setSections((list) => list.map((s) => (s.id === id ? { ...s, props } : s)));
 
-  async function doSave() {
+  async function doSave(): Promise<boolean> {
     setPending("save");
     try {
       const r = await savePageDraft(tenantSlug, pageId, { sections, meta });
-      if (!r.ok) return toast.error(r.error);
-      setSaved({ sections, meta });
-      const newSlug = (r.data as { slug?: string } | undefined)?.slug;
-      if (newSlug && newSlug !== meta.slug) setMeta((m) => ({ ...m, slug: newSlug }));
+      if (!r.ok) {
+        toast.error(r.error);
+        return false;
+      }
+      const data = r.data as { slug?: string; pending?: boolean } | undefined;
+      const newSlug = data?.slug;
+      const savedMeta = newSlug && newSlug !== meta.slug ? { ...meta, slug: newSlug } : meta;
+      if (savedMeta !== meta) setMeta(savedMeta);
+      setSaved({ sections, meta: savedMeta });
+      if (status !== "published" && newSlug) setLiveSlug(newSlug);
+      setUnpublished(!!data?.pending);
       toast.success(r.message ?? "บันทึกแล้ว");
+      return true;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "บันทึกไม่สำเร็จ");
+      return false;
     } finally {
       setPending(null);
+    }
+  }
+  /**
+   * ADMIN_B2-02: preview the DRAFT. Unsaved edits are saved as a draft first (never published), then the storefront's
+   * preview route is opened with a short-lived signed token for this page.
+   */
+  async function doPreview() {
+    // open the tab inside the click (popup blockers), point it at the signed URL once we have it
+    const win = window.open("", "_blank");
+    setPreviewing(true);
+    try {
+      if (dirty) {
+        if (!props.canEdit) toast.info("ตัวอย่างแสดงฉบับร่างที่บันทึกไว้ล่าสุด (คุณไม่มีสิทธิ์บันทึกการแก้ไข)");
+        else if (!(await doSave())) {
+          win?.close();
+          return;
+        }
+      }
+      const r = await createPagePreviewLink(tenantSlug, pageId);
+      if (!r.ok) {
+        win?.close();
+        toast.error(r.error);
+        return;
+      }
+      const url = (r.data as { url: string }).url;
+      if (win) {
+        win.opener = null;
+        win.location.href = url;
+      } else {
+        window.open(url, "_blank", "noopener");
+      }
+    } catch (e) {
+      win?.close();
+      toast.error(e instanceof Error ? e.message : "เปิดตัวอย่างไม่สำเร็จ");
+    } finally {
+      setPreviewing(false);
     }
   }
   async function doPublish() {
@@ -184,6 +254,8 @@ export function SectionEditor(props: SectionEditorProps) {
       if (!r.ok) return toast.error(r.error);
       setSaved({ sections, meta });
       setStatus("published");
+      setLiveSlug(meta.slug);
+      setUnpublished(false);
       toast.success(r.message ?? "เผยแพร่แล้ว");
       router.refresh();
     } catch (e) {
@@ -212,7 +284,8 @@ export function SectionEditor(props: SectionEditorProps) {
   const current = sections.find((s) => s.id === selected) ?? null;
   const currentDef = current ? SECTION_DEFS[current.type] : null;
   const currentSpec = current ? specs[current.type] : null;
-  const previewHref = `${storefrontUrl}${kind === "home" ? "/" : `/${meta.slug}`}`;
+  const liveHref = `${storefrontUrl}${kind === "home" ? "/" : `/${liveSlug}`}`;
+  const slugPending = kind !== "home" && status === "published" && meta.slug !== liveSlug;
 
   const propsPanel = current && (
     <div className="space-y-4">
@@ -231,7 +304,7 @@ export function SectionEditor(props: SectionEditorProps) {
         </div>
       </div>
       {currentSpec ? (
-        <AutoForm spec={currentSpec} value={current.props} onChange={(v) => updateProps(current.id, v)} upload={upload} resolveUrl={resolveUrl} />
+        <AutoForm spec={currentSpec} value={current.props} onChange={(v) => updateProps(current.id, v)} upload={props.canEdit ? upload : undefined} resolveUrl={resolveUrl} />
       ) : (
         <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">ไม่พบนิยามของเซ็กชันชนิด “{current.type}” — เซ็กชันนี้จะถูกซ่อนจากหน้าร้าน</p>
       )}
@@ -252,11 +325,18 @@ export function SectionEditor(props: SectionEditorProps) {
             <div className="flex items-center gap-2">
               <input value={meta.title} onChange={(e) => setMeta((m) => ({ ...m, title: e.target.value }))} className="min-w-0 max-w-full bg-transparent font-heading text-xl font-semibold tracking-tight outline-none focus:underline sm:text-2xl" aria-label="ชื่อหน้า" />
               <Badge variant={status === "published" ? "success" : "muted"}>{status === "published" ? "เผยแพร่แล้ว" : "ฉบับร่าง"}</Badge>
+              {status === "published" && unpublished && !dirty && (
+                <Badge variant="outline" className="hidden border-amber-300 text-amber-700 sm:inline-flex dark:text-amber-300">
+                  มีการแก้ไขที่ยังไม่เผยแพร่
+                </Badge>
+              )}
             </div>
             <p className="truncate text-xs text-muted-foreground">
               {storefrontUrl.replace(/^https?:\/\//, "")}
               {kind === "home" ? "/" : `/${meta.slug}`}
+              {slugPending && <span className="ml-2">(หน้าร้านยังใช้ /{liveSlug} จนกว่าจะเผยแพร่)</span>}
               {dirty && <span className="ml-2 text-amber-600">• ยังไม่บันทึก</span>}
+              {!dirty && status === "published" && unpublished && <span className="ml-2 text-amber-600 sm:hidden">• ยังไม่เผยแพร่</span>}
             </p>
           </div>
         </div>
@@ -264,12 +344,10 @@ export function SectionEditor(props: SectionEditorProps) {
           <Button type="button" variant="outline" size="sm" onClick={() => setSeoOpen(true)}>
             <Settings2 aria-hidden /> ตั้งค่าหน้า & SEO
           </Button>
-          <Button asChild variant="outline" size="sm">
-            <a href={previewHref} target="_blank" rel="noreferrer">
-              <ExternalLink aria-hidden /> ดูตัวอย่าง
-            </a>
+          <Button type="button" variant="outline" size="sm" onClick={doPreview} disabled={previewing || !!pending} title="เปิดฉบับร่างในแท็บใหม่ (ยังไม่เผยแพร่)">
+            {previewing ? <Loader2 className="animate-spin" aria-hidden /> : <Eye aria-hidden />} ดูตัวอย่าง
           </Button>
-          <Button type="button" variant="secondary" size="sm" onClick={doSave} disabled={!dirty || !!pending}>
+          <Button type="button" variant="secondary" size="sm" onClick={doSave} disabled={!props.canEdit || !dirty || !!pending}>
             {pending === "save" ? <Loader2 className="animate-spin" aria-hidden /> : <Save aria-hidden />} บันทึกร่าง
           </Button>
           {props.canPublish && (
@@ -284,6 +362,13 @@ export function SectionEditor(props: SectionEditorProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {status === "published" && (
+                <DropdownMenuItem asChild>
+                  <a href={liveHref} target="_blank" rel="noreferrer">
+                    <ExternalLink aria-hidden /> เปิดหน้าที่เผยแพร่อยู่
+                  </a>
+                </DropdownMenuItem>
+              )}
               {kind !== "home" && status === "published" && props.canPublish && <DropdownMenuItem onClick={doUnpublish}>ซ่อนจากหน้าร้าน (กลับเป็นร่าง)</DropdownMenuItem>}
               {kind !== "home" && props.canDelete && (
                 <>
@@ -371,7 +456,7 @@ export function SectionEditor(props: SectionEditorProps) {
       {/* Props panel (mobile sheet) */}
       {!desktop && (
         <Sheet open={!!current} onOpenChange={(o) => !o && setSelected(null)}>
-          <SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto p-5 pt-6">
+          <SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto p-5 pt-6" {...sheetFocus}>
             <SheetHeader className="p-0 pb-3">
               <SheetTitle className="sr-only">แก้ไขเซ็กชัน</SheetTitle>
             </SheetHeader>
@@ -380,7 +465,7 @@ export function SectionEditor(props: SectionEditorProps) {
               <Button type="button" variant="outline" className="flex-1" onClick={() => setSelected(null)}>
                 เสร็จ
               </Button>
-              <Button type="button" className="flex-1" onClick={doSave} disabled={!dirty || !!pending}>
+              <Button type="button" className="flex-1" onClick={doSave} disabled={!props.canEdit || !dirty || !!pending}>
                 {pending === "save" ? <Loader2 className="animate-spin" aria-hidden /> : <Save aria-hidden />} บันทึกร่าง
               </Button>
             </div>
@@ -390,7 +475,7 @@ export function SectionEditor(props: SectionEditorProps) {
 
       {/* Add section dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-2xl" {...addFocus}>
           <DialogHeader>
             <DialogTitle>เพิ่มเซ็กชัน</DialogTitle>
             <DialogDescription>เลือกบล็อกที่ต้องการ — แสดงเฉพาะเซ็กชันของโมดูลที่ร้านคุณเปิดใช้</DialogDescription>
@@ -425,11 +510,16 @@ export function SectionEditor(props: SectionEditorProps) {
 
       {/* Meta / SEO dialog */}
       <Dialog open={seoOpen} onOpenChange={setSeoOpen}>
-        <DialogContent className="max-h-[85dvh] overflow-y-auto">
+        <DialogContent className="max-h-[85dvh] overflow-y-auto" {...seoFocus}>
           <DialogHeader>
             <DialogTitle>ตั้งค่าหน้าและ SEO</DialogTitle>
             <DialogDescription>ชื่อ ที่อยู่ และข้อมูลที่แสดงบน Google และเมื่อแชร์ลิงก์</DialogDescription>
           </DialogHeader>
+          {status === "published" && (
+            <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
+              ค่าที่แก้ที่นี่ถูกบันทึกเป็นฉบับร่าง หน้าร้านจะเปลี่ยนเมื่อกด “เผยแพร่”{props.canPublish ? "" : " (ผู้จัดการขึ้นไปเป็นผู้เผยแพร่)"}
+            </p>
+          )}
           <div className="grid gap-4">
             <div className="grid gap-1.5">
               <Label htmlFor="meta-title">ชื่อหน้า</Label>
@@ -478,12 +568,11 @@ export function SectionEditor(props: SectionEditorProps) {
               <Button
                 type="button"
                 onClick={async () => {
-                  await doSave();
-                  setSeoOpen(false);
+                  if (await doSave()) setSeoOpen(false);
                 }}
-                disabled={!!pending}
+                disabled={!props.canEdit || !!pending}
               >
-                <Globe aria-hidden /> บันทึก
+                <Globe aria-hidden /> บันทึกร่าง
               </Button>
             </div>
           </div>

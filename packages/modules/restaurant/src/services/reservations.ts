@@ -2,7 +2,7 @@ import { and, eq, gt, inArray, lt, notInArray, sql } from "drizzle-orm";
 import { diningTables, nextCounter, payments, reservations, type Tx } from "@rentweb/db";
 import { emitEvent, fail, isUuid, normalizeThaiPhone, ok, type Result } from "@rentweb/core";
 import { cancelPayment, createPayment, getPayment, isPaymentStateError, refundRequired, type PaymentClosedInfo, type PaymentPaidResult } from "@rentweb/core/payments";
-import { upsertGuestCustomer } from "@rentweb/core/customer";
+import { CUSTOMER_BLOCKED_CODE, CUSTOMER_BLOCKED_MESSAGE, isCustomerBlocked, upsertGuestCustomer } from "@rentweb/core/customer";
 import { addDays, bangkokParts } from "./time";
 
 export type Reservation = typeof reservations.$inferSelect;
@@ -215,6 +215,8 @@ export async function createReservation(tx: Tx, tenantId: string, input: CreateR
   if (maxAdvance !== null && bangkokParts(input.startsAt).ymd > lastBookableDay(now, maxAdvance)) return fail(`จองล่วงหน้าได้ไม่เกิน ${maxAdvance} วัน`, "too_far");
   const endsAt = new Date(input.startsAt.getTime() + (input.durationMinutes ?? RESERVATION_MINUTES) * 60_000);
   const zone = input.zone?.trim() || null;
+  // ADMIN_B2-13: a customer the shop blocked cannot reserve (signed in, or a guest using their phone / e-mail)
+  if (await isCustomerBlocked(tx, tenantId, { customerId: input.customerId ?? null, phone, email: input.email ?? null })) return fail(CUSTOMER_BLOCKED_MESSAGE, CUSTOMER_BLOCKED_CODE);
 
   await lockReservations(tx, tenantId);
   const avail = await checkAvailability(tx, tenantId, { startsAt: input.startsAt, endsAt, zone, partySize });

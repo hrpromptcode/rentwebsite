@@ -299,7 +299,7 @@ export function ItemForm({ slug, item, categories, groups, defaultCategoryId, ca
             </div>
             {canEdit && (
               <div className="flex gap-2">
-                <input ref={fileRef} type="file" accept="image/*" className="sr-only" id="image-file" onChange={(e) => upload(e.target.files?.[0])} />
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" id="image-file" tabIndex={-1} aria-hidden="true" onChange={(e) => upload(e.target.files?.[0])} />
                 <Button type="button" variant="outline" className="flex-1" onClick={() => fileRef.current?.click()} disabled={uploading}>
                   <Upload aria-hidden /> อัปโหลดรูป
                 </Button>

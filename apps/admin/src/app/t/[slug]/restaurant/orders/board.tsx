@@ -262,7 +262,7 @@ function OrderCard({ slug, o, now, isNew, busy, canWrite, canMoney, run }: { slu
             <span className="w-7 shrink-0 font-semibold tabular-nums">{it.quantity}×</span>
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1.5">
-                <span className="truncate font-medium">{it.name}</span>
+                <span className="-my-0.5 truncate py-0.5 font-medium">{it.name}</span>
                 {it.status === "done" && !finished && <Check className="size-3.5 shrink-0 text-emerald-600" aria-label="ทำเสร็จแล้ว" />}
               </span>
               {it.modifiers.length > 0 && <span className="block text-xs text-muted-foreground">{it.modifiers.map((m) => m.name).join(" · ")}</span>}

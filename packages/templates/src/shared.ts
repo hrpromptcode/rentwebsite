@@ -5,15 +5,30 @@ import { section, contact, text, faq, cta } from "@rentweb/storefront/definition
 export const u = (id: string, w = 1600, extra = "") => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80${extra}`;
 export const avatar = (seed: string) => `https://i.pravatar.cc/160?u=${encodeURIComponent(seed)}`;
 
-export function aboutPage(opts: { title?: string; heading: string; body: string; eyebrow?: string }): TemplatePage {
+/**
+ * Brand-neutral About copy for NEW shops (ADMIN_B2-07): the demo About page tells the sample brand's own story
+ * (founding year, founder, hometown), which must never be published under a real owner's shop name.
+ * "{{name}}" is replaced with the tenant's name at provisioning.
+ */
+export const NEUTRAL_ABOUT = {
+  default: { heading: "เกี่ยวกับ {{name}}", body: "ยินดีต้อนรับสู่ {{name}} เราตั้งใจดูแลลูกค้าทุกท่านอย่างใส่ใจ หากมีคำถามหรือต้องการข้อมูลเพิ่มเติม ติดต่อเราได้ทุกช่องทางในหน้า “ติดต่อเรา”" },
+  shop: { heading: "เกี่ยวกับ {{name}}", body: "{{name}} คัดสรรสินค้าที่เราอยากส่งต่อให้คุณ ทุกออเดอร์แพ็กอย่างใส่ใจและมีทีมงานดูแลหลังการขาย หากมีคำถามเรื่องสินค้า ขนาด หรือการจัดส่ง ทักมาคุยกับเราได้เลย" },
+  cafe: { heading: "เกี่ยวกับ {{name}}", body: "{{name}} ตั้งใจทำขนมและเครื่องดื่มให้สดใหม่ทุกวัน เลือกวัตถุดิบที่เราไว้ใจ และพร้อมรับออร์เดอร์พิเศษสำหรับทุกโอกาส แวะมาที่ร้านหรือสั่งออนไลน์ได้เลย" },
+  salon: { heading: "เกี่ยวกับ {{name}}", body: "{{name}} อยากให้ทุกการมาใช้บริการเป็นเวลาพักผ่อนที่คุ้มค่า ทีมงานดูแลทุกขั้นตอนอย่างใส่ใจ จองคิวออนไลน์ล่วงหน้าได้ตลอด 24 ชั่วโมง" },
+  restaurant: { heading: "เกี่ยวกับ {{name}}", body: "{{name}} ปรุงอาหารทุกจานสดใหม่ด้วยวัตถุดิบที่คัดสรร พร้อมต้อนรับทั้งทานที่ร้าน สั่งกลับบ้าน และจองโต๊ะล่วงหน้า" },
+  corporate: { heading: "เกี่ยวกับ {{name}}", body: "{{name}} ทำงานร่วมกับลูกค้าอย่างใกล้ชิด ตั้งแต่ทำความเข้าใจโจทย์ไปจนถึงส่งมอบงานและดูแลต่อเนื่อง ติดต่อเราเพื่อพูดคุยว่าเราช่วยธุรกิจของคุณได้อย่างไร" },
+  clinic: { heading: "เกี่ยวกับ {{name}}", body: "{{name}} ให้คำปรึกษาก่อนทุกการรักษา และดูแลผู้รับบริการอย่างใส่ใจในทุกขั้นตอน นัดหมายล่วงหน้าออนไลน์ได้ตลอด 24 ชั่วโมง" },
+} as const;
+
+export function aboutPage(opts: { title?: string; heading: string; body: string; eyebrow?: string; /** About copy for new (non-demo) shops, see NEUTRAL_ABOUT */ neutral?: { heading: string; body: string } }): TemplatePage {
+  const neutral = opts.neutral ?? NEUTRAL_ABOUT.default;
+  const contactCta = () => section(cta, { heading: "มีคำถาม? ทักเรามาได้เลย", body: "ทีมงานพร้อมตอบทุกคำถามผ่าน LINE ภายในไม่กี่นาที", primaryCta: { label: "ติดต่อเรา", href: "/contact" }, variant: "card" });
   return {
     slug: "about",
     title: opts.title ?? "เกี่ยวกับเรา",
     showInNav: false,
-    sections: [
-      section(text, { eyebrow: opts.eyebrow ?? "เกี่ยวกับเรา", heading: opts.heading, body: opts.body, size: "large" }),
-      section(cta, { heading: "มีคำถาม? ทักเรามาได้เลย", body: "ทีมงานพร้อมตอบทุกคำถามผ่าน LINE ภายในไม่กี่นาที", primaryCta: { label: "ติดต่อเรา", href: "/contact" }, variant: "card" }),
-    ],
+    sections: [section(text, { eyebrow: opts.eyebrow ?? "เกี่ยวกับเรา", heading: opts.heading, body: opts.body, size: "large" }), contactCta()],
+    neutralSections: [section(text, { eyebrow: opts.eyebrow ?? "เกี่ยวกับเรา", heading: neutral.heading, body: neutral.body, size: "large" }), contactCta()],
   };
 }
 

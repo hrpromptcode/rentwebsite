@@ -40,7 +40,7 @@ export default async function StaffProfilePage({ params }: { params: Params }) {
             {L.staff}
           </Link>
         </nav>
-        <div className="grid gap-8 md:grid-cols-[minmax(0,320px)_1fr] md:gap-12">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-8 md:grid-cols-[minmax(0,320px)_minmax(0,1fr)] md:gap-12">
           <Reveal>
             <div className="relative mx-auto aspect-square w-full max-w-[320px] overflow-hidden rounded-[var(--radius-xl)] bg-muted" style={{ boxShadow: `0 20px 50px -20px ${person.color}66` }}>
               {person.avatar ? (
@@ -72,7 +72,7 @@ export default async function StaffProfilePage({ params }: { params: Params }) {
             {services.length === 0 ? (
               <p className="mt-3 text-sm text-muted-foreground">ยังไม่มีบริการที่เปิดให้จอง</p>
             ) : (
-              <Stagger className="mt-4 grid gap-3">
+              <Stagger className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-3">
                 {services.map((s) => {
                   const price = s.priceOverride ?? s.price;
                   const duration = s.durationOverrideMin ?? s.durationMin;

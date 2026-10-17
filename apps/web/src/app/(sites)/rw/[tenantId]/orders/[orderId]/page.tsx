@@ -80,7 +80,7 @@ export default async function OrderPage({ params, searchParams }: { params: Para
         <div className="mx-auto max-w-3xl">
           <Reveal className="mb-6 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold tracking-[0.25em] text-primary uppercase">{L.orderStatus}</p>
+              <p className="text-xs font-semibold tracking-[0.25em] text-primary-ink uppercase">{L.orderStatus}</p>
               <h1 className="heading-display mt-1 text-4xl font-semibold md:text-5xl">{label("orderTitle", { number: order.number })}</h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 {L.orderPlacedAt} {dateTimeTh(order.placedAt)}

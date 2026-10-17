@@ -108,9 +108,9 @@ export async function OrdersHistory({ slug, ctx, sp }: { slug: string; ctx: Tena
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ออเดอร์</TableHead>
+                <TableHead className="max-md:w-full">ออเดอร์</TableHead>
                 <TableHead className="hidden md:table-cell">ประเภท</TableHead>
-                <TableHead className="hidden lg:table-cell">รายการ</TableHead>
+                <TableHead className="hidden w-full xl:table-cell">รายการ</TableHead>
                 <TableHead>สถานะ</TableHead>
                 <TableHead className="hidden sm:table-cell">การชำระ</TableHead>
                 <TableHead className="text-right">ยอด</TableHead>
@@ -119,10 +119,10 @@ export async function OrdersHistory({ slug, ctx, sp }: { slug: string; ctx: Tena
             <TableBody>
               {history.rows.map((o) => (
                 <TableRow key={o.id}>
-                  <TableCell>
+                  <TableCell className="max-md:max-w-0">
                     <span className="block font-medium">{o.number}</span>
                     <span className="block text-xs text-muted-foreground">{fmtDate(o.placedAt, { withTime: true })}</span>
-                    <span className="block text-xs text-muted-foreground md:hidden">
+                    <span className="block truncate text-xs text-muted-foreground md:hidden">
                       {o.type === "dine_in" ? `โต๊ะ ${o.tableName ?? "—"}` : ORDER_TYPE_LABEL[o.type]}
                       {o.guestLabel || o.customerName ? ` · ${o.guestLabel ?? o.customerName}` : ""}
                     </span>
@@ -131,7 +131,7 @@ export async function OrdersHistory({ slug, ctx, sp }: { slug: string; ctx: Tena
                     <span className="block">{o.type === "dine_in" ? `โต๊ะ ${o.tableName ?? "—"}` : ORDER_TYPE_LABEL[o.type]}</span>
                     <span className="block text-xs text-muted-foreground">{o.guestLabel ?? o.customerName ?? ""}</span>
                   </TableCell>
-                  <TableCell className="hidden max-w-xs lg:table-cell">
+                  <TableCell className="hidden max-w-0 xl:table-cell">
                     <span className="block truncate text-sm">{o.items.map((i) => `${i.quantity}× ${i.name}`).join(", ")}</span>
                   </TableCell>
                   <TableCell>

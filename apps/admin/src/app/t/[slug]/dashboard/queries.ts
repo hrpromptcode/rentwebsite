@@ -1,8 +1,8 @@
 import "server-only";
-import { auditLogs, desc, eq, eventsOutbox, getAdminDb, tenantDomains } from "@rentweb/db";
+import { and, auditLogs, desc, eq, eventsOutbox, getAdminDb, pages, tenantDomains } from "@rentweb/db";
 import { daysAgo, startOfTodayBangkok } from "@/lib/format";
 import { tenantTx, type TenantCtx } from "@/lib/tenant";
-import { computeKpis, type Kpis } from "./kpis";
+import { computeKpis, PAYMENT_MODULES, type Kpis } from "./kpis";
 
 export type { Kpis } from "./kpis";
 
@@ -12,6 +12,8 @@ export interface ChecklistItem {
   description: string;
   done: boolean;
   href: string;
+  /** "(ถ้ามี)" items do not hold back the progress bar */
+  optional?: boolean;
 }
 
 export interface ActivityItem {
@@ -40,6 +42,12 @@ export async function getDashboardData(ctx: TenantCtx): Promise<DashboardData> {
   const createdCutoff = new Date(ctx.tenant.createdAt.getTime() + 5 * 60_000);
 
   const kpiPromise = tenantTx(tenantId, (tx) => computeKpis(tx, { tenantId, modules: ctx.modules, today, tomorrow, since7, createdCutoff }));
+  // ADMIN_B2-06: sites without an item module (corporate / CMS-only) complete "content" by publishing their own page
+  const hasItemModule = hasCommerce || hasRestaurant || hasBooking || hasTopup;
+  const takesPayments = PAYMENT_MODULES.some((m) => ctx.modules.includes(m));
+  const pagesPromise: Promise<Array<{ id: string; kind: string; publishedAt: Date | null }>> = hasItemModule
+    ? Promise.resolve([])
+    : tenantTx(tenantId, (tx) => tx.select({ id: pages.id, kind: pages.kind, publishedAt: pages.publishedAt }).from(pages).where(and(eq(pages.tenantId, tenantId), eq(pages.status, "published"))));
 
   const db = getAdminDb();
   const [domainsRows, audits, events] = await Promise.all([
@@ -48,6 +56,9 @@ export async function getDashboardData(ctx: TenantCtx): Promise<DashboardData> {
     db.select().from(eventsOutbox).where(eq(eventsOutbox.tenantId, tenantId)).orderBy(desc(eventsOutbox.createdAt)).limit(8),
   ]);
   const { kpis, realItem } = await kpiPromise;
+  const publishedPages = await pagesPromise;
+  const homePage = publishedPages.find((p) => p.kind === "home");
+  const ownPagePublished = publishedPages.some((p) => !!p.publishedAt && p.publishedAt > createdCutoff);
 
   const theme = (ctx.tenant.theme ?? {}) as Record<string, unknown>;
   const brand = (theme.brand ?? {}) as Record<string, unknown>;
@@ -62,12 +73,17 @@ export async function getDashboardData(ctx: TenantCtx): Promise<DashboardData> {
   const checklist: ChecklistItem[] = [
     { key: "logo", label: "อัปโหลดโลโก้", description: "โลโก้แสดงบนส่วนหัวและแท็บเบราว์เซอร์", done: !!brand.logo || !!steps.logo, href: `${base}/design#brand` },
     { key: "theme", label: "ปรับสีและธีม", description: "เลือก preset หรือปรับสีหลักให้เข้ากับแบรนด์", done: Object.keys(colors).length > 0 || Object.keys(fonts).length > 0 || !!steps.theme, href: `${base}/design` },
-    { key: "content", label: "เพิ่มรายการจริงอย่างน้อย 1 รายการ", description: "สินค้า บริการ เมนูอาหาร หรือเกมของคุณเอง แทนข้อมูลตัวอย่าง", done: realItem || !!steps.content, href: hasCommerce ? `${base}/products` : hasRestaurant ? `${base}/restaurant/menu` : hasBooking ? `${base}/services` : hasTopup ? `${base}/topup/games` : `${base}/pages` },
-    { key: "payments", label: "ตั้งค่าช่องทางรับเงิน", description: "PromptPay ID หรือบัญชีธนาคารสำหรับรับโอน", done: !!payments.promptpayId || (Array.isArray(payments.bankAccounts) && payments.bankAccounts.length > 0) || !!steps.payments, href: `${base}/settings/payments` },
+    hasItemModule
+      ? { key: "content", label: "เพิ่มรายการจริงอย่างน้อย 1 รายการ", description: "สินค้า บริการ เมนูอาหาร หรือเกมของคุณเอง แทนข้อมูลตัวอย่าง", done: realItem || !!steps.content, href: hasCommerce ? `${base}/products` : hasRestaurant ? `${base}/restaurant/menu` : hasBooking ? `${base}/services` : `${base}/topup/games` }
+      : { key: "content", label: "แก้ไขและเผยแพร่หน้าเว็บของคุณ", description: "เปลี่ยนข้อความและรูปตัวอย่างบนหน้าแรกให้เป็นของธุรกิจคุณ แล้วกด “เผยแพร่”", done: ownPagePublished || !!steps.content, href: homePage ? `${base}/pages/${homePage.id}` : `${base}/pages` },
+    ...(takesPayments
+      ? [{ key: "payments", label: "ตั้งค่าช่องทางรับเงิน", description: "PromptPay ID หรือบัญชีธนาคารสำหรับรับโอน", done: !!payments.promptpayId || (Array.isArray(payments.bankAccounts) && payments.bankAccounts.length > 0) || !!steps.payments, href: `${base}/settings/payments` }]
+      : []),
     { key: "line", label: "เชื่อม LINE", description: "ใส่ LINE ID เพื่อให้ลูกค้าติดต่อได้ทันที", done: !!contact.lineId || !!(settings.line as Record<string, unknown> | undefined)?.channelId || !!steps.line, href: `${base}/settings` },
-    { key: "domain", label: "ตั้งค่าโดเมนส่วนตัว (ถ้ามี)", description: "เชื่อมโดเมนของคุณเอง เช่น www.myshop.com", done: domainsRows.some((d) => d.kind === "custom") || !!steps.domain, href: `${base}/settings/domains` },
+    { key: "domain", label: "ตั้งค่าโดเมนส่วนตัว (ถ้ามี)", description: "เชื่อมโดเมนของคุณเอง เช่น www.myshop.com", done: domainsRows.some((d) => d.kind === "custom") || !!steps.domain, href: `${base}/settings/domains`, optional: true },
   ];
-  const progress = Math.round((checklist.filter((c) => c.done).length / checklist.length) * 100);
+  const required = checklist.filter((c) => !c.optional);
+  const progress = Math.round((required.filter((c) => c.done).length / Math.max(1, required.length)) * 100);
 
   const activity: ActivityItem[] = [
     ...audits.map((a) => ({ id: a.id, kind: "audit" as const, title: describeAudit(a.action, a.actorType), at: a.createdAt })),

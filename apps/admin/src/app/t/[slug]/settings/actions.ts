@@ -1,12 +1,11 @@
 "use server";
 
-import { promises as dns } from "node:dns";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { and, eq, getAdminDb, ne, tenantDomains, tenantInvitations, tenantMembers, tenants, user } from "@rentweb/db";
-import { invalidateTenant } from "@rentweb/core/tenant";
+import { and, eq, getAdminDb, ne, tenantInvitations, tenantMembers, tenants, user } from "@rentweb/db";
+import { claimCustomDomain, invalidateTenant, removeCustomDomain, verifyCustomDomain } from "@rentweb/core/tenant";
+import { isUuid } from "@rentweb/core";
 import { randomToken } from "@rentweb/core/crypto";
-import { rootDomain } from "@rentweb/core/env";
 import { auditLog } from "@/lib/audit";
 import { OWN_ACTION_AUDIT, ownStatusTransition, type OwnStatusAction, type TenantStatus } from "@/lib/tenant-status";
 import { loadTenantStatusState } from "@/lib/tenant-status-server";
@@ -90,73 +89,40 @@ export async function savePayments(slug: string, input: PaymentsInput): Promise<
 }
 
 /* ---------------------------------- domains --------------------------------- */
-
-const HOSTNAME_RE = /^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/;
+// ADMIN_B2-11: claim / verify / remove go through @rentweb/core/tenant (platform_b4). A claim stays "pending"
+// (never routed, never blocks the real owner) until TXT + CNAME prove DNS control; only "active" rows route.
 
 export async function addDomain(slug: string, hostnameRaw: string): Promise<ActionResult> {
   const ctx = await getTenantCtx(slug);
   assertRole(ctx, "admin");
-  const hostname = hostnameRaw.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
-  if (!HOSTNAME_RE.test(hostname)) return { ok: false, error: "ชื่อโดเมนไม่ถูกต้อง เช่น www.myshop.com" };
-  const root = rootDomain().toLowerCase();
-  if (hostname === root || hostname.endsWith(`.${root}`)) return { ok: false, error: `โดเมนภายใต้ ${root} ถูกจัดการโดยระบบอยู่แล้ว` };
-  const db = getAdminDb();
-  const [exists] = await db.select({ id: tenantDomains.id }).from(tenantDomains).where(eq(tenantDomains.hostname, hostname)).limit(1);
-  if (exists) return { ok: false, error: "โดเมนนี้ถูกใช้งานแล้ว" };
-  const [row] = await db
-    .insert(tenantDomains)
-    .values({ tenantId: ctx.tenant.id, hostname, kind: "custom", status: "pending", verificationToken: `rentweb-verify=${randomToken(16)}` })
-    .returning({ id: tenantDomains.id });
-  await auditLog({ tenantId: ctx.tenant.id, ...actor(ctx), action: "domain.add", targetType: "domain", targetId: row?.id, diff: { hostname } });
+  const r = await claimCustomDomain(getAdminDb(), ctx.tenant.id, String(hostnameRaw ?? ""));
+  if (!r.ok) return { ok: false, error: r.error };
+  await auditLog({ tenantId: ctx.tenant.id, ...actor(ctx), action: "domain.add", targetType: "domain", targetId: r.domain.id, diff: { hostname: r.domain.hostname } });
   await refresh(ctx, ["/settings/domains", "/dashboard"]);
-  return { ok: true, message: "เพิ่มโดเมนแล้ว ตั้งค่า DNS ตามคำแนะนำแล้วกดตรวจสอบ" };
+  return { ok: true, message: `เพิ่ม ${r.domain.hostname} แล้ว — ตั้งค่า DNS ตามคำแนะนำแล้วกด “ตรวจสอบ DNS” (โดเมนจะเปิดใช้หลังยืนยันเท่านั้น)` };
 }
 
 export async function verifyDomain(slug: string, domainId: string): Promise<ActionResult> {
   const ctx = await getTenantCtx(slug);
   assertRole(ctx, "admin");
-  const db = getAdminDb();
-  const [d] = await db.select().from(tenantDomains).where(and(eq(tenantDomains.id, domainId), eq(tenantDomains.tenantId, ctx.tenant.id))).limit(1);
-  if (!d || d.kind !== "custom") return { ok: false, error: "ไม่พบโดเมน" };
-  await db.update(tenantDomains).set({ status: "verifying", lastCheckedAt: new Date() }).where(eq(tenantDomains.id, d.id));
-
-  const target = `${ctx.tenant.slug}.${rootDomain()}`.toLowerCase();
-  let error: string | null = null;
-  try {
-    const txt = await dns.resolveTxt(`_rentweb.${d.hostname}`).catch(() => [] as string[][]);
-    const txtOk = txt.some((parts) => parts.join("") === d.verificationToken);
-    const cname = await dns.resolveCname(d.hostname).catch(() => [] as string[]);
-    const cnameOk = cname.some((c) => c.toLowerCase().replace(/\.$/, "") === target);
-    if (!txtOk) error = `ไม่พบ TXT record ที่ _rentweb.${d.hostname}`;
-    else if (!cnameOk) error = `CNAME ของ ${d.hostname} ยังไม่ชี้ไปที่ ${target}`;
-  } catch (e) {
-    error = e instanceof Error ? e.message : "ตรวจสอบ DNS ไม่สำเร็จ";
+  if (!isUuid(domainId)) return { ok: false, error: "ไม่พบโดเมน" };
+  const r = await verifyCustomDomain(getAdminDb(), ctx.tenant.id, domainId);
+  if (r.ok || r.code !== "not_found") {
+    await auditLog({ tenantId: ctx.tenant.id, ...actor(ctx), action: r.ok ? "domain.verify.ok" : "domain.verify.failed", targetType: "domain", targetId: domainId, diff: { hostname: r.hostname, ...(r.ok ? {} : { code: r.code, error: r.error }) } });
   }
-
-  await db
-    .update(tenantDomains)
-    .set(error ? { status: "failed", lastError: error } : { status: "active", lastError: null, verifiedAt: new Date(), sslStatus: "pending" })
-    .where(eq(tenantDomains.id, d.id));
-  await auditLog({ tenantId: ctx.tenant.id, ...actor(ctx), action: error ? "domain.verify.failed" : "domain.verify.ok", targetType: "domain", targetId: d.id, diff: { hostname: d.hostname, error } });
   await refresh(ctx, ["/settings/domains"]);
-  return error ? { ok: false, error } : { ok: true, message: `ยืนยันโดเมน ${d.hostname} สำเร็จ` };
+  return r.ok ? { ok: true, message: r.message } : { ok: false, error: r.error };
 }
 
 export async function removeDomain(slug: string, domainId: string): Promise<ActionResult> {
   const ctx = await getTenantCtx(slug);
   assertRole(ctx, "admin");
-  const db = getAdminDb();
-  const [d] = await db
-    .select({ id: tenantDomains.id, kind: tenantDomains.kind, hostname: tenantDomains.hostname })
-    .from(tenantDomains)
-    .where(and(eq(tenantDomains.id, domainId), eq(tenantDomains.tenantId, ctx.tenant.id)))
-    .limit(1);
-  if (!d) return { ok: false, error: "ไม่พบโดเมน" };
-  if (d.kind !== "custom") return { ok: false, error: "ไม่สามารถลบโดเมนย่อยของระบบได้" };
+  if (!isUuid(domainId)) return { ok: false, error: "ไม่พบโดเมน" };
   const hostnames = await tenantHostnames(ctx.tenant.id);
-  await db.delete(tenantDomains).where(eq(tenantDomains.id, d.id));
+  const r = await removeCustomDomain(getAdminDb(), ctx.tenant.id, domainId);
+  if (!r.ok) return { ok: false, error: r.error };
   await invalidateTenant(ctx.tenant.id, hostnames);
-  await auditLog({ tenantId: ctx.tenant.id, ...actor(ctx), action: "domain.remove", targetType: "domain", targetId: d.id, diff: { hostname: d.hostname } });
+  await auditLog({ tenantId: ctx.tenant.id, ...actor(ctx), action: "domain.remove", targetType: "domain", targetId: domainId, diff: { hostname: r.hostname } });
   revalidatePath(`/t/${slug}/settings/domains`);
   return { ok: true, message: "ลบโดเมนแล้ว" };
 }

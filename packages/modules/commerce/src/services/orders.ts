@@ -15,7 +15,7 @@ import {
   type Tx,
 } from "@rentweb/db";
 import { emitEvent, fail, normalizeThaiPhone, ok, randomToken, safeEqual, type Result } from "@rentweb/core";
-import { upsertGuestCustomer, type CustomerSummary } from "@rentweb/core/customer";
+import { CUSTOMER_BLOCKED_CODE, CUSTOMER_BLOCKED_MESSAGE, isCustomerBlocked, upsertGuestCustomer, type CustomerSummary } from "@rentweb/core/customer";
 import {
   cancelPayment,
   createPayment,
@@ -138,6 +138,11 @@ export async function createOrderFromCart(tx: Tx, tenantId: string, input: Creat
   const allowed = checkoutPaymentMethods(input.settings);
   if (!allowed.length) return fail(NO_PAYMENT_RECEIVER_MESSAGE, "payment_unavailable");
   if (!allowed.includes(input.paymentMethod)) return fail(PAYMENT_METHOD_DISABLED_MESSAGE, "payment_method");
+
+  // --- blocked customer (ADMIN_B2-13): signed in, or a guest whose phone / e-mail belongs to a blocked record ---
+  if (await isCustomerBlocked(tx, tenantId, { customerId: input.customer?.id ?? null, phone: input.contact.phone, email: input.contact.email })) {
+    return fail(CUSTOMER_BLOCKED_MESSAGE, CUSTOMER_BLOCKED_CODE);
+  }
 
   // --- cart: row lock first (COR-05 double submit) ---------------------------
   const cart = await findActiveCart(tx, tenantId, input.cartToken, { customerId: input.customer?.id ?? null, lock: true });

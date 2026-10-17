@@ -2,7 +2,7 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { nextCounter, payments, restaurantOrderItems, restaurantOrders, tableSessions, type Tx } from "@rentweb/db";
 import { emitEvent, fail, isUuid, normalizeThaiPhone, ok, type Result } from "@rentweb/core";
 import { createPayment, refundRequired, type PaymentClosedInfo, type PaymentMethod, type PaymentPaidResult, type PaymentProvider } from "@rentweb/core/payments";
-import { upsertGuestCustomer } from "@rentweb/core/customer";
+import { CUSTOMER_BLOCKED_CODE, CUSTOMER_BLOCKED_MESSAGE, isCustomerBlocked, upsertGuestCustomer } from "@rentweb/core/customer";
 import { priceCart, type CartItem, type PricedCart } from "./cart";
 import { getSession, isOrderDue, isSessionOpen, lockSession, sessionBillMeta, voidSessionBill } from "./tables";
 
@@ -84,6 +84,8 @@ export async function createOrder(tx: Tx, tenantId: string, input: CreateOrderIn
     customerPhone = normalizeThaiPhone(input.contact.phone);
     if (!customerPhone) return fail("กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง", "invalid_phone");
   }
+  // ADMIN_B2-13: a customer the shop blocked cannot order (signed in, or a guest using their phone)
+  if (await isCustomerBlocked(tx, tenantId, { customerId, phone: customerPhone })) return fail(CUSTOMER_BLOCKED_MESSAGE, CUSTOMER_BLOCKED_CODE);
   if (input.type === "pickup") {
     if (!customerPhone) return fail("กรุณากรอกเบอร์โทรศัพท์สำหรับติดตามออเดอร์", "phone_required");
     if (!customerName) return fail("กรุณากรอกชื่อผู้รับ", "name_required");

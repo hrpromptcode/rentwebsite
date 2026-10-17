@@ -94,7 +94,7 @@ export function TablePanel({ initial, promptpayEnabled, promptpayName, promptpay
         <div className="pointer-events-none absolute -top-16 -right-16 size-56 rounded-full bg-glow/40 blur-3xl" aria-hidden />
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="flex items-center gap-1.5 text-xs font-semibold tracking-[0.2em] text-primary uppercase">
+            <p className="flex items-center gap-1.5 text-xs font-semibold tracking-[0.2em] text-primary-ink uppercase">
               <QrCode className="size-3.5" /> {L.dineIn}
             </p>
             <h1 className="heading-display mt-1 text-5xl font-semibold md:text-6xl">

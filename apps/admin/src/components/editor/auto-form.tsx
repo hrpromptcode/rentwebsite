@@ -10,6 +10,7 @@ import { Switch } from "@rentweb/ui/components/switch";
 import { Textarea } from "@rentweb/ui/components/textarea";
 import { cn } from "@rentweb/ui/lib/utils";
 import { emptyValue, type FieldSpec, type ObjectSpec } from "@/lib/zod-introspect";
+import { SECTION_IMAGE_ACCEPT } from "@/app/t/[slug]/media/limits";
 
 export type Uploader = (file: File) => Promise<string | null>;
 
@@ -155,8 +156,12 @@ function ImageField({ spec, value, onChange, ctx, path }: { spec: ObjectSpec; va
   async function pick(file?: File) {
     if (!file || !ctx.upload) return;
     setBusy(true);
-    const u = await ctx.upload(file);
-    setBusy(false);
+    let u: string | null = null;
+    try {
+      u = await ctx.upload(file);
+    } finally {
+      setBusy(false);
+    }
     if (u) onChange({ ...value, url: u, alt: (value.alt as string) || file.name.replace(/\.[^.]+$/, "") });
   }
   return (
@@ -180,12 +185,15 @@ function ImageField({ spec, value, onChange, ctx, path }: { spec: ObjectSpec; va
         </div>
         <div className="grid min-w-0 flex-1 gap-3">
           <div className="flex gap-2">
-            <Input id={`${id}-url`} value={url} onChange={(e) => onChange({ ...value, url: e.target.value })} placeholder="https://… หรืออัปโหลด" disabled={ctx.disabled} aria-label="URL รูปภาพ" />
+            <Label htmlFor={`${id}-url`} className="sr-only">
+              ลิงก์รูปภาพ ({spec.label})
+            </Label>
+            <Input id={`${id}-url`} inputMode="url" value={url} onChange={(e) => onChange({ ...value, url: e.target.value })} placeholder="https://… หรืออัปโหลด" disabled={ctx.disabled} />
             {ctx.upload && (
               <Button asChild variant="outline" size="icon" className="shrink-0 cursor-pointer" aria-label="อัปโหลดรูป">
                 <label>
                   {busy ? <Loader2 className="animate-spin" aria-hidden /> : <ImagePlus aria-hidden />}
-                  <input type="file" accept="image/*" className="sr-only" disabled={ctx.disabled || busy} onChange={(e) => pick(e.target.files?.[0])} />
+                  <input type="file" accept={SECTION_IMAGE_ACCEPT} className="sr-only" disabled={ctx.disabled || busy} onChange={(e) => pick(e.target.files?.[0])} />
                 </label>
               </Button>
             )}

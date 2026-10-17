@@ -49,7 +49,7 @@ export function MenuBrowser(props: MenuBrowserProps) {
   );
 }
 
-function Browser({ menu, mode, serviceChargePercent = 0, initialItemId, hideChat = true, stickyTopClass = "top-16 md:top-20" }: MenuBrowserProps) {
+function Browser({ menu, mode, serviceChargePercent = 0, initialItemId, hideChat = true, stickyTopClass = "top-[var(--header-h,0px)]" }: MenuBrowserProps) {
   const cart = useCart();
   const router = useRouter();
   const [selected, setSelected] = React.useState<MenuItemData | null>(null);

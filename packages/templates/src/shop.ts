@@ -1,7 +1,7 @@
 import type { TemplateDefinition } from "@rentweb/core/tenant";
 import { categories, products, productVariants, shippingMethods, discounts, reviews } from "@rentweb/db";
 import { section, hero, marquee, productGrid, categoryList, imageText, testimonials, features, faq, cta, stats } from "@rentweb/storefront/definitions";
-import { aboutPage, contactPage, legalPages, defaultHours, u, avatar } from "./shared";
+import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, defaultHours, u, avatar } from "./shared";
 
 export const shop: TemplateDefinition = {
   key: "shop",
@@ -11,6 +11,8 @@ export const shop: TemplateDefinition = {
   siteType: "shop",
   modules: ["commerce"],
   themePreset: "aurora",
+  // ADMIN_B2-07: the sample brand; new (non-demo) shops get their own name instead
+  sampleBrand: ["Siam Atelier"],
   recommendedPresets: ["aurora", "quartz", "candy", "midnight"],
   complexity: 3,
   previewImage: u("1441986300917-64674bd600d8", 1200),
@@ -120,7 +122,7 @@ export const shop: TemplateDefinition = {
         section(cta, { variant: "glow", heading: "สมัครรับข่าวคอลเลกชันใหม่ก่อนใคร", body: "รับส่วนลด 10% สำหรับการสั่งซื้อครั้งแรก", primaryCta: { label: "เริ่มช้อป", href: "/products" } }),
       ],
     },
-    aboutPage({
+    aboutPage({ neutral: NEUTRAL_ABOUT.shop,
       heading: "จากกี่ทอผ้าในสันกำแพง สู่ตู้เสื้อผ้าของคุณ",
       body: "Siam Atelier เริ่มต้นในปี 2019 จากความตั้งใจเล็ก ๆ ที่อยากให้ผ้าทอมือยังมีที่ยืนในชีวิตประจำวัน เราออกแบบให้เรียบ ใส่ง่าย เข้ากับทุกวัน และผลิตร่วมกับช่างทอ 14 ครอบครัว โดยแบ่งรายได้อย่างเป็นธรรม\n\nทุกคอลเลกชันผลิตจำนวนจำกัด เพื่อไม่ให้เหลือทิ้งและเพื่อให้ช่างมีเวลาทำงานอย่างประณีต",
     }),

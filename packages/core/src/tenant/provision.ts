@@ -27,6 +27,8 @@ export interface TemplatePage {
   kind?: "home" | "page" | "system";
   showInNav?: boolean;
   sections: SectionJson[];
+  /** ADMIN_B2-07: brand-neutral sections used instead of `sections` for new (non-demo) shops ("{{name}}" = shop name) */
+  neutralSections?: SectionJson[];
   seo?: Record<string, unknown>;
 }
 
@@ -40,6 +42,10 @@ export interface TemplateDefinition {
   themePreset: string;
   theme?: Partial<ThemeInput>;
   settings?: Record<string, unknown>;
+  /** ADMIN_B2-07: the sample brand's name(s) in page copy; replaced with the shop's name for non-demo tenants */
+  sampleBrand?: string[];
+  /** ADMIN_B2-07: other sample-story phrases and their neutral replacement for non-demo tenants */
+  neutralText?: Array<[string, string]>;
   moduleConfig?: Partial<Record<ModuleKey, Record<string, unknown>>>;
   pages: TemplatePage[];
   navigation: { header: NavItem[]; footer: NavItem[] };
@@ -103,6 +109,24 @@ export function stripSampleIdentity(settings: Json): Json {
   return out;
 }
 
+/** Section types whose sample content would be fabricated reviews under a real shop's name. */
+const SAMPLE_REVIEW_SECTIONS = new Set(["testimonials"]);
+
+/**
+ * Pages for a new (non-demo) shop (ADMIN_B2-07): brand-neutral variants where the template has them (About),
+ * every sample brand name (and the "{{name}}" token) replaced with the shop's name, and sample testimonials
+ * hidden until the owner adds real ones (the editor's eye toggle shows them again).
+ */
+export function neutralTemplatePages(pages: TemplatePage[], opts: { tenantName: string; sampleBrand?: string[]; neutralText?: Array<[string, string]>; samples?: Array<[string, string]> }): TemplatePage[] {
+  const name = opts.tenantName.trim() || "ร้านของเรา";
+  const brands = [...new Set((opts.sampleBrand ?? []).filter((b) => b && b.length >= 3))].sort((a, b) => b.length - a.length);
+  const pairs: Array<[string, string]> = [...(opts.samples ?? []), ...(opts.neutralText ?? []), ["{{name}}", name], ...brands.map((b): [string, string] => [b, name])];
+  return pages.map(({ neutralSections, ...p }) => ({
+    ...p,
+    sections: scrubSampleLinks(neutralSections ?? p.sections, pairs).map((s) => (SAMPLE_REVIEW_SECTIONS.has(s.type) ? { ...s, hidden: true } : s)),
+  }));
+}
+
 const SAMPLE_CONTACT_HREF = /^(?:https?:\/\/(?:line\.me|lin\.ee)\/|tel:|mailto:)/i;
 
 /** Sample identity values of a template mapped to the placeholder shown until the owner edits the text. */
@@ -158,7 +182,9 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
   const sampleIdentity = input.sampleIdentity ?? (!input.ownerUserId && slug.startsWith("demo-"));
   const templateSettings = sampleIdentity ? (tpl.settings ?? {}) : stripSampleIdentity(tpl.settings ?? {});
   const samples = sampleIdentityValues(tpl.settings ?? {});
-  const templatePages = sampleIdentity ? tpl.pages : tpl.pages.map((p) => ({ ...p, sections: scrubSampleLinks(p.sections, samples) }));
+  const templatePages = sampleIdentity
+    ? tpl.pages.map(({ neutralSections: _neutral, ...p }) => p)
+    : neutralTemplatePages(tpl.pages, { tenantName: input.name, sampleBrand: tpl.sampleBrand, neutralText: tpl.neutralText, samples });
   let ownerEmail: string | null = null;
   if (input.ownerUserId) {
     const [owner] = await db.select({ email: user.email }).from(user).where(eq(user.id, input.ownerUserId)).limit(1);

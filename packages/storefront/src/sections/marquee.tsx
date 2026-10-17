@@ -18,7 +18,8 @@ export function MarqueeSection({ props: p }: { ctx: StorefrontCtx; props: Props 
             key={i}
             className={cn(
               "flex items-center gap-6 whitespace-nowrap font-heading",
-              giant ? "heading-display text-5xl font-semibold uppercase md:text-7xl" : "text-sm font-medium tracking-wider uppercase md:text-base",
+              // giant: py gives Thai tone marks room inside the clipping marquee track (line-height 1; RESPONSIVE_B2-01)
+              giant ? "heading-display py-[0.15em] text-5xl font-semibold uppercase md:text-7xl" : "text-sm font-medium tracking-wider uppercase md:text-base",
               p.style === "outline" && "text-transparent [-webkit-text-stroke:1px_var(--background)]",
               p.style === "badges" && "rounded-full border px-4 py-1.5 text-foreground normal-case tracking-normal",
             )}

@@ -35,7 +35,7 @@ export default async function SiteLayout({ children, params }: { children: React
   ];
 
   return (
-    <html lang={ctx.locale} className={`${fontClassNames} ${css.htmlClass}`} {...css.dataAttrs} suppressHydrationWarning>
+    <html lang={ctx.locale} className={`${fontClassNames} ${css.htmlClass}`} {...css.dataAttrs} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <style id="tenant-theme" dangerouslySetInnerHTML={{ __html: css.styleTag }} />
         <ModeScript mode={theme.mode} />
@@ -44,7 +44,7 @@ export default async function SiteLayout({ children, params }: { children: React
         <MotionRoot level={theme.effects.motionLevel}>
           <ThemeEffects cursorGlow={theme.effects.cursorGlow} scanlines={theme.effects.scanlines} />
           <SiteHeader ctx={ctx} nav={headerNav} />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 overflow-x-clip">{children}</main>
           <SiteFooter ctx={ctx} nav={nav.footer.length ? nav.footer : headerNav} legal={legal} />
           <FloatingChat ctx={ctx} />
           <Toaster />

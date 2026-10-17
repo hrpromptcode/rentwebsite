@@ -156,6 +156,27 @@ export function BookingWizard({ services: allServices, staff, config, today, max
   const [step, setStep] = React.useState<StepKey>(initialStep);
   const stepIndex = steps.indexOf(step);
 
+  // RESPONSIVE_B2-10: after every step change, keyboard / screen-reader focus moves to the new step's heading (its
+  // accessible name starts with "ขั้นตอนที่ n จาก N"), instead of dropping to <body> when the chosen card unmounts.
+  // AnimatePresence (mode="wait") mounts the new step after the old one has left, so the heading's ref focuses it then.
+  const stepRef = React.useRef(step);
+  const focusHeadingOnMount = React.useRef(false);
+  const headingRef = React.useRef<HTMLHeadingElement | null>(null);
+  React.useEffect(() => {
+    if (stepRef.current === step) return;
+    stepRef.current = step;
+    const h = headingRef.current;
+    if (h && h.dataset.step === step) h.focus();
+    else focusHeadingOnMount.current = true;
+  }, [step]);
+  const setHeading = React.useCallback((el: HTMLHeadingElement | null) => {
+    headingRef.current = el;
+    if (el && focusHeadingOnMount.current && el.dataset.step === stepRef.current) {
+      focusHeadingOnMount.current = false;
+      el.focus();
+    }
+  }, []);
+
   // availability caches
   const [days, setDays] = React.useState<Record<string, Record<string, DayInfo>>>({});
   const [slots, setSlots] = React.useState<Record<string, SlotChip[]>>({});
@@ -322,7 +343,8 @@ export function BookingWizard({ services: allServices, staff, config, today, max
         {/* compact selection strip (mobile + compact mode) */}
         <SelectionStrip service={service ?? null} staffLabel={group ? null : staffChoice === undefined ? null : chosenStaff ? chosenStaff.name : L.anyStaff} date={date} start={start} className={cn("mt-4", !compact && "lg:hidden")} />
 
-        <div className="relative mt-6 min-h-[320px] overflow-hidden">
+        {/* clip only the horizontal step slide: overflow-hidden also cut the tone marks of the step heading (ที่) */}
+        <div className="relative mt-6 min-h-[320px] overflow-x-clip">
           <AnimatePresence mode="wait" initial={false} custom={dir}>
             <motion.div
               key={step}
@@ -332,7 +354,12 @@ export function BookingWizard({ services: allServices, staff, config, today, max
               exit={reduce ? { opacity: 0 } : { opacity: 0, x: dir * -28 }}
               transition={transition}
             >
-              <h3 className="font-heading text-xl font-semibold md:text-2xl">{STEP_TITLE[step]}</h3>
+              <h3 ref={setHeading} tabIndex={-1} data-step={step} className="font-heading text-xl font-semibold outline-offset-4 md:text-2xl">
+                <span className="sr-only">
+                  ขั้นตอนที่ {stepIndex + 1} จาก {steps.length}:{" "}
+                </span>
+                {STEP_TITLE[step]}
+              </h3>
 
               {course && (
                 <p className="mt-3 flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-soft px-3 py-2 text-sm text-primary">
@@ -491,7 +518,7 @@ export function BookingWizard({ services: allServices, staff, config, today, max
         </div>
       </div>
 
-      {!compact && <aside className="hidden lg:sticky lg:top-28 lg:block">{summary}</aside>}
+      {!compact && <aside className="hidden lg:sticky lg:top-[calc(var(--header-h,0px)+1rem)] lg:block">{summary}</aside>}
     </div>
   );
 }
@@ -551,7 +578,7 @@ function ServiceStep({ services, selected, onSelect }: { services: WizardService
     <div className="mt-4 space-y-6">
       {groups.map(([cat, list]) => (
         <div key={cat || "_"}>
-          {cat && <p className="mb-2 text-xs font-semibold tracking-[0.18em] text-primary uppercase">{cat}</p>}
+          {cat && <p className="mb-2 text-xs font-semibold tracking-[0.18em] text-primary-ink uppercase">{cat}</p>}
           <div className="grid gap-2 sm:grid-cols-2">
             {list.map((s) => {
               const active = s.id === selected;
@@ -687,7 +714,7 @@ function SelectionStrip({ service, staffLabel, date, start, className }: { servi
   return (
     <div className={cn("flex flex-wrap gap-1.5", className)}>
       {chips.map((c, i) => (
-        <span key={i} className="inline-flex items-center rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary">
+        <span key={i} className="inline-flex items-center rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary-ink">
           {c}
         </span>
       ))}

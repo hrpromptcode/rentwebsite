@@ -16,7 +16,7 @@ export function Features({ props: p }: { ctx: StorefrontCtx; props: Props }) {
       <Section>
         <div className="container-x grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
-            <SectionHeading eyebrow={p.eyebrow} heading={p.heading} subheading={p.subheading} align="left" className="mb-0 lg:sticky lg:top-28" />
+            <SectionHeading eyebrow={p.eyebrow} heading={p.heading} subheading={p.subheading} align="left" className="mb-0 lg:sticky lg:top-[calc(var(--header-h,0px)+1rem)]" />
           </div>
           <Stagger className="divide-y lg:col-span-7">
             {p.items.map((it, i) => (

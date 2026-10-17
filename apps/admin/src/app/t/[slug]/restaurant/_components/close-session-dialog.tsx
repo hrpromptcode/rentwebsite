@@ -3,13 +3,14 @@
 import * as React from "react";
 import { Banknote, CheckCircle2, Loader2, Receipt } from "lucide-react";
 import { Button, type ButtonProps } from "@rentweb/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@rentweb/ui/components/dialog";
+import { Dialog, DialogDescription, DialogTitle } from "@rentweb/ui/components/dialog";
 import { toast } from "@rentweb/ui/components/sonner";
 import type { OpenSession, SettleMode } from "@rentweb/module-restaurant/admin";
 import { PAYMENT_METHOD_LABEL, PAYMENT_STATUS_LABEL } from "@rentweb/module-restaurant/admin/labels";
 import { thb } from "@/lib/format";
 import { settleSessionAction } from "../orders/actions";
 import { SlipDialog } from "./slip-dialog";
+import { ScrollDialogBody, ScrollDialogContent, ScrollDialogFooter, ScrollDialogHeader } from "./scroll-dialog";
 
 /** "ปิดโต๊ะ/รับชำระ": approve the guests' PromptPay/slip payment or record cash for the outstanding amount, then close the session. */
 export function CloseSessionDialog({ slug, session, onDone, children, ...btn }: ButtonProps & { slug: string; session: OpenSession; onDone?: () => void | Promise<void> }) {
@@ -48,31 +49,33 @@ export function CloseSessionDialog({ slug, session, onDone, children, ...btn }: 
         )}
       </Button>
       <Dialog open={open} onOpenChange={(v) => !pending && setOpen(v)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
+        <ScrollDialogContent className="sm:max-w-md">
+          <ScrollDialogHeader>
             <DialogTitle>ปิดโต๊ะ {session.tableName}</DialogTitle>
             <DialogDescription>
               {session.ordersCount} ออเดอร์{session.zone ? ` · โซน${session.zone}` : ""}
             </DialogDescription>
-          </DialogHeader>
-          <dl className="grid grid-cols-2 gap-y-1.5 rounded-xl border bg-muted/40 p-4 text-sm">
-            <dt className="text-muted-foreground">ยอดรวมทั้งโต๊ะ</dt>
-            <dd className="text-right font-medium tabular-nums">{thb(session.total)}</dd>
-            <dt className="text-muted-foreground">ชำระแล้ว</dt>
-            <dd className="text-right tabular-nums">{thb(session.paidTotal)}</dd>
-            <dt className="font-medium">ค้างชำระ</dt>
-            <dd className="text-right font-heading text-xl font-semibold tabular-nums">{thb(session.dueTotal)}</dd>
-          </dl>
-          {awaiting && p && (
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-              <span className="flex-1">
-                ลูกค้าเลือก <b>{PAYMENT_METHOD_LABEL[p.method] ?? p.method}</b> {thb(p.amount)} · {PAYMENT_STATUS_LABEL[p.status] ?? p.status}
-                {partial && <span className="block text-xs text-muted-foreground">มีการสั่งเพิ่มหลังขอบิล: อนุมัติแล้วยังค้าง {thb(session.dueTotal - p.amount)} รับเงินสดส่วนที่เหลือเพื่อปิดโต๊ะ</span>}
-              </span>
-              {p.slipUrl && <SlipDialog url={p.slipUrl} size="sm" />}
-            </div>
-          )}
-          <DialogFooter className="flex-col gap-2 sm:flex-col">
+          </ScrollDialogHeader>
+          <ScrollDialogBody className="grid content-start gap-4">
+            <dl className="grid grid-cols-2 gap-y-1.5 rounded-xl border bg-muted/40 p-4 text-sm">
+              <dt className="text-muted-foreground">ยอดรวมทั้งโต๊ะ</dt>
+              <dd className="text-right font-medium tabular-nums">{thb(session.total)}</dd>
+              <dt className="text-muted-foreground">ชำระแล้ว</dt>
+              <dd className="text-right tabular-nums">{thb(session.paidTotal)}</dd>
+              <dt className="font-medium">ค้างชำระ</dt>
+              <dd className="text-right font-heading text-xl font-semibold tabular-nums">{thb(session.dueTotal)}</dd>
+            </dl>
+            {awaiting && p && (
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+                <span className="flex-1">
+                  ลูกค้าเลือก <b>{PAYMENT_METHOD_LABEL[p.method] ?? p.method}</b> {thb(p.amount)} · {PAYMENT_STATUS_LABEL[p.status] ?? p.status}
+                  {partial && <span className="block text-xs text-muted-foreground">มีการสั่งเพิ่มหลังขอบิล: อนุมัติแล้วยังค้าง {thb(session.dueTotal - p.amount)} รับเงินสดส่วนที่เหลือเพื่อปิดโต๊ะ</span>}
+                </span>
+                {p.slipUrl && <SlipDialog url={p.slipUrl} size="sm" />}
+              </div>
+            )}
+          </ScrollDialogBody>
+          <ScrollDialogFooter className="flex-col gap-2 sm:flex-col">
             {canApprove && (
               <Button type="button" className="w-full" onClick={() => run("approve")} disabled={!!pending}>
                 {pending === "approve" ? <Loader2 className="animate-spin" aria-hidden /> : <CheckCircle2 aria-hidden />}
@@ -93,8 +96,8 @@ export function CloseSessionDialog({ slug, session, onDone, children, ...btn }: 
             <Button type="button" variant="ghost" className="w-full" onClick={() => setOpen(false)} disabled={!!pending}>
               ยกเลิก
             </Button>
-          </DialogFooter>
-        </DialogContent>
+          </ScrollDialogFooter>
+        </ScrollDialogContent>
       </Dialog>
     </>
   );

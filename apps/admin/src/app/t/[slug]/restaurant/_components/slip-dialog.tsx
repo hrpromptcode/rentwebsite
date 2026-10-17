@@ -3,7 +3,8 @@
 import * as React from "react";
 import { ExternalLink, ImageIcon } from "lucide-react";
 import { Button, type ButtonProps } from "@rentweb/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@rentweb/ui/components/dialog";
+import { Dialog, DialogDescription, DialogTitle } from "@rentweb/ui/components/dialog";
+import { ScrollDialogBody, ScrollDialogContent, ScrollDialogFooter, ScrollDialogHeader } from "./scroll-dialog";
 
 /** Shows an uploaded transfer slip in a dialog. */
 export function SlipDialog({ url, label = "ดูสลิป", title = "สลิปโอนเงิน", description, ...btn }: ButtonProps & { url: string; label?: string; title?: string; description?: string }) {
@@ -14,21 +15,25 @@ export function SlipDialog({ url, label = "ดูสลิป", title = "สล�
         <ImageIcon aria-hidden /> {label}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
+        <ScrollDialogContent className="sm:max-w-md">
+          <ScrollDialogHeader>
             <DialogTitle>{title}</DialogTitle>
             {description && <DialogDescription>{description}</DialogDescription>}
-          </DialogHeader>
-          <div className="overflow-hidden rounded-xl border bg-muted">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url} alt="สลิปโอนเงิน" className="mx-auto max-h-[70vh] w-auto object-contain" />
-          </div>
-          <Button asChild variant="ghost" size="sm" className="self-end">
-            <a href={url} target="_blank" rel="noreferrer">
-              <ExternalLink aria-hidden /> เปิดในแท็บใหม่
-            </a>
-          </Button>
-        </DialogContent>
+          </ScrollDialogHeader>
+          <ScrollDialogBody className="pb-4">
+            <div className="overflow-hidden rounded-xl border bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt="สลิปโอนเงิน" className="mx-auto max-h-[70dvh] w-auto object-contain" />
+            </div>
+          </ScrollDialogBody>
+          <ScrollDialogFooter className="py-3">
+            <Button asChild variant="ghost" size="sm" className="self-end">
+              <a href={url} target="_blank" rel="noreferrer">
+                <ExternalLink aria-hidden /> เปิดในแท็บใหม่
+              </a>
+            </Button>
+          </ScrollDialogFooter>
+        </ScrollDialogContent>
       </Dialog>
     </>
   );

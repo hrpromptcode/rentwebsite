@@ -1,7 +1,7 @@
 import type { TemplateDefinition } from "@rentweb/core/tenant";
 import { availabilityRules, clinicPackages, serviceCategories, services, staff, staffServices } from "@rentweb/db";
 import { section, hero, serviceList, staffGrid, packageList, imageText, testimonials, features, faq, cta, bookingWidget, stats, gallery } from "@rentweb/storefront/definitions";
-import { aboutPage, contactPage, legalPages, u, avatar } from "./shared";
+import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, u, avatar } from "./shared";
 
 export const clinic: TemplateDefinition = {
   key: "clinic",
@@ -11,6 +11,8 @@ export const clinic: TemplateDefinition = {
   siteType: "clinic",
   modules: ["clinic", "booking"],
   themePreset: "porcelain",
+  // ADMIN_B2-07: the sample brand; new (non-demo) shops get their own name instead
+  sampleBrand: ["Lumière Clinic Co., Ltd.","Lumière Clinic"],
   recommendedPresets: ["porcelain", "zen", "quartz"],
   complexity: 4,
   previewImage: u("1570172619644-dfd03ed5d881", 1200),
@@ -120,7 +122,7 @@ export const clinic: TemplateDefinition = {
       title: "ผลงาน",
       sections: [section(gallery, { heading: "บรรยากาศและผลงาน", subheading: "ภาพผลการรักษาได้รับความยินยอมจากผู้รับบริการแล้ว", layout: "masonry", images: [{ url: u("1512290923902-8a9f81dc236c", 1000), alt: "" }, { url: u("1515377905703-c4788e51af15", 1000), alt: "" }, { url: u("1570172619644-dfd03ed5d881", 1000), alt: "" }, { url: u("1544161515-4ab6ce6db874", 1000), alt: "" }, { url: u("1519823551278-64ac92734fb1", 1000), alt: "" }, { url: u("1540555700478-4be289fbecef", 1000), alt: "" }] })],
     },
-    aboutPage({ heading: "Lumière Clinic — ความงามที่เริ่มจากสุขภาพผิวที่ดี", body: "ก่อตั้งในปี 2014 โดย พญ.ณิชา วรรณกุล แพทย์ผิวหนังที่เชื่อว่าความสวยต้องปลอดภัยและเป็นธรรมชาติ เราไม่ขายคอร์สเกินความจำเป็น และตั้งใจให้ทุกคนที่เดินออกจากคลินิกรู้สึกมั่นใจในตัวเองมากขึ้น" }),
+    aboutPage({ neutral: NEUTRAL_ABOUT.clinic, heading: "Lumière Clinic — ความงามที่เริ่มจากสุขภาพผิวที่ดี", body: "ก่อตั้งในปี 2014 โดย พญ.ณิชา วรรณกุล แพทย์ผิวหนังที่เชื่อว่าความสวยต้องปลอดภัยและเป็นธรรมชาติ เราไม่ขายคอร์สเกินความจำเป็น และตั้งใจให้ทุกคนที่เดินออกจากคลินิกรู้สึกมั่นใจในตัวเองมากขึ้น" }),
     contactPage({ heading: "ติดต่อและเดินทาง", body: "คลินิกอยู่ชั้น 3 เอ็มควอเทียร์ ติด BTS พร้อมพงษ์ ทางออก 1 มีที่จอดรถในห้าง" }),
     ...legalPages("Lumière Clinic"),
   ],

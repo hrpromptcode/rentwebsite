@@ -1,7 +1,7 @@
 import type { TemplateDefinition } from "@rentweb/core/tenant";
 import { availabilityRules, serviceCategories, services, staff, staffServices } from "@rentweb/db";
 import { section, hero, serviceList, staffGrid, bookingWidget, imageText, testimonials, features, faq, cta, gallery, steps } from "@rentweb/storefront/definitions";
-import { aboutPage, contactPage, legalPages, u, avatar } from "./shared";
+import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, u, avatar } from "./shared";
 
 export const salon: TemplateDefinition = {
   key: "salon",
@@ -11,6 +11,8 @@ export const salon: TemplateDefinition = {
   siteType: "salon",
   modules: ["booking"],
   themePreset: "zen",
+  // ADMIN_B2-07: the sample brand; new (non-demo) shops get their own name instead
+  sampleBrand: ["สบาย สบาย"],
   recommendedPresets: ["zen", "porcelain", "candy", "midnight"],
   complexity: 2,
   previewImage: u("1560066984-138dadb4c035", 1200),
@@ -104,7 +106,7 @@ export const salon: TemplateDefinition = {
       ],
     },
     { slug: "gallery", title: "บรรยากาศ", sections: [section(gallery, { heading: "บรรยากาศ", layout: "masonry", images: [{ url: u("1540555700478-4be289fbecef", 1000), alt: "" }, { url: u("1544161515-4ab6ce6db874", 1000), alt: "" }, { url: u("1570172619644-dfd03ed5d881", 1000), alt: "" }, { url: u("1600334129128-685c5582fd35", 1000), alt: "" }, { url: u("1522337660859-02fbefca4702", 1000), alt: "" }] })] },
-    aboutPage({ heading: "สบาย สบาย — เริ่มจากความเชื่อว่าการพักผ่อนคือสิ่งจำเป็น", body: "เราเปิดในปี 2016 โดยอดีตพยาบาลที่เห็นว่าคนเมืองพักผ่อนน้อยเกินไป ทีมเทอราพิสต์ทุกคนผ่านการอบรมและมีใบประกอบวิชาชีพ เราจ่ายค่าตอบแทนที่เป็นธรรม เพราะเชื่อว่ามือที่มีความสุขจึงจะส่งต่อความสบายได้" }),
+    aboutPage({ neutral: NEUTRAL_ABOUT.salon, heading: "สบาย สบาย — เริ่มจากความเชื่อว่าการพักผ่อนคือสิ่งจำเป็น", body: "เราเปิดในปี 2016 โดยอดีตพยาบาลที่เห็นว่าคนเมืองพักผ่อนน้อยเกินไป ทีมเทอราพิสต์ทุกคนผ่านการอบรมและมีใบประกอบวิชาชีพ เราจ่ายค่าตอบแทนที่เป็นธรรม เพราะเชื่อว่ามือที่มีความสุขจึงจะส่งต่อความสบายได้" }),
     contactPage(),
     ...legalPages("สบาย สบาย"),
   ],

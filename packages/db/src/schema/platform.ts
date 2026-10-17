@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+  bigserial,
   boolean,
   index,
   integer,
@@ -89,7 +91,11 @@ export const tenantDomains = pgTable(
     ...timestamps(),
   },
   (t) => [
-    uniqueIndex("tenant_domains_hostname_uq").on(t.hostname),
+    // ADMIN_B2-11: only a verified (active) domain is unique platform-wide; several tenants may hold
+    // pending claims for the same hostname and whoever proves DNS ownership first wins.
+    uniqueIndex("tenant_domains_active_hostname_uq").on(t.hostname).where(sql`${t.status} = 'active'`),
+    uniqueIndex("tenant_domains_tenant_host_uq").on(t.tenantId, t.hostname),
+    index("tenant_domains_hostname_idx").on(t.hostname),
     index("tenant_domains_tenant_idx").on(t.tenantId),
   ],
 );
@@ -287,6 +293,21 @@ export const eventsOutbox = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("events_outbox_status_next_idx").on(t.status, t.nextRunAt)],
+);
+
+/**
+ * Cross-process cache invalidation log (ADMIN_B2-19). When no shared cache (Upstash) is configured every
+ * app process keeps its own in-memory cache; `del()` appends the keys here and the other processes poll
+ * the log every couple of seconds and evict them. Rows older than an hour are pruned.
+ */
+export const cacheInvalidations = pgTable(
+  "cache_invalidations",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    keys: text("keys").array().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("cache_invalidations_created_idx").on(t.createdAt)],
 );
 
 export const notifications = pgTable(

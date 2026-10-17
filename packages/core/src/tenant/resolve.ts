@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb, tenantDomains, tenants, tenantModules } from "@rentweb/db";
 import { cached, getCache } from "../cache";
 import { RESERVED_SUBDOMAINS, rootDomain } from "../env";
@@ -68,7 +68,8 @@ export async function resolveTenantByHost(host: string): Promise<TenantRef | nul
         .select(cols)
         .from(tenantDomains)
         .innerJoin(tenants, eq(tenantDomains.tenantId, tenants.id))
-        .where(eq(tenantDomains.hostname, h))
+        // ADMIN_B2-11: a custom domain serves only after DNS ownership was verified
+        .where(and(eq(tenantDomains.hostname, h), eq(tenantDomains.status, "active")))
         .limit(1);
     }
     return row ?? NOT_FOUND;

@@ -93,25 +93,65 @@ export default async function TablesPage({ params }: { params: Promise<{ slug: s
       {tables.length === 0 ? (
         <EmptyState icon={QrCode} title="ยังไม่มีโต๊ะ" description="เพิ่มโต๊ะพร้อมโซนและจำนวนที่นั่ง แล้วพิมพ์ QR ไปติดที่โต๊ะ" action={canEdit ? <TableDialog slug={slug} zones={zones} /> : undefined} />
       ) : (
-        <div className="card py-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>โต๊ะ</TableHead>
-                <TableHead className="hidden sm:table-cell">โซน</TableHead>
-                <TableHead className="hidden sm:table-cell text-right">ที่นั่ง</TableHead>
-                <TableHead>สถานะ</TableHead>
-                <TableHead className="hidden lg:table-cell">รหัส QR</TableHead>
-                <TableHead className="text-right">จัดการ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {[...byZone.entries()].map(([zone, list]) => (
-                <ZoneRows key={zone || "—"} zone={zone} list={list} slug={slug} zones={zones} canEdit={canEdit} storefrontUrl={ctx.storefrontUrl} />
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <>
+          {/* phones: cards per zone with the row actions in view (sweep TABLES-390); the table starts at md */}
+          <div data-table-cards className="space-y-4 md:hidden">
+            {[...byZone.entries()].map(([zone, list]) => (
+              <section key={zone || "—"} aria-label={zone ? `โซน${zone}` : "ไม่ระบุโซน"} className="space-y-2">
+                <h2 className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {zone ? `โซน${zone}` : "ไม่ระบุโซน"} · {list.length} โต๊ะ
+                </h2>
+                <ul aria-label="รายการโต๊ะ" className="card divide-y">
+                  {list.map((t) => (
+                    <li key={t.id} className="space-y-2 p-3">
+                      <div className={cn("flex items-center gap-3", !t.active && "opacity-60")}>
+                        <span className="grid h-11 min-w-11 max-w-[45%] shrink-0 place-items-center truncate rounded-lg bg-primary-soft px-2 text-sm font-semibold text-primary">{t.name}</span>
+                        <span className="min-w-0 flex-1 text-sm">
+                          <span className="block truncate text-muted-foreground">
+                            {t.zone ?? "ไม่ระบุโซน"} · {t.seats} ที่นั่ง
+                          </span>
+                          <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                            {t.session ? (
+                              <>
+                                <SessionStatusBadge status={t.session.status} />
+                                <span className="text-xs tabular-nums text-muted-foreground">
+                                  {t.session.ordersCount} ออเดอร์ · {thb(t.session.total)}
+                                </span>
+                              </>
+                            ) : (
+                              <Badge variant="outline">ว่าง</Badge>
+                            )}
+                            {!t.active && <Badge variant="muted">ปิดใช้งาน</Badge>}
+                          </span>
+                        </span>
+                      </div>
+                      <TableRowActions slug={slug} table={t} zones={zones} canEdit={canEdit} qrUrl={`${ctx.storefrontUrl}/t/${t.qrToken}`} size="icon" className="-mr-1.5" />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+          <div className="card hidden py-0 md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>โต๊ะ</TableHead>
+                  <TableHead className="hidden xl:table-cell">โซน</TableHead>
+                  <TableHead className="hidden xl:table-cell text-right">ที่นั่ง</TableHead>
+                  <TableHead>สถานะ</TableHead>
+                  <TableHead className="hidden xl:table-cell">รหัส QR</TableHead>
+                  <TableHead className="text-right">จัดการ</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[...byZone.entries()].map(([zone, list]) => (
+                  <ZoneRows key={zone || "—"} zone={zone} list={list} slug={slug} zones={zones} canEdit={canEdit} storefrontUrl={ctx.storefrontUrl} />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
     </div>
   );
@@ -131,15 +171,15 @@ function ZoneRows({ zone, list, slug, zones, canEdit, storefrontUrl }: { zone: s
           <TableRow key={t.id} className={cn(!t.active && "opacity-60")}>
             <TableCell>
               <span className="flex items-center gap-2 font-medium">
-                <span className="grid size-9 place-items-center rounded-lg bg-primary-soft text-sm font-semibold text-primary">{t.name}</span>
-                <span className="sm:hidden text-xs text-muted-foreground">
+                <span className="grid h-9 min-w-9 place-items-center rounded-lg bg-primary-soft px-2 text-sm font-semibold text-primary">{t.name}</span>
+                <span className="text-xs font-normal text-muted-foreground xl:hidden">
                   {t.zone ?? "—"} · {t.seats} ที่นั่ง
                 </span>
                 {!t.active && <Badge variant="muted">ปิดใช้งาน</Badge>}
               </span>
             </TableCell>
-            <TableCell className="hidden sm:table-cell text-muted-foreground">{t.zone ?? "—"}</TableCell>
-            <TableCell className="hidden sm:table-cell text-right tabular-nums">{t.seats}</TableCell>
+            <TableCell className="hidden xl:table-cell text-muted-foreground">{t.zone ?? "—"}</TableCell>
+            <TableCell className="hidden xl:table-cell text-right tabular-nums">{t.seats}</TableCell>
             <TableCell>
               {t.session ? (
                 <span className="flex flex-wrap items-center gap-1.5">
@@ -152,7 +192,7 @@ function ZoneRows({ zone, list, slug, zones, canEdit, storefrontUrl }: { zone: s
                 <Badge variant="outline">ว่าง</Badge>
               )}
             </TableCell>
-            <TableCell className="hidden lg:table-cell">
+            <TableCell className="hidden xl:table-cell">
               <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{t.qrToken}</code>
             </TableCell>
             <TableCell>

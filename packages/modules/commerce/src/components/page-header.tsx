@@ -50,7 +50,7 @@ export function PageHeader({
       {crumbs && <Breadcrumbs items={crumbs} className="mb-4" />}
       {eyebrow && (
         <Reveal>
-          <p className="mb-3 text-xs font-semibold tracking-[0.25em] text-primary uppercase">{eyebrow}</p>
+          <p className="mb-3 text-xs font-semibold tracking-[0.25em] text-primary-ink uppercase">{eyebrow}</p>
         </Reveal>
       )}
       <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">

@@ -34,13 +34,13 @@ export async function ReservationCtaSection({ ctx, props: p, id }: { ctx: Storef
         <div className="relative flex items-center overflow-hidden bg-primary text-primary-foreground">
           <div className="pointer-events-none absolute -top-20 -right-20 size-72 rounded-full bg-white/10 blur-3xl" aria-hidden />
           <Reveal delay={0.1} className="relative w-full px-6 py-12 sm:px-10 md:py-16 lg:px-14">
-            <p className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-[0.2em] uppercase opacity-80">
+            <p className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-[0.2em] uppercase">
               <CalendarCheck className="size-4" /> {L.reserve}
             </p>
             <h2 className="font-heading text-3xl font-semibold text-balance md:text-5xl">{p.heading}</h2>
-            {p.body && <p className="mt-4 max-w-xl text-base leading-relaxed opacity-85 md:text-lg">{p.body}</p>}
+            {p.body && <p className="mt-4 max-w-xl text-base leading-relaxed md:text-lg">{p.body}</p>}
             <ReservationMiniForm hours={hours} today={today} nowIso={now.toISOString()} dark className="mt-8" />
-            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm opacity-85">
+            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
               <span>
                 เปิด {hours.open}–{hours.close} น.
               </span>

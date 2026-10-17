@@ -36,6 +36,20 @@
       "when": 1792173290346,
       "tag": "0004_friendly_cargill",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792192700148,
+      "tag": "0005_daily_rogue",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792192730075,
+      "tag": "0006_flippant_vengeance",
+      "breakpoints": true
     }
   ]
 }

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="th" className={`${fonts.prompt.variable} ${fonts["ibm-plex-sans-thai"].variable}`} data-button="rounded" data-card="elevated" data-container="normal">
+    <html lang="th" className={`${fonts.prompt.variable} ${fonts["ibm-plex-sans-thai"].variable}`} data-button="rounded" data-card="elevated" data-container="normal" data-scroll-behavior="smooth">
       <body className="min-h-dvh antialiased">{children}</body>
     </html>
   );

@@ -22,7 +22,7 @@ export function SectionHeading({
   if (!eyebrow && !heading && !subheading) return null;
   return (
     <Reveal className={cn("mb-10 max-w-3xl md:mb-14", align === "center" ? "mx-auto text-center" : "text-left", className)}>
-      {eyebrow && <p className="mb-3 text-xs font-semibold tracking-[0.2em] text-primary uppercase">{eyebrow}</p>}
+      {eyebrow && <p className="mb-3 text-xs font-semibold tracking-[0.2em] text-primary-ink uppercase">{eyebrow}</p>}
       {heading && (
         <h2 className={cn("font-heading font-semibold text-balance", size === "lg" ? "text-4xl md:text-6xl" : "text-3xl md:text-5xl")}>{heading}</h2>
       )}

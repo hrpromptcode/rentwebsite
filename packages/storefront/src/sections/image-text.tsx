@@ -23,7 +23,7 @@ export function ImageText({ props: p }: { ctx: StorefrontCtx; props: Props }) {
         </Reveal>
         <div className={cn(imageFirst ? "lg:order-2" : "lg:order-1")}>
           <Reveal>
-            {p.eyebrow && <p className="mb-3 text-xs font-semibold tracking-[0.2em] text-primary uppercase">{p.eyebrow}</p>}
+            {p.eyebrow && <p className="mb-3 text-xs font-semibold tracking-[0.2em] text-primary-ink uppercase">{p.eyebrow}</p>}
             {p.heading && <h2 className="font-heading text-3xl font-semibold md:text-5xl">{p.heading}</h2>}
             <Prose text={p.body} className="mt-5 text-base text-muted-foreground md:text-lg" />
           </Reveal>

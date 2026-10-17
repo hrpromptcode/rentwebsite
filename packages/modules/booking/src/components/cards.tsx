@@ -74,7 +74,7 @@ export function ServiceCard({ s, className, variant = "card" }: { s: ServiceCard
         </span>
       </Link>
       <div className="flex flex-1 flex-col p-5">
-        {s.categoryName && <p className="mb-1 text-xs font-semibold tracking-[0.15em] text-primary uppercase">{s.categoryName}</p>}
+        {s.categoryName && <p className="mb-1 text-xs font-semibold tracking-[0.15em] text-primary-ink uppercase">{s.categoryName}</p>}
         <Link href={`/services/${s.slug}`} className="inline-flex min-h-11 items-center font-heading text-lg font-semibold leading-snug hover:text-primary">
           {s.name}
         </Link>

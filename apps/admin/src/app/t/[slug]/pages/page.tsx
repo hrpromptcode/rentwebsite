@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { fmtDate } from "@/lib/format";
 import { getTenantCtx, hasRole, tenantTx } from "@/lib/tenant";
 import { NewPageDialog } from "./new-page-dialog";
+import { hasUnpublishedChanges, reservedPageSlugs } from "./page-meta";
 
 export const metadata: Metadata = { title: "หน้าเว็บ" };
 
@@ -20,12 +21,13 @@ export default async function PagesPage({ params }: { params: Promise<{ slug: st
   const ctx = await getTenantCtx(slug);
   const rows = await tenantTx(ctx.tenant.id, (tx) =>
     tx
-      .select({ id: pages.id, slug: pages.slug, title: pages.title, kind: pages.kind, status: pages.status, updatedAt: pages.updatedAt, publishedAt: pages.publishedAt, sections: pages.sections, showInNav: pages.showInNav })
+      .select({ id: pages.id, slug: pages.slug, title: pages.title, kind: pages.kind, status: pages.status, updatedAt: pages.updatedAt, publishedAt: pages.publishedAt, sections: pages.sections, publishedSections: pages.publishedSections, draftMeta: pages.draftMeta, showInNav: pages.showInNav })
       .from(pages)
       .where(eq(pages.tenantId, ctx.tenant.id))
       .orderBy(asc(pages.sort), asc(pages.createdAt)),
   );
   const canCreate = hasRole(ctx, "manager");
+  const reserved = reservedPageSlugs(ctx.modules);
 
   return (
     <div className="space-y-6">
@@ -65,16 +67,30 @@ export default async function PagesPage({ params }: { params: Promise<{ slug: st
                       <Badge variant="outline">{KIND_TH[p.kind] ?? p.kind}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={p.status === "published" ? "success" : "muted"}>{p.status === "published" ? "เผยแพร่" : "ร่าง"}</Badge>
+                      <div className="flex flex-wrap gap-1">
+                        <Badge variant={p.status === "published" ? "success" : "muted"}>{p.status === "published" ? "เผยแพร่" : "ร่าง"}</Badge>
+                        {hasUnpublishedChanges(p) && (
+                          <Badge variant="outline" className="border-amber-300 text-amber-700 dark:text-amber-300">
+                            มีแก้ไขรอเผยแพร่
+                          </Badge>
+                        )}
+                        {p.kind !== "home" && reserved.has(p.slug) && (
+                          <Badge variant="outline" className="border-destructive/40 text-destructive" title="โมดูลที่เปิดใช้มีหน้าที่อยู่นี้ หน้าร้านจึงแสดงหน้าของโมดูลแทน — เปลี่ยน slug ของหน้านี้">
+                            ถูกหน้าโมดูลบัง
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="hidden text-muted-foreground lg:table-cell">{fmtDate(p.updatedAt, { withTime: true })}</TableCell>
                     <TableCell className="text-right">
                       <div className="inline-flex gap-1">
-                        <Button asChild variant="ghost" size="icon-sm" aria-label="ดูหน้า">
-                          <a href={href} target="_blank" rel="noreferrer">
-                            <ExternalLink aria-hidden />
-                          </a>
-                        </Button>
+                        {p.status === "published" && (
+                          <Button asChild variant="ghost" size="icon-sm" aria-label="ดูหน้าที่เผยแพร่">
+                            <a href={href} target="_blank" rel="noreferrer">
+                              <ExternalLink aria-hidden />
+                            </a>
+                          </Button>
+                        )}
                         <Button asChild variant="outline" size="sm">
                           <Link href={`/t/${slug}/pages/${p.id}`}>
                             <Pencil aria-hidden /> <span className="hidden sm:inline">แก้ไข</span>

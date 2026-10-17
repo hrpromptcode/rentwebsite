@@ -33,7 +33,7 @@ export default async function AccountPage({ params }: { params: Promise<{ tenant
             <p className="mt-1 text-sm text-muted-foreground">{customer.phone ?? customer.email}</p>
           </div>
           <form action={logoutAction.bind(null, tenantId)}>
-            <Button variant="outline" size="sm" type="submit">
+            <Button variant="outline" size="sm" type="submit" className="h-11 md:h-9">
               <LogOut className="size-4" /> {t("common.logout")}
             </Button>
           </form>

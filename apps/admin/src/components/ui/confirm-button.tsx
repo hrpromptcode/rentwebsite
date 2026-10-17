@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { Button, type ButtonProps } from "@rentweb/ui/components/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@rentweb/ui/components/dialog";
 import { toast } from "@rentweb/ui/components/sonner";
+import { useReturnFocus } from "@/lib/use-return-focus";
 import type { ActionResult } from "./form";
 
 export function ConfirmButton({
@@ -24,6 +25,8 @@ export function ConfirmButton({
 }) {
   const [open, setOpen] = React.useState(false);
   const [pending, setPending] = React.useState(false);
+  const openerRef = React.useRef<HTMLButtonElement>(null);
+  const returnFocus = useReturnFocus(openerRef);
   async function run() {
     setPending(true);
     try {
@@ -40,11 +43,11 @@ export function ConfirmButton({
   }
   return (
     <>
-      <Button type="button" {...btn} onClick={() => setOpen(true)}>
+      <Button ref={openerRef} type="button" {...btn} onClick={() => setOpen(true)}>
         {children}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent {...returnFocus}>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             {description && <DialogDescription>{description}</DialogDescription>}

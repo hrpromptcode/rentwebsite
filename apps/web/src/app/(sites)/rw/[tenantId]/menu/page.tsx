@@ -34,7 +34,7 @@ export default async function MenuPage({ params, searchParams }: { params: Param
     <PageBody theme={runtime.theme} sections={[]}>
       <section className="container-x pt-6 pb-4 md:pt-10 md:pb-6">
         <Reveal>
-          <p className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">{runtime.config.name}</p>
+          <p className="text-xs font-semibold tracking-[0.2em] text-primary-ink uppercase">{runtime.config.name}</p>
           <h1 className="font-heading mt-1 text-4xl font-semibold md:text-6xl">{L.menu}</h1>
           <p className="mt-3 max-w-xl text-muted-foreground md:text-lg">{L.menuSubtitle}</p>
         </Reveal>

@@ -1,12 +1,29 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { and, eq, getAdminDb, gt, isNull, tenantInvitations, tenants } from "@rentweb/db";
+import { sanitizeNext } from "@/lib/safe-next";
 import { getSession } from "@/lib/session";
-import { SignupForm } from "./signup-form";
+import { SignupForm, type SignupInvite } from "./signup-form";
 
 export const metadata: Metadata = { title: "สมัครใช้งาน" };
 
-export default async function SignupPage() {
+/** ADMIN_B2-12: an invitee arriving from /login?next=/invite/<token> keeps the invitation through sign-up. */
+async function inviteFor(next: string | null): Promise<SignupInvite | null> {
+  const token = next ? /^\/invite\/([A-Za-z0-9_-]{8,200})$/.exec(next)?.[1] : undefined;
+  if (!token) return null;
+  const [inv] = await getAdminDb()
+    .select({ email: tenantInvitations.email, tenantName: tenants.name })
+    .from(tenantInvitations)
+    .innerJoin(tenants, eq(tenants.id, tenantInvitations.tenantId))
+    .where(and(eq(tenantInvitations.token, token), isNull(tenantInvitations.acceptedAt), gt(tenantInvitations.expiresAt, new Date())))
+    .limit(1);
+  return inv ? { email: inv.email, tenantName: inv.tenantName } : null;
+}
+
+export default async function SignupPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+  const next = sanitizeNext((await searchParams).next);
   const session = await getSession();
-  if (session) redirect("/onboarding");
-  return <SignupForm />;
+  if (session) redirect(next ?? "/onboarding");
+  const invite = await inviteFor(next);
+  return <SignupForm next={next ?? undefined} invite={invite} />;
 }

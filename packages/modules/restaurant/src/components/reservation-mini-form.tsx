@@ -8,7 +8,11 @@ import { cn } from "@rentweb/ui/lib/utils";
 import { addDays, reservationSlots, type HoursRange } from "../services/time";
 import { L } from "../labels";
 
-const field = "flex h-12 w-full items-center gap-2 rounded-[var(--radius-lg)] border border-border bg-background px-3 text-sm";
+// The native controls inside are outline-none, so the label draws the focus ring (RESPONSIVE_B2-08).
+const field =
+  "flex h-12 w-full items-center gap-2 rounded-[var(--radius-lg)] border border-border bg-background px-3 text-sm transition-[box-shadow,border-color] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/40";
+// On the primary band: a darker (not lighter) fill keeps white values ≥ 4.5:1 (bg-white/10 gave 4.42 on #C2410C; RESPONSIVE_B2-14).
+const fieldDark = "border-white/40 bg-black/10 text-white focus-within:border-white focus-within:ring-white/60";
 const select = "h-full w-full min-w-0 appearance-none bg-transparent text-base outline-none md:text-sm";
 
 /** Date / time / party mini form on the home page → /reserve?date&time&size */
@@ -38,19 +42,19 @@ export function ReservationMiniForm({ hours, today, nowIso, className, dark }: {
         router.push(`/reserve?${qs}`);
       }}
     >
-      <label className={cn(field, dark && "border-white/25 bg-white/10 text-white")}>
+      <label className={cn(field, dark && fieldDark)}>
         <CalendarDays className="size-4 shrink-0 opacity-70" />
         <span className="sr-only">{L.date}</span>
         <input type="date" value={date} min={today} max={addDays(today, 60)} onChange={(e) => setDate(e.target.value || today)} className={cn(select, dark && "[color-scheme:dark]")} />
       </label>
-      <label className={cn(field, dark && "border-white/25 bg-white/10 text-white")}>
+      <label className={cn(field, dark && fieldDark)}>
         <Clock className="size-4 shrink-0 opacity-70" />
         <span className="sr-only">{L.time}</span>
         <select value={time} onChange={(e) => setTime(e.target.value)} className={cn(select, dark && "[&>option]:text-foreground")} disabled={!slots.length}>
           {slots.length ? slots.map((s) => <option key={s} value={s}>{s} น.</option>) : <option value="">เต็มแล้ว</option>}
         </select>
       </label>
-      <label className={cn(field, "sm:w-32", dark && "border-white/25 bg-white/10 text-white")}>
+      <label className={cn(field, "sm:w-32", dark && fieldDark)}>
         <Users className="size-4 shrink-0 opacity-70" />
         <span className="sr-only">{L.partySize}</span>
         <select value={size} onChange={(e) => setSize(Number(e.target.value))} className={cn(select, dark && "[&>option]:text-foreground")}>

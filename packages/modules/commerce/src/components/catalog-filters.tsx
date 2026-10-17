@@ -28,6 +28,9 @@ export function CatalogFilters({ query, clearHref, hidden = {}, className }: { q
   const [showPrice, setShowPrice] = React.useState(!!(query.min || query.max));
   const active = !!(query.q || query.min || query.max || query.sort);
   const inputClass = "h-11";
+  // The sort select auto-submits once JS runs; the fallback submit below only exists for no-JS visitors (RESPONSIVE_B2-09).
+  const [hydrated, setHydrated] = React.useState(false);
+  React.useEffect(() => setHydrated(true), []);
 
   return (
     <form ref={formRef} method="get" className={cn("grid gap-3", className)} role="search">
@@ -78,7 +81,11 @@ export function CatalogFilters({ query, clearHref, hidden = {}, className }: { q
           </Button>
         </div>
       )}
-      {!showPrice && <button type="submit" className="sr-only">{L.apply}</button>}
+      {!showPrice && !hydrated && (
+        <button type="submit" className="sr-only focus:not-sr-only focus:inline-flex focus:h-11 focus:w-fit focus:items-center focus:rounded-md focus:border focus:border-input focus:px-4 focus:text-sm">
+          {L.apply}
+        </button>
+      )}
     </form>
   );
 }

@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@rentweb/ui/components/
 import { cn } from "@rentweb/ui/lib/utils";
 import { NavIcon } from "@/lib/icons";
 import type { NavGroup } from "@/lib/nav";
+import { useReturnFocus } from "@/lib/use-return-focus";
 
 export interface ShellUser {
   name: string;
@@ -45,6 +46,9 @@ export function AppShell({ nav, user, tenants, current, storefrontUrl, mode, ban
   const pathname = usePathname();
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  // RESPONSIVE_B2-11: the drawer is controlled (no SheetTrigger), so hand focus back to the menu button on close
+  const menuButtonRef = React.useRef<HTMLButtonElement>(null);
+  const drawerFocus = useReturnFocus(menuButtonRef);
 
   React.useEffect(() => {
     try {
@@ -143,7 +147,7 @@ export function AppShell({ nav, user, tenants, current, storefrontUrl, mode, ban
 
       {/* Mobile sheet */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-[min(20rem,85vw)] gap-0 p-0 sm:max-w-sm">
+        <SheetContent side="left" className="w-[min(20rem,85vw)] gap-0 p-0 sm:max-w-sm" {...drawerFocus}>
           <SheetTitle className="sr-only">เมนู</SheetTitle>
           {brand(false)}
           {navList(false)}
@@ -153,7 +157,7 @@ export function AppShell({ nav, user, tenants, current, storefrontUrl, mode, ban
       <div className="flex min-w-0 flex-1 flex-col">
         {banner}
         <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/90 px-3 backdrop-blur sm:px-6">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="เปิดเมนู">
+          <Button ref={menuButtonRef} variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="เปิดเมนู" aria-expanded={mobileOpen}>
             <Menu aria-hidden />
           </Button>
 

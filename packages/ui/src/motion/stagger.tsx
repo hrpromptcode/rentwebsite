@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { motion, useReducedMotion, type HTMLMotionProps, type Variants } from "motion/react";
+import { useRevealOnFocus } from "./reveal";
 
 export interface StaggerProps extends HTMLMotionProps<"div"> {
   stagger?: number;
@@ -9,12 +10,31 @@ export interface StaggerProps extends HTMLMotionProps<"div"> {
   once?: boolean;
 }
 
-/** Parent: orchestrates a staggered "show" of StaggerItem children once in view (SSR-safe, see Reveal). */
-export function Stagger({ children, stagger = 0.08, delay = 0, once = true, ...rest }: StaggerProps) {
+/**
+ * Parent: orchestrates a staggered "show" of StaggerItem children once in view (SSR-safe, see Reveal). Focus moving into
+ * an item before the group was in view shows the group at once (RESPONSIVE_B2-06).
+ */
+export function Stagger({ children, stagger = 0.08, delay = 0, once = true, onViewportEnter, onFocusCapture, ...rest }: StaggerProps) {
   const reduce = useReducedMotion();
+  const { seen, forced, markSeen, revealOnFocus } = useRevealOnFocus();
   const container: Variants = { show: { transition: { staggerChildren: stagger, delayChildren: delay } } };
   return (
-    <motion.div variants={container} initial={false} whileInView={reduce ? undefined : "show"} viewport={{ once, margin: "0px 0px -10% 0px" }} {...rest}>
+    <motion.div
+      variants={container}
+      initial={false}
+      whileInView={reduce || forced ? undefined : "show"}
+      animate={!reduce && forced ? "show" : undefined}
+      viewport={{ once, margin: "0px 0px -10% 0px" }}
+      onViewportEnter={(entry) => {
+        markSeen();
+        onViewportEnter?.(entry);
+      }}
+      onFocusCapture={(e) => {
+        if (!reduce && !seen()) revealOnFocus();
+        onFocusCapture?.(e);
+      }}
+      {...rest}
+    >
       {children}
     </motion.div>
   );

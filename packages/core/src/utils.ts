@@ -82,3 +82,19 @@ export function formatDate(
     ...(opts.withTime ? { timeStyle: "short" as const } : {}),
   }).format(date);
 }
+
+const BACKSLASH = String.fromCharCode(92);
+const SCRIPT_UNSAFE_RE = new RegExp(`[<>&${String.fromCharCode(0x2028)}${String.fromCharCode(0x2029)}]`, "g");
+const scriptEscape = (c: string) => `${BACKSLASH}u${c.charCodeAt(0).toString(16).padStart(4, "0")}`;
+
+/**
+ * JSON for an inline <script> (JSON-LD, bootstrapped state). Plain JSON.stringify lets a value such as
+ * "</script><script>..." close the tag (stored XSS, ADMIN_B2-20); this rewrites <, >, & and U+2028/2029 as JSON
+ * unicode escapes (backslash-u003c ...), which every JSON / JS parser reads back as the same characters.
+ */
+export function safeJsonForScript(value: unknown): string {
+  return (JSON.stringify(value) ?? "null").replace(SCRIPT_UNSAFE_RE, scriptEscape);
+}
+
+/** Alias used by <script type="application/ld+json"> emitters. */
+export const serializeJsonLd = safeJsonForScript;

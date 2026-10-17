@@ -27,7 +27,7 @@ async function main() {
   }
   for (const url of ["http://demo-salon.localhost:3000/book?service=thai-60&staff=nam", "http://demo-clinic.localhost:3000/book?service=consult&staff=dr-kan"]) {
     await p.goto(url, { waitUntil: "networkidle" });
-    await p.locator('button[role="gridcell"]:not([disabled]):not(.animate-pulse)').first().waitFor();
+    await p.locator('button[role="gridcell"]:not([aria-disabled]):not(.animate-pulse)').first().waitFor();
     const fab = await fabBox();
     const btns = await p.locator("main button:visible").evaluateAll((els) => els.map((e) => ({ t: (e as HTMLElement).innerText.trim().slice(0, 20), r: e.getBoundingClientRect().toJSON() })));
     const hits = btns.filter((b) => fab && b.r.x < fab.x + fab.width && fab.x < b.r.x + b.r.width && b.r.y < fab.y + fab.height && fab.y < b.r.y + b.r.height);

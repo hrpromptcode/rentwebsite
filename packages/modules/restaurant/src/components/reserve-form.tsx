@@ -125,7 +125,7 @@ export function ReserveForm({ hours, zones, deposit, methods, today, maxDate, no
               ))}
             </div>
             {slots.length > 12 && (
-              <button type="button" className="mt-2 text-sm text-primary underline-offset-4 hover:underline" onClick={() => setShowAllSlots((v) => !v)}>
+              <button type="button" className="mt-1 inline-flex min-h-11 items-center text-sm text-primary underline-offset-4 hover:underline md:min-h-9" onClick={() => setShowAllSlots((v) => !v)}>
                 {showAllSlots ? "แสดงน้อยลง" : `แสดงเวลาอื่น (${slots.length - 12})`}
               </button>
             )}

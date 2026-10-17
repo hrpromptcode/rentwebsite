@@ -54,14 +54,14 @@ export default async function BuyPackagePage({ params }: { params: Params }) {
               </dl>
             </Reveal>
             <Reveal delay={0.05}>
-              <div className="card sticky top-24 p-5 md:p-6">
+              <div className="card sticky top-[calc(var(--header-h,0px)+1rem)] p-5 md:p-6">
                 <p className="text-sm text-muted-foreground">ยอดชำระ</p>
                 <div className="mt-1 flex flex-wrap items-baseline gap-2">
                   <span className="font-heading text-3xl font-semibold text-primary">{thb(pkg.price)}</span>
                   {pkg.compareAtPrice && pkg.compareAtPrice > pkg.price && (
                     <>
                       <span className="text-sm text-muted-foreground line-through">{thb(pkg.compareAtPrice)}</span>
-                      <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-medium text-primary">{L.save(save)}</span>
+                      <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-medium text-primary-ink">{L.save(save)}</span>
                     </>
                   )}
                 </div>

@@ -27,7 +27,8 @@ export function segmentText(text: string, granularity: "words" | "chars" = "word
   } catch {
     /* ignore */
   }
-  return granularity === "chars" ? Array.from(text) : text.split(/(\s+)/);
+  // no Segmenter: never split a base letter from its combining marks (Thai vowels / tone marks are \p{M}).
+  return granularity === "chars" ? (text.match(/\P{M}\p{M}*/gu) ?? []) : text.split(/(\s+)/);
 }
 
 export function TextReveal({ text, granularity = "words", ...rest }: TextRevealProps) {

@@ -108,16 +108,16 @@ async function pickStaff(page: Page, who: "any" | string) {
 /** waits for the month to load and clicks the first bookable date with offset >= minOffsetDays (skipping `not`) */
 async function pickDate(page: Page, opts: { minOffsetDays: number; maxOffsetDays?: number; not?: string | null }): Promise<string> {
   const today = bkkToday();
-  const loaded = page.locator('button[role="gridcell"]:not([disabled]):not(.animate-pulse)');
+  const loaded = page.locator('button[role="gridcell"]:not([aria-disabled]):not(.animate-pulse)');
   await loaded.first().waitFor({ timeout: 30_000 });
   await page.getByText("กำลังตรวจสอบวันว่าง…").waitFor({ state: "hidden", timeout: 30_000 }).catch(() => {});
-  const labels = (await page.locator('button[role="gridcell"]:not([disabled])').evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")))) as string[];
+  const labels = (await page.locator('button[role="gridcell"]:not([aria-disabled])').evaluateAll((els) => els.map((e) => e.getAttribute("data-date")))) as string[];
   const target = labels.find((d) => {
     const off = diffDays(today, d);
     return off >= opts.minOffsetDays && (opts.maxOffsetDays === undefined || off <= opts.maxOffsetDays) && d !== opts.not;
   });
   assert(target, `no bookable date with offset >= ${opts.minOffsetDays} (enabled: ${labels.join(",")})`);
-  await page.locator(`button[role="gridcell"][aria-label="${target}"]`).click();
+  await page.locator(`button[role="gridcell"][data-date="${target}"]`).click();
   return target;
 }
 function slotChips(page: Page) {
@@ -332,7 +332,7 @@ async function main() {
       await b.goto(`${salon}/book?service=thai-60&staff=mali`);
       await b.getByText("เลือกวันที่สะดวก").waitFor();
       await b.locator(`button[role="gridcell"]:not(.animate-pulse)`).first().waitFor();
-      await b.locator(`button[role="gridcell"][aria-label="${date}"]`).click();
+      await b.locator(`button[role="gridcell"][data-date="${date}"]`).click();
       const timeB = await pickSlot(b, time);
       assert(timeB === time, `B picked ${timeB} != ${time}`);
       await fillDetails(b, { name: "ลูกค้า B", phone: "0822222222" });
@@ -440,11 +440,11 @@ async function main() {
     await s.getByText("เลือกผู้ให้บริการ").waitFor();
     await pickStaff(s, "any");
     const labels = (await (async () => {
-      await s.locator('button[role="gridcell"]:not([disabled]):not(.animate-pulse)').first().waitFor();
-      return s.locator('button[role="gridcell"]:not([disabled])').evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+      await s.locator('button[role="gridcell"]:not([aria-disabled]):not(.animate-pulse)').first().waitFor();
+      return s.locator('button[role="gridcell"]:not([aria-disabled])').evaluateAll((els) => els.map((e) => e.getAttribute("data-date")));
     })()) as string[];
     if (!labels.includes(today)) return `SKIP – no slots today (${today}) at ${Math.floor(bkkNowMinutes() / 60)}:xx`;
-    await s.locator(`button[role="gridcell"][aria-label="${today}"]`).click();
+    await s.locator(`button[role="gridcell"][data-date="${today}"]`).click();
     const time = await pickSlot(s, 0);
     const [hh, mm] = time.split(":").map(Number) as [number, number];
     const hoursAhead = (hh * 60 + mm - bkkNowMinutes()) / 60;
@@ -520,7 +520,7 @@ async function main() {
     // second (unrelated) customer, same slot
     await s.goto(`${salon}/book?service=couple`);
     await s.locator('button[role="gridcell"]:not(.animate-pulse)').first().waitFor();
-    await s.locator(`button[role="gridcell"][aria-label="${date}"]`).click();
+    await s.locator(`button[role="gridcell"][data-date="${date}"]`).click();
     await s.getByText("กำลังโหลดเวลาว่าง…").waitFor({ state: "hidden" }).catch(() => {});
     const chip2 = slotChips(s).filter({ hasText: time }).first();
     const label1 = await chip2.innerText();
@@ -531,7 +531,7 @@ async function main() {
     // third: slot must be full
     await s.goto(`${salon}/book?service=couple`);
     await s.locator('button[role="gridcell"]:not(.animate-pulse)').first().waitFor();
-    await s.locator(`button[role="gridcell"][aria-label="${date}"]`).click();
+    await s.locator(`button[role="gridcell"][data-date="${date}"]`).click();
     await s.getByText("กำลังโหลดเวลาว่าง…").waitFor({ state: "hidden" }).catch(() => {});
     const chip3 = slotChips(s).filter({ hasText: time }).first();
     await chip3.waitFor();

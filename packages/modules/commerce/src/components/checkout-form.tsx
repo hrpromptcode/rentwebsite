@@ -250,7 +250,7 @@ export function CheckoutForm({ cart, shipping, methods, customer, provinces, log
       </div>
 
       {/* summary */}
-      <Reveal delay={0.1} className="card p-5 md:p-6 lg:sticky lg:top-28">
+      <Reveal delay={0.1} className="card p-5 md:p-6 lg:sticky lg:top-[calc(var(--header-h,0px)+1rem)]">
         <h2 className="font-heading text-xl font-semibold">{L.orderSummary}</h2>
         <ul className="mt-4 grid max-h-72 gap-3 overflow-y-auto pr-1">
           {cart.items.map((it) => (

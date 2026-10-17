@@ -1,7 +1,7 @@
-import { and, desc, eq, gt, gte, isNull, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, isNotNull, isNull, lt, or, sql, type SQL } from "drizzle-orm";
 import { customers, customerOtps, customerSessions, type Tx } from "@rentweb/db";
 import { randomOtp, randomToken, safeEqual, sha256 } from "../crypto";
-import { normalizeThaiPhone } from "../utils";
+import { isUuid, normalizeThaiPhone } from "../utils";
 
 export { clientIp, isHttpsRequest, normalizeIp, trustedProxyHops } from "./request-meta";
 
@@ -161,7 +161,16 @@ export async function requestOtp(tx: Tx, tenantId: string, target: OtpTarget, me
 
 export type VerifyResult =
   | { ok: true; customer: CustomerSummary; token: string; expiresAt: Date; isNew: boolean }
-  | { ok: false; error: "invalid" | "expired" | "too_many" | "locked" };
+  | { ok: false; error: "invalid" | "expired" | "too_many" | "locked" | "blocked" };
+
+/** Thai messages for VerifyResult errors (storefront login). */
+export const OTP_VERIFY_ERROR_MESSAGES: Record<Extract<VerifyResult, { ok: false }>["error"], string> = {
+  invalid: "รหัสไม่ถูกต้อง",
+  expired: "รหัสหมดอายุ กรุณาขอรหัสใหม่",
+  too_many: "ลองผิดหลายครั้งเกินไป กรุณาขอรหัสใหม่",
+  locked: "ลองรหัสผิดหลายครั้งเกินไป กรุณาลองใหม่ภายหลัง",
+  blocked: "บัญชีนี้ถูกระงับการใช้งานโดยร้าน หากมีข้อสงสัยกรุณาติดต่อร้านโดยตรง",
+};
 
 /** Verifies an OTP, creates the customer on first login and opens a session. */
 export async function verifyOtp(
@@ -201,6 +210,8 @@ export async function verifyOtp(
 
   let customer = await findCustomerBy(tx, tenantId, target.kind, target.value);
   let isNew = false;
+  // ADMIN_B2-13: a customer the shop blocked gets no session (and a clear message instead of a silent bounce)
+  if (customer?.blockedAt) return { ok: false, error: "blocked" };
   if (!customer) {
     customer = await insertCustomer(tx, tenantId, target.kind, target.value, meta.name?.trim() || null);
     isNew = true;
@@ -271,4 +282,38 @@ export async function upsertGuestCustomer(
     return pickCustomer({ ...existing, ...patch } as CustomerRow);
   }
   return pickCustomer(await insertCustomer(tx, tenantId, key.kind, key.value, name));
+}
+
+/* ------------------------------------------------------------------ */
+/* Blocked customers (ADMIN_B2-13)                                      */
+/* ------------------------------------------------------------------ */
+
+/** Polite Thai refusal for orders / bookings / reservations by a customer the shop blocked. */
+export const CUSTOMER_BLOCKED_MESSAGE = "ขออภัย ไม่สามารถทำรายการได้ กรุณาติดต่อร้านโดยตรง";
+export const CUSTOMER_BLOCKED_CODE = "customer_blocked";
+
+/**
+ * True when the shop blocked (customers.blocked_at) the customer behind ANY of the given identifiers: the
+ * signed-in customer id, or a guest's phone / e-mail that belongs to a blocked customer record. Guest flows
+ * call this before creating an order / booking / reservation, so a blocked customer cannot simply check out
+ * as a guest with the same phone or e-mail.
+ */
+export async function isCustomerBlocked(
+  tx: Tx,
+  tenantId: string,
+  who: { customerId?: string | null; phone?: string | null; email?: string | null },
+): Promise<boolean> {
+  const conds: SQL[] = [];
+  if (who.customerId && isUuid(who.customerId)) conds.push(eq(customers.id, who.customerId));
+  const phone = who.phone ? normalizeThaiPhone(who.phone) : null;
+  if (phone) conds.push(eq(customers.phone, phone));
+  const email = who.email?.trim().toLowerCase() || null;
+  if (email) conds.push(sql`lower(${customers.email}) = ${email}`);
+  if (!conds.length) return false;
+  const [row] = await tx
+    .select({ id: customers.id })
+    .from(customers)
+    .where(and(eq(customers.tenantId, tenantId), isNotNull(customers.blockedAt), conds.length === 1 ? conds[0]! : or(...conds)))
+    .limit(1);
+  return !!row;
 }

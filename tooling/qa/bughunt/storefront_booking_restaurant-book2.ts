@@ -33,12 +33,12 @@ const inPage = (p: Page, url: string) =>
   }, url);
 const bkkToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
 async function pickDate(page: Page, minOffset: number): Promise<string> {
-  await page.locator('button[role="gridcell"]:not([disabled]):not(.animate-pulse)').first().waitFor();
-  const labels = (await page.locator('button[role="gridcell"]:not([disabled])').evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")))) as string[];
+  await page.locator('button[role="gridcell"]:not([aria-disabled]):not(.animate-pulse)').first().waitFor();
+  const labels = (await page.locator('button[role="gridcell"]:not([aria-disabled])').evaluateAll((els) => els.map((e) => e.getAttribute("data-date")))) as string[];
   const today = bkkToday();
   const t = labels.find((d) => (Date.parse(d) - Date.parse(today)) / 86400000 >= minOffset);
   if (!t) throw new Error("no date " + labels.join(","));
-  await page.locator(`button[role="gridcell"][aria-label="${t}"]`).click();
+  await page.locator(`button[role="gridcell"][data-date="${t}"]`).click();
   return t;
 }
 async function pickSlot(page: Page, idx = 0): Promise<string> {
@@ -159,7 +159,7 @@ async function main() {
         if (dis) break;
         await nextBtn.click();
         await s.waitForTimeout(2000);
-        const en = (await s.locator('button[role="gridcell"]:not([disabled])').evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")))) as string[];
+        const en = (await s.locator('button[role="gridcell"]:not([aria-disabled])').evaluateAll((els) => els.map((e) => e.getAttribute("data-date")))) as string[];
         labels.push(`enabled=${en.length}${en.length ? ` last=${en[en.length - 1]}` : ""}`);
       }
       log(`T5 calendar nav: ${labels.join(" ")}`);

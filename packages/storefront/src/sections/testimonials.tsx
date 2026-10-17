@@ -82,7 +82,7 @@ export function Testimonials({ props: p }: { ctx: StorefrontCtx; props: Props })
                 {first!.avatar && <img src={first!.avatar} alt="" className="size-12 rounded-full object-cover" />}
                 <div>
                   <div className="font-semibold">{first!.name}</div>
-                  <div className="text-sm opacity-80">{first!.role}</div>
+                  <div className="text-sm">{first!.role}</div>
                 </div>
               </div>
             </Reveal>

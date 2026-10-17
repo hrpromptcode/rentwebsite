@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { decodeSlug } from "@/lib/slug";
+import { serializeJsonLd } from "@rentweb/core";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MessageSquareText, Scale, Tag } from "lucide-react";
@@ -94,10 +95,10 @@ export default async function ProductPage({ params }: { params: Params }) {
             <ProductGallery images={images} name={product.name} soldOut={soldOut} />
           </Reveal>
 
-          <div className="md:sticky md:top-28 md:self-start">
+          <div className="md:sticky md:top-[calc(var(--header-h,0px)+1rem)] md:self-start">
             <Reveal delay={0.1}>
               {category && (
-                <Link href={`/collections/${encodeURIComponent(category.slug)}`} className="inline-flex h-8 items-center gap-1.5 text-xs font-semibold tracking-[0.25em] text-primary uppercase">
+                <Link href={`/collections/${encodeURIComponent(category.slug)}`} className="inline-flex h-11 items-center gap-1.5 text-xs font-semibold tracking-[0.25em] text-primary-ink uppercase md:h-8">
                   <Tag className="size-3.5" /> {category.name}
                 </Link>
               )}
@@ -194,7 +195,7 @@ export default async function ProductPage({ params }: { params: Params }) {
           </div>
         )}
       </section>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
     </PageBody>
   );
 }

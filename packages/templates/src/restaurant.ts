@@ -1,7 +1,7 @@
 import type { TemplateDefinition } from "@rentweb/core/tenant";
 import { diningTables, menuCategories, menuItemModifierGroups, menuItems, menus, modifierGroups, modifiers } from "@rentweb/db";
 import { section, hero, marquee, menuHighlight, imageText, gallery, testimonials, reservationCta, faq, features, stats } from "@rentweb/storefront/definitions";
-import { aboutPage, contactPage, legalPages, u, avatar } from "./shared";
+import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, u, avatar } from "./shared";
 
 export const restaurant: TemplateDefinition = {
   key: "restaurant",
@@ -11,6 +11,12 @@ export const restaurant: TemplateDefinition = {
   siteType: "restaurant",
   modules: ["restaurant"],
   themePreset: "ember",
+  // ADMIN_B2-07: the sample brand; new (non-demo) shops get their own name instead
+  sampleBrand: ["บ้านริม"],
+  neutralText: [
+    ["เสิร์ฟในบ้านไม้อายุ 70 ปี", "เสิร์ฟร้อน ๆ ทุกวัน"],
+    ["อารีย์ · กรุงเทพฯ", "[ย่าน · จังหวัดของร้าน]"],
+  ],
   recommendedPresets: ["ember", "midnight", "candy", "aurora"],
   complexity: 3,
   previewImage: u("1517248135467-4c7edcad34c4", 1200),
@@ -121,7 +127,7 @@ export const restaurant: TemplateDefinition = {
         }),
       ],
     },
-    aboutPage({ heading: "บ้านริม — ครัวคุณยายในบ้านไม้อายุ 70 ปี", body: "บ้านหลังนี้เป็นของคุณยายสมศรี ที่ทำอาหารเลี้ยงลูกหลานมาตลอดชีวิต เมื่อปี 2018 หลานสาวตัดสินใจเปิดบ้านเป็นร้านอาหาร เพื่อแบ่งปันสูตรของคุณยายและรักษาบ้านไม้หลังนี้ไว้\n\nเราทำทุกอย่างเหมือนที่คุณยายทำ ตำเครื่องแกงเองทุกเช้า ใช้วัตถุดิบตามฤดูกาล และเสิร์ฟด้วยความใส่ใจ" }),
+    aboutPage({ neutral: NEUTRAL_ABOUT.restaurant, heading: "บ้านริม — ครัวคุณยายในบ้านไม้อายุ 70 ปี", body: "บ้านหลังนี้เป็นของคุณยายสมศรี ที่ทำอาหารเลี้ยงลูกหลานมาตลอดชีวิต เมื่อปี 2018 หลานสาวตัดสินใจเปิดบ้านเป็นร้านอาหาร เพื่อแบ่งปันสูตรของคุณยายและรักษาบ้านไม้หลังนี้ไว้\n\nเราทำทุกอย่างเหมือนที่คุณยายทำ ตำเครื่องแกงเองทุกเช้า ใช้วัตถุดิบตามฤดูกาล และเสิร์ฟด้วยความใส่ใจ" }),
     contactPage({ heading: "ติดต่อ / เดินทาง", body: "BTS อารีย์ ทางออก 3 เดิน 5 นาที มีที่จอดรถหน้าร้าน" }),
     ...legalPages("บ้านริม"),
   ],

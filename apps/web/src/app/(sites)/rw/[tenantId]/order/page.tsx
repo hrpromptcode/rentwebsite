@@ -43,7 +43,7 @@ export default async function PickupPage({ params, searchParams }: { params: Par
     <PageBody theme={runtime.theme} sections={[]}>
       <section className="container-x pt-6 pb-4 md:pt-10 md:pb-6">
         <Reveal>
-          <p className="flex items-center gap-1.5 text-xs font-semibold tracking-[0.2em] text-primary uppercase">
+          <p className="flex items-center gap-1.5 text-xs font-semibold tracking-[0.2em] text-primary-ink uppercase">
             <Store className="size-3.5" /> {L.pickupShort}
           </p>
           <h1 className="font-heading mt-1 text-4xl font-semibold md:text-6xl">{L.pickup}</h1>

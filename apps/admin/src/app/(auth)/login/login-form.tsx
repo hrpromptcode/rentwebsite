@@ -70,8 +70,9 @@ export function LoginForm({ next }: { next?: string }) {
         </form>
         <p className="mt-6 text-center text-sm text-muted-foreground">
           ยังไม่มีบัญชี?{" "}
-          <Link href="/signup" className="font-medium text-primary underline-offset-4 hover:underline">
-            สมัครและสร้างเว็บฟรี 14 วัน
+          {/* ADMIN_B2-12: keep ?next (e.g. /invite/<token>) through sign-up */}
+          <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="font-medium text-primary underline-offset-4 hover:underline">
+            {next?.startsWith("/invite/") ? "สมัครบัญชีเพื่อเข้าร่วมทีม" : "สมัครและสร้างเว็บฟรี 14 วัน"}
           </Link>
         </p>
       </CardContent>

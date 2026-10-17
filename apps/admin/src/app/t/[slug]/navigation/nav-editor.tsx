@@ -9,9 +9,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@rentweb/ui/components
 import { toast } from "@rentweb/ui/components/sonner";
 import { cn } from "@rentweb/ui/lib/utils";
 import type { NavItem } from "@rentweb/db";
+import { checkNavHref } from "@/lib/nav-href";
 import { saveNavigation } from "../pages/actions";
 
 type Link = { label: string; href: string };
+
+/** ADMIN_B2-18: same rule as the server (no javascript:/data: links); shown while typing. */
+function NavHrefError({ href }: { href: string }) {
+  const r = checkNavHref(href);
+  if (r.ok) return null;
+  return (
+    <p className="mt-2 pl-10 text-xs text-destructive">
+      {r.error}
+    </p>
+  );
+}
 
 export function NavEditor({ slug, initialHeader, initialFooter, pageLinks, canEdit, storefrontUrl }: { slug: string; initialHeader: NavItem[]; initialFooter: NavItem[]; pageLinks: Link[]; canEdit: boolean; storefrontUrl: string }) {
   const [header, setHeader] = React.useState<NavItem[]>(initialHeader);
@@ -105,7 +117,7 @@ function NavList({ items, onChange, pageLinks, canEdit, allowChildren, depth = 0
             <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-[1fr_1.4fr]">
               <Input value={item.label} onChange={(e) => update(i, { label: e.target.value })} placeholder="ชื่อเมนู" aria-label="ชื่อเมนู" disabled={!canEdit} />
               <div className="flex gap-2">
-                <Input value={item.href} onChange={(e) => update(i, { href: e.target.value, external: /^https?:\/\//.test(e.target.value) || undefined })} placeholder="/products หรือ https://…" aria-label="ลิงก์" disabled={!canEdit} className="min-w-0 flex-1 font-mono text-xs" />
+                <Input value={item.href} onChange={(e) => update(i, { href: e.target.value, external: /^https?:\/\//.test(e.target.value) || undefined })} placeholder="/products หรือ https://…" aria-label="ลิงก์" aria-invalid={!checkNavHref(item.href).ok || undefined} disabled={!canEdit} className="min-w-0 flex-1 font-mono text-xs" />
                 <Select value="__pick" onValueChange={(v) => v !== "__pick" && update(i, { href: v, label: item.label || (pageLinks.find((p) => p.href === v)?.label ?? ""), external: undefined })} disabled={!canEdit}>
                   <SelectTrigger className="w-11 shrink-0 px-0 [&>svg:last-child]:hidden" aria-label="เลือกจากหน้าที่มี">
                     <Plus className="mx-auto size-4" aria-hidden />
@@ -128,6 +140,7 @@ function NavList({ items, onChange, pageLinks, canEdit, allowChildren, depth = 0
               <Trash2 aria-hidden />
             </Button>
           </div>
+          <NavHrefError href={item.href} />
           {allowChildren && depth === 0 && (
             <div className="mt-3 pl-10">
               <div className="mb-2 flex items-center justify-between">

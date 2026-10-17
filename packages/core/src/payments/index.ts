@@ -85,6 +85,8 @@ export interface TenantPaymentSettings {
   /** PromptPay ID (phone 0812345678 or 13-digit tax id) used to render QR codes */
   promptpayId?: string;
   promptpayName?: string;
+  /** ADMIN_B2-09: owner opted in to use the contact phone (Thai mobile only) when promptpayId is empty */
+  promptpayUseContactPhone?: boolean;
   bankAccounts?: Array<{ bank: string; name: string; number: string }>;
   enabled?: { promptpay?: boolean; bankTransfer?: boolean; cod?: boolean; card?: boolean; wallet?: boolean; cash?: boolean };
   /** auto-approve uploaded slips (development / trusted stores) */
@@ -390,26 +392,67 @@ export async function expireStalePayments(db: DbLike, opts: ExpirySweepOptions =
 
 export { promptpayPayload, promptpayQrSvg, promptpayQrDataUrl } from "./promptpay";
 
-/** PromptPay ID to render QR codes for: explicit setting, else the shop's contact phone (common in Thailand). */
-export function resolvePromptpayId(settings: Record<string, unknown>): string | null {
-  const p = paymentSettings(settings);
-  if (p.promptpayId) return p.promptpayId;
-  const contact = (settings.contact as { phone?: string } | undefined) ?? {};
-  const digits = contact.phone?.replace(/[^0-9]/g, "") ?? "";
-  return digits.length >= 9 ? digits : null;
+/** A 10-digit Thai mobile number (06 / 08 / 09) — the only kind of phone number that can be a PromptPay ID. */
+export function thaiMobilePromptpay(raw: string | null | undefined): string | null {
+  let d = (raw ?? "").replace(/[^0-9]/g, "");
+  if (d.length === 11 && d.startsWith("66")) d = `0${d.slice(2)}`;
+  return /^0[689][0-9]{8}$/.test(d) ? d : null;
 }
 
-/** Which methods a tenant accepts (defaults: PromptPay + bank slip on). */
+/** Normalised PromptPay ID (mobile, 13-digit citizen / tax ID or 15-digit e-wallet ID), or null when it cannot be one. */
+export function normalizeValidPromptpayId(raw: string | null | undefined): string | null {
+  const d = (raw ?? "").replace(/[^0-9]/g, "");
+  if (d.length === 13 || d.length === 15) return d;
+  return thaiMobilePromptpay(d);
+}
+
+/**
+ * PromptPay ID to render QR codes for (ADMIN_B2-09): the PromptPay ID the owner saved in Settings > Payments.
+ * The shop's contact phone is used only when the owner opted in (payments.promptpayUseContactPhone) AND it is a
+ * Thai mobile number — a landline or someone else's number never silently becomes the payment receiver.
+ */
+export function resolvePromptpayId(settings: Record<string, unknown>): string | null {
+  const p = paymentSettings(settings);
+  if (p.promptpayId?.trim()) return normalizeValidPromptpayId(p.promptpayId);
+  if (p.promptpayUseContactPhone !== true) return null;
+  const contact = (settings.contact as { phone?: string } | undefined) ?? {};
+  return thaiMobilePromptpay(contact.phone);
+}
+
+/** Bank accounts that can actually receive a transfer (an account number is filled in). */
+export function receivingBankAccounts(settings: Record<string, unknown>): Array<{ bank: string; name: string; number: string }> {
+  return (paymentSettings(settings).bankAccounts ?? []).filter((a) => !!a && typeof a.number === "string" && !!a.number.trim());
+}
+
+/** Thai notice for storefronts / admin when no online payment receiver is configured (ADMIN_B2-04). */
+export const PAYMENTS_NOT_CONFIGURED_MESSAGE = "ร้านยังไม่ได้ตั้งค่าช่องทางรับชำระเงิน";
+
+/**
+ * Which methods a tenant accepts (ADMIN_B2-04): a method must be enabled (PromptPay / bank transfer default on)
+ * AND have a receiver — PromptPay needs a PromptPay ID, bank transfer (slip) needs an account number. There is
+ * no fallback: with nothing configured the list is empty (offline methods cod / cash only when enabled), so no
+ * flow can ask a customer for a payment that cannot be made.
+ */
 export function enabledMethods(settings: Record<string, unknown>): Array<"promptpay_qr" | "slip" | "cod" | "cash" | "card" | "wallet"> {
   const p = paymentSettings(settings);
   const e = p.enabled ?? {};
   const out: Array<"promptpay_qr" | "slip" | "cod" | "cash" | "card" | "wallet"> = [];
   if ((e.promptpay ?? true) && resolvePromptpayId(settings)) out.push("promptpay_qr");
-  if ((e.bankTransfer ?? true) && (p.bankAccounts?.length ?? 0) > 0) out.push("slip");
+  if ((e.bankTransfer ?? true) && receivingBankAccounts(settings).length > 0) out.push("slip");
   if (e.cod) out.push("cod");
   if (e.cash) out.push("cash");
   if (e.card) out.push("card");
   if (e.wallet) out.push("wallet");
-  if (!out.length) out.push("slip");
   return out;
+}
+
+/** Online methods (PromptPay QR / bank-transfer slip) that can receive money now; empty = payments not set up. */
+export function onlinePaymentMethods(settings: Record<string, unknown>): Array<"promptpay_qr" | "slip"> {
+  return enabledMethods(settings).filter((m): m is "promptpay_qr" | "slip" => m === "promptpay_qr" || m === "slip");
+}
+
+/** For the admin dashboard checklist / settings: what will actually be used to take money. */
+export function paymentSetupStatus(settings: Record<string, unknown>): { promptpayId: string | null; bankAccounts: number; online: Array<"promptpay_qr" | "slip">; ready: boolean } {
+  const online = onlinePaymentMethods(settings);
+  return { promptpayId: resolvePromptpayId(settings), bankAccounts: receivingBankAccounts(settings).length, online, ready: online.length > 0 };
 }

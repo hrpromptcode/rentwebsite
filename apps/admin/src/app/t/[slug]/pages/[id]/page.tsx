@@ -4,6 +4,7 @@ import { and, eq, pages } from "@rentweb/db";
 import { isUuid } from "@rentweb/core";
 import { SectionEditor } from "@/components/editor/section-editor";
 import { getTenantCtx, hasRole, tenantTx } from "@/lib/tenant";
+import { effectiveMeta, hasUnpublishedChanges } from "../page-meta";
 
 export const metadata: Metadata = { title: "แก้ไขหน้า" };
 
@@ -22,9 +23,12 @@ export default async function PageEditorPage({ params }: { params: Promise<{ slu
       status={page.status}
       publishedAt={page.publishedAt?.toISOString() ?? null}
       initialSections={page.sections ?? []}
-      initialMeta={{ title: page.title, slug: page.slug, showInNav: page.showInNav, seo: page.seo ?? {} }}
+      initialMeta={effectiveMeta(page)}
+      liveSlug={page.slug}
+      hasUnpublishedChanges={hasUnpublishedChanges(page)}
       enabledModules={ctx.modules}
       storefrontUrl={ctx.storefrontUrl}
+      canEdit={hasRole(ctx, "staff")}
       canPublish={hasRole(ctx, "manager")}
       canDelete={hasRole(ctx, "admin")}
     />

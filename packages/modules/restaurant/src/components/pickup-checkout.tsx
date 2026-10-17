@@ -76,7 +76,7 @@ export function PickupCheckout({ lines, totals, slots, methods, action, onBack }
                 ))}
               </div>
               {slots.length > 12 && (
-                <button type="button" className="mt-2 text-sm text-primary underline-offset-4 hover:underline" onClick={() => setShowAll((v) => !v)}>
+                <button type="button" className="mt-1 inline-flex min-h-11 items-center text-sm text-primary underline-offset-4 hover:underline md:min-h-9" onClick={() => setShowAll((v) => !v)}>
                   {showAll ? "แสดงน้อยลง" : `แสดงเวลาอื่น (${slots.length - 12})`}
                 </button>
               )}

@@ -1,16 +1,20 @@
 "use client";
 
 import * as React from "react";
-import { Check, Copy, FileText, Film, Images, Loader2, Trash2, Upload } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, Check, Copy, FileText, Film, Images, Loader2, Trash2, Upload } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@rentweb/ui/components/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@rentweb/ui/components/dialog";
 import { Input } from "@rentweb/ui/components/input";
 import { Label } from "@rentweb/ui/components/label";
 import { toast } from "@rentweb/ui/components/sonner";
 import { cn } from "@rentweb/ui/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
 import { fmtBytes, fmtDate } from "@/lib/format";
-import { deleteMedia, updateMediaAlt, uploadMedia } from "./actions";
+import { useReturnFocus } from "@/lib/use-return-focus";
+import { deleteMedia, getMediaUsage, updateMediaAlt, uploadMedia } from "./actions";
+import { MAX_FILES_PER_UPLOAD, MEDIA_ACCEPT, MEDIA_MAX_BYTES, MEDIA_TYPES_LABEL, tooLargeMessage } from "./limits";
+import type { MediaUsage } from "./usage";
 
 export interface MediaItem {
   id: string;
@@ -22,31 +26,68 @@ export interface MediaItem {
   createdAt: string;
 }
 
+type DeleteState = { item: MediaItem; loading: boolean; usages: MediaUsage[] | null; pending: boolean };
+
 export function MediaGrid({ slug, items, storefrontUrl, canUpload, canDelete }: { slug: string; items: MediaItem[]; storefrontUrl: string; canUpload: boolean; canDelete: boolean }) {
-  const [uploading, setUploading] = React.useState(false);
+  const [progress, setProgress] = React.useState<{ done: number; total: number } | null>(null);
   const [dragging, setDragging] = React.useState(false);
   const [open, setOpen] = React.useState<MediaItem | null>(null);
+  const [del, setDel] = React.useState<DeleteState | null>(null);
   const [copied, setCopied] = React.useState<string | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const deleteBtnRef = React.useRef<HTMLButtonElement>(null);
+  const detailFocus = useReturnFocus();
+  const deleteFocus = useReturnFocus(deleteBtnRef);
+  const uploading = progress !== null;
 
   const abs = (u: string) => (u.startsWith("/") ? `${storefrontUrl}${u}` : u);
 
+  /**
+   * ADMIN_B2-15: check sizes here and send ONE file per server-action request, so a large file never pushes a
+   * request over the body limit (which used to lose the whole batch with "Unexpected end of form").
+   */
   async function upload(files: FileList | File[]) {
     const list = Array.from(files);
-    if (!list.length) return;
-    setUploading(true);
+    if (!list.length || uploading) return;
+    const errors: string[] = [];
+    let queue = list;
+    if (queue.length > MAX_FILES_PER_UPLOAD) {
+      errors.push(`เลือกไว้ ${queue.length} ไฟล์ — อัปโหลดได้ครั้งละ ${MAX_FILES_PER_UPLOAD} ไฟล์ จึงอัปโหลดเฉพาะ ${MAX_FILES_PER_UPLOAD} ไฟล์แรก`);
+      queue = queue.slice(0, MAX_FILES_PER_UPLOAD);
+    }
+    const sendable = queue.filter((f) => {
+      if (f.size > MEDIA_MAX_BYTES) {
+        errors.push(tooLargeMessage(f.name, f.size));
+        return false;
+      }
+      if (f.size === 0) {
+        errors.push(`${f.name}: ไฟล์ว่างเปล่า`);
+        return false;
+      }
+      return true;
+    });
+    let uploaded = 0;
+    setProgress({ done: 0, total: sendable.length });
     try {
-      const fd = new FormData();
-      for (const f of list) fd.append("files", f);
-      const r = await uploadMedia(slug, fd);
-      if (!r.ok) toast.error(r.error);
-      else toast.success(r.message ?? "อัปโหลดแล้ว");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "อัปโหลดไม่สำเร็จ");
+      for (const [i, f] of sendable.entries()) {
+        try {
+          const fd = new FormData();
+          fd.append("files", f);
+          const r = await uploadMedia(slug, fd);
+          if (r.ok) uploaded += r.uploaded ?? 1;
+          else errors.push(r.error);
+        } catch (e) {
+          errors.push(`${f.name}: ${e instanceof Error && e.message ? e.message : "อัปโหลดไม่สำเร็จ"}`);
+        }
+        setProgress({ done: i + 1, total: sendable.length });
+      }
     } finally {
-      setUploading(false);
+      setProgress(null);
       if (inputRef.current) inputRef.current.value = "";
     }
+    if (uploaded && !errors.length) toast.success(`อัปโหลด ${uploaded} ไฟล์แล้ว`);
+    else if (uploaded) toast.warning(`อัปโหลด ${uploaded} ไฟล์ · ข้าม ${errors.length}`, { description: errors.join("\n"), duration: 10_000 });
+    else toast.error(errors.length === 1 ? errors[0]! : `อัปโหลดไม่สำเร็จ (${errors.length})`, errors.length > 1 ? { description: errors.join("\n"), duration: 10_000 } : undefined);
   }
 
   async function copy(item: MediaItem) {
@@ -60,15 +101,45 @@ export function MediaGrid({ slug, items, storefrontUrl, canUpload, canDelete }: 
     }
   }
 
-  async function remove(item: MediaItem) {
-    if (!confirm(`ลบ “${item.alt || "ไฟล์นี้"}”? หน้าเว็บที่ใช้รูปนี้จะแสดงรูปไม่ได้`)) return;
-    const r = await deleteMedia(slug, item.id);
-    if (!r.ok) toast.error(r.error);
-    else {
-      toast.success(r.message ?? "ลบแล้ว");
-      setOpen(null);
+  /** ADMIN_B2-17: look up where the file is used before asking to confirm. */
+  async function askDelete(item: MediaItem) {
+    setDel({ item, loading: true, usages: null, pending: false });
+    try {
+      const r = await getMediaUsage(slug, item.id);
+      if (!r.ok) {
+        toast.error(r.error);
+        setDel(null);
+        return;
+      }
+      setDel((d) => (d && d.item.id === item.id ? { ...d, loading: false, usages: r.usages ?? [] } : d));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "ตรวจสอบการใช้งานไม่สำเร็จ");
+      setDel(null);
     }
   }
+
+  async function confirmDelete() {
+    if (!del || del.loading) return;
+    setDel({ ...del, pending: true });
+    try {
+      const r = await deleteMedia(slug, del.item.id, { confirmInUse: (del.usages?.length ?? 0) > 0 });
+      if (!r.ok) {
+        toast.error(r.error);
+        // the file became used since we looked: show the fresh list instead of deleting
+        if (r.usages) setDel({ ...del, pending: false, usages: r.usages });
+        else setDel({ ...del, pending: false });
+        return;
+      }
+      toast.success(r.message ?? "ลบแล้ว");
+      setDel(null);
+      setOpen(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "ลบไม่สำเร็จ");
+      setDel({ ...del, pending: false });
+    }
+  }
+
+  const usages = del?.usages ?? [];
 
   return (
     <div className="space-y-6">
@@ -88,13 +159,17 @@ export function MediaGrid({ slug, items, storefrontUrl, canUpload, canDelete }: 
         >
           <span className="grid size-12 place-items-center rounded-2xl bg-primary-soft text-primary">{uploading ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <Upload className="size-5" aria-hidden />}</span>
           <div>
-            <p className="font-medium">ลากไฟล์มาวางที่นี่ หรือ</p>
-            <p className="text-xs text-muted-foreground">รองรับ JPG, PNG, WebP, GIF, SVG, PDF, MP4 · สูงสุด 10 MB ต่อไฟล์ · 20 ไฟล์ต่อครั้ง</p>
+            <p className="font-medium" aria-live="polite">
+              {progress ? `กำลังอัปโหลด ${Math.min(progress.done + 1, progress.total)}/${progress.total} ไฟล์…` : "ลากไฟล์มาวางที่นี่ หรือ"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              รองรับ {MEDIA_TYPES_LABEL} · สูงสุด 10 MB ต่อไฟล์ · {MAX_FILES_PER_UPLOAD} ไฟล์ต่อครั้ง
+            </p>
           </div>
           <Button asChild variant="outline" className="cursor-pointer" aria-disabled={uploading}>
             <label>
               <Images aria-hidden /> เลือกไฟล์
-              <input ref={inputRef} type="file" multiple accept="image/*,application/pdf,video/mp4,video/webm" className="sr-only" disabled={uploading} onChange={(e) => e.target.files && upload(e.target.files)} />
+              <input ref={inputRef} type="file" multiple accept={MEDIA_ACCEPT} className="sr-only" disabled={uploading} onChange={(e) => e.target.files && upload(e.target.files)} />
             </label>
           </Button>
         </div>
@@ -123,7 +198,7 @@ export function MediaGrid({ slug, items, storefrontUrl, canUpload, canDelete }: 
       )}
 
       <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl" {...detailFocus}>
           {open && (
             <>
               <DialogHeader>
@@ -139,23 +214,62 @@ export function MediaGrid({ slug, items, storefrontUrl, canUpload, canDelete }: 
                 <div className="grid gap-4">
                   <AltForm slug={slug} item={open} />
                   <div className="grid gap-1.5">
-                    <Label>URL</Label>
+                    <Label htmlFor="media-url">URL</Label>
                     <div className="flex gap-2">
-                      <Input readOnly value={abs(open.url)} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+                      <Input id="media-url" readOnly value={abs(open.url)} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
                       <Button type="button" variant="outline" size="icon" onClick={() => copy(open)} aria-label="คัดลอก URL">
                         <Copy aria-hidden />
                       </Button>
                     </div>
                   </div>
                   {canDelete && (
-                    <Button type="button" variant="destructive" onClick={() => remove(open)}>
-                      <Trash2 aria-hidden /> ลบไฟล์
+                    <Button ref={deleteBtnRef} type="button" variant="destructive" onClick={() => askDelete(open)} disabled={del?.loading}>
+                      {del?.loading ? <Loader2 className="animate-spin" aria-hidden /> : <Trash2 aria-hidden />} ลบไฟล์
                     </Button>
                   )}
                 </div>
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!del && !del.loading} onOpenChange={(o) => !o && !del?.pending && setDel(null)}>
+        <DialogContent {...deleteFocus}>
+          <DialogHeader>
+            <DialogTitle>ลบ “{del?.item.alt || "ไฟล์นี้"}”?</DialogTitle>
+            <DialogDescription>{usages.length ? "ไฟล์นี้ยังถูกใช้อยู่ ถ้าลบ จุดด้านล่างจะแสดงรูปไม่ได้ (ลบแล้วกู้คืนไม่ได้)" : "ไม่พบการใช้งานไฟล์นี้บนเว็บ ลบแล้วกู้คืนไม่ได้"}</DialogDescription>
+          </DialogHeader>
+          {usages.length > 0 && (
+            <div className="rounded-xl border border-amber-300/60 bg-amber-50 p-3 text-sm dark:border-amber-500/30 dark:bg-amber-500/10">
+              <p className="mb-2 flex items-center gap-2 font-medium text-amber-900 dark:text-amber-200">
+                <AlertTriangle className="size-4 shrink-0" aria-hidden /> ใช้อยู่ {usages.length} แห่ง
+              </p>
+              <ul className="max-h-48 space-y-1 overflow-y-auto">
+                {usages.map((u, i) => (
+                  <li key={`${u.kind}-${u.label}-${i}`} className="flex min-w-0 gap-2">
+                    <span className="shrink-0 text-muted-foreground">{u.kind}</span>
+                    {u.href ? (
+                      <Link href={`/t/${slug}${u.href}`} className="min-w-0 truncate font-medium text-primary hover:underline">
+                        {u.label}
+                      </Link>
+                    ) : (
+                      <span className="min-w-0 truncate font-medium">{u.label}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDel(null)} disabled={del?.pending}>
+              ยกเลิก
+            </Button>
+            <Button type="button" variant="destructive" onClick={confirmDelete} disabled={del?.pending}>
+              {del?.pending ? <Loader2 className="animate-spin" aria-hidden /> : <Trash2 aria-hidden />}
+              {usages.length ? "ลบทั้งที่ยังใช้อยู่" : "ลบไฟล์"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
@@ -185,10 +299,15 @@ function AltForm({ slug, item }: { slug: string; item: MediaItem }) {
       onSubmit={async (e) => {
         e.preventDefault();
         setPending(true);
-        const r = await updateMediaAlt(slug, item.id, alt);
-        setPending(false);
-        if (!r.ok) toast.error(r.error);
-        else toast.success(r.message ?? "บันทึกแล้ว");
+        try {
+          const r = await updateMediaAlt(slug, item.id, alt);
+          if (!r.ok) toast.error(r.error);
+          else toast.success(r.message ?? "บันทึกแล้ว");
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "บันทึกไม่สำเร็จ");
+        } finally {
+          setPending(false);
+        }
       }}
     >
       <Label htmlFor="media-alt">ชื่อ / คำบรรยาย (alt)</Label>

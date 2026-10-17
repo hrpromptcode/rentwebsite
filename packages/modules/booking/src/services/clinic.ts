@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, nextCounter, type Tx } from "@rentweb/db";
 import { clinicPackages, packageUsages, patientPackages, patients, payments, services } from "@rentweb/db";
 import { emitEvent, fail, isUuid, ok, pad, type Result } from "@rentweb/core";
 import { normalizeThaiPhone } from "@rentweb/core";
+import { isCustomerBlocked } from "@rentweb/core/customer";
 import { cancelPayment, createPayment, enabledMethods, listPaymentsFor, paymentSettings, refundRequired, resolvePromptpayId, type PaymentClosedInfo, type PaymentMethod, type PaymentPaidResult, type PaymentProvider } from "@rentweb/core/payments";
 
 export type ClinicPackageRow = typeof clinicPackages.$inferSelect;
@@ -161,7 +162,12 @@ const PROVIDER_FOR: Record<PaymentMethod, PaymentProvider> = {
   installment: "opn",
 };
 
-export type PurchaseError = "package_not_found" | "invalid_customer" | "consent_required";
+export type PurchaseError = "package_not_found" | "invalid_customer" | "consent_required" | "payments_unavailable" | "customer_blocked";
+
+/** Online methods a package can be bought with (PromptPay / bank slip with a configured receiver, ADMIN_B2-04). */
+export function packagePaymentMethods(settings: Record<string, unknown>): PaymentMethod[] {
+  return enabledMethods(settings).filter((m): m is "promptpay_qr" | "slip" => m === "promptpay_qr" || m === "slip");
+}
 
 export interface PurchaseResult {
   patient: PatientRow;
@@ -182,7 +188,10 @@ export async function purchasePackage(
   if (!input.consent) return fail("consent_required");
   const pkg = await getClinicPackage(tx, tenantId, input.packageId);
   if (!pkg || !pkg.active) return fail("package_not_found");
+  const allowed = packagePaymentMethods(opts.settings);
+  if (!allowed.length) return fail("payments_unavailable");
   if (!input.customer.id) return fail("invalid_customer");
+  if (await isCustomerBlocked(tx, tenantId, { customerId: input.customer.id, phone: input.customer.phone, email: input.customer.email })) return fail("customer_blocked");
   const now = opts.now ?? new Date();
   const found = await ensurePatient(tx, tenantId, input.customer, { hnPrefix: opts.hnPrefix });
   const consents = await recordPatientConsents(tx, tenantId, found.id, ONLINE_PURCHASE_CONSENTS, { version: input.consent.version, by: "customer", at: now });
@@ -204,8 +213,7 @@ export async function purchasePackage(
     })
     .returning();
 
-  const allowed = enabledMethods(opts.settings);
-  const method: PaymentMethod = input.paymentMethod && allowed.includes(input.paymentMethod as (typeof allowed)[number]) ? input.paymentMethod : allowed[0]!;
+  const method: PaymentMethod = input.paymentMethod && allowed.includes(input.paymentMethod) ? input.paymentMethod : allowed[0]!;
   const payment = await createPayment(tx, tenantId, {
     refType: "patient_package",
     refId: pp!.id,
@@ -255,15 +263,16 @@ export async function onPatientPackagePaymentClosed(tx: Tx, payment: PaymentRow,
 }
 
 /** Re-opens a payment for a pending package whose previous QR expired (voids the old unpaid one first). */
-export async function createPackagePayment(tx: Tx, tenantId: string, pp: PatientPackageRow, method: PaymentMethod | null | undefined, customerId: string, settings: Record<string, unknown>): Promise<PaymentRow> {
+export async function createPackagePayment(tx: Tx, tenantId: string, pp: PatientPackageRow, method: PaymentMethod | null | undefined, customerId: string, settings: Record<string, unknown>): Promise<PaymentRow | null> {
+  const allowed = packagePaymentMethods(settings);
+  if (!allowed.length) return null; // ADMIN_B2-04: nothing can receive the money, keep the old payment as it is
   const old = await tx
     .select({ id: payments.id })
     .from(payments)
     .where(and(eq(payments.tenantId, tenantId), eq(payments.refType, "patient_package"), eq(payments.refId, pp.id), inArray(payments.status, ["pending", "failed"])))
     .for("update");
   for (const o of old) await cancelPayment(tx, tenantId, o.id, "ออก QR ใหม่", { runHandler: false });
-  const allowed = enabledMethods(settings);
-  const m: PaymentMethod = method && allowed.includes(method as (typeof allowed)[number]) ? method : allowed[0]!;
+  const m: PaymentMethod = method && allowed.includes(method) ? method : allowed[0]!;
   const payment = await createPayment(tx, tenantId, {
     refType: "patient_package",
     refId: pp.id,

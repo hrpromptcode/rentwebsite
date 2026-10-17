@@ -28,12 +28,12 @@ async function otpLogin(p: Page, origin: string, next: string) {
   await p.waitForURL((u) => !u.pathname.includes("/account/login"), { timeout: 60_000 });
 }
 async function pickDate(page: Page, minOffset: number): Promise<string> {
-  await page.locator('button[role="gridcell"]:not([disabled]):not(.animate-pulse)').first().waitFor();
-  const labels = (await page.locator('button[role="gridcell"]:not([disabled])').evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")))) as string[];
+  await page.locator('button[role="gridcell"]:not([aria-disabled]):not(.animate-pulse)').first().waitFor();
+  const labels = (await page.locator('button[role="gridcell"]:not([aria-disabled])').evaluateAll((els) => els.map((e) => e.getAttribute("data-date")))) as string[];
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
   const t = labels.find((d) => (Date.parse(d) - Date.parse(today)) / 86400000 >= minOffset);
   if (!t) throw new Error("no date");
-  await page.locator(`button[role="gridcell"][aria-label="${t}"]`).click();
+  await page.locator(`button[role="gridcell"][data-date="${t}"]`).click();
   return t;
 }
 async function pickSlot(page: Page, idx = 0) {
