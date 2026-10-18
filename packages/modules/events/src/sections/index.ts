@@ -1,2 +1,4 @@
-/** Storefront sections (event-grid, featured-event, ticket-cta…) — added by the storefront agent, registered in ../register.ts. */
-export {};
+/** Storefront sections (event-hero, event-grid, event-highlights) — registered in ../register.ts. */
+export { EventHeroSection } from "./event-hero";
+export { EventGridSection } from "./event-grid";
+export { EventHighlightsSection } from "./event-highlights";

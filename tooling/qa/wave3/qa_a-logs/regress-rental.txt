@@ -1,0 +1,30 @@
+◇ injected env (13) from ..\.env // tip: ⌘ enable debugging { debug: true }
+PASS C0 pick free dates for the single villa from /api/rental/calendar – 2026-11-17 → 2026-11-19 (blocked sample date 2026-11-08) (15.9s)
+BKK today 2026-10-18; stay 2026-11-17 → 2026-11-19; guest 0909527235
+PASS C1 home: stay-search hero, room grid, no placeholders – overflow=0px (6.5s)
+PASS C2 home search: pick check-in / check-out + 4 guests → /stay results list the villa – 2 results; villa → /rooms/family-villa?from=2026-11-17&to=2026-11-19&guests=4 (3.2s)
+PASS C3 /rooms: every type with from-price and check-in/out times – 5 room types (2.4s)
+PASS C4 /rooms/family-villa: calendar + live quote, breakfast add-on re-quotes, จองเลย → /stay/book – total ฿34,850 (room ฿31,250 + breakfast ฿3,600), deposit ฿10,455 (6.7s)
+PASS C5 /stay/book: guest details + consent → pending stay with PaymentPanel → slip → confirmed – ST-1028 01a14df9-9aef-757b-8bc2-999572d7f707 confirmed, deposit ฿10,455 paid (8.4s)
+PASS C6 second guest cannot book the last unit for overlapping dates (API, /stay, /stay/book, widget) – remaining 0 for 2026-11-18→2026-11-20, 1 for 2026-11-19→2026-11-21 (4.7s)
+PASS C7 blocked date hides availability (calendar API, /stay results, room calendar) – 2026-11-08 blocked → remaining 0, calendar cell ปิดจอง (4.1s)
+PASS C8 guest page access: no key / wrong key refused, right key ok – anonymous → refused, key → ok (2.0s)
+PASS C9 OTP login as the guest → /account links การเข้าพักของฉัน → /account/stays lists the stay → owner opens it without a key – logged in as 0909527235; ST-1028 listed (8.0s)
+PASS M1 mobile 390: home, /rooms, /rooms/[slug], /stay/book, /stays/[id] render without horizontal overflow – / ok, /rooms ok, /rooms/family-villa ok, /stay/book ok, /stays/01a14df9-9aef-757b-8bc2-999572d7f707 ok; calendar day 48px tall (15.7s)
+PASS C10 customer cancels within the free window → cancelled + unit released – ST-1028 cancelled, villa free again for 2026-11-17→2026-11-19 (5.4s)
+
+==== SUMMARY ====
+PASS C0   pick free dates for the single villa from /api/rental/calendar – 2026-11-17 → 2026-11-19 (blocked sample date 2026-11-08)
+PASS C1   home: stay-search hero, room grid, no placeholders – overflow=0px
+PASS C2   home search: pick check-in / check-out + 4 guests → /stay results list the villa – 2 results; villa → /rooms/family-villa?from=2026-11-17&to=2026-11-19&guests=4
+PASS C3   /rooms: every type with from-price and check-in/out times – 5 room types
+PASS C4   /rooms/family-villa: calendar + live quote, breakfast add-on re-quotes, จองเลย → /stay/book – total ฿34,850 (room ฿31,250 + breakfast ฿3,600), deposit ฿10,455
+PASS C5   /stay/book: guest details + consent → pending stay with PaymentPanel → slip → confirmed – ST-1028 01a14df9-9aef-757b-8bc2-999572d7f707 confirmed, deposit ฿10,455 paid
+PASS C6   second guest cannot book the last unit for overlapping dates (API, /stay, /stay/book, widget) – remaining 0 for 2026-11-18→2026-11-20, 1 for 2026-11-19→2026-11-21
+PASS C7   blocked date hides availability (calendar API, /stay results, room calendar) – 2026-11-08 blocked → remaining 0, calendar cell ปิดจอง
+PASS C8   guest page access: no key / wrong key refused, right key ok – anonymous → refused, key → ok
+PASS C9   OTP login as the guest → /account links การเข้าพักของฉัน → /account/stays lists the stay → owner opens it without a key – logged in as 0909527235; ST-1028 listed
+PASS M1   mobile 390: home, /rooms, /rooms/[slug], /stay/book, /stays/[id] render without horizontal overflow – / ok, /rooms ok, /rooms/family-villa ok, /stay/book ok, /stays/01a14df9-9aef-757b-8bc2-999572d7f707 ok; calendar day 48px tall
+PASS C10  customer cancels within the free window → cancelled + unit released – ST-1028 cancelled, villa free again for 2026-11-17→2026-11-19
+
+12 passed, 0 failed

@@ -1,0 +1,23 @@
+◇ injected env (13) from ..\.env // tip: ◈ encrypted .env [www.dotenvx.com]
+✓ demo-course/ [desktop] 200
+✓ demo-course/ [mobile] 200
+✓ demo-course/classes [desktop] 200
+✓ demo-course/classes [mobile] 200
+✓ demo-course/classes/hatha-basic [desktop] 200
+✓ demo-course/classes/hatha-basic [mobile] 200
+✓ demo-course/schedule [desktop] 200
+✓ demo-course/schedule [mobile] 200
+✓ demo-course/instructors [desktop] 200
+✓ demo-course/instructors [mobile] 200
+✓ demo-course/instructors/kru-nan [desktop] 200
+✓ demo-course/instructors/kru-nan [mobile] 200
+✓ demo-course/packages [desktop] 200
+✓ demo-course/packages [mobile] 200
+✓ demo-course/start [desktop] 200
+✓ demo-course/start [mobile] 200
+✓ demo-course/book [desktop] 200
+✓ demo-course/book [mobile] 200
+✓ demo-course/contact [desktop] 200
+✓ demo-course/contact [mobile] 200
+
+✓ all routes passed

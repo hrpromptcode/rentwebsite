@@ -160,7 +160,7 @@ export function StayBookForm({ type, checkIn, checkOut, guests, extras, initialE
   );
 
   return (
-    <form onSubmit={submit} className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start" data-testid="book-form" noValidate>
+    <form onSubmit={submit} className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start" data-testid="book-form" noValidate>
       <div className="lg:hidden">{summary}</div>
       <div className="space-y-6">
         <section className="card p-5 md:p-6">
@@ -231,7 +231,7 @@ export function StayBookForm({ type, checkIn, checkOut, guests, extras, initialE
               <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden /> {error}
             </p>
           )}
-          <Button type="submit" size="xl" className="mt-4 w-full" disabled={pending || quoting} data-testid="book-submit">
+          <Button type="submit" size="xl" className="mt-4 h-auto min-h-14 w-full whitespace-normal py-3" disabled={pending || quoting} data-testid="book-submit">
             {pending ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <Lock className="size-5" aria-hidden />} {pending ? L.confirming : due > 0 ? `${L.confirmBooking} · ${L.dueNow} ${thb(due)}` : L.confirmBooking}
           </Button>
           <p className="mt-3 text-center text-xs text-muted-foreground">{due > 0 ? L.holdNote : "การจองจะได้รับการยืนยันทันที"}</p>

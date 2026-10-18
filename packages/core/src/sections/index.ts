@@ -10,7 +10,7 @@ export interface SectionDefinition<S extends z.ZodTypeAny = z.ZodTypeAny> {
   type: string;
   name: { th: string; en: string };
   description?: { th: string; en: string };
-  category: "hero" | "content" | "media" | "social" | "cta" | "commerce" | "booking" | "topup" | "restaurant" | "clinic" | "rental" | "layout";
+  category: "hero" | "content" | "media" | "social" | "cta" | "commerce" | "booking" | "topup" | "restaurant" | "clinic" | "rental" | "events" | "layout";
   schema: S;
   defaults: z.input<S>;
   /** module required for this section to be available */

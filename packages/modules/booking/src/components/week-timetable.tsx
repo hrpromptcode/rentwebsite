@@ -81,6 +81,14 @@ export function WeekTimetable({ days, sessions, today, showPrice, compact, class
   const [active, setActive] = React.useState(firstWithSessions);
   React.useEffect(() => setActive(firstWithSessions), [firstWithSessions]);
   const tabsRef = React.useRef<HTMLDivElement>(null);
+  // phones: the selected day can be the 6th/7th tab (Sat/Sun) – keep it inside the scrollable strip
+  React.useEffect(() => {
+    const strip = tabsRef.current;
+    const tab = strip?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]');
+    if (!strip || !tab) return;
+    const left = tab.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft - (strip.clientWidth - tab.offsetWidth) / 2;
+    strip.scrollTo({ left: Math.max(0, left), behavior: "auto" });
+  }, [active]);
 
   const onKey = (e: React.KeyboardEvent, idx: number) => {
     if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
@@ -168,7 +176,7 @@ export function WeekTimetable({ days, sessions, today, showPrice, compact, class
             <span className={cn("size-2 rounded-full", LEVEL_DOT[k])} aria-hidden /> {v}
           </span>
         ))}
-        <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs">
+        <Button asChild variant="link" size="sm" className="-mx-2 -my-3 h-auto px-2 py-3 text-xs">
           <Link href="/classes">ดูรายละเอียดคลาส</Link>
         </Button>
       </p>

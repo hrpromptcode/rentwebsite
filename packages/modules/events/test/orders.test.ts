@@ -157,7 +157,8 @@ describe("createTicketOrder", () => {
     // proportional discount: 1,200 − 120 each
     expect(tickets.map((t) => t.price)).toEqual([108000, 108000]);
     expect((await typeRow(s.types.regular))).toMatchObject({ reserved: 0, sold: 2 });
-    expect((await sessionRow(s.sessions.s1))).toMatchObject({ reserved: 0, sold: 2 });
+    // the Early Bird race winner (previous test) still holds 2 seats of S1
+    expect((await sessionRow(s.sessions.s1))).toMatchObject({ reserved: 2, sold: 2 });
     const [promo] = await s.tx((tx) => tx.select().from(eventPromoCodes).where(eq(eventPromoCodes.code, "JAZZ10")));
     expect(promo!.used).toBe(1);
     expect((await events("ticket_order.paid")).length).toBe(1);
@@ -202,7 +203,9 @@ describe("createTicketOrder", () => {
     expect(expired.status).toBe("expired");
     expect(expired.holdUntil).toBeNull();
     expect((await typeRow(s.types.regular)).reserved).toBe(0);
-    expect((await events("ticket_order.expired")).length).toBe(1);
+    // the sweep also expires the Early Bird winner's unpaid slip payment, so count only this order's event
+    expect((await events("ticket_order.expired")).filter((e) => e.payload.orderId === r.value.order.id).length).toBe(1);
+    expect((await typeRow(s.types.early))).toMatchObject({ reserved: 0, sold: 0 });
     // the money arrives late: tickets are still available → revived + issued
     await s.tx((tx) => markPaid(tx, s.tenantId, r.value.payment!.id, { verifiedBy: "admin" }));
     const revived = await orderRow(r.value.order.id);

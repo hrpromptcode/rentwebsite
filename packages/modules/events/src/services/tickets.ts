@@ -3,6 +3,7 @@ import { and, asc, count, desc, eq, ilike, inArray, or, type Tx } from "@rentweb
 import { eventSessions, events, ticketOrders, ticketTypes, tickets, type TicketHolderInput, type TicketOrderLine } from "@rentweb/db";
 import { isUuid } from "@rentweb/core";
 import type { TicketStatus } from "./config";
+import { TICKET_CODE_ALPHABET, TICKET_CODE_LEN, TICKET_QR_PREFIX, formatTicketCode, normalizeTicketCode } from "./ticket-codes";
 
 export type TicketRow = typeof tickets.$inferSelect;
 type OrderRow = typeof ticketOrders.$inferSelect;
@@ -11,28 +12,11 @@ type OrderRow = typeof ticketOrders.$inferSelect;
 /* codes & signed QR payloads                                           */
 /* ------------------------------------------------------------------ */
 
-/** 32 symbols, no 0/O/1/I: safe to read out loud and type at the door. 12 symbols = 60 bits. */
-export const TICKET_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const CODE_LEN = 12;
-export const TICKET_QR_PREFIX = "RWT1";
+export { TICKET_CODE_ALPHABET, TICKET_QR_PREFIX, formatTicketCode, normalizeTicketCode, isSignedTicketPayload } from "./ticket-codes";
 
 export function generateTicketCode(): string {
   let s = "";
-  for (let i = 0; i < CODE_LEN; i++) s += TICKET_CODE_ALPHABET[randomInt(0, TICKET_CODE_ALPHABET.length)];
-  return formatTicketCode(s);
-}
-
-/** "ABCD-EFGH-JKLM" */
-export function formatTicketCode(raw: string): string {
-  const s = raw.replace(/[^A-Z0-9]/g, "").toUpperCase();
-  return s.match(/.{1,4}/g)?.join("-") ?? s;
-}
-
-/** Normalises what a human typed ("abcd efgh jklm", "ABCDEFGHJKLM") to the stored form; null when it cannot be a code. */
-export function normalizeTicketCode(input: string | null | undefined): string | null {
-  if (!input) return null;
-  const s = input.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  if (s.length !== CODE_LEN) return null;
+  for (let i = 0; i < TICKET_CODE_LEN; i++) s += TICKET_CODE_ALPHABET[randomInt(0, TICKET_CODE_ALPHABET.length)];
   return formatTicketCode(s);
 }
 
@@ -73,10 +57,6 @@ export function verifyTicketPayload(scanned: string | null | undefined): TicketQ
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   return { tenantId, ticketId, code };
-}
-
-export function isSignedTicketPayload(s: string | null | undefined): boolean {
-  return !!s && s.trim().startsWith(`${TICKET_QR_PREFIX}.`);
 }
 
 /** PNG data URL of the ticket QR (server side; `qrcode` is loaded lazily). */

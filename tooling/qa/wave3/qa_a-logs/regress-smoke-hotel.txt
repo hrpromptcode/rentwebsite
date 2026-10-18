@@ -1,0 +1,21 @@
+◇ injected env (13) from ..\.env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+✓ demo-hotel/ [desktop] 200
+✓ demo-hotel/ [mobile] 200
+✓ demo-hotel/rooms [desktop] 200
+✓ demo-hotel/rooms [mobile] 200
+✓ demo-hotel/rooms/deluxe-seaview [desktop] 200
+✓ demo-hotel/rooms/deluxe-seaview [mobile] 200
+✓ demo-hotel/stay [desktop] 200
+✓ demo-hotel/stay [mobile] 200
+✓ demo-hotel/facilities [desktop] 200
+✓ demo-hotel/facilities [mobile] 200
+✓ demo-hotel/location [desktop] 200
+✗ demo-hotel/location [mobile] 200 | Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronousl
+✓ demo-hotel/about [desktop] 200
+✓ demo-hotel/about [mobile] 200
+✓ demo-hotel/contact [desktop] 200
+✓ demo-hotel/contact [mobile] 200
+✓ demo-hotel/account/stays [desktop] 200
+✓ demo-hotel/account/stays [mobile] 200
+
+✗ 1 failing route checks

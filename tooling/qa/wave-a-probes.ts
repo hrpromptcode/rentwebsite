@@ -13,8 +13,9 @@ import { bookingConfig, cancelBooking, createBooking, getServiceById, listTimeta
  * Wave-A edge / security probes against the LIVE dev servers + DB (QA packet qa_wave_a).
  *   MSYS_NO_PATHCONV=1 pnpm --filter @rentweb/tooling exec tsx qa/wave-a-probes.ts
  * Hotel (demo-hotel): min nights, max advance, guests > max, same-day after check-in time, hold expiry sweep,
- *   late cancellation keeps the deposit, /stays/[id] access rules, cross-tenant reads.
- * Course (demo-course): enrol in a full session, class pass with 0 sessions left, instructor time-off hides sessions.
+ *   late cancellation keeps the deposit, /stays/[id] access rules, cross-tenant reads, 4-way race for the last unit.
+ * Course (demo-course): enrol in a full session, class pass with 0 sessions left, instructor time-off hides sessions,
+ *   4-way race for the last seat.
  * LINE (demo-shop, LINE_MOCK=1): denied consent, replay of a used callback, unlink when LINE is the only login.
  * Everything it creates is cancelled / deleted again. Results → tooling/qa/wave-a-probes-results.md
  */
@@ -228,8 +229,10 @@ async function hotel() {
     }
     assert(bad.status === 404, `non-uuid → ${bad.status}`);
     assert(withKey.status === 200 && withKey.text.includes(known.number), "key holder cannot open the stay");
-    const strip = (s: string) => s.replace(/\/stays\/[0-9a-f-]{36}/g, "").replace(/\?k=[^"&]+/g, "");
-    assert(Math.abs(strip(noKey.text).length - strip(unknown.text).length) < 50, `response size differs between unauthorised (${noKey.text.length}) and unknown (${unknown.text.length}) – oracle`);
+    // compare the rendered markup, not byte lengths: the dev server varies per request (self.__next_r nonce, script preloads)
+    const visible = (s: string) => s.replace(/<script[\s\S]*?<\/script>/g, "").replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "<ID>").replace(/\?k=[^"&]+/g, "").replace(/%3Fk%3D[^"&]+/g, "");
+    assert(visible(noKey.text) === visible(unknown.text), `markup differs between unauthorised and unknown ids – oracle (${visible(noKey.text).length} vs ${visible(unknown.text).length} chars)`);
+    assert(visible(wrong.text) === visible(unknown.text), "markup differs between a wrong key and an unknown id – oracle");
     return "NOTE: 200 + identical card for missing and unauthorised ids (same as /bookings/[id]); non-uuid → 404";
   });
 
@@ -256,7 +259,30 @@ async function hotel() {
     return notes.join("; ");
   });
 
-  await step("H9", "cleanup: every QA stay (source = qa) on demo-hotel is cancelled", async () => {
+  await step("H9", "race: 4 guests book the last villa for the same nights at once → exactly one stay, the rest unavailable", async () => {
+    const from = addDays(today, 70);
+    const before = await tx((x) => unitsAvailable(x, tenantId, villa, from, addDays(from, 2)));
+    assert(before === 1, `villa should be free (${before})`);
+    const attempts = await Promise.all(
+      [0, 1, 2, 3].map((i) =>
+        tx((x) => createStay(x, tenantId, { unitTypeId: villa.id, checkIn: from, checkOut: addDays(from, 2), guests: 2, customer: { name: `QA แข่ง ${i + 1}`, phone: phone(60 + i) }, paymentMethod: "slip", payOption: "deposit", source: "qa" }, opts)).catch((e) => ({ ok: false as const, error: `threw: ${String((e as Error)?.message ?? e).slice(0, 80)}` })),
+      ),
+    );
+    const won = attempts.filter((a) => a.ok);
+    try {
+      assert(won.length === 1, `${won.length} of 4 concurrent bookings succeeded (expected 1): ${attempts.map((a) => (a.ok ? "ok" : a.error)).join(", ")}`);
+      const losers = attempts.filter((a) => !a.ok).map((a) => (a.ok ? "" : a.error));
+      assert(losers.every((e) => e === "unavailable"), `losers should get unavailable: ${losers.join(", ")}`);
+      const after = await tx((x) => unitsAvailable(x, tenantId, villa, from, addDays(from, 2)));
+      assert(after === 0, `remaining after the race ${after}`);
+      const w = won[0]!;
+      return `1 winner (${w.ok ? w.value.stay.number : "?"}), 3 × unavailable`;
+    } finally {
+      for (const w of won) if (w.ok) await tx((x) => cancelStay(x, tenantId, w.value.stay.id, { by: "system", reason: "QA probe cleanup", config: cfg }));
+    }
+  });
+
+  await step("H10", "cleanup: every QA stay (source = qa) on demo-hotel is cancelled", async () => {
     const rows = await getAdminDb().select({ id: rentalStays.id, n: rentalStays.number, s: rentalStays.status }).from(rentalStays).where(and(eq(rentalStays.tenantId, tenantId), eq(rentalStays.source, "qa")));
     const live = rows.filter((r) => r.s !== "cancelled" && r.s !== "no_show");
     for (const r of live) await tx((x) => cancelStay(x, tenantId, r.id, { by: "system", reason: "QA probe cleanup", config: cfg }));
@@ -369,6 +395,35 @@ async function course() {
       return `${s.instructor.name} ${s.date} ${s.start.slice(11, 16)}Z hidden; other sessions that day ${others}; direct enrol → ${enrol.ok ? "ok" : enrol.error}`;
     } finally {
       await getAdminDb().delete(availabilityOverrides).where(eq(availabilityOverrides.id, ov!.id));
+    }
+  });
+
+  await step("C4", "race: 4 students enrol for the last seat at once → exactly one booking, the rest slot_taken", async () => {
+    const open = (await timetable()).filter((s) => s.state === "open" && s.remaining >= 1 && s.remaining <= 4);
+    const s: TimetableSession | undefined = open.sort((a, b) => a.remaining - b.remaining || a.start.localeCompare(b.start))[0];
+    assert(s, "no open session with ≤4 seats left in the next 14 days");
+    const created: string[] = [];
+    try {
+      for (let i = 1; i < s.remaining; i++) {
+        const r = await tx((x) => createBooking(x, tenantId, { serviceId: s.serviceId, start: s.start, partySize: 1, customer: { name: `QA เติม ${i}`, phone: phone(80 + i) }, paymentMethod: "slip", source: "qa" }, { config: cfg, settings }));
+        assert(r.ok, `pre-fill ${i} → ${!r.ok && r.error}`);
+        created.push(r.value.booking.id);
+      }
+      const attempts = await Promise.all(
+        [0, 1, 2, 3].map((i) =>
+          tx((x) => createBooking(x, tenantId, { serviceId: s.serviceId, start: s.start, partySize: 1, customer: { name: `QA แข่ง ${i + 1}`, phone: phone(70 + i) }, paymentMethod: "slip", source: "qa" }, { config: cfg, settings })).catch((e) => ({ ok: false as const, error: `threw: ${String((e as Error)?.message ?? e).slice(0, 80)}` })),
+        ),
+      );
+      const won = attempts.filter((a) => a.ok);
+      for (const w of won) if (w.ok) created.push(w.value.booking.id);
+      assert(won.length === 1, `${won.length} of 4 concurrent enrolments succeeded (expected 1): ${attempts.map((a) => (a.ok ? "ok" : a.error)).join(", ")}`);
+      const losers = attempts.filter((a) => !a.ok).map((a) => (a.ok ? "" : a.error));
+      assert(losers.every((e) => e === "slot_taken"), `losers should get slot_taken: ${losers.join(", ")}`);
+      const full = (await timetable()).find((x) => x.serviceId === s.serviceId && x.start === s.start);
+      assert(full && full.remaining === 0 && full.state === "full", `session after the race: ${JSON.stringify(full && { remaining: full.remaining, state: full.state })}`);
+      return `${s.serviceName} ${s.date}: 1 winner, 3 × slot_taken, session full`;
+    } finally {
+      for (const id of created) await tx((x) => cancelBooking(x, tenantId, id, { by: "admin", reason: "QA probe cleanup", config: cfg }));
     }
   });
 }

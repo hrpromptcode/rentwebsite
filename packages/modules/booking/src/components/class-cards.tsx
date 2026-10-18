@@ -151,12 +151,12 @@ export function InstructorCard({ i, classes, weeklySessions, className }: { i: C
         <ul className="mt-3 flex flex-wrap justify-center gap-1.5">
           {classes.slice(0, 3).map((c) => (
             <li key={c.slug}>
-              <Link href={`/classes/${c.slug}`} className="inline-flex min-h-8 items-center rounded-full bg-muted px-2.5 text-xs font-medium hover:bg-primary-soft hover:text-primary">
+              <Link href={`/classes/${c.slug}`} className="inline-flex min-h-9 items-center rounded-full bg-muted px-3 text-xs font-medium hover:bg-primary-soft hover:text-primary">
                 {c.name}
               </Link>
             </li>
           ))}
-          {classes.length > 3 && <li className="inline-flex min-h-8 items-center text-xs text-muted-foreground">+{classes.length - 3}</li>}
+          {classes.length > 3 && <li className="inline-flex min-h-9 items-center text-xs text-muted-foreground">+{classes.length - 3}</li>}
         </ul>
       )}
       {typeof weeklySessions === "number" && weeklySessions > 0 && <p className="mt-2 text-xs text-muted-foreground">{weeklySessions} รอบ/สัปดาห์</p>}

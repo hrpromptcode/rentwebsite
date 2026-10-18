@@ -1,0 +1,38 @@
+◇ injected env (13) from ..\.env // tip: ⌘ enable debugging { debug: true }
+200 desktop course-home                  overflow=0 small=12 errors=0
+200 desktop course-classes               overflow=0 small=12 errors=0
+200 desktop course-class-detail          overflow=0 small=12 errors=0
+200 desktop course-schedule              overflow=0 small=12 errors=0
+200 desktop course-book-widget           overflow=0 small=12 errors=0
+200 desktop course-confirmation          overflow=0 small=12 errors=0
+200 desktop hotel-home                   overflow=0 small=12 errors=0
+200 desktop hotel-rooms                  overflow=0 small=12 errors=0
+200 desktop hotel-room-detail            overflow=0 small=10 errors=0
+200 desktop hotel-book-widget            overflow=0 small=12 errors=0
+200 desktop hotel-confirmation           overflow=0 small=10 errors=0
+200 desktop hotel-stay-search            overflow=0 small=10 errors=0
+200 mobile  course-home                  overflow=0 small=10 errors=0
+200 mobile  course-classes               overflow=0 small=0 errors=0
+200 mobile  course-class-detail          overflow=0 small=1 errors=0
+200 mobile  course-schedule              overflow=0 small=1 errors=0
+200 mobile  course-book-widget           overflow=0 small=0 errors=0
+200 mobile  course-confirmation          overflow=0 small=0 errors=0
+200 mobile  hotel-home                   overflow=0 small=5 errors=0
+200 mobile  hotel-rooms                  overflow=0 small=5 errors=0
+200 mobile  hotel-room-detail            overflow=0 small=0 errors=0
+200 mobile  hotel-book-widget            overflow=0 small=2 errors=0
+200 mobile  hotel-confirmation           overflow=0 small=0 errors=0
+200 mobile  hotel-stay-search            overflow=0 small=0 errors=0
+200 desktop admin-hotel-bookings         overflow=0 small=3 errors=0
+200 desktop admin-hotel-calendar         overflow=0 small=12 errors=0
+200 desktop admin-hotel-units            overflow=0 small=12 errors=0
+200 desktop admin-course-bookings        overflow=0 small=5 errors=0
+200 desktop admin-course-class           overflow=0 small=12 errors=0
+200 mobile  admin-hotel-bookings         overflow=0 small=0 errors=0
+200 mobile  admin-hotel-calendar         overflow=0 small=12 errors=0
+200 mobile  admin-hotel-units            overflow=0 small=12 errors=0
+200 mobile  admin-course-bookings        overflow=0 small=2 errors=0
+200 mobile  admin-course-class           overflow=0 small=9 errors=0
+
+wrote qa/wave-a-shots-report.md (34 shots)
+exit=0

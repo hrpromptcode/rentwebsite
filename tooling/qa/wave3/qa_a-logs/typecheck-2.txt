@@ -1,0 +1,6 @@
+Scope: 2 of 18 workspace projects
+packages/modules/booking typecheck$ tsc --noEmit
+packages/modules/booking typecheck: Done
+apps/admin typecheck$ tsc --noEmit
+apps/admin typecheck: Done
+exit=0

@@ -43,6 +43,7 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
     modules.includes("booking") && { href: "/account/bookings", icon: CalendarDays, label: course ? "คลาสของฉัน" : t("booking.myBookings") },
     passes && { href: "/account/packages", icon: Ticket, label: modules.includes("clinic") ? "คอร์สของฉัน" : "คลาสพาสของฉัน" },
     modules.includes("rental") && { href: "/account/stays", icon: BedDouble, label: "การเข้าพักของฉัน" },
+    modules.includes("events") && { href: "/account/tickets", icon: Ticket, label: "บัตรของฉัน" },
     modules.includes("topup") && { href: "/account/topups", icon: Zap, label: "ประวัติการเติม" },
     modules.includes("topup") && { href: "/wallet", icon: Wallet, label: t("topup.wallet") },
   ].filter(Boolean) as Array<{ href: string; icon: typeof ShoppingBag; label: string }>;

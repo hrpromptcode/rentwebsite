@@ -8,3 +8,4 @@ export * from "./bookings";
 export * from "./clinic";
 export { bkkDateString, bkkDayStart, bkkTime, parseYmd, addDays, ymdToString, formatBkkTime, formatThaiDate, formatThaiYmd, toBkkParts, weekdayOf, DAY_MS, minutesToHm, parseHm } from "../services/time";
 export { listServices, listServiceCategories, getServiceById, listStaff, getStaffById } from "../services/catalog";
+export { listTimetable, type TimetableSession } from "../services/classes";

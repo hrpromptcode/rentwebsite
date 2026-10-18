@@ -93,7 +93,7 @@ export async function PassPricingSection({ ctx, props: p, id }: { ctx: Storefron
         </Stagger>
         <Reveal className="mt-8 text-center text-sm text-muted-foreground">
           ซื้อพาสแล้วเข้าสู่ระบบด้วยเบอร์โทร ระบบตัดครั้งให้อัตโนมัติเมื่อสมัครเรียน ·{" "}
-          <Link href="/packages" className="font-medium text-primary underline-offset-4 hover:underline">
+          <Link href="/packages" className="-my-3 inline-block py-3 font-medium text-primary underline-offset-4 hover:underline">
             ดูรายละเอียดพาสทั้งหมด
           </Link>
         </Reveal>

@@ -515,6 +515,71 @@ export const roomGrid = defineSection({
   defaults: {},
 });
 
+/* ------------------------------------------------------------------ */
+/* Events / ticketing template (events module): featured-event hero, event grid, past highlights */
+/* ------------------------------------------------------------------ */
+
+export const eventHero = defineSection({
+  type: "event-hero",
+  module: "events",
+  name: { th: "ฮีโร่อีเวนต์แนะนำ (นับถอยหลัง + ซื้อบัตร)", en: "Featured event hero" },
+  category: "hero",
+  schema: z.object({
+    /** featured = the featured upcoming event (falls back to the next one); next = the soonest upcoming event */
+    source: z.enum(["featured", "next"]).default("featured"),
+    variant: z.enum(["fullscreen", "split"]).default("fullscreen"),
+    eyebrow: z.string().default(""),
+    /** empty = the event's title / summary */
+    heading: z.string().default(""),
+    subheading: z.string().default(""),
+    ctaLabel: z.string().default("ซื้อบัตร"),
+    secondaryCta: link.optional(),
+    /** fallback photo when the event has no cover or nothing is on sale */
+    image: image.default({ url: "", alt: "" }),
+    showCountdown: z.boolean().default(true),
+    overlay: z.number().min(0).max(1).default(0.5),
+    textReveal: z.boolean().default(true),
+  }),
+  defaults: {},
+});
+
+export const eventGrid = defineSection({
+  type: "event-grid",
+  module: "events",
+  name: { th: "อีเวนต์ (ตาราง/รายการ)", en: "Event grid" },
+  category: "events",
+  schema: z.object({
+    eyebrow: z.string().default("อีเวนต์"),
+    heading: z.string().default("งานที่กำลังจะมาถึง"),
+    subheading: z.string().default(""),
+    scope: z.enum(["upcoming", "past"]).default("upcoming"),
+    category: z.string().optional(),
+    featured: z.boolean().default(false),
+    limit: z.number().min(1).max(24).default(6),
+    variant: z.enum(["cards", "list"]).default("cards"),
+    showViewAll: z.boolean().default(true),
+  }),
+  defaults: {},
+});
+
+export const eventHighlights = defineSection({
+  type: "event-highlights",
+  module: "events",
+  name: { th: "ไฮไลต์งานที่ผ่านมา", en: "Past highlights" },
+  category: "events",
+  schema: z.object({
+    eyebrow: z.string().default("ที่ผ่านมา"),
+    heading: z.string().default("บรรยากาศงานที่ผ่านมา"),
+    subheading: z.string().default(""),
+    /** most recent ended events to show as poster tiles */
+    limit: z.number().min(0).max(12).default(4),
+    /** extra atmosphere photos mixed into the mosaic */
+    images: z.array(image.extend({ caption: z.string().optional() })).default([]),
+    layout: z.enum(["filmstrip", "grid"]).default("filmstrip"),
+  }),
+  defaults: {},
+});
+
 export const SECTION_DEFS: Record<string, SectionDefinition> = Object.fromEntries(
   [
     hero,
@@ -551,6 +616,9 @@ export const SECTION_DEFS: Record<string, SectionDefinition> = Object.fromEntrie
     passPricing,
     staySearch,
     roomGrid,
+    eventHero,
+    eventGrid,
+    eventHighlights,
   ].map((d) => [d.type, d as SectionDefinition]),
 );
 

@@ -1,0 +1,36 @@
+◇ injected env (13) from ..\.env // tip: ⌘ override existing { override: true }
+BKK today 2026-10-18; sessions taken from the week of 2026-10-19; student 0909354127
+PASS C1 /classes catalog + level filter – 8 classes; beginner + pilates filters ok; overflow=0px (5.1s)
+PASS C2 /classes/hatha-basic: syllabus, instructor, upcoming sessions with seats, สมัครเรียน preselects a session – cta /book?service=hatha-basic&date=2026-10-19&start=2026-10-19T00%3A30%3A00.000Z (3.4s)
+PASS C3 /schedule week view, instructor + level filters, week navigation – 20 sessions, 20 open (6.9s)
+PASS C4 /instructors + /instructors/kru-nan – 4 instructors, profile ok (7.4s)
+PASS C5 enrol as guest from the timetable → details prefilled from the session → ค่าเรียน → PromptPay slip → confirmed – BK-1045 hatha-basic 2026-10-19 07:30 (10 seats before) (14.4s)
+PASS C5b timetable seat count drops by one after the enrolment – 10 → 9 (1.5s)
+PASS C6 OTP login → /account shows คลาสของฉัน + คลาสพาสของฉัน; /account/bookings lists the class – logged in as 0909354127 (9.1s)
+PASS C7 /packages → buy คลาสพาส 5 ครั้ง → slip → pass active with 5 sessions – /account/packages/01a14df7-369e-769e-9242-674bd8065e04 (14.6s)
+PASS C8 enrol with the pass from the timetable → ใช้สิทธิ์คอร์ส → confirmed, no payment, 4 sessions left – BK-1046 mat-pilates 2026-10-19 18:30 → 4 left (01a14df7) (6.9s)
+PASS A1 admin calendar: one chip per class session with n/seats in the instructor's column – 3 session chips (3/12, 5/12, 5/6) (3.9s)
+PASS A2 admin booking detail: instructor, seats and the roster of the session – 3/12 ที่นั่ง; roster ok (8.5s)
+PASS A3 admin cancels the enrolment → seat freed (admin badge − 1, storefront timetable + 1) – 3 → 2; storefront 10 (11.7s)
+PASS A4 admin services: seats + level on the list, sessions editor on the class page – 8 class rows; hatha editor 3 sessions (25.1s)
+PASS M1 mobile 390: home, /classes, /schedule (day tabs), class detail – no horizontal overflow – / ok, /classes ok, /classes/hatha-basic ok, /schedule?week=2026-10-19 ok (40.4s)
+PASS M2 desktop home screenshot + sections present (no placeholders) – overflow=0px (4.9s)
+
+==== SUMMARY ====
+PASS C1   /classes catalog + level filter – 8 classes; beginner + pilates filters ok; overflow=0px
+PASS C2   /classes/hatha-basic: syllabus, instructor, upcoming sessions with seats, สมัครเรียน preselects a session – cta /book?service=hatha-basic&date=2026-10-19&start=2026-10-19T00%3A30%3A00.000Z
+PASS C3   /schedule week view, instructor + level filters, week navigation – 20 sessions, 20 open
+PASS C4   /instructors + /instructors/kru-nan – 4 instructors, profile ok
+PASS C5   enrol as guest from the timetable → details prefilled from the session → ค่าเรียน → PromptPay slip → confirmed – BK-1045 hatha-basic 2026-10-19 07:30 (10 seats before)
+PASS C5b  timetable seat count drops by one after the enrolment – 10 → 9
+PASS C6   OTP login → /account shows คลาสของฉัน + คลาสพาสของฉัน; /account/bookings lists the class – logged in as 0909354127
+PASS C7   /packages → buy คลาสพาส 5 ครั้ง → slip → pass active with 5 sessions – /account/packages/01a14df7-369e-769e-9242-674bd8065e04
+PASS C8   enrol with the pass from the timetable → ใช้สิทธิ์คอร์ส → confirmed, no payment, 4 sessions left – BK-1046 mat-pilates 2026-10-19 18:30 → 4 left (01a14df7)
+PASS A1   admin calendar: one chip per class session with n/seats in the instructor's column – 3 session chips (3/12, 5/12, 5/6)
+PASS A2   admin booking detail: instructor, seats and the roster of the session – 3/12 ที่นั่ง; roster ok
+PASS A3   admin cancels the enrolment → seat freed (admin badge − 1, storefront timetable + 1) – 3 → 2; storefront 10
+PASS A4   admin services: seats + level on the list, sessions editor on the class page – 8 class rows; hatha editor 3 sessions
+PASS M1   mobile 390: home, /classes, /schedule (day tabs), class detail – no horizontal overflow – / ok, /classes ok, /classes/hatha-basic ok, /schedule?week=2026-10-19 ok
+PASS M2   desktop home screenshot + sections present (no placeholders) – overflow=0px
+
+15 passed, 0 failed

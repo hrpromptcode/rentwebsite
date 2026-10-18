@@ -12,9 +12,12 @@ import { isolateHmr } from "./bughunt/fixes/_dev-stable";
  * Human-eye screenshot pass for wave A (QA packet qa_wave_a): demo-course + demo-hotel storefront main pages and the
  * admin pages, 1440 and 390, MOTION ON (the page is scrolled to the bottom first so every Reveal has played), full page.
  * Also records horizontal overflow and small tap targets (< 44px) at 390 and console errors per page.
- *   MSYS_NO_PATHCONV=1 pnpm --filter @rentweb/tooling exec tsx qa/wave-a-shots.ts
- * → tooling/screenshots/qa-a-*.png + tooling/qa/wave-a-shots-report.md
+ *   MSYS_NO_PATHCONV=1 pnpm --filter @rentweb/tooling exec tsx qa/wave-a-shots.ts [--only=hotel-home,course-schedule]
+ * → tooling/screenshots/qa-a-*.png + tooling/qa/wave-a-shots-report.md (…-partial.md with --only)
+ * "clipped" = elements whose right edge lies beyond the viewport even though the document does not scroll
+ * (an overflow-x:hidden ancestor hides them – the hotel book form was cut this way at 390).
  */
+const ONLY = new Set((process.argv.find((a) => a.startsWith("--only="))?.slice("--only=".length) ?? "").split(",").filter(Boolean));
 
 const PORT = process.env.PORT ?? "3000";
 const ADMIN = `http://localhost:${process.env.ADMIN_PORT ?? "3001"}`;
@@ -30,6 +33,7 @@ interface Shot {
   file: string;
   status: number | null;
   overflow: number;
+  clipped: string[];
   smallTargets: string[];
   consoleErrors: string[];
   placeholders: string[];
@@ -47,14 +51,26 @@ async function autoScroll(page: Page) {
       await new Promise((r) => setTimeout(r, 140));
     }
     await new Promise((r) => setTimeout(r, 400));
+    document.documentElement.style.scrollBehavior = "auto";
     window.scrollTo(0, 0);
-    await new Promise((r) => setTimeout(r, 500));
+    for (let i = 0; i < 20 && window.scrollY > 0; i++) await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 600));
   });
 }
 
 async function inspect(page: Page) {
   return page.evaluate(() => {
     const overflow = Math.max(0, document.documentElement.scrollWidth - window.innerWidth);
+    const vw = window.innerWidth;
+    const clipped: string[] = [];
+    for (const el of Array.from(document.querySelectorAll<HTMLElement>("body *"))) {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.right <= vw + 1) continue;
+      // decorative bleeds (-inset-*, -z-*) and horizontally scrollable strips / grids are expected to extend past the edge
+      if (el.closest("[aria-hidden='true'], [data-hero-dark], [class*='overflow-x-auto'], [class*='overflow-auto'], [class*='overflow-x-scroll'], [class*='marquee'], [class*='-inset-'], [class*='-z-']")) continue;
+      clipped.push(`${el.tagName.toLowerCase()}.${(el.getAttribute("class") || "").split(" ").slice(0, 3).join(".")} right=${Math.round(r.right)}`);
+      if (clipped.length >= 3) break;
+    }
     const small: string[] = [];
     const els = Array.from(document.querySelectorAll<HTMLElement>('a[href], button, input:not([type="hidden"]), select, textarea, [role="button"]'));
     for (const el of els) {
@@ -71,7 +87,7 @@ async function inspect(page: Page) {
     const text = document.body.innerText;
     const placeholders: string[] = [];
     for (const p of ["lorem", "Lorem", "ยังไม่มีคอมโพเนนต์", "undefined", "NaN", "[object Object]", "TODO", "placeholder"]) if (text.includes(p)) placeholders.push(p);
-    return { overflow, small: [...new Set(small)].slice(0, 12), placeholders };
+    return { overflow, clipped, small: [...new Set(small)].slice(0, 12), placeholders };
   });
 }
 
@@ -91,10 +107,10 @@ async function shoot(ctx: BrowserContext, name: string, url: string, viewport: k
     const info = await inspect(page);
     const file = path.join(SHOTS, `qa-a-${name}-${viewport === "desktop" ? "1440" : "390"}.png`);
     await page.screenshot({ path: file, fullPage: opts.full !== false });
-    report.push({ name, url, viewport, file, status, overflow: info.overflow, smallTargets: info.small, consoleErrors: consoleErrors.filter((e) => !/Reduced Motion|Download the React DevTools|hydration/i.test(e)), placeholders: info.placeholders });
-    console.log(`${status} ${viewport.padEnd(7)} ${name.padEnd(28)} overflow=${info.overflow} small=${info.small.length} errors=${consoleErrors.length}`);
+    report.push({ name, url, viewport, file, status, overflow: info.overflow, clipped: info.clipped, smallTargets: info.small, consoleErrors: consoleErrors.filter((e) => !/Reduced Motion|Download the React DevTools|hydration/i.test(e)), placeholders: info.placeholders });
+    console.log(`${status} ${viewport.padEnd(7)} ${name.padEnd(28)} overflow=${info.overflow} clipped=${info.clipped.length} small=${info.small.length} errors=${consoleErrors.length}`);
   } catch (e) {
-    report.push({ name, url, viewport, file: "", status, overflow: -1, smallTargets: [], consoleErrors: [String((e as Error).message).slice(0, 200)], placeholders: [] });
+    report.push({ name, url, viewport, file: "", status, overflow: -1, clipped: [], smallTargets: [], consoleErrors: [String((e as Error).message).slice(0, 200)], placeholders: [] });
     console.log(`ERR  ${viewport} ${name}: ${String((e as Error).message).slice(0, 200)}`);
   } finally {
     await page.close();
@@ -104,6 +120,8 @@ async function shoot(ctx: BrowserContext, name: string, url: string, viewport: k
 async function context(browser: Browser, viewport: keyof typeof VIEWPORTS, storageState?: string) {
   const ctx = await browser.newContext({ viewport: VIEWPORTS[viewport], deviceScaleFactor: 1, locale: "th-TH", timezoneId: "Asia/Bangkok", reducedMotion: "no-preference", storageState });
   await isolateHmr(ctx);
+  // tsx (esbuild keepNames) wraps inner arrow functions of page.evaluate callbacks in __name(); define it in the page
+  await ctx.addInitScript("window.__name = window.__name || ((f) => f);");
   return ctx;
 }
 
@@ -167,13 +185,13 @@ async function main() {
   try {
     for (const vp of ["desktop", "mobile"] as const) {
       const ctx = await context(browser, vp);
-      for (const [name, url] of storefront) await shoot(ctx, name, url, vp);
+      for (const [name, url] of storefront) if (!ONLY.size || ONLY.has(name)) await shoot(ctx, name, url, vp);
       await ctx.close();
     }
     const state = await adminLogin(browser);
     for (const vp of ["desktop", "mobile"] as const) {
       const ctx = await context(browser, vp, state);
-      for (const [name, url] of admin) await shoot(ctx, name, url, vp);
+      for (const [name, url] of admin) if (!ONLY.size || ONLY.has(name)) await shoot(ctx, name, url, vp);
       await ctx.close();
     }
   } finally {
@@ -183,14 +201,15 @@ async function main() {
   const md = [
     `# Wave-A screenshot pass — ${new Date().toISOString()} (motion on, full page)`,
     "",
-    "| Page | VP | HTTP | overflow px | small targets (<40px) | console errors | placeholders |",
-    "|---|---|---|---|---|---|---|",
-    ...report.map((r) => `| ${r.name} | ${r.viewport} | ${r.status ?? "-"} | ${r.overflow} | ${r.smallTargets.length ? r.smallTargets.join("<br>") : "-"} | ${r.consoleErrors.length ? r.consoleErrors.join("<br>") : "-"} | ${r.placeholders.join(", ") || "-"} |`),
+    "| Page | VP | HTTP | overflow px | clipped (beyond viewport) | small targets (<40px) | console errors | placeholders |",
+    "|---|---|---|---|---|---|---|---|",
+    ...report.map((r) => `| ${r.name} | ${r.viewport} | ${r.status ?? "-"} | ${r.overflow} | ${r.clipped.length ? r.clipped.join("<br>") : "-"} | ${r.smallTargets.length ? r.smallTargets.join("<br>") : "-"} | ${r.consoleErrors.length ? r.consoleErrors.join("<br>") : "-"} | ${r.placeholders.join(", ") || "-"} |`),
     "",
     "Files: tooling/screenshots/qa-a-<page>-{1440,390}.png",
   ].join("\n");
-  await writeFile(path.resolve(process.cwd(), "qa", "wave-a-shots-report.md"), md, "utf8");
-  console.log(`\nwrote qa/wave-a-shots-report.md (${report.length} shots)`);
+  const reportName = ONLY.size ? "wave-a-shots-report-partial.md" : "wave-a-shots-report.md";
+  await writeFile(path.resolve(process.cwd(), "qa", reportName), md, "utf8");
+  console.log(`\nwrote qa/${reportName} (${report.length} shots)`);
 }
 
 main().catch((e) => {

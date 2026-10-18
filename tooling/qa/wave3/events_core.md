@@ -1,6 +1,6 @@
 # Packet: events_core (module @rentweb/module-events foundation)
 
-Status: IN PROGRESS (agent events_core, 2026-10-18). Successor: continue from REMAINING, keep this file updated.
+Status: DONE (agent events_core, 2026-10-18). Storefront / admin agents build on tooling/qa/wave3/events-api.md.
 
 ## Plan
 1. schema packages/db/src/schema/events.ts + index export + migration (lock tooling/qa/wave3/.migrate-lock)
@@ -21,10 +21,20 @@ Status: IN PROGRESS (agent events_core, 2026-10-18). Successor: continue from RE
 - apps/web + apps/admin: package.json dep, next.config transpilePackages, src/modules.ts import; pnpm install done (module linked, qrcode dep)
 - typecheck @rentweb/module-events green
 
+- test files test/{helpers,orders.test,checkin.test}.ts written (committed in aa9a1b0): races, sales window, min/max, paid issues unique signed codes, capacity, cancel, expiry sweep + revive, late-pay refundRequired, free orders, guest-off, renew + releaseLapsedHolds, lists/stats; check-in idempotency + every reason, stats/feed/attendees, partial + full refund, free refund
+- typecheck apps/web + apps/admin green (previous run)
+
+- vitest GREEN 2026-10-18: 2 files, 20 tests (`pnpm --filter @rentweb/module-events test`, ~2 s with PGlite). Fixes made while greening: catalog.buildDetail session.soldOut (capacity reached now counts as sold out even when some types are closed/not started); two test expectations (S1 session counters include the Early Bird winner's hold; expired-event count scoped to the order because expireStalePayments sweeps every due payment)
+
+- tooling/qa/wave3/events-api.md written: every exported service function/type, events emitted, registry entry, flows, gotchas
+- final typecheck 2026-10-18: `pnpm turbo run typecheck --filter=@rentweb/module-events --filter=@rentweb/web --filter=@rentweb/admin` → 15/15 successful (module-events, web, admin re-executed after the catalog fix)
+
 ## REMAINING
-- PGlite tests test/{helpers,orders.test,checkin.test}.ts
-- typecheck apps/web + apps/admin
-- tooling/qa/wave3/events-api.md
+- nothing in this packet. Not covered here (other packets): storefront routes/sections/components/actions, admin pages under apps/admin/src/app/t/[slug]/events/**, template + demo seed, journeys, smoke, screenshots. Uncommitted in the working tree: src/services/catalog.ts (soldOut fix), test/orders.test.ts (2 expectations), tooling/qa/wave3/{events_core,events-api}.md.
+
+## How to test
+- `pnpm --filter @rentweb/module-events test` (PGlite, ~2 s, 20 tests) · `pnpm --filter @rentweb/module-events typecheck`
+- seed for route tests: `seedEvents()` in packages/modules/events/test/helpers.ts ("Jazz Night": S1 7 Nov uncapped, S2 8 Nov cap 3; 8 ticket types; promo JAZZ10)
 
 ## Decisions
-- see events-api.md once written
+- see tooling/qa/wave3/events-api.md §14 (capacity on top of type quantities, lock order session→types, soldOut semantics, sweep + late-payment revive, hidden types orderable by id, per-ticket price includes promo share)

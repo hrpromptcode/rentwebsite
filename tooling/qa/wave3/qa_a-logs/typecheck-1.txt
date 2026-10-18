@@ -1,0 +1,8 @@
+Scope: 3 of 18 workspace projects
+packages/modules/booking typecheck$ tsc --noEmit
+packages/modules/rental typecheck$ tsc --noEmit
+packages/modules/rental typecheck: Done
+packages/modules/booking typecheck: Done
+apps/web typecheck$ tsc --noEmit
+apps/web typecheck: Done
+exit=0

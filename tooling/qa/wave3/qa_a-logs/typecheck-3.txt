@@ -1,0 +1,5 @@
+
+> @rentweb/admin@0.1.0 typecheck D:\Projects\promptcode_rentweb\apps\admin
+> tsc --noEmit
+
+exit=0

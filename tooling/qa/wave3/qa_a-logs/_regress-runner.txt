@@ -1,0 +1,13 @@
+### shots 14:41:09
+exit=0
+### course 14:42:32
+exit=0
+### rental 14:45:23
+exit=0
+### booking 14:46:51
+exit=0
+### smoke-course 14:48:48
+exit=0
+### smoke-hotel 14:49:35
+exit=1
+### ALL DONE 14:50:19

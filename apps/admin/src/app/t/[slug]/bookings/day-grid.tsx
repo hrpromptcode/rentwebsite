@@ -23,6 +23,9 @@ export interface GridBooking {
   seats?: number;
   enrolled?: number;
   groupCount?: number;
+  /** course template: a scheduled session nobody has enrolled in yet (no booking behind it) */
+  empty?: boolean;
+  serviceId?: string;
 }
 
 export interface GridColumn {
@@ -118,7 +121,8 @@ export function DayGrid({
           <div className="sticky top-0 z-20 flex border-b bg-card/95 backdrop-blur">
             <div className="sticky left-0 z-10 w-14 shrink-0 border-r bg-card/95" />
             {columns.map((c) => {
-              const n = bookings.filter((b) => b.staffId === c.id).length;
+              const n = bookings.filter((b) => b.staffId === c.id && !b.empty).length;
+              const emptySessions = bookings.filter((b) => b.staffId === c.id && b.empty).length;
               return (
                 <div key={c.id ?? "none"} className="flex min-w-0 flex-1 items-center gap-2 border-r px-3 py-2 last:border-r-0" style={{ boxShadow: c.id ? `inset 0 3px 0 ${c.color}` : undefined }}>
                   {c.id ? (
@@ -130,7 +134,7 @@ export function DayGrid({
                   )}
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium">{c.name}</span>
-                    <span className="block text-xs text-muted-foreground">{n ? `${n} คิว` : "ว่าง"}</span>
+                    <span className="block text-xs text-muted-foreground">{n ? `${n} คิว` : emptySessions ? `${emptySessions} รอบ · ยังไม่มีผู้สมัคร` : "ว่าง"}</span>
                   </span>
                 </div>
               );
@@ -173,6 +177,35 @@ export function DayGrid({
                     const payAtShop = !!b.payAtShop && b.status !== "cancelled" && b.status !== "no_show";
                     const isClass = typeof b.seats === "number";
                     const full = isClass && (b.enrolled ?? 0) >= (b.seats ?? 0);
+                    if (b.empty) {
+                      const emptyStyle = { top: b.top + 2, height: b.height, left: `calc(${(b.lane / b.lanes) * 100}% + 3px)`, width: `calc(${100 / b.lanes}% - 6px)`, borderLeft: `4px solid ${c.color}` };
+                      const emptyTitle = `${hm(b.startMin)}–${hm(b.endMin)} · ${b.serviceName} · ยังไม่มีผู้สมัคร (0/${b.seats})`;
+                      const emptyBody = (
+                        <>
+                          <span className="flex items-center justify-between gap-1">
+                            <span className="truncate font-semibold tabular-nums">
+                              {hm(b.startMin)}
+                              {!short && `–${hm(b.endMin)}`}
+                            </span>
+                            <span data-testid="seats-chip-empty" className="shrink-0 rounded bg-slate-400 px-1 text-[10px] font-semibold tabular-nums text-white">
+                              0/{b.seats}
+                            </span>
+                          </span>
+                          <span className="block truncate font-medium">{b.serviceName}</span>
+                          {!short && <span className="block truncate opacity-80">ยังไม่มีผู้สมัคร</span>}
+                        </>
+                      );
+                      const emptyClass = "absolute z-[4] overflow-hidden rounded-lg border border-dashed border-slate-300 bg-slate-50 px-2 py-1 text-xs text-slate-600 transition dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-300";
+                      return canCreate && b.serviceId ? (
+                        <Link key={b.id} href={`/t/${slug}/bookings/new?date=${date}&time=${hm(b.startMin)}&service=${b.serviceId}${c.id ? `&staff=${c.id}` : ""}`} data-testid="session-chip-empty" className={cn(emptyClass, "hover:z-10 hover:bg-primary-soft/60 hover:shadow-md focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-ring")} style={emptyStyle} title={`${emptyTitle} · กดเพื่อลงชื่อให้ลูกค้า`}>
+                          {emptyBody}
+                        </Link>
+                      ) : (
+                        <div key={b.id} data-testid="session-chip-empty" className={emptyClass} style={emptyStyle} title={emptyTitle}>
+                          {emptyBody}
+                        </div>
+                      );
+                    }
                     return (
                       <Link
                         key={b.id}

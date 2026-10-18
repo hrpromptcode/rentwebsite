@@ -1,0 +1,13 @@
+◇ injected env (13) from ..\.env // tip: ◈ encrypted .env [www.dotenvx.com]
+200 desktop course-home                  overflow=0 clipped=0 small=12 errors=0
+200 desktop course-schedule              overflow=0 clipped=0 small=12 errors=0
+200 desktop hotel-home                   overflow=0 clipped=0 small=12 errors=0
+200 desktop hotel-book-widget            overflow=0 clipped=0 small=12 errors=0
+200 mobile  course-home                  overflow=0 clipped=1 small=8 errors=0
+200 mobile  course-schedule              overflow=0 clipped=0 small=0 errors=0
+200 mobile  hotel-home                   overflow=0 clipped=0 small=5 errors=0
+200 mobile  hotel-book-widget            overflow=0 clipped=0 small=2 errors=0
+200 desktop admin-course-bookings        overflow=0 clipped=0 small=5 errors=0
+200 mobile  admin-course-bookings        overflow=0 clipped=3 small=2 errors=0
+
+wrote qa/wave-a-shots-report-partial.md (10 shots)

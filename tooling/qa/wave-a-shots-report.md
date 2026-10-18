@@ -1,142 +1,40 @@
-# Wave-A screenshot pass — 2026-10-18T03:00:19.352Z (motion on, full page)
+# Wave-A screenshot pass — 2026-10-18T07:27:58.688Z (motion on, full page)
 
 | Page | VP | HTTP | overflow px | small targets (<40px) | console errors | placeholders |
 |---|---|---|---|---|---|---|
-| course-home | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| course-classes | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| course-class-detail | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| course-schedule | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| course-book-widget | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| course-confirmation | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| hotel-home | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| hotel-rooms | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| hotel-room-detail | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| hotel-book-widget | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| hotel-confirmation | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| hotel-stay-search | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| course-home | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| course-classes | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| course-class-detail | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| course-schedule | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| course-book-widget | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| course-confirmation | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| hotel-home | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| hotel-rooms | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| hotel-room-detail | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| hotel-book-widget | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| hotel-confirmation | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| hotel-stay-search | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| admin-hotel-bookings | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| admin-hotel-calendar | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| admin-hotel-units | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| admin-course-bookings | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| admin-course-class | desktop | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| admin-hotel-bookings | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| admin-hotel-calendar | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| admin-hotel-units | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| admin-course-bookings | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
-| admin-course-class | mobile | 200 | -1 | - | page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:88)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<an | - |
+| course-home | desktop | 200 | 0 | a "บัญชีของฉัน" 36×36<br>a "สมัครเรียน" 94×36<br>a "ดูรายละเอียดคลาส" 95×16<br>a "Hatha Yoga เริ่มต้น" 121×32<br>a "Yin Yoga & Sound Bath" 149×32<br>a "Prenatal Yoga คุณแม่" 136×32<br>a "Vinyasa Flow" 92×32<br>a "Breath & Meditation" 133×32<br>a "Mat Pilates Core" 111×32<br>a "Reformer Pilates Basic" 147×32<br>a "Reformer Pilates Flow" 143×32<br>a "ดูรายละเอียดพาสทั้งหมด" 148×18 | - | - |
+| course-classes | desktop | 200 | 0 | a "บัญชีของฉัน" 36×36<br>a "สมัครเรียน" 94×36<br>a "คลาสเรียน" 61×24<br>a "ตารางเรียน" 65×24<br>a "ครูผู้สอน" 51×24<br>a "คลาสพาส" 58×24<br>a "เกี่ยวกับเรา" 65×24<br>a "บัญชีนักเรียน" 77×24<br>a "02-279-8899" 84×20<br>a "hello@salaflow.studio" 141×20<br>a "นโยบายความเป็นส่วนตัว" 122×24<br>a "เงื่อนไขการใช้บริการ" 99×24 | - | - |
+| course-class-detail | desktop | 200 | 0 | a "บัญชีของฉัน" 36×36<br>a "สมัครเรียน" 94×36<br>a "Hatha Yoga เริ่มต้น" 135×24<br>a "คลาสเรียน" 61×24<br>a "ตารางเรียน" 65×24<br>a "ครูผู้สอน" 51×24<br>a "คลาสพาส" 58×24<br>a "เกี่ยวกับเรา" 65×24<br>a "บัญชีนักเรียน" 77×24<br>a "02-279-8899" 84×20<br>a "hello@salaflow.studio" 141×20<br>a "นโยบายความเป็นส่วนตัว" 122×24 | - | - |
+| course-schedule | desktop | 200 | 0 | a "บัญชีของฉัน" 36×36<br>a "สมัครเรียน" 94×36<br>a "ดูรายละเอียดคลาส" 95×16<br>a "คลาสเรียน" 61×24<br>a "ตารางเรียน" 65×24<br>a "ครูผู้สอน" 51×24<br>a "คลาสพาส" 58×24<br>a "เกี่ยวกับเรา" 65×24<br>a "บัญชีนักเรียน" 77×24<br>a "02-279-8899" 84×20<br>a "hello@salaflow.studio" 141×20<br>a "นโยบายความเป็นส่วนตัว" 122×24 | - | - |
+| course-book-widget | desktop | 200 | 0 | a "บัญชีของฉัน" 36×36<br>a "สมัครเรียน" 94×36<br>a "คลาสเรียน" 61×24<br>a "ตารางเรียน" 65×24<br>a "ครูผู้สอน" 51×24<br>a "คลาสพาส" 58×24<br>a "เกี่ยวกับเรา" 65×24<br>a "บัญชีนักเรียน" 77×24<br>a "02-279-8899" 84×20<br>a "hello@salaflow.studio" 141×20<br>a "นโยบายความเป็นส่วนตัว" 122×24<br>a "เงื่อนไขการใช้บริการ" 99×24 | - | - |
+| course-confirmation | desktop | 200 | 0 | a "บัญชีของฉัน" 36×36<br>a "สมัครเรียน" 94×36<br>a "คลาสเรียน" 61×24<br>a "ตารางเรียน" 65×24<br>a "ครูผู้สอน" 51×24<br>a "คลาสพาส" 58×24<br>a "เกี่ยวกับเรา" 65×24<br>a "บัญชีนักเรียน" 77×24<br>a "02-279-8899" 84×20<br>a "hello@salaflow.studio" 141×20<br>a "นโยบายความเป็นส่วนตัว" 122×24<br>a "เงื่อนไขการใช้บริการ" 99×24 | - | - |
+| hotel-home | desktop | 200 | 0 | a "ดีลักซ์ การ์เดน" 116×35<br>a "ดีลักซ์ ซีวิว" 87×35<br>a "พูลแอคเซส สวีท" 131×35<br>a "บีชฟรอนต์ พูลวิลล่า" 159×35<br>a "แฟมิลี่ วิลล่า 2 ห้องนอน" 190×35<br>a "076-443-888" 79×20<br>a "stay@baantalay.com" 125×20<br>a "ห้องพักและวิลล่า" 96×24<br>a "ค้นหาห้องว่าง" 77×24<br>a "สิ่งอำนวยความสะดวก" 124×24<br>a "ที่ตั้งและการเดินทาง" 113×24<br>a "การเข้าพักของฉัน" 99×24 | - | - |
+| hotel-rooms | desktop | 200 | 0 | a "ดีลักซ์ การ์เดน" 116×35<br>a "ดีลักซ์ ซีวิว" 87×35<br>a "พูลแอคเซส สวีท" 131×35<br>a "บีชฟรอนต์ พูลวิลล่า" 159×35<br>a "แฟมิลี่ วิลล่า 2 ห้องนอน" 190×35<br>a "076-443-888" 79×20<br>a "stay@baantalay.com" 125×20<br>a "ห้องพักและวิลล่า" 96×24<br>a "ค้นหาห้องว่าง" 77×24<br>a "สิ่งอำนวยความสะดวก" 124×24<br>a "ที่ตั้งและการเดินทาง" 113×24<br>a "การเข้าพักของฉัน" 99×24 | - | - |
+| hotel-room-detail | desktop | 200 | 0 | a "076-443-888" 79×20<br>a "stay@baantalay.com" 125×20<br>a "ห้องพักและวิลล่า" 96×24<br>a "ค้นหาห้องว่าง" 77×24<br>a "สิ่งอำนวยความสะดวก" 124×24<br>a "ที่ตั้งและการเดินทาง" 113×24<br>a "การเข้าพักของฉัน" 99×24<br>a "ติดต่อเรา" 51×24<br>a "นโยบายความเป็นส่วนตัว" 119×24<br>a "เงื่อนไขการใช้บริการ" 98×24 | - | - |
+| hotel-book-widget | desktop | 200 | 0 | input "INPUT" 1×1<br>input "INPUT" 20×20<br>a "076-443-888" 79×20<br>a "stay@baantalay.com" 125×20<br>a "ห้องพักและวิลล่า" 96×24<br>a "ค้นหาห้องว่าง" 77×24<br>a "สิ่งอำนวยความสะดวก" 124×24<br>a "ที่ตั้งและการเดินทาง" 113×24<br>a "การเข้าพักของฉัน" 99×24<br>a "ติดต่อเรา" 51×24<br>a "นโยบายความเป็นส่วนตัว" 119×24<br>a "เงื่อนไขการใช้บริการ" 98×24 | - | - |
+| hotel-confirmation | desktop | 200 | 0 | a "076-443-888" 79×20<br>a "stay@baantalay.com" 125×20<br>a "ห้องพักและวิลล่า" 96×24<br>a "ค้นหาห้องว่าง" 77×24<br>a "สิ่งอำนวยความสะดวก" 124×24<br>a "ที่ตั้งและการเดินทาง" 113×24<br>a "การเข้าพักของฉัน" 99×24<br>a "ติดต่อเรา" 51×24<br>a "นโยบายความเป็นส่วนตัว" 119×24<br>a "เงื่อนไขการใช้บริการ" 98×24 | - | - |
+| hotel-stay-search | desktop | 200 | 0 | a "076-443-888" 79×20<br>a "stay@baantalay.com" 125×20<br>a "ห้องพักและวิลล่า" 96×24<br>a "ค้นหาห้องว่าง" 77×24<br>a "สิ่งอำนวยความสะดวก" 124×24<br>a "ที่ตั้งและการเดินทาง" 113×24<br>a "การเข้าพักของฉัน" 99×24<br>a "ติดต่อเรา" 51×24<br>a "นโยบายความเป็นส่วนตัว" 119×24<br>a "เงื่อนไขการใช้บริการ" 98×24 | - | - |
+| course-home | mobile | 200 | 0 | a "ดูรายละเอียดคลาส" 95×16<br>a "Hatha Yoga เริ่มต้น" 121×32<br>a "Yin Yoga & Sound Bath" 149×32<br>a "Prenatal Yoga คุณแม่" 136×32<br>a "Vinyasa Flow" 92×32<br>a "Breath & Meditation" 133×32<br>a "Mat Pilates Core" 111×32<br>a "Reformer Pilates Basic" 147×32<br>a "Reformer Pilates Flow" 143×32<br>a "ดูรายละเอียดพาสทั้งหมด" 148×18 | - | - |
+| course-classes | mobile | 200 | 0 | - | - | - |
+| course-class-detail | mobile | 200 | 0 | a "Hatha Yoga เริ่มต้น" 135×24 | - | - |
+| course-schedule | mobile | 200 | 0 | a "ดูรายละเอียดคลาส" 95×16 | - | - |
+| course-book-widget | mobile | 200 | 0 | - | - | - |
+| course-confirmation | mobile | 200 | 0 | - | - | - |
+| hotel-home | mobile | 200 | 0 | a "ดีลักซ์ การ์เดน" 116×35<br>a "ดีลักซ์ ซีวิว" 87×35<br>a "พูลแอคเซส สวีท" 131×35<br>a "บีชฟรอนต์ พูลวิลล่า" 159×35<br>a "แฟมิลี่ วิลล่า 2 ห้องนอน" 190×35 | - | - |
+| hotel-rooms | mobile | 200 | 0 | a "ดีลักซ์ การ์เดน" 116×35<br>a "ดีลักซ์ ซีวิว" 87×35<br>a "พูลแอคเซส สวีท" 131×35<br>a "บีชฟรอนต์ พูลวิลล่า" 159×35<br>a "แฟมิลี่ วิลล่า 2 ห้องนอน" 190×35 | - | - |
+| hotel-room-detail | mobile | 200 | 0 | - | - | - |
+| hotel-book-widget | mobile | 200 | 0 | input "INPUT" 1×1<br>input "INPUT" 20×20 | - | - |
+| hotel-confirmation | mobile | 200 | 0 | - | - | - |
+| hotel-stay-search | mobile | 200 | 0 | - | - | - |
+| admin-hotel-bookings | desktop | 200 | 0 | a "RentWeb" 108×32<br>button "ย่อแถบเมนู" 247×36<br>a "ดูหน้าร้าน" 110×36 | - | - |
+| admin-hotel-calendar | desktop | 200 | 0 | a "RentWeb" 108×32<br>button "ย่อแถบเมนู" 247×36<br>a "ดูหน้าร้าน" 110×36<br>button "ดีลักซ์ การ์เดน 1 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 2 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 3 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 4 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 5 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 6 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 7 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 8 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 9 ต.ค. 69: จองแล้ว 0 จาก" 38×40 | - | - |
+| admin-hotel-units | desktop | 200 | 0 | a "RentWeb" 108×32<br>button "ย่อแถบเมนู" 247×36<br>a "ดูหน้าร้าน" 110×36<br>a "ดีลักซ์ การ์เดน" 109×28<br>button "เปิดขาย" 44×24<br>button "ห้องแนะนำ" 44×24<br>a "แก้ไข" 61×36<br>a "ดีลักซ์ ซีวิว" 83×28<br>a "พูลแอคเซส สวีท" 125×28<br>a "บีชฟรอนต์ พูลวิลล่า" 150×28<br>a "แฟมิลี่ วิลล่า 2 ห้องนอน" 182×28<br>button "แก้ไข อาหารเช้า" 36×36 | - | - |
+| admin-course-bookings | desktop | 200 | 0 | a "RentWeb" 108×32<br>button "ย่อแถบเมนู" 247×36<br>a "ดูหน้าร้าน" 110×36<br>a "รายวัน" 85×36<br>a "รายสัปดาห์" 111×36 | - | - |
+| admin-course-class | desktop | 200 | 0 | a "RentWeb" 108×32<br>button "ย่อแถบเมนู" 247×36<br>a "ดูหน้าร้าน" 110×36<br>a "คครูแนน" 95×38<br>a "จัดการพนักงาน" 121×36<br>button "ลบรูป" 32×32<br>button "อัปโหลด" 101×36<br>input "เลือกไฟล์รูปบริการ" 1×1<br>input "หรือวางลิงก์รูป https://…" 414×36<br>button "ใช้ลิงก์" 67×36<br>button "ต้องชำระมัดจำ" 44×24<br>button "BUTTON" 44×24 | - | - |
+| admin-hotel-bookings | mobile | 200 | 0 | - | - | - |
+| admin-hotel-calendar | mobile | 200 | 0 | button "ดีลักซ์ การ์เดน 1 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 2 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 3 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 4 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 5 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 6 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 7 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 8 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 9 ต.ค. 69: จองแล้ว 0 จาก" 38×40<br>button "ดีลักซ์ การ์เดน 10 ต.ค. 69: จองแล้ว 0 จา" 38×40<br>button "ดีลักซ์ การ์เดน 11 ต.ค. 69: จองแล้ว 0 จา" 38×40<br>button "ดีลักซ์ การ์เดน 12 ต.ค. 69: จองแล้ว 0 จา" 38×40 | - | - |
+| admin-hotel-units | mobile | 200 | 0 | a "ดีลักซ์ การ์เดน" 109×28<br>button "เปิดขาย" 44×24<br>button "ห้องแนะนำ" 44×24<br>a "แก้ไข" 61×36<br>a "ดีลักซ์ ซีวิว" 83×28<br>a "พูลแอคเซส สวีท" 125×28<br>a "บีชฟรอนต์ พูลวิลล่า" 150×28<br>a "แฟมิลี่ วิลล่า 2 ห้องนอน" 182×28<br>button "แก้ไข อาหารเช้า" 36×36<br>button "ลบ อาหารเช้า" 36×36<br>button "แก้ไข รถรับส่งสนามบิน (ไป-กลับ)" 36×36<br>button "ลบ รถรับส่งสนามบิน (ไป-กลับ)" 36×36 | - | - |
+| admin-course-bookings | mobile | 200 | 0 | a "รายวัน" 162×36<br>a "รายสัปดาห์" 162×36 | - | - |
+| admin-course-class | mobile | 200 | 0 | a "คครูแนน" 95×38<br>a "จัดการพนักงาน" 121×36<br>button "ลบรูป" 32×32<br>button "อัปโหลด" 101×36<br>input "เลือกไฟล์รูปบริการ" 1×1<br>input "หรือวางลิงก์รูป https://…" 124×36<br>button "ใช้ลิงก์" 67×36<br>button "ต้องชำระมัดจำ" 44×24<br>button "BUTTON" 44×24 | - | - |
 
 Files: tooling/screenshots/qa-a-<page>-{1440,390}.png

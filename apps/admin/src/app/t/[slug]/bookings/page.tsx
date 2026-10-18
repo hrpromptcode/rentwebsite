@@ -4,7 +4,8 @@ import { AlertCircle, CalendarCheck2, CheckCircle2, Clock3, Plus, Wallet } from 
 import { Button } from "@rentweb/ui/components/button";
 import { isUuid } from "@rentweb/core";
 import { cn } from "@rentweb/ui/lib/utils";
-import { addDays, bkkDateString, bkkDayStart, bookingKpis, countPendingDeposits, dayHours, formatThaiYmd, listBookingsBetween, listStaff, parseYmd, weekdayOf, ymdToString } from "@rentweb/module-booking/admin";
+import { getAdminDb } from "@rentweb/db";
+import { addDays, bkkDateString, bkkDayStart, bookingKpis, countPendingDeposits, dayHours, formatThaiYmd, listBookingsBetween, listStaff, listTimetable, loadModuleConfig, parseYmd, weekdayOf, ymdToString, type TimetableSession } from "@rentweb/module-booking/admin";
 import { BOOKING_STATUS } from "@rentweb/module-booking/admin/labels";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { PageHeader } from "@/components/ui/page-header";
@@ -41,16 +42,20 @@ export default async function BookingsPage({ params, searchParams }: { params: P
   const from = bkkDayStart(fromYmd);
   const to = bkkDayStart(addDays(fromYmd, view === "week" ? 7 : 1));
 
+  // course template: the day's scheduled class sessions, so a session nobody has enrolled in yet still shows on the grid
+  const moduleConfig = view === "day" && !status && !q ? await loadModuleConfig(getAdminDb(), ctx.tenant.id) : null;
   const data = await tenantTx(ctx.tenant.id, async (tx) => {
-    const [staff, list, hours, kpis, pendingDeposits] = await Promise.all([
+    const [staff, list, hours, kpis, pendingDeposits, sessions] = await Promise.all([
       listStaff(tx, ctx.tenant.id),
       listBookingsBetween(tx, ctx.tenant.id, { from, to, staffId: staffFilter || null, status: status && status !== "all" ? status : null, q }),
       dayHours(tx, ctx.tenant.id, date),
       bookingKpis(tx, ctx.tenant.id, from, to),
       countPendingDeposits(tx, ctx.tenant.id),
+      moduleConfig ? listTimetable(tx, ctx.tenant.id, { from: date, days: 1, config: moduleConfig.booking, now }) : Promise.resolve([] as TimetableSession[]),
     ]);
-    return { staff, list, hours, kpis, pendingDeposits };
+    return { staff, list, hours, kpis, pendingDeposits, sessions };
   });
+  const scheduledSessions = data.sessions.filter((s) => s.state !== "closed");
   const { staff, hours, kpis, pendingDeposits } = data;
   const list = status ? data.list : data.list.filter((b) => b.status !== "cancelled");
   const canWrite = hasRole(ctx, "staff");
@@ -63,13 +68,12 @@ export default async function BookingsPage({ params, searchParams }: { params: P
   const columns: GridColumn[] = staff.map((s) => ({ id: s.id, name: s.name, color: s.color, avatar: s.avatar ? assetUrl(s.avatar) : null }));
   for (const b of list) if (b.staffId && !columns.some((c) => c.id === b.staffId)) columns.push({ id: b.staffId, name: b.staffName ?? "พนักงาน", color: b.staffColor ?? "#64748b", avatar: null });
   columns.push({ id: null, name: "ไม่ระบุ", color: "#94a3b8", avatar: null });
-  const shownColumns = staffFilter === "none" ? columns.filter((c) => c.id === null) : staffFilter ? columns.filter((c) => c.id === staffFilter) : columns;
 
   // grid hours, widened to fit bookings outside business hours
   let openMin = hours.openMin;
   let closeMin = hours.closeMin;
   if (view === "day") {
-    for (const b of list) {
+    for (const b of [...list.map((b) => ({ startsAt: b.startsAt, endsAt: b.endsAt })), ...scheduledSessions.map((s) => ({ startsAt: s.start, endsAt: s.end }))]) {
       const s = bkkMinutes(b.startsAt);
       const e = bkkMinutes(b.endsAt) || 24 * 60;
       openMin = Math.min(openMin, Math.floor(s / 30) * 30);
@@ -115,6 +119,33 @@ export default async function BookingsPage({ params, searchParams }: { params: P
       }
     }
   }
+  // scheduled class sessions without an enrolment: an empty "0/seats" chip in the instructor's column (links to the walk-in form)
+  for (const s of scheduledSessions) {
+    const key = `${s.serviceId}|${new Date(s.start).toISOString()}`;
+    if (sessionChips.has(key)) continue;
+    const empty: GridBooking = {
+      id: `session-${s.serviceId}-${s.start}`,
+      number: "",
+      status: s.state === "past" ? "completed" : "confirmed",
+      startsAt: s.start,
+      endsAt: s.end,
+      customerName: "",
+      serviceName: s.serviceName,
+      serviceId: s.serviceId,
+      staffId: s.instructor?.id ?? null,
+      partySize: 0,
+      paymentStatus: "unpaid",
+      depositAmount: 0,
+      seats: s.capacity,
+      enrolled: 0,
+      groupCount: 0,
+      empty: true,
+    };
+    sessionChips.set(key, empty);
+    gridBookings.push(empty);
+    if (empty.staffId && !columns.some((c) => c.id === empty.staffId)) columns.splice(columns.length - 1, 0, { id: empty.staffId, name: s.instructor?.name ?? "ครูผู้สอน", color: s.instructor?.color ?? "#64748b", avatar: null });
+  }
+  const shownColumns = staffFilter === "none" ? columns.filter((c) => c.id === null) : staffFilter ? columns.filter((c) => c.id === staffFilter) : columns;
 
   const titleDate = view === "week" ? `${formatThaiYmd(ymdToString(weekStart), { short: true })} – ${formatThaiYmd(ymdToString(addDays(weekStart, 6)), { short: true })}` : formatThaiYmd(date, { weekday: true });
   const nowMin = date === today ? bkkMinutes(now) : null;

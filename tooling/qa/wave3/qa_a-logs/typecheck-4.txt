@@ -1,0 +1,11 @@
+
+> @rentweb/admin@0.1.0 typecheck D:\Projects\promptcode_rentweb\apps\admin
+> tsc --noEmit
+
+src/app/t/[slug]/events/actions.ts(22,8): error TS2724: '"@rentweb/module-events/admin"' has no exported member named 'EventStatus'. Did you mean 'EVENT_STATUS'?
+src/app/t/[slug]/events/actions.ts(89,41): error TS2322: Type '`\u0E2D\u0E35\u0E40\u0E27\u0E19\u0E15\u0E4C\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E17\u0E35\u0E48${string}\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49` | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+D:\Projects\promptcode_rentweb\apps\admin:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @rentweb/admin@0.1.0 typecheck: `tsc --noEmit`
+Exit status 2
+exit=2

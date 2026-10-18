@@ -1,6 +1,6 @@
 # Packet qa_wave_a — independent QA of wave A (LINE Login, course template, rental module + hotel template)
 
-Started 2026-10-18 (QA agent). Scope: tooling/qa/wave3/{line_login,course,rental}.md deliverables. Out of scope: events module.
+Started 2026-10-18 (QA agent); continued by successor 2 (10:05). Scope: tooling/qa/wave3/{line_login,course,rental}.md deliverables. Out of scope: events module.
 
 ## Plan
 1. Rerun journeys: line_login, course, rental, rental-admin, booking; smoke (all tenants); hydration demo-course + demo-hotel
@@ -12,12 +12,49 @@ Started 2026-10-18 (QA agent). Scope: tooling/qa/wave3/{line_login,course,rental
 ## Findings (ID | severity | where | fix | verification)
 | ID | Sev | Where | Finding | Fix | Verification |
 |----|-----|-------|---------|-----|--------------|
+| F1 | info | tooling/qa/wave-a-probes.ts H7 | FAIL was a false positive: byte length of /stays/[id] differs per request on the dev server (self.__next_r nonce, preload scripts: the SAME request returned 54748 then 54074 bytes); the rendered card is identical for no key / wrong key / unknown id, no stay number leaks | probe now compares script-stripped, id-normalised markup | rerun `wave-a-probes.ts hotel` (pending) |
+| F2 | low / product | rental createStay | no same-day cut-off: a stay for today can still be created at 20:00 BKK (check-in 14:00) — moduleConfig.rental has no sameDayCutoff | none (documented; hotels do take late same-day arrivals; admin can no-show) | probe H4 NOTE |
+| F3 | low / accepted | LINE callback | no server-side one-time list for used states: with a STOLEN ticket cookie the same callback URL logs in twice against the stateless dev mock. Real LINE rejects a reused code (invalid_grant) and the browser's cookie is cleared on first use | none | probe L2 NOTE |
+| F4 | info | /stays/[id] without k | renders 200 + "ไม่สามารถเปิดการจองนี้ได้" card (not 404) — same convention as /bookings/[id]; identical for unknown ids, non-uuid → 404 | none | probe H7 |
+| F5 | **medium** | demo-hotel /stay/book at 390 (packages/modules/rental/src/components/book-form.tsx) | the whole form column was 402px wide inside a 358px container: the submit label "ยืนยันการจอง · ชำระตอนนี้ ฿2,925" is `whitespace-nowrap` and the form grid had no explicit column (`auto` track = min-content) → summary prices, consent text and the pay button were clipped at the right edge (page `overflow-x: hidden`, so the overflow probe showed 0) | form `grid-cols-1` (minmax(0,1fr)) + submit `h-auto min-h-14 whitespace-normal py-3` | screenshot qa-a-hotel-book-widget-390.png re-shot; `_overflow-locate` 0 offenders (pending rerun) |
+| F6 | low | course /schedule + home timetable at 390 (week-timetable.tsx) | the selected day tab (today) sits off-screen when today is Sat/Sun — the 7-tab strip scrolls but never scrolled to the active tab | effect scrolls the strip horizontally to centre the active tab | screenshot course-schedule-390 (pending) |
+| F7 | low (a11y) | week-timetable legend link "ดูรายละเอียดคลาส" 95×16, pass-pricing "ดูรายละเอียดพาสทั้งหมด" 148×18, instructor class chips 32px | tap targets under the 44px bar | legend/pass links get a 44px hit area via `py-3 -my-3` (no layout shift); chips → min-h-9 | shots report small-targets column (pending) |
+| F8 | low (UX) | admin /t/demo-course/bookings day grid | a scheduled class session with 0 enrolments was invisible (grid shows only bookings; Sunday 18 Oct showed "ว่าง" for instructors who teach 08:00/10:00/17:00) | page.tsx adds the day's `listTimetable` sessions without a chip as dashed "0/seats · ยังไม่มีผู้สมัคร" chips in the instructor column (link to the walk-in form with service+time prefilled); hidden under status/search filters; closed (instructor off) sessions skipped; grid hours widen to fit them | course journey A1 unaffected (distinct testid `session-chip-empty`); manual screenshot (pending) |
+| F9 | info | screenshots | full-page captures showed the sticky header / LINE button mid-page and a cream band above the hotel hero — `scroll-behavior: smooth` meant the page was still animating back to the top when the shot was taken (parallax hero offset) — not a product defect | shots script scrolls back instantly and waits for scrollY 0 | re-shoot (pending) |
+| F10 | low / known | hero stats at 390 (shared core hero, course + hotel) | 3 stats in a 2-col grid leave the third ("4.9 คะแนนรีวิว") alone on a second row — already listed as known in course.md; shared section, not touched | none | — |
 
 ## DONE
-- (log below)
+- 09:41–09:55 step 1 journeys (logs tooling/qa/wave3/qa_a-logs/*.txt): line_login 27/27, course 15/15, rental 12/12, rental-admin 12/12, booking 26/26 (salon/clinic regression), smoke all tenants green, hydration demo-course + demo-hotel clean. No findings from step 1.
+- 09:56 step 3 probe script tooling/qa/wave-a-probes.ts written (hotel H1–H9, course C1–C3, LINE L1–L3); first run was `course` only → C1–C3 PASS (results tooling/qa/wave-a-probes-results.md).
+- 10:00 step 2 shots script tooling/qa/wave-a-shots.ts ran, but every page.evaluate threw `ReferenceError: __name is not defined` (tsx keepNames helper injected into browser-side callbacks) → no overflow / tap-target / console data; screenshots qa-a-*.png were NOT written (page.evaluate threw before page.screenshot). Needs the fix below and a rerun.
 
-## REMAINING
-- everything in Plan
+- 10:20 step 3 probes run (log qa_a-logs/probes.txt): hotel H1–H9 + course C1–C3 + LINE L1–L3 → 12 PASS · 2 NOTE (H4, L2) · 1 FAIL (H7 = false positive, see F1; probe fixed, rerun pending). Results tooling/qa/wave-a-probes-results.md.
+- 10:25 step 4 code review (no defects): every rental service/admin query filters tenant_id (joins carry tenantId too); access keys = randomToken(16) base64url + safeEqual (timingSafeEqual) in getStayForCustomer / stayPaymentAccess; customer id for createStayAction comes from the session cookie only; customer cancel enforces canCustomerCancel server-side; admin rental actions: staff for transitions/notes/cash/upload, manager for slip approve/reject/refund + units/rates/blocks, admin for settings; LINE settings actions admin-only; course saveService/saveClassSessions manager; LINE: PKCE S256 + state/nonce in a sealed httpOnly cookie, callback checks state, id_token HS256 via safeEqual, safeNext on redirects.
+- 10:25 step 2 shots script fixed (`__name` shim via addInitScript) and rerun in progress (log qa_a-logs/shots.txt).
+
+- 10:45 step 3 probes rerun (qa_a-logs/probes2.txt) with the H7 fix + NEW race probes H9 (4 parallel createStay for the last villa → 1 winner, 3 × unavailable) and C4 (4 parallel enrolments for the last seat → 1 winner, 3 × slot_taken): **14 PASS · 3 NOTE · 0 FAIL**.
+- 10:50 step 2 shots rerun OK (34 pages, 0 overflow, 0 console errors, 0 placeholders); all 34 full-page PNGs eyeballed in 1300–1700px slices → F5–F10.
+- 11:05 step 5 fixes applied for F5, F6, F7, F8, F9 (files: packages/modules/rental/src/components/book-form.tsx, packages/modules/booking/src/components/{week-timetable,class-cards}.tsx, packages/modules/booking/src/sections/pass-pricing.tsx, packages/modules/booking/src/admin/index.ts (+listTimetable export), apps/admin/src/app/t/[slug]/bookings/{page,day-grid}.tsx, tooling/qa/wave-a-shots.ts). typecheck module-booking + module-rental + web green after the storefront fixes; admin typecheck running.
+
+- 11:15 typecheck @rentweb/module-booking + @rentweb/admin green after F8; F5 re-measured at 390: 0 elements beyond the viewport (was 40). wave-a-shots.ts now also reports "clipped" elements (right edge beyond the viewport while the document does not scroll — the class of bug the overflow probe missed) and takes `--only=name,name`.
+
+- 11:45 re-shots eyeballed (tooling/qa/wave-a-shots-report-partial.md): F5 fixed (summary prices + wrapped pay button fully visible at 390, 0 clipped), F6 fixed (อา. 18 tab in view), F9 confirmed artifact (hotel hero now fills to the top, header on the photo), F8 visible (dashed "0/20 Breath & Meditation", "0/14 Vinyasa Flow · ยังไม่มีผู้สมัคร" chips in ครูพลอย's column). Follow-up on F8: the column header counted the placeholders as "2 คิว" → now counts enrolment chips only and says "N รอบ · ยังไม่มีผู้สมัคร" when only empty sessions exist.
+- 11:50 regression: course journey 15/15 PASS after F6/F7/F8 (A1 still 3 seats-chips; placeholders use data-testid session-chip-empty). Admin typecheck: my files clean; the ONLY errors are apps/admin/src/app/t/[slug]/events/actions.ts (EventStatus export / string|undefined) = the events packet's work in progress, not this packet.
+- clipped-element probe in wave-a-shots.ts now ignores decorative bleeds (-inset-*, -z-*) and scrollable strips/grids (overflow-auto / overflow-x-auto) so only real clipping is reported.
+
+- 11:55 regression chain done (qa_a-logs/regress-*.txt + _regress-runner.txt): course 15/15, rental 12/12, booking (salon/clinic) 26/26 — only the pre-existing `requestfailed … ERR_ABORTED /api/booking/days` console noise of the salon widget, same as the 09:49 baseline run; smoke demo-course all green; smoke demo-hotel 1 ✗ (/location mobile: React "state update on a component that hasn't mounted yet" console warning while the dev server was loaded by the journeys) → rerun alone: all 18 checks green (regress-smoke-hotel-2.txt) = flake, not reproducible, no code path of this packet touches /location.
+
+## FINAL STATE (2026-10-18 11:55) — packet complete
+- Wave A verified end to end: 5 journeys green (line_login 27, course 15, rental 12, rental-admin 12, booking 26), smoke all tenants green, hydration clean, 17 edge/security probes (14 PASS · 3 NOTE · 0 FAIL, incl. two new 4-way race probes), 34 full-page screenshots eyeballed at 390 + 1440.
+- Findings F1–F10 above: 1 medium defect (F5, fixed), 3 low defects (F6, F7, F8, fixed), 1 probe false positive (F1, probe fixed), 1 tooling artifact (F9, script fixed), the rest documented decisions / known items. Nothing open.
+- Files changed by this packet: packages/modules/rental/src/components/book-form.tsx · packages/modules/booking/src/components/{week-timetable,class-cards}.tsx · packages/modules/booking/src/sections/pass-pricing.tsx · packages/modules/booking/src/admin/index.ts · apps/admin/src/app/t/[slug]/bookings/{page,day-grid}.tsx · tooling/qa/{wave-a-probes,wave-a-shots}.ts (+ results md) · this file. No migrations, no shared registries, nothing under events.
+- Typecheck: @rentweb/module-booking, @rentweb/module-rental, @rentweb/web, @rentweb/tooling green; @rentweb/admin green for this packet's files — the two current errors are in apps/admin/src/app/t/[slug]/events/actions.ts (events packet WIP).
+- Not done / left for the owners: F2 (optional same-day cut-off setting for hotels), F3 (optional server-side one-time state list for LINE), F10 (3-stat hero orphan at 390 — shared core hero), instructor class chips are 36px (not 44), admin calendar day cells 38×40 (dense admin UI).
 
 ## How to test
-- see each packet's "How to test"; this packet's run logs live in tooling/qa/wave3/qa_a-logs/
+- see each packet's "How to test"; this packet's run logs live in tooling/qa/wave3/qa_a-logs/ (journeys 09:4x = baseline, regress-* = after the fixes)
+- F5: http://demo-hotel.localhost:3000/stay/book?type=deluxe-seaview&from=<+35d>&to=<+37d>&guests=2 at 390px → prices, consent text and the pay button fully visible (button wraps to two lines)
+- F6: http://demo-course.localhost:3000/schedule at 390px on a Sat/Sun → the highlighted day tab is in view
+- F8: http://localhost:3001/t/demo-course/bookings?date=<a day with sessions nobody booked> → dashed "0/seats · ยังไม่มีผู้สมัคร" chips in the instructor column (click → walk-in form prefilled); column header "N รอบ · ยังไม่มีผู้สมัคร"; status/search filters hide them
+- probes: `cd tooling && MSYS_NO_PATHCONV=1 pnpm exec tsx qa/wave-a-probes.ts [hotel|course|line]` → tooling/qa/wave-a-probes-results.md
+- shots: `cd tooling && MSYS_NO_PATHCONV=1 pnpm exec tsx qa/wave-a-shots.ts` → tooling/screenshots/qa-a-*.png + tooling/qa/wave-a-shots-report.md

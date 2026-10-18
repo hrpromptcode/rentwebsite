@@ -234,7 +234,10 @@ function buildDetail(event: EventRow, sessions: SessionRow[], types: TicketTypeR
         return open ? v : { ...v, saleState: s.status === "cancelled" ? "closed" : v.saleState === "on_sale" ? "closed" : v.saleState };
       });
     const prices = tts.filter((t) => t.saleState === "on_sale").map((t) => t.price);
-    return { ...s, remaining, open, ticketTypes: tts, fromPrice: prices.length ? Math.min(...prices) : null, soldOut: open && tts.length > 0 && tts.every((t) => t.saleState === "sold_out") };
+    // sold out = nothing on sale AND the reason is seats (capacity reached or every sellable type gone), not a closed / future sales window
+    const anyOnSale = prices.length > 0;
+    const soldOut = open && !anyOnSale && (remaining <= 0 || tts.some((t) => t.saleState === "sold_out"));
+    return { ...s, remaining, open, ticketTypes: tts, fromPrice: anyOnSale ? Math.min(...prices) : null, soldOut };
   });
   const closeAt = event.endsAt ?? null;
   const eventTypes = visibleTypes.map((t) => {
