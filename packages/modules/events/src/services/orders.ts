@@ -654,8 +654,10 @@ export async function listCustomerOrders(tx: Tx, tenantId: string, customerId: s
   const scope = opts.scope ?? "all";
   const where = [eq(ticketOrders.tenantId, tenantId), eq(ticketOrders.customerId, customerId)];
   const endsAt = sql`coalesce(${eventSessions.endsAt}, ${events.endsAt})`;
-  if (scope === "upcoming") where.push(inArray(ticketOrders.status, ["pending", "paid"]), or(sql`${endsAt} is null`, gte(endsAt, now))!);
-  if (scope === "past") where.push(or(inArray(ticketOrders.status, ["cancelled", "refunded", "expired"]), lt(endsAt, now))!);
+  // a raw SQL operand gets no column mapper, so the Date must be bound as a typed parameter (postgres-js rejects a bare Date)
+  const nowTs = sql`${now.toISOString()}::timestamptz`;
+  if (scope === "upcoming") where.push(inArray(ticketOrders.status, ["pending", "paid"]), or(sql`${endsAt} is null`, gte(endsAt, nowTs))!);
+  if (scope === "past") where.push(or(inArray(ticketOrders.status, ["cancelled", "refunded", "expired"]), lt(endsAt, nowTs))!);
   const q = tx
     .select(listSelect)
     .from(ticketOrders)

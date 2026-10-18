@@ -1,7 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { and, eq, eventSessions, eventPromoCodes, eventsOutbox, payments, ticketOrders, ticketTypes } from "@rentweb/db";
 import { expireStalePayments, markFailed, markPaid, paymentRefundRequired } from "@rentweb/core/payments";
-import "../src/register";
 import { cancelUnpaidOrder, createTicketOrder, getOrderForCustomer, listCustomerOrders, listOrders, orderStats, quoteTicketOrder, releaseLapsedHolds, renewOrderPayment, ticketOrderClosedReason, ticketOrderPaymentAccess } from "../src/services/orders";
 import { listTicketsForOrder, verifyTicketPayload, signTicketPayload } from "../src/services/tickets";
 import { getEventDetail, getPublicEvent, listPublicEvents } from "../src/services/catalog";

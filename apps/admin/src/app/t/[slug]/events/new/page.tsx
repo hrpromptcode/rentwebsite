@@ -6,7 +6,8 @@ import { Button } from "@rentweb/ui/components/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { getTenantCtx, hasRole } from "@/lib/tenant";
 import { assetBase, eventsBase } from "../_lib";
-import { EMPTY_EVENT, EventForm } from "../event-form";
+import { EventForm } from "../event-form";
+import { EMPTY_EVENT } from "../form-values";
 
 export const metadata: Metadata = { title: "สร้างอีเวนต์" };
 

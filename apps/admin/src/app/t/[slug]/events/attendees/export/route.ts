@@ -62,5 +62,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   );
   const body = "﻿" + [header.map(csvCell).join(","), ...lines].join("\r\n") + "\r\n";
   const name = `attendees-${event.slug}-${bkkDateString(new Date())}.csv`;
-  return new NextResponse(body, { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="${name}"; filename*=UTF-8''${encodeURIComponent(name)}`, "cache-control": "no-store" } });
+  // header values must be ISO-8859-1: Thai slugs go in filename* only, filename= gets an ASCII fallback
+  const ascii = name.replace(/[^\x20-\x7e]+/g, "").replace(/"/g, "").replace(/-{2,}/g, "-") || "attendees.csv";
+  return new NextResponse(body, { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`, "cache-control": "no-store" } });
 }

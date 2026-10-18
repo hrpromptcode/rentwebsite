@@ -1,7 +1,16 @@
 import { createTestDb, type TestDb } from "@rentweb/db/test-utils";
 import { eventPromoCodes, eventSessions, events, tenants, ticketTypes, withTenant, type Tx } from "@rentweb/db";
+import { registerPaymentAccessCheck, registerPaymentClosedHandler, registerPaymentHandler, registerPaymentTargetCheck } from "@rentweb/core/payments";
 import type { EventsConfig } from "../src/services/config";
+import { onTicketOrderPaid, onTicketOrderPaymentClosed, ticketOrderClosedReason, ticketOrderPaymentAccess } from "../src/services/orders";
 import { bkkDateTime } from "../src/services/time";
+
+// src/register.ts also registers the storefront sections (JSX + @rentweb/storefront), which vitest cannot transform;
+// the tests only need the "ticket_order" payment hooks, registered here exactly as register.ts does.
+registerPaymentHandler("ticket_order", onTicketOrderPaid);
+registerPaymentClosedHandler("ticket_order", onTicketOrderPaymentClosed);
+registerPaymentTargetCheck("ticket_order", ticketOrderClosedReason);
+registerPaymentAccessCheck("ticket_order", ticketOrderPaymentAccess);
 
 export const CONFIG: EventsConfig = {
   holdMinutes: 20,

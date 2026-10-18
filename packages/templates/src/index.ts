@@ -8,6 +8,7 @@ import { corporate } from "./corporate";
 import { cafe } from "./cafe";
 import { course } from "./course";
 import { hotel } from "./hotel";
+import { eventsTemplate } from "./events";
 
 export const TEMPLATES: Record<string, TemplateDefinition> = {
   shop,
@@ -19,6 +20,7 @@ export const TEMPLATES: Record<string, TemplateDefinition> = {
   cafe,
   course,
   hotel,
+  events: eventsTemplate,
 };
 
 export function listTemplates(): TemplateDefinition[] {

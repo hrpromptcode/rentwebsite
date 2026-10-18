@@ -1,7 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { and, eq, eventsOutbox, payments, ticketTypes } from "@rentweb/db";
 import { markPaid } from "@rentweb/core/payments";
-import "../src/register";
 import { createTicketOrder } from "../src/services/orders";
 import { checkInByCode, checkInStats, listRecentCheckIns, undoCheckIn } from "../src/services/checkin";
 import { getTicketDetail, listAttendees, listTicketsForOrder, signTicketPayload, voidTicketsForOrder, type TicketRow } from "../src/services/tickets";

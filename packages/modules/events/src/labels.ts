@@ -89,6 +89,7 @@ export const L = {
   note: "หมายเหตุ",
   promoCode: "โค้ดส่วนลด",
   applyPromo: "ใช้โค้ด",
+  summary: "สรุปคำสั่งซื้อ",
   subtotal: "ยอดรวม",
   discount: "ส่วนลด",
   total: "ยอดชำระ",

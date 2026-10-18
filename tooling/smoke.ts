@@ -19,6 +19,7 @@ const ROUTES: Record<string, string[]> = {
   "demo-corporate": ["/", "/services", "/work", "/careers", "/about", "/contact"],
   "demo-course": ["/", "/classes", "/classes/hatha-basic", "/schedule", "/instructors", "/instructors/kru-nan", "/packages", "/start", "/book", "/contact"],
   "demo-hotel": ["/", "/rooms", "/rooms/deluxe-seaview", "/stay", "/facilities", "/location", "/about", "/contact", "/account/stays"],
+  "demo-events": ["/", "/events", "/events?scope=past", "/events/riverside-live", "/events/design-talk-2026", "/events/khlong-san-night-run", "/events/maker-market-7", "/venue", "/about", "/contact", "/account/tickets"],
 };
 
 const only = process.argv.slice(2).filter((a) => !a.startsWith("--"));

@@ -957,6 +957,9 @@ importers:
       '@rentweb/module-booking':
         specifier: workspace:*
         version: link:../packages/modules/booking
+      '@rentweb/module-events':
+        specifier: workspace:*
+        version: link:../packages/modules/events
       '@rentweb/module-rental':
         specifier: workspace:*
         version: link:../packages/modules/rental

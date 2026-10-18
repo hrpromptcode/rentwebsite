@@ -22,6 +22,7 @@ const DEMO_NAMES: Record<string, string> = {
   cafe: "Sugar Puff",
   course: "Sala Flow",
   hotel: "บ้านทะเล เขาหลัก",
+  events: "Maker Yard Bangkok",
 };
 
 async function main() {
