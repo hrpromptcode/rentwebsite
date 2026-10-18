@@ -76,7 +76,7 @@ export interface BookingWizardProps {
   maxDate: string;
   customer: { name: string | null; phone: string | null; email: string | null } | null;
   /** date (YYYY-MM-DD) / start (ISO) jump straight to the time / details step – used by class timetables ("สมัครเรียน" on a session) */
-  preselect?: { serviceId?: string | null; staffId?: string | null; date?: string | null; start?: string | null };
+  preselect?: { serviceId?: string | null; staffId?: string | null; date?: string | null; start?: string | null; slots?: SlotChip[] | null };
   paymentMethods: PaymentMethodOption[];
   /** ADMIN_B2-04: deposits are on but the shop has no payment receiver: deposit services are booked without one (pay at the shop) */
   payAtShop?: boolean;
@@ -186,7 +186,10 @@ export function BookingWizard({ services: allServices, staff, config, today, max
 
   // availability caches
   const [days, setDays] = React.useState<Record<string, Record<string, DayInfo>>>({});
-  const [slots, setSlots] = React.useState<Record<string, SlotChip[]>>({});
+  // slots of a preselected session day arrive from the server (BookingWidgetSection) so the summary is complete on first paint
+  const [slots, setSlots] = React.useState<Record<string, SlotChip[]>>(() =>
+    initialDate && initialService && preselect?.slots ? { [`${initialDate}|${initialService.id}|${initialStaff?.id ?? ""}|${course ? 1 : partyOf(initialService, 1)}`]: preselect.slots } : {},
+  );
   const staffParam = staffChoice ?? "";
   const daysKey = `${month}|${serviceId}|${staffParam}|${party}`;
   const slotsKey = `${date}|${serviceId}|${staffParam}|${party}`;
@@ -205,9 +208,11 @@ export function BookingWizard({ services: allServices, staff, config, today, max
     return () => ctrl.abort();
   }, [step, serviceId, month, staffParam, partyQs, daysKey, days]);
 
+  // also fetch once a start is preselected (details step) so the chosen session's seats / instructor can be shown;
+  // keyed on `wantSlots` rather than `step` so moving details → confirm does not abort and restart an in-flight fetch
+  const wantSlots = step === "time" || !!start;
   React.useEffect(() => {
-    // also fetch once a start is preselected (details step) so the chosen session's seats / instructor can be shown
-    if ((step !== "time" && !start) || !serviceId || !date || slots[slotsKey]) return;
+    if (!wantSlots || !serviceId || !date || slots[slotsKey]) return;
     const ctrl = new AbortController();
     fetch(`/api/booking/slots?date=${date}&service=${serviceId}${staffParam ? `&staff=${staffParam}` : ""}${partyQs}`, { signal: ctrl.signal, cache: "no-store" })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
@@ -216,7 +221,7 @@ export function BookingWizard({ services: allServices, staff, config, today, max
         if (!ctrl.signal.aborted) setSlots((s) => ({ ...s, [slotsKey]: [] }));
       });
     return () => ctrl.abort();
-  }, [step, start, serviceId, date, staffParam, partyQs, slotsKey, slots]);
+  }, [wantSlots, serviceId, date, staffParam, partyQs, slotsKey, slots]);
 
   // class sessions carry their instructor on the slot (group services only) – shown on chips and in the summary
   const staffNames = React.useMemo(() => (group ? Object.fromEntries(staff.map((s) => [s.id, s.name])) : undefined), [group, staff]);

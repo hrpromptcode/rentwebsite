@@ -229,6 +229,8 @@ export async function adminTransition(tx: Tx, tenantId: string, id: string, acti
 }
 
 export async function adminCancelStay(tx: Tx, tenantId: string, id: string, reason: string, config: RentalConfig, actor: Actor): Promise<Result<StayRow, string>> {
+  // a slip under review may be real money: the admin approves (→ refund flow) or rejects it before the stay can be cancelled
+  if ((await lockStayPayments(tx, tenantId, id)).some((p) => p.status === "pending_verification")) return fail("มีสลิปรอตรวจสอบอยู่ — อนุมัติหรือปฏิเสธสลิปก่อนยกเลิกการจอง");
   const r = await cancelStay(tx, tenantId, id, { by: "admin", reason, config, actorId: actor.userId });
   if (!r.ok) return fail(r.error === "not_found" ? "ไม่พบการจอง" : "การจองนี้ยกเลิกไม่ได้แล้ว");
   await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "stay.cancel", targetType: "stay", targetId: id, diff: { number: r.value.stay.number, reason, paidAmount: r.value.stay.paidAmount } });
@@ -302,7 +304,8 @@ export async function recordCashStayPayment(tx: Tx, tenantId: string, stayId: st
   if (amount <= 0) return fail(which === "balance" ? "การจองนี้ชำระครบแล้ว" : "การจองนี้ไม่มีมัดจำค้างชำระ");
   if (which === "due") await voidStayPayments(tx, tenantId, pays, "รับชำระเป็นเงินสดที่ที่พัก");
   const p = await createPayment(tx, tenantId, { refType: STAY_REF_TYPE, refId: stay.id, amount, provider: "cash", method: "cash" as PaymentMethod, customerId: stay.customerId, metadata: { stayNumber: stay.number, by: actor.userId, kind: which } });
-  await tx.update(rentalStays).set({ paymentId: p.id }).where(and(eq(rentalStays.tenantId, tenantId), eq(rentalStays.id, stay.id)));
+  // onStayPaid (via markPaid) adds the amount and points stay.paymentId at this payment; pre-setting paymentId here would
+  // make the handler treat the balance payment as "the same payment again" and skip the paidAmount update.
   const paid = await markPaid(tx, tenantId, p.id, { verifiedBy: actor.userId });
   const refund = paymentRefundRequired(paid);
   await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "stay.payment.cash", targetType: "payment", targetId: p.id, diff: { stayId, amount, kind: which, refundRequired: refund } });

@@ -8,8 +8,10 @@ import type { bookingWidget } from "@rentweb/storefront/definitions";
 import { Section, SectionHeading } from "@rentweb/storefront";
 import type { PaymentMethodOption } from "@rentweb/storefront/payments";
 import { BookingWizard, type WizardCourse, type WizardService, type WizardStaff } from "../components/booking-wizard";
+import type { SlotChip } from "../components/slot-picker";
 import { FloatingChatOptOut } from "../components/floating-chat-opt-out";
-import { listServices, listStaff } from "../services/catalog";
+import { getServiceById, listServices, listStaff } from "../services/catalog";
+import { getSlotsForDate, toSlotService } from "../services/availability";
 import { getPatientPackageForCustomer } from "../services/clinic";
 import { bookingConfig, type BookingConfig } from "../services/config";
 import { bookingDepositMethods } from "../services/bookings";
@@ -75,7 +77,8 @@ export interface BookingWidgetExtra {
 export async function BookingWidgetSection({ ctx, props: p, id, preselect, bare }: { ctx: StorefrontCtx; props: Props; id: string; index: number } & BookingWidgetExtra) {
   const tenantId = ctx.tenant.id;
   const config = bookingConfig(ctx.tenant.moduleConfig);
-  const { services, staff, customer, course } = await withTenant(getDb(), tenantId, async (tx) => {
+  const { today, maxDate } = wizardDates(config);
+  const { services, staff, customer, course, svc, st, sessionSlots } = await withTenant(getDb(), tenantId, async (tx) => {
     const data = await loadWizardData(tx, tenantId);
     const customer = await currentCustomer(tx, tenantId);
     // SBR-016: a course the signed-in customer can redeem (validated again by createBooking)
@@ -86,12 +89,18 @@ export async function BookingWidgetSection({ ctx, props: p, id, preselect, bare 
         course = { id: item.id, name: item.packageName, sessionsLeft: item.sessionsLeft, serviceId: item.serviceId };
       }
     }
-    return { ...data, customer, course };
+    const wantService = course?.serviceId ?? preselect?.service ?? p.serviceSlug ?? null;
+    const svc = wantService ? data.services.find((s) => s.id === wantService || s.slug === wantService) : undefined;
+    const st = preselect?.staff ? data.staff.find((s) => s.id === preselect.staff || s.slug === preselect.staff) : undefined;
+    // a timetable link (?date&start) lands on the details step: load that day's slots here so the chosen session's
+    // instructor and seats are in the summary on first paint instead of after a client fetch
+    let sessionSlots: SlotChip[] | null = null;
+    if (svc && preselect?.date && preselect?.start && /^\d{4}-\d{2}-\d{2}$/.test(preselect.date) && preselect.date >= today && preselect.date <= maxDate) {
+      const row = await getServiceById(tx, tenantId, svc.id);
+      if (row) sessionSlots = await getSlotsForDate(tx, tenantId, { service: toSlotService(row), date: preselect.date, staffId: st?.id ?? null, config });
+    }
+    return { ...data, customer, course, svc, st, sessionSlots };
   });
-  const { today, maxDate } = wizardDates(config);
-  const wantService = course?.serviceId ?? preselect?.service ?? p.serviceSlug ?? null;
-  const svc = wantService ? services.find((s) => s.id === wantService || s.slug === wantService) : undefined;
-  const st = preselect?.staff ? staff.find((s) => s.id === preselect.staff || s.slug === preselect.staff) : undefined;
   // ADMIN_B2-04: no deposit receiver → the server books without a deposit (answers.payAtShop); the review step must say so
   const depositMethods = depositMethodOptions(ctx.tenant.settings);
   const depositsLive = config.depositEnabled && depositMethods.length > 0;
@@ -104,7 +113,7 @@ export async function BookingWidgetSection({ ctx, props: p, id, preselect, bare 
       today={today}
       maxDate={maxDate}
       customer={customer ? { name: customer.name, phone: customer.phone, email: customer.email } : null}
-      preselect={{ serviceId: svc?.id ?? null, staffId: st?.id ?? null, date: preselect?.date ?? null, start: preselect?.start ?? null }}
+      preselect={{ serviceId: svc?.id ?? null, staffId: st?.id ?? null, date: preselect?.date ?? null, start: preselect?.start ?? null, slots: sessionSlots }}
       paymentMethods={depositMethods}
       payAtShop={config.depositEnabled && !depositsLive}
       course={course}

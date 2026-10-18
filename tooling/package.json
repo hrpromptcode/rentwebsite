@@ -20,6 +20,7 @@
     "@rentweb/core": "workspace:*",
     "@rentweb/db": "workspace:*",
     "@rentweb/templates": "workspace:*",
+    "@rentweb/module-rental": "workspace:*",
     "dotenv": "catalog:",
     "@rentweb/integrations": "workspace:*"
   },

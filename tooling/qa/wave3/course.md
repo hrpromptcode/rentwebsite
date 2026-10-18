@@ -57,12 +57,41 @@ Started 2026-10-18. Built on the booking module. School: **"Sala Flow"** — โ
     vitest booking 58/58; core provision-neutral (course template passes the brand/place/time scrub — neutralText pairs
     added for อารีย์ / 07:00 / story sentences) + theme-presets contrast (loft) green
 
-## REMAINING (in order)
-10b. run the journey: pnpm --filter @rentweb/tooling exec tsx qa/course-journey.ts → fix → re-run until green (1st run started 04:34)
-10c. tooling/smoke.ts demo-course green; review screenshots tooling/screenshots/course-*.png
-10d. after the journey: re-run reset-demo --template course (demo copy changed: features/marquee/start wording) + create-admin
-9. Admin: rule readers filter service_id IS NULL, grouped "n/seats" chips, booking detail instructor+seats, service form level + sessions editor
-10. Journey tooling/qa/course-journey.ts; typecheck; vitest; smoke; screenshots
+10b-i. (successor 3, 2026-10-18 ~05:30) journey run #2: C3 passes now (the 04:34 failure was a stale module graph); C5 failed
+    because the preselected session's slot (instructor) was fetched client-side after hydration and the summary raced the
+    click to the confirm step. FIX: BookingWidgetSection loads that day's slots server-side (getSlotsForDate) and passes
+    preselect.slots → wizard seeds its slots cache, so the instructor/seats are in the summary on first paint; the slots
+    effect is keyed on `wantSlots` (time step or start set) instead of `step`, so details → confirm no longer aborts the
+    fetch. typecheck module-booking + web green. Journey run #3 started.
+
+10b. DONE 05:50: journey run #3 → 15/15 PASS (C1–C8, A1–A4, M1–M2), no console errors. Results in tooling/qa/course-journey-results.md.
+10c. DONE: smoke demo-course 20/20 routes (desktop+mobile) 200; hydration demo-course / clean (only the reduced-motion notice).
+     Full-page home review at 1440/390 with motion on (course-home-full-desktop/mobile.png): premium – fixed three template
+     nits: class-highlights limit 3 (4 cards left an orphan row), features columns 4 (4th item orphaned), stats "4.9" rendered
+     as "5" by the integer counter → replaced by "92% นักเรียนกลับมาเรียนต่อ".
+10d. DONE 05:58: reset-demo --template course (tenant 01a14cce-4571-75a4-bd0b-9feb48febc9a) + create-admin; journey run #4 started.
+
+## FINAL STATE (2026-10-18 06:15) — packet complete
+- Journey run #4 against the re-provisioned demo-course: 15/15 PASS, no console errors (tooling/qa/course-journey-results.md).
+- Booking vitest 58/58; salon/clinic regression tooling/qa/booking-journey.ts 26/26 PASS.
+- Typecheck green: @rentweb/module-booking, @rentweb/web, @rentweb/templates (admin unchanged by this step).
+- Screenshots reviewed: course-home-full-desktop/mobile.png (motion on, full page), course-classes-*, course-class-detail-*,
+  course-schedule-*, course-admin-*.
+- Files touched this step: packages/modules/booking/src/sections/booking-widget.tsx (server-side slots for a preselected session),
+  packages/modules/booking/src/components/booking-wizard.tsx (preselect.slots seed, wantSlots effect key),
+  packages/templates/src/course.ts (highlights limit 3, features columns 4, stats copy).
+- Not done / ideas: waitlist for full sessions (optional in the brief, skipped); hero StatsRow is a shared section
+  (grid-cols-2 sm:grid-cols-3) so the third hero stat wraps on 390 — left as is to avoid touching other templates.
 
 ## How to test
-- (filled in as parts land)
+- Storefront: http://demo-course.localhost:3000 → / (hero, marquee, class highlights, 7-day timetable, instructors, passes,
+  testimonials, FAQ), /classes (?level=beginner|intermediate|advanced|all, ?category=yoga|pilates|breath), /classes/hatha-basic,
+  /schedule (?week=YYYY-MM-DD&instructor=kru-beam&level=advanced), /instructors, /instructors/kru-nan, /packages,
+  /book?service=hatha-basic&date=…&start=… (details step with instructor + seats in the summary), /account (คลาสของฉัน, คลาสพาสของฉัน).
+- Admin: http://localhost:3001/t/demo-course → /bookings?date=<Mon> (one chip per class session "n/seats", data-testid seats-chip),
+  /bookings/<id> (ครูผู้สอน, ที่นั่ง, ผู้เรียนในรอบนี้), /services (คลาส N ที่นั่ง/รอบ · ระดับ), /services/<id> (level select + weekly sessions editor).
+- Journey: `cd tooling && MSYS_NO_PATHCONV=1 pnpm exec tsx qa/course-journey.ts` (15 steps; results in qa/course-journey-results.md,
+  screenshots tooling/screenshots/course-*.png). Smoke: `pnpm --filter @rentweb/tooling smoke -- demo-course`.
+  Hydration: `pnpm --filter @rentweb/tooling hydration -- demo-course --path /`.
+- Unit: `pnpm --filter @rentweb/module-booking test` (58). Regression: `cd tooling && MSYS_NO_PATHCONV=1 pnpm exec tsx qa/booking-journey.ts`.
+- Re-provision: `pnpm --filter @rentweb/tooling reset-demo -- --template course && pnpm --filter @rentweb/tooling create-admin`.

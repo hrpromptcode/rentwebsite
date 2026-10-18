@@ -884,6 +884,9 @@ importers:
       '@rentweb/integrations':
         specifier: workspace:*
         version: link:../packages/integrations
+      '@rentweb/module-rental':
+        specifier: workspace:*
+        version: link:../packages/modules/rental
       '@rentweb/templates':
         specifier: workspace:*
         version: link:../packages/templates

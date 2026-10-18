@@ -6,7 +6,7 @@ import { rootHost } from "@rentweb/core/env";
 import { getTemplate } from "@rentweb/templates";
 
 /** Deletes and re-provisions a demo tenant from its template: pnpm --filter @rentweb/tooling reset-demo -- --template shop */
-const DEMO_NAMES: Record<string, string> = { shop: "Siam Atelier", topup: "GameHub", clinic: "Lumière Clinic", restaurant: "บ้านริม", salon: "สบาย สบาย", corporate: "Northstar Studio", cafe: "Sugar Puff", course: "Sala Flow" };
+const DEMO_NAMES: Record<string, string> = { shop: "Siam Atelier", topup: "GameHub", clinic: "Lumière Clinic", restaurant: "บ้านริม", salon: "สบาย สบาย", corporate: "Northstar Studio", cafe: "Sugar Puff", course: "Sala Flow", hotel: "บ้านทะเล เขาหลัก" };
 
 async function main() {
   const i = process.argv.indexOf("--template");

@@ -11,7 +11,7 @@ import { STAY_ACTIONS, getStayAdmin, loadRentalModuleConfig } from "@rentweb/mod
 import { getAdminDb } from "@rentweb/db";
 import { CANCELLABLE_STATUSES, SOURCE_LABEL, STAY_PAYMENT_STATUS, STAY_STATUS, type StayAdminAction } from "@rentweb/module-rental/admin/labels";
 import { StatusPill, formatThaiDateTime, formatThaiRange, formatThaiYmd } from "@rentweb/module-rental/admin/ui";
-import { fmtNumber, thb } from "@/lib/format";
+import { assetUrl, fmtNumber, thb } from "@/lib/format";
 import { getTenantCtx, hasRole, tenantTx } from "@/lib/tenant";
 import { rentalBase } from "../../_lib";
 import { NotesCard, PaymentCard, StatusActions } from "./stay-panels";
@@ -134,7 +134,7 @@ export default async function StayDetailPage({ params }: { params: Promise<{ slu
             </CardContent>
           </Card>
 
-          <PaymentCard slug={slug} stayId={s.id} stayStatus={s.status} paymentStatus={s.paymentStatus} total={s.total} paidAmount={s.paidAmount} depositAmount={s.depositAmount} canApprove={canApprove} canWrite={canWrite} payments={payments.map((p) => ({ id: p.id, status: p.status, method: p.method, amount: p.amount, slipUrl: p.slipUrl, createdAt: p.createdAt.toISOString(), paidAt: p.paidAt?.toISOString() ?? null, failureReason: p.failureReason }))} />
+          <PaymentCard slug={slug} stayId={s.id} stayStatus={s.status} paymentStatus={s.paymentStatus} total={s.total} paidAmount={s.paidAmount} depositAmount={s.depositAmount} canApprove={canApprove} canWrite={canWrite} payments={payments.map((p) => ({ id: p.id, status: p.status, method: p.method, amount: p.amount, slipUrl: p.slipUrl ? assetUrl(p.slipUrl) : null, createdAt: p.createdAt.toISOString(), paidAt: p.paidAt?.toISOString() ?? null, failureReason: p.failureReason }))} />
 
           <Card>
             <CardHeader>

@@ -143,10 +143,11 @@ export const course: TemplateDefinition = {
           ],
         }),
         section(marquee, { items: ["Hatha", "Vinyasa", "Yin & Sound Bath", "Reformer Pilates", "Mat Pilates", "Prenatal", "Breath & Meditation", "คลาสเช้าก่อนเข้างาน"], style: "outline", separator: "◦", speed: 36 }),
-        section(classHighlights, { eyebrow: "คลาสเรียน", heading: "คลาสยอดนิยมสัปดาห์นี้", subheading: "ทุกคลาสระบุระดับ ระยะเวลา ครูผู้สอน และที่นั่งคงเหลือ เลือกที่ใช่แล้วกดสมัครได้เลย", featured: true, limit: 6, variant: "cards" }),
+        section(classHighlights, { limit: 3, eyebrow: "คลาสเรียน", heading: "คลาสยอดนิยมสัปดาห์นี้", subheading: "ทุกคลาสระบุระดับ ระยะเวลา ครูผู้สอน และที่นั่งคงเหลือ เลือกที่ใช่แล้วกดสมัครได้เลย", featured: true, variant: "cards" }),
         section(weeklySchedule, { eyebrow: "ตารางเรียน", heading: "ตารางเรียน 7 วันข้างหน้า", subheading: "ที่นั่งคงเหลืออัปเดตแบบเรียลไทม์ กดที่รอบเพื่อสมัคร", days: 7, showPrice: false }),
         section(features, {
           variant: "icons",
+          columns: 4,
           eyebrow: "ทำไมต้อง Sala Flow",
           heading: "ฝึกอย่างปลอดภัย ก้าวหน้าได้จริง",
           items: [
@@ -167,7 +168,7 @@ export const course: TemplateDefinition = {
           bullets: ["เสื่อ บล็อก สายรัด ผ้าห่ม เตรียมให้ครบ", "ห้องอาบน้ำ + ล็อกเกอร์ฟรี", "ชาสมุนไพรหลังคลาสทุกรอบ"],
           cta: { label: "เกี่ยวกับเรา", href: "/about" },
         }),
-        section(stats, { variant: "row", items: [{ value: 1200, suffix: "+", label: "นักเรียนที่ฝึกกับเรา" }, { value: 25, suffix: "+", label: "รอบต่อสัปดาห์" }, { value: 6, suffix: " ปี", label: "เปิดสอนที่อารีย์" }, { value: 4.9, label: "คะแนนรีวิว Google" }] }),
+        section(stats, { variant: "row", items: [{ value: 1200, suffix: "+", label: "นักเรียนที่ฝึกกับเรา" }, { value: 25, suffix: "+", label: "รอบต่อสัปดาห์" }, { value: 6, suffix: " ปี", label: "เปิดสอนที่อารีย์" }, { value: 92, suffix: "%", label: "นักเรียนกลับมาเรียนต่อ" }] }),
         section(testimonials, {
           heading: "เสียงจากนักเรียน",
           variant: "spotlight",

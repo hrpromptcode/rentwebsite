@@ -46,25 +46,37 @@ export function StayWidget({ type, extras, config, today, maxDate, initial, clas
   const [quote, setQuote] = React.useState<QuoteState>({ status: "idle" });
   const nights = from && to ? diffDays(from, to) : 0;
 
-  // availability of the shown month (+ the next one, so paging feels instant)
+  // availability of the shown month (+ the next one, so paging feels instant); one in-flight request per month,
+  // shared across re-runs of the effect (React's dev double-effect must not abort and re-issue the fetch)
+  const inflight = React.useRef(new Map<string, Promise<Record<string, RangeDayInfo> | null>>());
   React.useEffect(() => {
-    const ctrl = new AbortController();
-    const load = async (mo: string) => {
+    let alive = true;
+    const load = (mo: string) => {
       if (months[mo]) return;
-      try {
-        const r = await fetch(`/api/rental/calendar?type=${type.id}&month=${mo}`, { signal: ctrl.signal, cache: "no-store" });
-        if (!r.ok) return;
-        const data = (await r.json()) as { days: Array<{ date: string; remaining: number; price: number; blocked: boolean; bookable: boolean }> };
-        const map: Record<string, RangeDayInfo> = {};
-        for (const d of data.days) map[d.date] = { bookable: d.bookable, price: d.price, remaining: d.remaining, blocked: d.blocked };
-        setMonths((s) => ({ ...s, [mo]: map }));
-      } catch {
-        /* aborted / offline: the calendar keeps its loading state */
+      const key = `${type.id}:${mo}`;
+      let p = inflight.current.get(key);
+      if (!p) {
+        p = fetch(`/api/rental/calendar?type=${type.id}&month=${mo}`, { cache: "no-store" })
+          .then(async (r) => {
+            if (!r.ok) return null;
+            const data = (await r.json()) as { days: Array<{ date: string; remaining: number; price: number; blocked: boolean; bookable: boolean }> };
+            const map: Record<string, RangeDayInfo> = {};
+            for (const d of data.days) map[d.date] = { bookable: d.bookable, price: d.price, remaining: d.remaining, blocked: d.blocked };
+            return map;
+          })
+          .catch(() => null)
+          .finally(() => inflight.current.delete(key));
+        inflight.current.set(key, p);
       }
+      void p.then((map) => {
+        if (alive && map) setMonths((s) => (s[mo] ? s : { ...s, [mo]: map }));
+      });
     };
-    void load(month);
-    void load(shiftMonth(month, 1));
-    return () => ctrl.abort();
+    load(month);
+    load(shiftMonth(month, 1));
+    return () => {
+      alive = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [month, type.id]);
 
