@@ -8,3 +8,4 @@ export * from "./topup";
 export * from "./restaurant";
 export * from "./clinic";
 export * from "./rental";
+export * from "./events";

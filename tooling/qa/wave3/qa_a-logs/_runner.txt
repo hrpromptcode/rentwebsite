@@ -1,0 +1,17 @@
+### line_login 09:41:39
+exit=0
+### course 09:43:27
+exit=0
+### rental 09:45:22
+exit=0
+### rental-admin 09:47:02
+exit=0
+### booking 09:49:00
+exit=0
+### smoke 09:50:42
+exit=0
+### hydration course 09:54:54
+exit=0
+### hydration hotel 09:55:01
+exit=0
+### ALL DONE 09:55:07

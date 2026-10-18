@@ -15,6 +15,7 @@
     "@rentweb/db": "workspace:*",
     "@rentweb/module-booking": "workspace:*",
     "@rentweb/module-commerce": "workspace:*",
+    "@rentweb/module-events": "workspace:*",
     "@rentweb/module-rental": "workspace:*",
     "@rentweb/module-restaurant": "workspace:*",
     "@rentweb/module-topup": "workspace:*",

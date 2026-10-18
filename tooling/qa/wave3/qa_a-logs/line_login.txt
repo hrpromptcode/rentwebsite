@@ -1,0 +1,30 @@
+◇ injected env (13) from ..\.env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+[PASS] 0 prep: detach mock user B from any previous customer (1005ms) — unlinked 1 previous customer(s)
+[PASS] A1 admin login (3626ms) — /
+[PASS] A2 Settings > LINE Login tab + page render + callback URL (4717ms) — state=ready, callback ok, admin mock note=true
+[PASS] A3 reset: clear previously stored credentials (if any) (1660ms) — cleared, secrets gone, flag off
+[PASS] A4 enable switch is locked until credentials are present (6ms) — switch disabled, hint shown
+[PASS] A5 ทดสอบ with a bad secret → rejected by the mock (shape ok) (1478ms) — probe=rejected
+[PASS] A6 ทดสอบ with valid credentials → reachable (896ms) — reachable, shape lines rendered
+[PASS] A7 switch on + บันทึก → toast + status ready (1955ms) — saved, ready
+[PASS] A8 DB: settings.lineLogin.enabled + encrypted secrets (hint only) + audit (382ms) — enabled, 2 secrets (hint …cdef), 2 audit row(s)
+[PASS] A9 reload keeps Channel ID + masked secret; screenshots 1440/390 (2225ms) — prefilled, masked, screenshots saved, no overflow
+[PASS] S1 login page shows the LINE button (within 60 s cache TTL) (3865ms) — button 382x48, href /api/auth/line/start?next=%2Faccount
+[PASS] S2 authorize request is OAuth 2.1 + PKCE; cancel on LINE → Thai message (6798ms) — PKCE S256 + state + nonce + openid; denied → Thai message
+[PASS] S3 callback without a ticket / forged state → state_mismatch message (1032ms) — state_mismatch handled
+[PASS] S4 login with mock user A → /account shows LINE-linked customer (6693ms) — customer 01a14bbf… (สมชาย ใจดี), no email/phone, avatar stored
+[PASS] S5 place an order as the LINE customer → order.customer_id = LINE customer (19254ms) — order #1004 via "Flash Express (ส่งด่วน)1–3 วันส่งฟรี" belongs to the LINE customer; identity fields untouched
+[PASS] S5b pay by slip (DEV_AUTO_APPROVE_SLIPS) → order paid (5929ms) — paid
+[PASS] S6 /account/orders lists the order for this customer (2931ms) — #1004 listed
+[PASS] S7 logout → /account needs login again (5044ms) — session revoked
+[PASS] S8 login again with LINE → same customer (no duplicate) (4684ms) — same customer 01a14bbf…, order #1004 still visible
+[PASS] L1 OTP customer signs in → account card offers เชื่อมต่อ LINE (3755ms) — customer 01a14ce4… (0991376401)
+[PASS] L2 link LINE user B → banner + card linked; name/phone kept (3840ms) — linked, OTP identity preserved, audited
+[PASS] L3 already_linked: OTP customer cannot grab LINE user A (belongs to customer A) (4707ms) — unlink ok (audited); linking A's LINE id refused
+[PASS] L4 LINE login as user B after unlink → NEW LINE-only customer (never merged by e-mail) (4271ms) — new customer 01a14ce4… separate from OTP customer 01a14ce4…
+[PASS] M1 390px: login page, mock picker, account page — tap targets + no overflow + screenshots (4091ms) — button 292x48; no overflow on 3 pages
+[PASS] A10 admin switches LINE off → storefront hides the button; /start → not_enabled message (7089ms) — button hidden, /start refused with Thai message
+[PASS] A11 admin switches LINE back on (leave demo-shop enabled) (1851ms) — enabled again
+[PASS] Z console errors across all contexts (1ms) — none
+
+✓ line_login journey: 27 passed, 0 warn, 0 failed

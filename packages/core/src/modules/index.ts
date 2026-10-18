@@ -173,9 +173,14 @@ export const MODULES: Record<ModuleKey, ModuleMeta> = {
     name: { th: "อีเวนต์ / บัตร", en: "Events & Tickets" },
     description: { th: "อีเวนต์ ประเภทบัตร e-ticket เช็กอิน", en: "Events, ticket types, e-tickets, check-in" },
     dependsOn: [],
-    adminNav: [{ key: "events", label: { th: "อีเวนต์", en: "Events" }, href: "/events", icon: "Ticket" }],
-    storefrontRoutes: ["/events"],
-    permissions: ["events.manage"],
+    adminNav: [
+      { key: "events", label: { th: "อีเวนต์", en: "Events" }, href: "/events", icon: "Ticket" },
+      { key: "ticket-orders", label: { th: "คำสั่งซื้อบัตร", en: "Ticket orders" }, href: "/events/orders", icon: "ReceiptText", badgeKey: "events.pending" },
+      { key: "checkin", label: { th: "เช็กอินหน้างาน", en: "Check-in" }, href: "/events/checkin", icon: "ScanLine" },
+      { key: "attendees", label: { th: "ผู้เข้าร่วมงาน", en: "Attendees" }, href: "/events/attendees", icon: "Users" },
+    ],
+    storefrontRoutes: ["/events", "/tickets"],
+    permissions: ["events.manage", "events.write", "events.orders.write", "events.checkin", "events.refund", "events.settings.write"],
     quotas: { events: 20 },
   },
   listings: {

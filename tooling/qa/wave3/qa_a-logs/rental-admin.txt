@@ -1,0 +1,52 @@
+◇ injected env (13) from ..\.env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+tenant: demo-hotel (01a14cdb-70b8-7069-b793-8902aa6f307f) — existing demo-hotel; today 2026-10-18
+PASS 1 nav: every rental adminNav href is a real page  — /rental/bookings 200, /rental/calendar 200, /rental/units 200, /rental/rates 200, /rental/settings 200  (16.1s)
+  shot D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-units-1440.png
+  shot D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-units-390.png
+PASS 2 units: create a unit type (UI) → list card  — qa-deluxe-947 · 2 ห้อง · ฿1,500  (10.7s)
+  shot D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-rates-1440.png
+PASS 3 rates: seasonal rule (UI) → preview price for that date  — 2026-10-28 → ฿2,000 (rule applied) · 2026-10-23 → ฿1,650 (rule not applied)  (10.7s)
+PASS 4 seed: slip stay (check-in today) → shared /payments queue links to the stay  — ST-1010 total ฿3000 deposit ฿900 · queue → /t/demo-hotel/rental/bookings/01a14ce8-7e2c-70fa-882d-172c26cf26c1  (5.0s)
+  shot D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-bookings-1440.png
+  shot D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-bookings-390.png
+PASS 5 list: วันนี้เช็กอิน shows the stay (1440 + 390)  (4.8s)
+  shot D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-detail-1440.png
+  shot D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-detail-390.png
+PASS 6 detail: approve slip → ยืนยันแล้ว, deposit recorded  — paid ฿900 · verifiedBy 60c1d109-de80-45bf-83d2-838dc69e3e00  (9.0s)
+PASS 7 detail: check-in → cash balance → check-out  — checked_out · paid ฿3000 (2 payments)  (12.9s)
+PASS 8 detail: unit number + internal note; search by number  — unit QA-101 · search by number / unit / phone  (8.2s)
+PASS 9 upcoming stay: จองล่วงหน้า → cancel refused while slip pending → reject slip → cancel → ยกเลิก tab  — ST-1011 cancel refused while slip pending → slip rejected → cancelled · payment cancelled  (14.2s)
+  shot D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-calendar-1440.png
+  shot D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-calendar-390.png
+PASS 10 calendar: block a date (UI) → storefront /api/rental/calendar hides it → unblock  — 2026-10-28 blocked → remaining 0 on storefront → unblocked → remaining 2  (11.2s)
+  shot D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-settings-1440.png
+PASS 11 settings: save free-cancel days → moduleConfig.rental updated → restore  — freeCancelDays 7 → 5 → 7  (5.8s)
+PASS 12 history: checked-out stay under ทั้งหมด with paid total; departures tab for its check-out day  (1.8s)
+cleanup: removed 2 stays, unit type yes, rule yes
+
+=== rental admin journey ===
+PASS 1 nav: every rental adminNav href is a real page — /rental/bookings 200, /rental/calendar 200, /rental/units 200, /rental/rates 200, /rental/settings 200
+PASS 2 units: create a unit type (UI) → list card — qa-deluxe-947 · 2 ห้อง · ฿1,500
+PASS 3 rates: seasonal rule (UI) → preview price for that date — 2026-10-28 → ฿2,000 (rule applied) · 2026-10-23 → ฿1,650 (rule not applied)
+PASS 4 seed: slip stay (check-in today) → shared /payments queue links to the stay — ST-1010 total ฿3000 deposit ฿900 · queue → /t/demo-hotel/rental/bookings/01a14ce8-7e2c-70fa-882d-172c26cf26c1
+PASS 5 list: วันนี้เช็กอิน shows the stay (1440 + 390)
+PASS 6 detail: approve slip → ยืนยันแล้ว, deposit recorded — paid ฿900 · verifiedBy 60c1d109-de80-45bf-83d2-838dc69e3e00
+PASS 7 detail: check-in → cash balance → check-out — checked_out · paid ฿3000 (2 payments)
+PASS 8 detail: unit number + internal note; search by number — unit QA-101 · search by number / unit / phone
+PASS 9 upcoming stay: จองล่วงหน้า → cancel refused while slip pending → reject slip → cancel → ยกเลิก tab — ST-1011 cancel refused while slip pending → slip rejected → cancelled · payment cancelled
+PASS 10 calendar: block a date (UI) → storefront /api/rental/calendar hides it → unblock — 2026-10-28 blocked → remaining 0 on storefront → unblocked → remaining 2
+PASS 11 settings: save free-cancel days → moduleConfig.rental updated → restore — freeCancelDays 7 → 5 → 7
+PASS 12 history: checked-out stay under ทั้งหมด with paid total; departures tab for its check-out day
+
+12/12 passed · tenant demo-hotel
+screenshots:
+  D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-units-1440.png
+  D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-units-390.png
+  D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-rates-1440.png
+  D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-bookings-1440.png
+  D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-bookings-390.png
+  D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-detail-1440.png
+  D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-detail-390.png
+  D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-calendar-1440.png
+  D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-calendar-390.png
+  D:\Projects\promptcode_rentweb\tooling\screenshots\rental-admin-settings-1440.png

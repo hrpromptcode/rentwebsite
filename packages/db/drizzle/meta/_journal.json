@@ -64,6 +64,13 @@
       "when": 1792266254841,
       "tag": "0008_magenta_speed_demon",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792291493541,
+      "tag": "0009_same_madame_hydra",
+      "breakpoints": true
     }
   ]
 }

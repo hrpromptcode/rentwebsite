@@ -149,6 +149,9 @@ importers:
       '@rentweb/module-commerce':
         specifier: workspace:*
         version: link:../../packages/modules/commerce
+      '@rentweb/module-events':
+        specifier: workspace:*
+        version: link:../../packages/modules/events
       '@rentweb/module-rental':
         specifier: workspace:*
         version: link:../../packages/modules/rental
@@ -243,6 +246,9 @@ importers:
       '@rentweb/module-commerce':
         specifier: workspace:*
         version: link:../../packages/modules/commerce
+      '@rentweb/module-events':
+        specifier: workspace:*
+        version: link:../../packages/modules/events
       '@rentweb/module-rental':
         specifier: workspace:*
         version: link:../../packages/modules/rental
@@ -530,6 +536,70 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.1(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.1
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.1(react@19.3.1)
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.4(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+
+  packages/modules/events:
+    dependencies:
+      '@rentweb/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@rentweb/db':
+        specifier: workspace:*
+        version: link:../../db
+      '@rentweb/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
+      '@rentweb/storefront':
+        specifier: workspace:*
+        version: link:../../storefront
+      '@rentweb/ui':
+        specifier: workspace:*
+        version: link:../../ui
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.4(@electric-sql/pglite@0.5.10)(@upstash/redis@1.39.0)(kysely@0.29.6)(postgres@3.4.9)
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.57.0(@types/react@19.3.0)(react@19.3.1)
+      motion:
+        specifier: 'catalog:'
+        version: 14.2.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      qrcode:
+        specifier: ^1.5.4
+        version: 1.5.4
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      '@rentweb/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      '@types/qrcode':
+        specifier: ^1.5.5
+        version: 1.5.6
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
@@ -884,6 +954,9 @@ importers:
       '@rentweb/integrations':
         specifier: workspace:*
         version: link:../packages/integrations
+      '@rentweb/module-booking':
+        specifier: workspace:*
+        version: link:../packages/modules/booking
       '@rentweb/module-rental':
         specifier: workspace:*
         version: link:../packages/modules/rental

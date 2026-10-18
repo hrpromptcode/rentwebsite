@@ -21,6 +21,7 @@
     "@rentweb/db": "workspace:*",
     "@rentweb/templates": "workspace:*",
     "@rentweb/module-rental": "workspace:*",
+    "@rentweb/module-booking": "workspace:*",
     "dotenv": "catalog:",
     "@rentweb/integrations": "workspace:*"
   },

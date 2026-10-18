@@ -1,0 +1,69 @@
+◇ injected env (13) from ..\.env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+BKK today 2026-10-18, now 9:49
+PASS S1a salon /services lists services – 8 services, overflow=0px (3.5s)
+PASS S1b salon /services/[slug] detail + category filter (3.3s)
+PASS S1c salon /staff lists therapists (3.9s)
+PASS S2 salon /book wizard: thai-60 → ใครก็ได้ที่ว่าง → date → slot → details → confirmed – BK-1013 2026-10-20 10:30 → /bookings/01a14ce9-e829-71c9-a6af-398e32ecfff4?k=w-YdmKEpki6QDDINQb_W4Q (8.2s)
+PASS S2x booking page is private: no key / wrong key / ics without key (3.3s)
+PASS S7a salon .ics download with key – 793 bytes (0.5s)
+PASS S4 double booking same staff+slot via server action → slot_taken – 2026-10-21 19:00 A=01a14cea B rejected (8.9s)
+PASS S4b /api/booking/slots + /days validation and cross-tenant isolation – days=31, cross-tenant 404 ok (1.5s)
+PASS S5a reschedule from booking page (policy allows) → new booking, old cancelled – 2026-10-20 10:30 → 2026-10-21 10:00 (5.9s)
+PASS S5b cancel from booking page (policy allows) (2.9s)
+PASS S5c policy: booking inside cancelHours shows too_late and hides actions – today 11:00 (1.2h ahead) → too_late shown (4.3s)
+PASS S3 salon deposit booking (aroma-90) → PaymentPanel → slip → confirmed / deposit paid – 01a14cea 14:30: slip uploaded, PaymentPanel says ชำระเงินสำเร็จ (6.2s)
+PASS S3b salon: booking flips to ยืนยันแล้ว / ชำระมัดจำแล้ว after the deposit is paid (2.3s)
+PASS S6 couple package (capacity 2, 2 seats per booking): staff step skipped, one booking fills the slot, next customer blocked – 2026-10-22 12:00: 01a14cea holds both seats; next customer sees the slot disabled (6.5s)
+PASS C1 clinic /services + /staff (mobile) – overflow ok; small targets: none (2.5s)
+PASS C6a clinic /packages lists packages; buy requires login – 3 packages, redirected to login (2.3s)
+PASS C6b OTP login (dev code shown inline) → back to buy page – logged in as 0899001122 (2.4s)
+PASS C6c buy package → payment → slip → package active – /account/packages/01a14cea-b172-70b8-a88e-fb2fea237f9d: slip uploaded, panel says ชำระเงินสำเร็จ (4.3s)
+PASS C6c2 clinic: patient package flips to ใช้งานได้ after payment (3.3s)
+PASS C6e /account/packages lists the purchased package (mobile) – ใช้งานได้ 3 คอร์ส · เหลือรวม 15 ครั้ง (2.2s)
+PASS C2 clinic logged-in booking: consult (free) → details prefilled → confirmed (mobile) – 2026-10-20 11:30; small gridcells: 0; small chips: 0 (5.2s)
+PASS C3 clinic deposit booking (botox ฿500) → PaymentPanel → slip (mobile) – 01a14cea 13:00: slip uploaded, panel says ชำระเงินสำเร็จ (6.9s)
+PASS C3b clinic: booking flips to ยืนยันแล้ว / ชำระมัดจำแล้ว after deposit (mobile) (2.3s)
+PASS C6d /account/bookings lists the logged-in customer's bookings – 6 upcoming (3.7s)
+PASS C7 clinic .ics as owner (no key) (1.0s)
+PASS C8 tenant isolation: salon key cannot open booking via clinic host; clinic customer cannot see salon booking (1.3s)
+
+==== SUMMARY ====
+PASS S1a  salon /services lists services – 8 services, overflow=0px
+PASS S1b  salon /services/[slug] detail + category filter
+PASS S1c  salon /staff lists therapists
+PASS S2   salon /book wizard: thai-60 → ใครก็ได้ที่ว่าง → date → slot → details → confirmed – BK-1013 2026-10-20 10:30 → /bookings/01a14ce9-e829-71c9-a6af-398e32ecfff4?k=w-YdmKEpki6QDDINQb_W4Q
+PASS S2x  booking page is private: no key / wrong key / ics without key
+PASS S7a  salon .ics download with key – 793 bytes
+PASS S4   double booking same staff+slot via server action → slot_taken – 2026-10-21 19:00 A=01a14cea B rejected
+PASS S4b  /api/booking/slots + /days validation and cross-tenant isolation – days=31, cross-tenant 404 ok
+PASS S5a  reschedule from booking page (policy allows) → new booking, old cancelled – 2026-10-20 10:30 → 2026-10-21 10:00
+PASS S5b  cancel from booking page (policy allows)
+PASS S5c  policy: booking inside cancelHours shows too_late and hides actions – today 11:00 (1.2h ahead) → too_late shown
+PASS S3   salon deposit booking (aroma-90) → PaymentPanel → slip → confirmed / deposit paid – 01a14cea 14:30: slip uploaded, PaymentPanel says ชำระเงินสำเร็จ
+PASS S3b  salon: booking flips to ยืนยันแล้ว / ชำระมัดจำแล้ว after the deposit is paid
+PASS S6   couple package (capacity 2, 2 seats per booking): staff step skipped, one booking fills the slot, next customer blocked – 2026-10-22 12:00: 01a14cea holds both seats; next customer sees the slot disabled
+PASS C1   clinic /services + /staff (mobile) – overflow ok; small targets: none
+PASS C6a  clinic /packages lists packages; buy requires login – 3 packages, redirected to login
+PASS C6b  OTP login (dev code shown inline) → back to buy page – logged in as 0899001122
+PASS C6c  buy package → payment → slip → package active – /account/packages/01a14cea-b172-70b8-a88e-fb2fea237f9d: slip uploaded, panel says ชำระเงินสำเร็จ
+PASS C6c2 clinic: patient package flips to ใช้งานได้ after payment
+PASS C6e  /account/packages lists the purchased package (mobile) – ใช้งานได้ 3 คอร์ส · เหลือรวม 15 ครั้ง
+PASS C2   clinic logged-in booking: consult (free) → details prefilled → confirmed (mobile) – 2026-10-20 11:30; small gridcells: 0; small chips: 0
+PASS C3   clinic deposit booking (botox ฿500) → PaymentPanel → slip (mobile) – 01a14cea 13:00: slip uploaded, panel says ชำระเงินสำเร็จ
+PASS C3b  clinic: booking flips to ยืนยันแล้ว / ชำระมัดจำแล้ว after deposit (mobile)
+PASS C6d  /account/bookings lists the logged-in customer's bookings – 6 upcoming
+PASS C7   clinic .ics as owner (no key)
+PASS C8   tenant isolation: salon key cannot open booking via clinic host; clinic customer cannot see salon booking
+
+26 passed, 0 failed
+console errors [salon-desktop]:
+  requestfailed: http://demo-salon.localhost:3000/api/booking/days?month=2026-10&service=01a14831-6e13-754b-8160-d763d27a0a12&staff=01a14831-6e6c-7125-8434-1fd0b8418b9e net::ERR_ABORTED
+  Failed to load resource: the server responded with a status of 400 (Bad Request)
+  requestfailed: http://demo-salon.localhost:3000/api/booking/days?month=2026-10&service=01a14831-6e13-754b-8160-d763d27a0a12&staff=01a14831-6e6c-7125-8434-1933136d5bb8 net::ERR_ABORTED
+  requestfailed: http://demo-salon.localhost:3000/api/booking/days?month=2026-10&service=01a14831-6e13-754b-8160-f243dd58ee79&party=2 net::ERR_ABORTED
+console errors [salon-anon]:
+  Failed to load resource: the server responded with a status of 404 (Not Found)
+console errors [salon-B]:
+  requestfailed: http://demo-salon.localhost:3000/api/booking/days?month=2026-10&service=01a14831-6e13-754b-8160-d763d27a0a12&staff=01a14831-6e6c-7125-8434-1fd0b8418b9e net::ERR_ABORTED
+console errors [clinic-mobile]:
+  Failed to load resource: the server responded with a status of 404 (Not Found)
