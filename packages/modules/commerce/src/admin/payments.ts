@@ -1,5 +1,5 @@
 import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
-import { bookings, customers, diningTables, orders, payments, reservations, restaurantOrders, tableSessions, topupOrders, type Tx } from "@rentweb/db";
+import { bookings, customers, diningTables, orders, payments, rentalStays, reservations, restaurantOrders, tableSessions, topupOrders, type Tx } from "@rentweb/db";
 import { paymentRefundRequired } from "@rentweb/core/payments";
 
 export type PaymentQueueTab = "pending_verification" | "paid" | "failed";
@@ -59,6 +59,8 @@ export function refHrefFor(refType: string, refId: string, ctx: { number?: strin
     }
     case "reservation":
       return ctx.at ? `/restaurant/reservations?date=${bangkokYmd(ctx.at)}` : "/restaurant/reservations";
+    case "stay":
+      return `/rental/bookings/${refId}`;
     default:
       return null;
   }
@@ -94,6 +96,7 @@ async function refInfo(tx: Tx, tenantId: string, rows: Array<{ refType: string; 
     }
   }
   if (ids("reservation").length) for (const x of await tx.select({ id: reservations.id, number: reservations.number, at: reservations.startsAt }).from(reservations).where(and(eq(reservations.tenantId, tenantId), inArray(reservations.id, ids("reservation"))))) put("reservation", x.id, x.number, x.at);
+  if (ids("stay").length) for (const x of await tx.select({ id: rentalStays.id, number: rentalStays.number }).from(rentalStays).where(and(eq(rentalStays.tenantId, tenantId), inArray(rentalStays.id, ids("stay"))))) put("stay", x.id, x.number);
   return map;
 }
 

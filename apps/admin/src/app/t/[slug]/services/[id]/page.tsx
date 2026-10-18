@@ -6,13 +6,14 @@ import { isUuid } from "@rentweb/core";
 import { Badge } from "@rentweb/ui/components/badge";
 import { Button } from "@rentweb/ui/components/button";
 import { getAdminDb } from "@rentweb/db";
-import { depositSetupStatus, getServiceById, listCategoriesAdmin, listStaffForServiceAdmin, loadModuleConfig } from "@rentweb/module-booking/admin";
+import { depositSetupStatus, getServiceById, listCategoriesAdmin, listClassSessionRules, listStaff, listStaffForServiceAdmin, loadModuleConfig } from "@rentweb/module-booking/admin";
 import { Avatar } from "@rentweb/module-booking/admin/ui";
 import { assetUrl, fmtDate } from "@/lib/format";
 import { getTenantCtx, hasRole, tenantTx } from "@/lib/tenant";
 import { durationLabel, serviceToForm } from "../form-values";
 import { DepositSetupNotice } from "../deposit-setup-notice";
 import { ServiceForm } from "../service-form";
+import { ClassSessionsCard } from "../class-sessions";
 
 export const metadata: Metadata = { title: "แก้ไขบริการ" };
 
@@ -20,12 +21,15 @@ export default async function EditServicePage({ params }: { params: Promise<{ sl
   const { slug, id } = await params;
   if (!isUuid(id)) notFound();
   const ctx = await getTenantCtx(slug);
-  const { svc, cats, staff } = await tenantTx(ctx.tenant.id, async (tx) => ({
+  const { svc, cats, staff, sessions, instructors } = await tenantTx(ctx.tenant.id, async (tx) => ({
     svc: await getServiceById(tx, ctx.tenant.id, id),
     cats: await listCategoriesAdmin(tx, ctx.tenant.id),
     staff: await listStaffForServiceAdmin(tx, ctx.tenant.id, id),
+    sessions: await listClassSessionRules(tx, ctx.tenant.id, id),
+    instructors: await listStaff(tx, ctx.tenant.id),
   }));
   if (!svc) notFound();
+  const isClass = svc.capacity > 1 && !svc.requiresStaff;
   const canWrite = hasRole(ctx, "manager");
   const depositSetup = depositSetupStatus((ctx.tenant.settings ?? {}) as Record<string, unknown>, (await loadModuleConfig(getAdminDb(), ctx.tenant.id)).booking);
 
@@ -60,7 +64,7 @@ export default async function EditServicePage({ params }: { params: Promise<{ sl
 
       <div className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
         <span className="flex shrink-0 items-center gap-2 text-sm font-medium">
-          <Users className="size-4 text-muted-foreground" aria-hidden /> ผู้ให้บริการ ({staff.length})
+          <Users className="size-4 text-muted-foreground" aria-hidden /> {isClass ? "ครูผู้สอน" : "ผู้ให้บริการ"} ({staff.length})
         </span>
         {staff.length ? (
           <ul className="flex min-w-0 flex-wrap gap-2">
@@ -75,12 +79,24 @@ export default async function EditServicePage({ params }: { params: Promise<{ sl
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted-foreground">{svc.requiresStaff ? "ยังไม่มีพนักงานที่ให้บริการนี้ — ลูกค้าจะจองไม่ได้จนกว่าจะเลือกบริการนี้ในหน้าพนักงาน" : "บริการนี้ไม่ผูกกับพนักงาน"}</p>
+          <p className="text-sm text-muted-foreground">{svc.requiresStaff ? "ยังไม่มีพนักงานที่ให้บริการนี้ — ลูกค้าจะจองไม่ได้จนกว่าจะเลือกบริการนี้ในหน้าพนักงาน" : isClass ? "ยังไม่ได้ระบุครูผู้สอน — เลือกคลาสนี้ในหน้าพนักงานของครู หรือกำหนดครูต่อรอบด้านล่าง" : "บริการนี้ไม่ผูกกับพนักงาน"}</p>
         )}
         <Button asChild variant="ghost" size="sm" className="self-start sm:ml-auto sm:self-auto">
           <Link href={`/t/${slug}/staff`}>จัดการพนักงาน</Link>
         </Button>
       </div>
+
+      {isClass && (
+        <ClassSessionsCard
+          slug={slug}
+          serviceId={svc.id}
+          durationMin={svc.durationMin}
+          capacity={svc.capacity}
+          initial={sessions.map((s) => ({ weekday: s.weekday, start: s.startTime, staffId: s.staffId ?? "" }))}
+          instructors={instructors.filter((i) => i.active).map((i) => ({ id: i.id, name: i.name, color: i.color }))}
+          canEdit={canWrite}
+        />
+      )}
 
       {canWrite ? (
         <ServiceForm slug={slug} serviceId={svc.id} initial={serviceToForm(svc)} categories={cats.map((c) => ({ id: c.id, name: c.name }))} assetBase={assetUrl("/").replace(/\/$/, "")} canDelete depositNotice={<DepositSetupNotice slug={slug} status={depositSetup} count={1} compact />} />

@@ -31,7 +31,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
     return { ...d, eligible: staff };
   });
   if (!data) notFound();
-  const { booking: b, service, staff, extraStaff, customer, payment, rescheduledFrom, rescheduledTo, timeline, customerHistory, eligible, payAtShop } = data;
+  const { booking: b, service, staff, extraStaff, customer, payment, rescheduledFrom, rescheduledTo, timeline, customerHistory, eligible, payAtShop, classSession } = data;
   const canWrite = hasRole(ctx, "staff");
   const canApprove = hasRole(ctx, "manager");
   const actions = STATUS_ACTIONS[b.status] ?? [];
@@ -108,9 +108,16 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                 <div className="flex gap-3">
                   <UserRound className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
                   <div className="min-w-0">
-                    <dt className="text-xs text-muted-foreground">ผู้ให้บริการ</dt>
-                    <dd className="flex flex-wrap items-center gap-2 font-medium">
-                      {staff ? (
+                    <dt className="text-xs text-muted-foreground">{classSession ? "ครูผู้สอน" : "ผู้ให้บริการ"}</dt>
+                    <dd className="flex flex-wrap items-center gap-2 font-medium" data-testid="booking-staff">
+                      {!staff && classSession?.instructor ? (
+                        <>
+                          <Avatar src={classSession.instructor.avatar ? assetUrl(classSession.instructor.avatar) : null} name={classSession.instructor.name} color={classSession.instructor.color} size="sm" className="size-6" />
+                          <Link href={`/t/${slug}/staff/${classSession.instructor.id}`} className="hover:text-primary">
+                            {classSession.instructor.name}
+                          </Link>
+                        </>
+                      ) : staff ? (
                         <>
                           <Avatar src={staff.avatar ? assetUrl(staff.avatar) : null} name={staff.name} color={staff.color} size="sm" className="size-6" />
                           <Link href={`/t/${slug}/staff/${staff.id}`} className="hover:text-primary">
@@ -148,12 +155,20 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                     </dd>
                   </div>
                 </div>
-                {b.partySize > 1 && (
+                {(b.partySize > 1 || classSession) && (
                   <div className="flex gap-3">
                     <Users className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
                     <div>
-                      <dt className="text-xs text-muted-foreground">จำนวนคน</dt>
-                      <dd className="font-medium">{b.partySize} คน</dd>
+                      <dt className="text-xs text-muted-foreground">{classSession ? "ที่นั่ง" : "จำนวนคน"}</dt>
+                      <dd className="font-medium" data-testid="booking-seats">
+                        {classSession ? (
+                          <>
+                            {b.partySize} ที่นั่ง <span className="font-normal text-muted-foreground">· รอบนี้ {classSession.enrolled}/{classSession.capacity}</span>
+                          </>
+                        ) : (
+                          `${b.partySize} คน`
+                        )}
+                      </dd>
                     </div>
                   </div>
                 )}
@@ -183,6 +198,38 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
               )}
             </CardContent>
           </Card>
+
+          {classSession && (
+            <Card data-testid="class-session-card">
+              <CardHeader>
+                <CardTitle className="flex flex-wrap items-center justify-between gap-2">
+                  <span>ผู้เรียนในรอบนี้</span>
+                  <Badge variant={classSession.enrolled >= classSession.capacity ? "destructive" : "success"} data-testid="class-session-seats">
+                    {classSession.enrolled}/{classSession.capacity} ที่นั่ง
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="divide-y rounded-xl border text-sm">
+                  {classSession.enrolments.map((e) => (
+                    <li key={e.id}>
+                      <Link href={`/t/${slug}/bookings/${e.id}`} aria-current={e.id === b.id ? "page" : undefined} className={cn("flex items-center gap-3 px-3 py-2 hover:bg-muted/50", e.id === b.id && "bg-primary-soft/40")}>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium">{e.customerName}</span>
+                          <span className="block font-mono text-xs text-muted-foreground">
+                            {e.number}
+                            {e.partySize > 1 ? ` · ${e.partySize} ที่นั่ง` : ""}
+                          </span>
+                        </span>
+                        <StatusPill map={BOOKING_STATUS} status={e.status} />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-xs text-muted-foreground">ยกเลิกการจองใดก็ตามในรอบนี้จะคืนที่นั่งให้ผู้สมัครคนถัดไปทันที</p>
+              </CardContent>
+            </Card>
+          )}
 
           {canReschedule && (
             <RescheduleCard

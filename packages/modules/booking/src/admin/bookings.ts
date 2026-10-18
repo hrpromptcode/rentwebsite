@@ -43,6 +43,11 @@ export interface CalendarBooking {
   note: string | null;
   /** ADMIN_B2-04: booked while the shop had no payment receiver — no deposit taken, the customer pays at the shop */
   payAtShop: boolean;
+  /** course template: seats per session + no staff → a class; enrolments of one session group into one calendar chip */
+  serviceCapacity: number;
+  serviceRequiresStaff: boolean;
+  /** class enrolments keep the session's instructor in answers.instructorId (staff_id stays null) */
+  instructorId: string | null;
 }
 
 export interface CalendarFilters {
@@ -57,7 +62,7 @@ export interface CalendarFilters {
 export async function listBookingsBetween(tx: Tx, tenantId: string, f: CalendarFilters): Promise<CalendarBooking[]> {
   const conds: SQL[] = [eq(bookings.tenantId, tenantId), lt(bookings.startsAt, f.to), gte(bookings.endsAt, f.from)];
   if (f.staffId === "none") conds.push(isNull(bookings.staffId));
-  else if (f.staffId && isUuid(f.staffId)) conds.push(or(eq(bookings.staffId, f.staffId), sql`${f.staffId}::uuid = any(${bookings.extraStaffIds})`)!);
+  else if (f.staffId && isUuid(f.staffId)) conds.push(or(eq(bookings.staffId, f.staffId), sql`${f.staffId}::uuid = any(${bookings.extraStaffIds})`, sql`${bookings.answers}->>'instructorId' = ${f.staffId}`)!);
   if (f.status && f.status !== "all") {
     if (f.status === "active") conds.push(inArray(bookings.status, ["pending", "confirmed", "checked_in", "in_progress"]));
     else conds.push(eq(bookings.status, f.status));
@@ -89,6 +94,9 @@ export async function listBookingsBetween(tx: Tx, tenantId: string, f: CalendarF
       partySize: bookings.partySize,
       note: bookings.note,
       payAtShop: sql<boolean>`coalesce(${bookings.answers}->>'payAtShop' = 'true', false)`,
+      serviceCapacity: services.capacity,
+      serviceRequiresStaff: services.requiresStaff,
+      instructorId: sql<string | null>`nullif(${bookings.answers}->>'instructorId', '')`,
     })
     .from(bookings)
     .innerJoin(services, and(eq(bookings.serviceId, services.id), eq(services.tenantId, tenantId)))
@@ -112,7 +120,8 @@ export async function dayHours(tx: Tx, tenantId: string, date: string): Promise<
   const ymd = parseYmd(date);
   if (!ymd) return { openMin: DEFAULT_OPEN_MIN, closeMin: DEFAULT_CLOSE_MIN, open: true };
   const weekday = weekdayOf(ymd);
-  const rules = await tx.select({ staffId: availabilityRules.staffId, startTime: availabilityRules.startTime, endTime: availabilityRules.endTime }).from(availabilityRules).where(and(eq(availabilityRules.tenantId, tenantId), eq(availabilityRules.weekday, weekday)));
+  // class session rows (service_id set) never define the grid's opening hours
+  const rules = await tx.select({ staffId: availabilityRules.staffId, startTime: availabilityRules.startTime, endTime: availabilityRules.endTime }).from(availabilityRules).where(and(eq(availabilityRules.tenantId, tenantId), eq(availabilityRules.weekday, weekday), isNull(availabilityRules.serviceId)));
   const biz = rules.filter((r) => r.staffId === null);
   const pool = biz.length ? biz : rules;
   if (!pool.length) return { openMin: DEFAULT_OPEN_MIN, closeMin: DEFAULT_CLOSE_MIN, open: rules.length === 0 && biz.length === 0 ? false : true };
@@ -173,6 +182,8 @@ export interface AdminBookingDetail {
   payAtShop: boolean;
   /** other bookings of the same customer (recent) */
   customerHistory: Array<Pick<BookingRow, "id" | "number" | "startsAt" | "status" | "price"> & { serviceName: string }>;
+  /** class enrolment (course template): the session's instructor (answers.instructorId) and every live enrolment of that session */
+  classSession: { instructor: { id: string; name: string; color: string; avatar: string | null } | null; capacity: number; enrolled: number; enrolments: Array<{ id: string; number: string; customerName: string; partySize: number; status: string }> } | null;
 }
 
 export async function getBookingAdmin(tx: Tx, tenantId: string, id: string): Promise<AdminBookingDetail | null> {
@@ -222,7 +233,20 @@ export async function getBookingAdmin(tx: Tx, tenantId: string, id: string): Pro
   if (b.completedAt) timeline.push({ at: b.completedAt, label: "ให้บริการเสร็จสิ้น", tone: "success" });
   if (b.cancelledAt) timeline.push({ at: b.cancelledAt, label: b.status === "no_show" ? "ไม่มาตามนัด" : `ยกเลิก (${b.cancelledBy ?? "-"})${b.cancelReason ? `: ${b.cancelReason}` : ""}`, tone: "destructive" });
   timeline.sort((a, c) => a.at.getTime() - c.at.getTime());
-  return { booking: b, service, staff: st, extraStaff, customer: cust, payments: sorted, payment, rescheduledFrom: from, rescheduledTo: to, timeline, payAtShop: answers.payAtShop === true, customerHistory: history };
+  let classSession: AdminBookingDetail["classSession"] = null;
+  if (service && service.capacity > 1 && !service.requiresStaff) {
+    const instructorId = typeof (answers as { instructorId?: unknown }).instructorId === "string" ? (answers as { instructorId: string }).instructorId : null;
+    const [instructor, enrolments] = await Promise.all([
+      instructorId && isUuid(instructorId) ? tx.select({ id: staff.id, name: staff.name, color: staff.color, avatar: staff.avatar }).from(staff).where(and(eq(staff.tenantId, tenantId), eq(staff.id, instructorId))).limit(1).then((r) => r[0] ?? null) : Promise.resolve(null),
+      tx
+        .select({ id: bookings.id, number: bookings.number, customerName: bookings.customerName, partySize: bookings.partySize, status: bookings.status })
+        .from(bookings)
+        .where(and(eq(bookings.tenantId, tenantId), eq(bookings.serviceId, b.serviceId), eq(bookings.startsAt, b.startsAt), inArray(bookings.status, ["pending", "confirmed", "checked_in", "in_progress", "completed"])))
+        .orderBy(asc(bookings.number)),
+    ]);
+    classSession = { instructor, capacity: service.capacity, enrolled: enrolments.reduce((n, e) => n + e.partySize, 0), enrolments };
+  }
+  return { booking: b, service, staff: st, extraStaff, customer: cust, payments: sorted, payment, rescheduledFrom: from, rescheduledTo: to, timeline, payAtShop: answers.payAtShop === true, customerHistory: history, classSession };
 }
 
 /* -------------------------------------------------------------------------- */

@@ -639,8 +639,17 @@ export async function listCustomerBookings(tx: Tx, tenantId: string, customerId:
     .where(cond)
     .orderBy(opts.scope === "upcoming" ? asc(bookings.startsAt) : desc(bookings.startsAt))
     .limit(opts.limit ?? 50);
-  return rows.map((r) => ({ ...r.b, serviceName: r.serviceName, serviceSlug: r.serviceSlug, serviceImage: r.serviceImage, staffName: r.staffName, staffAvatar: r.staffAvatar }));
+  // course template: class enrolments have no staff_id – show the session's instructor (answers.instructorId) instead
+  const instructorIds = [...new Set(rows.filter((r) => !r.staffName).map((r) => answersOf(r.b).instructorId).filter((x): x is string => !!x && UUID_RE.test(x)))];
+  const instructors = new Map<string, { id: string; name: string; avatar: string | null }>();
+  if (instructorIds.length) for (const s of await tx.select({ id: staff.id, name: staff.name, avatar: staff.avatar }).from(staff).where(and(eq(staff.tenantId, tenantId), inArray(staff.id, instructorIds)))) instructors.set(s.id, s);
+  return rows.map((r) => {
+    const inst = r.staffName ? null : instructors.get(answersOf(r.b).instructorId ?? "");
+    return { ...r.b, serviceName: r.serviceName, serviceSlug: r.serviceSlug, serviceImage: r.serviceImage, staffName: r.staffName ?? inst?.name ?? null, staffAvatar: r.staffAvatar ?? inst?.avatar ?? null };
+  });
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface BookingDetail {
   booking: BookingRow;
@@ -653,6 +662,8 @@ export interface BookingDetail {
   accessKey: string | null;
   /** SBR-016: course the booking is paid with */
   package: { id: string; packageName: string; sessionsLeft: number; status: string } | null;
+  /** course template: the class session's instructor (answers.instructorId; staff_id stays null for shared seats) */
+  instructor: { id: string; name: string; avatar: string | null } | null;
 }
 
 /** Booking page data – visible to the owner (signed in) or anyone holding the access key (?k=). */
@@ -671,7 +682,8 @@ export async function getBookingForCustomer(tx: Tx, tenantId: string, bookingId:
   const list = await listPaymentsFor(tx, tenantId, "booking", b.id);
   const payment = list.find((p) => p.id === answers.paymentId) ?? list.sort((a, c) => c.createdAt.getTime() - a.createdAt.getTime())[0] ?? null;
   const pkg = answers.patientPackageId ? await getPackageSummary(tx, tenantId, answers.patientPackageId) : null;
-  return { booking: b, service, staff: st ?? null, extraStaff, payment, accessKey: answers.accessKey ?? null, package: pkg };
+  const instructor = !st && answers.instructorId && UUID_RE.test(answers.instructorId) ? await tx.select({ id: staff.id, name: staff.name, avatar: staff.avatar }).from(staff).where(and(eq(staff.tenantId, tenantId), eq(staff.id, answers.instructorId))).limit(1).then((r) => r[0] ?? null) : null;
+  return { booking: b, service, staff: st ?? null, extraStaff, payment, accessKey: answers.accessKey ?? null, package: pkg, instructor };
 }
 
 export async function getBookingById(tx: Tx, tenantId: string, bookingId: string): Promise<BookingRow | null> {

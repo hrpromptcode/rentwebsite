@@ -36,6 +36,9 @@ const boolDefault = (d: boolean) => z.boolean().optional().transform((v) => v ??
 
 /* ---------------------------------- catalog --------------------------------- */
 
+/** = CLASS_LEVELS in ../services/classes (not imported: this file ships to the browser) */
+export const CLASS_LEVEL_VALUES = ["beginner", "intermediate", "advanced", "all"] as const;
+
 export const categorySchema = z.object({
   name: str(100).min(1, "กรุณากรอกชื่อหมวดหมู่"),
   slug: optSlug,
@@ -63,11 +66,13 @@ export const serviceSchema = z
     seatsPerBooking: z
       .union([intMin(1, "จำนวนท่านต่อการจอง").max(500), z.null(), z.undefined(), z.literal("")])
       .transform((v) => (typeof v === "number" ? v : null)),
+    /** classes (course template): beginner | intermediate | advanced | all — kept only for shared-seat services (capacity > 1, no staff) */
+    level: z.union([z.enum(CLASS_LEVEL_VALUES), z.literal(""), z.null(), z.undefined()]).transform((v) => (v ? v : null)),
     active: boolDefault(true),
     featured: boolDefault(false),
     sort: intMin(0, "ลำดับ").max(9999).default(0),
   })
-  .transform((v) => ({ ...v, seatsPerBooking: v.capacity > 1 ? v.seatsPerBooking : null }))
+  .transform((v) => ({ ...v, seatsPerBooking: v.capacity > 1 ? v.seatsPerBooking : null, level: v.capacity > 1 && !v.requiresStaff ? v.level : null }))
   .superRefine((v, ctx) => {
     if (v.seatsPerBooking && v.seatsPerBooking > v.capacity) ctx.addIssue({ code: "custom", path: ["seatsPerBooking"], message: "จำนวนท่านต่อการจองต้องไม่เกินจำนวนที่รับต่อรอบ" });
     if (v.depositRequired && v.depositAmount <= 0) ctx.addIssue({ code: "custom", path: ["depositAmount"], message: "กรุณาระบุยอดมัดจำ" });
@@ -113,6 +118,19 @@ export const scheduleSchema = z.object({
 });
 export type ScheduleInput = z.input<typeof scheduleSchema>;
 export type ScheduleDay = z.output<typeof scheduleDaySchema>;
+
+/* -------------------------------- class sessions ---------------------------- */
+
+/** One weekly class session (course template) = availability_rules row with service_id; staffId = instructor. */
+export const classSessionSchema = z.object({
+  weekday: z.coerce.number().int().min(0).max(6),
+  start: hm,
+  staffId: optUuid,
+});
+export const classSessionsSchema = z.object({ serviceId: uuid, sessions: z.array(classSessionSchema).max(60, "รอบเรียนต่อสัปดาห์ต้องไม่เกิน 60 รอบ") });
+export type ClassSessionInput = z.input<typeof classSessionSchema>;
+export type ClassSessionsInput = z.input<typeof classSessionsSchema>;
+export type ClassSessionValues = z.output<typeof classSessionSchema>;
 
 const localDt = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, "กรุณาเลือกวันและเวลา");
 export const timeOffSchema = z

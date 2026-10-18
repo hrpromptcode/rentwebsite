@@ -5,7 +5,8 @@ import { audit, fail, ok, slugify, type Result } from "@rentweb/core";
 import type { ServiceWithCategory } from "../services/catalog";
 import { listServices, listStaff } from "../services/catalog";
 import { BKK_OFFSET_MS, minutesToHm, parseHm } from "../services/time";
-import type { ScheduleDay, ServiceValues, StaffValues } from "./schemas";
+import { isClassService } from "../services/classes";
+import type { ClassSessionValues, ScheduleDay, ServiceValues, StaffValues } from "./schemas";
 import { DEFAULT_CLOSE_MIN, DEFAULT_OPEN_MIN } from "./labels";
 
 export interface Actor {
@@ -108,6 +109,7 @@ export async function saveService(tx: Tx, tenantId: string, id: string | null, v
     capacity: v.capacity,
     requiresStaff: v.requiresStaff,
     seatsPerBooking: v.capacity > 1 ? v.seatsPerBooking : null,
+    level: v.level,
     active: v.active,
     featured: v.featured,
     sort: v.sort,
@@ -222,7 +224,8 @@ export async function listStaffAdmin(tx: Tx, tenantId: string, opts: { dayStart:
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
   const [ownRules, today] = await Promise.all([
-    tx.select({ staffId: availabilityRules.staffId }).from(availabilityRules).where(and(eq(availabilityRules.tenantId, tenantId), inArray(availabilityRules.staffId, ids))).groupBy(availabilityRules.staffId),
+    // class session rows (service_id set) are a timetable, not the staff's own working hours
+    tx.select({ staffId: availabilityRules.staffId }).from(availabilityRules).where(and(eq(availabilityRules.tenantId, tenantId), inArray(availabilityRules.staffId, ids), isNull(availabilityRules.serviceId))).groupBy(availabilityRules.staffId),
     tx
       .select({ staffId: bookings.staffId, c: count() })
       .from(bookings)
@@ -334,14 +337,14 @@ function rulesToDays(rules: Array<{ weekday: number; startTime: string; endTime:
 
 /** Business hours (rules with staff_id null); every day closed = no rules yet (engine falls back to staff rules). */
 export async function getBusinessHours(tx: Tx, tenantId: string): Promise<WeekSchedule> {
-  const rules = await tx.select({ weekday: availabilityRules.weekday, startTime: availabilityRules.startTime, endTime: availabilityRules.endTime }).from(availabilityRules).where(and(eq(availabilityRules.tenantId, tenantId), isNull(availabilityRules.staffId)));
+  const rules = await tx.select({ weekday: availabilityRules.weekday, startTime: availabilityRules.startTime, endTime: availabilityRules.endTime }).from(availabilityRules).where(and(eq(availabilityRules.tenantId, tenantId), isNull(availabilityRules.staffId), isNull(availabilityRules.serviceId)));
   return { staffId: null, own: rules.length > 0, days: rulesToDays(rules) };
 }
 
 /** Effective weekly schedule of a staff: own rules when present, otherwise the business hours. */
 export async function getStaffSchedule(tx: Tx, tenantId: string, staffId: string): Promise<WeekSchedule> {
   const [own, biz] = await Promise.all([
-    tx.select({ weekday: availabilityRules.weekday, startTime: availabilityRules.startTime, endTime: availabilityRules.endTime }).from(availabilityRules).where(and(eq(availabilityRules.tenantId, tenantId), eq(availabilityRules.staffId, staffId))),
+    tx.select({ weekday: availabilityRules.weekday, startTime: availabilityRules.startTime, endTime: availabilityRules.endTime }).from(availabilityRules).where(and(eq(availabilityRules.tenantId, tenantId), eq(availabilityRules.staffId, staffId), isNull(availabilityRules.serviceId))),
     getBusinessHours(tx, tenantId),
   ]);
   if (own.length) return { staffId, own: true, days: rulesToDays(own, biz.days) };
@@ -354,7 +357,8 @@ export async function saveSchedule(tx: Tx, tenantId: string, input: { staffId: s
     const [st] = await tx.select({ id: staff.id }).from(staff).where(and(eq(staff.tenantId, tenantId), eq(staff.id, input.staffId))).limit(1);
     if (!st) return fail("ไม่พบพนักงาน");
   }
-  const where = input.staffId ? and(eq(availabilityRules.tenantId, tenantId), eq(availabilityRules.staffId, input.staffId)) : and(eq(availabilityRules.tenantId, tenantId), isNull(availabilityRules.staffId));
+  // never touch class session rows (service_id set): they belong to the class, not to the schedule editor
+  const where = input.staffId ? and(eq(availabilityRules.tenantId, tenantId), eq(availabilityRules.staffId, input.staffId), isNull(availabilityRules.serviceId)) : and(eq(availabilityRules.tenantId, tenantId), isNull(availabilityRules.staffId), isNull(availabilityRules.serviceId));
   await tx.delete(availabilityRules).where(where);
   const open = input.inherit && input.staffId ? [] : input.days.filter((d) => !d.closed);
   if (open.length) await tx.insert(availabilityRules).values(open.map((d) => ({ tenantId, staffId: input.staffId, weekday: d.weekday, startTime: d.start, endTime: d.end })));
@@ -368,6 +372,36 @@ export async function saveSchedule(tx: Tx, tenantId: string, input: { staffId: s
     diff: { inherit: !!input.inherit, open: open.map((d) => `${d.weekday}:${d.start}-${d.end}`) },
   });
   return ok(null);
+}
+
+/* -------------------------------------------------------------------------- */
+/* class sessions (availability_rules with service_id – course template)      */
+/* -------------------------------------------------------------------------- */
+
+export { listClassSessionRules } from "../services/classes";
+
+/** Replaces the weekly timetable of a class. Instructors must be active staff of the tenant; endTime = start + duration. */
+export async function saveClassSessions(tx: Tx, tenantId: string, serviceId: string, sessions: ClassSessionValues[], actor: Actor): Promise<Result<{ count: number }, string>> {
+  const [svc] = await tx.select({ id: services.id, durationMin: services.durationMin, capacity: services.capacity, requiresStaff: services.requiresStaff }).from(services).where(and(eq(services.tenantId, tenantId), eq(services.id, serviceId))).limit(1);
+  if (!svc) return fail("ไม่พบบริการ");
+  if (!isClassService(svc)) return fail("ตั้งรอบเรียนได้เฉพาะคลาส (จำนวนที่รับต่อรอบมากกว่า 1 และไม่ผูกพนักงาน)");
+  const staffIds = [...new Set(sessions.map((s) => s.staffId).filter((x): x is string => !!x))];
+  if (staffIds.length) {
+    const found = await tx.select({ id: staff.id }).from(staff).where(and(eq(staff.tenantId, tenantId), inArray(staff.id, staffIds), eq(staff.active, true)));
+    if (found.length !== staffIds.length) return fail("ไม่พบครูผู้สอนที่เลือก");
+  }
+  // one row per weekday + start (duplicates collapse)
+  const seen = new Set<string>();
+  const rows = sessions.filter((s) => {
+    const k = `${s.weekday}:${s.start}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  await tx.delete(availabilityRules).where(and(eq(availabilityRules.tenantId, tenantId), eq(availabilityRules.serviceId, serviceId)));
+  if (rows.length) await tx.insert(availabilityRules).values(rows.map((s) => ({ tenantId, serviceId, staffId: s.staffId, weekday: s.weekday, startTime: s.start, endTime: minutesToHm((parseHm(s.start) + svc.durationMin) % (24 * 60)) })));
+  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "service.sessions", targetType: "service", targetId: serviceId, diff: { sessions: rows.map((s) => `${s.weekday}:${s.start}:${s.staffId ?? "-"}`) } });
+  return ok({ count: rows.length });
 }
 
 /* -------------------------------------------------------------------------- */

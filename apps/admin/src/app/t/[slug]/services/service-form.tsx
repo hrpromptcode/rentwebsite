@@ -10,7 +10,8 @@ import { Input } from "@rentweb/ui/components/input";
 import { Switch } from "@rentweb/ui/components/switch";
 import { Textarea } from "@rentweb/ui/components/textarea";
 import { toast } from "@rentweb/ui/components/sonner";
-import { bahtToSatang, fieldErrors, serviceSchema, type ServiceInput } from "@rentweb/module-booking/admin/schemas";
+import { CLASS_LEVEL_LABEL } from "@rentweb/module-booking/admin/labels";
+import { bahtToSatang, CLASS_LEVEL_VALUES, fieldErrors, serviceSchema, type ServiceInput } from "@rentweb/module-booking/admin/schemas";
 import { ImageField, MoneyInput, NativeSelect } from "@rentweb/module-booking/admin/ui";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Field } from "@/components/ui/form";
@@ -72,6 +73,7 @@ export function ServiceForm({ slug, serviceId, initial, categories, assetBase, c
       capacity: Number(v.capacity || 1),
       requiresStaff: v.requiresStaff,
       seatsPerBooking: Number(v.capacity || 1) > 1 && v.seatsPerBooking ? Number(v.seatsPerBooking) : null,
+      level: Number(v.capacity || 1) > 1 && !v.requiresStaff ? ((v.level || null) as ServiceInput["level"]) : null,
       active: v.active,
       featured: v.featured,
       sort: Number(v.sort || 0),
@@ -245,6 +247,18 @@ export function ServiceForm({ slug, serviceId, initial, categories, assetBase, c
             >
               <Input id="svc-cap" type="number" inputMode="numeric" min={1} max={500} value={v.capacity} onChange={(e) => set("capacity", e.target.value)} className="max-w-32" />
             </Field>
+            {Number(v.capacity || 1) > 1 && !v.requiresStaff && (
+              <Field label="ระดับคลาส" htmlFor="svc-level" error={err("level")} hint="แสดงบนการ์ดคลาสและใช้กรองตารางเรียน (คอร์ส/สตูดิโอ)">
+                <NativeSelect id="svc-level" value={v.level} onChange={(e) => set("level", e.target.value)} className="max-w-64">
+                  <option value="">ไม่ระบุระดับ</option>
+                  {CLASS_LEVEL_VALUES.map((lv) => (
+                    <option key={lv} value={lv}>
+                      {CLASS_LEVEL_LABEL[lv]}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </Field>
+            )}
             {Number(v.capacity || 1) > 1 && (
               <Field
                 label="การจอง 1 ครั้ง"

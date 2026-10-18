@@ -6,3 +6,4 @@ import "@rentweb/module-commerce/register";
 import "@rentweb/module-booking/register";
 import "@rentweb/module-topup/register";
 import "@rentweb/module-restaurant/register";
+import "@rentweb/module-rental/register";

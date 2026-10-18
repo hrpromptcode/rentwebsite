@@ -12,7 +12,7 @@ import { assetUrl, fmtNumber, thb } from "@/lib/format";
 import { getTenantCtx, hasRole, tenantTx } from "@/lib/tenant";
 import { CalendarToolbar } from "./calendar-toolbar";
 import { bkkMinutes, STATUS_DOT } from "./calendar-style";
-import { DayGrid, type GridColumn } from "./day-grid";
+import { DayGrid, type GridBooking, type GridColumn } from "./day-grid";
 import { WeekList } from "./week-list";
 
 export const metadata: Metadata = { title: "ปฏิทินการจอง" };
@@ -77,6 +77,45 @@ export default async function BookingsPage({ params, searchParams }: { params: P
     }
   }
 
+  // course template: enrolments of one class session (seats only, same class + start) collapse into ONE chip "n/seats"
+  // in the instructor's column (answers.instructorId); 1:1 bookings keep one chip per staff served (SBR-004)
+  const toGrid = (b: (typeof list)[number], sid: string | null): GridBooking => ({
+    id: b.id,
+    number: b.number,
+    status: b.status,
+    startsAt: b.startsAt.toISOString(),
+    endsAt: b.endsAt.toISOString(),
+    customerName: b.customerName,
+    serviceName: b.serviceName,
+    staffId: sid,
+    partySize: b.partySize,
+    paymentStatus: b.paymentStatus,
+    depositAmount: b.depositAmount,
+    payAtShop: b.payAtShop,
+  });
+  const gridBookings: GridBooking[] = [];
+  const sessionChips = new Map<string, GridBooking>();
+  for (const b of list) {
+    if (!(b.serviceCapacity > 1 && !b.serviceRequiresStaff)) {
+      for (const sid of b.extraStaffIds.length ? [b.staffId, ...b.extraStaffIds] : [b.staffId]) gridBookings.push(toGrid(b, sid));
+      continue;
+    }
+    const live = b.status !== "cancelled" && b.status !== "no_show";
+    const key = `${b.serviceId}|${b.startsAt.toISOString()}`;
+    const chip = sessionChips.get(key);
+    if (!chip) {
+      const c = { ...toGrid(b, b.instructorId ?? b.staffId), seats: b.serviceCapacity, enrolled: live ? b.partySize : 0, groupCount: 1 };
+      sessionChips.set(key, c);
+      gridBookings.push(c);
+    } else {
+      chip.groupCount = (chip.groupCount ?? 1) + 1;
+      if (live) {
+        chip.enrolled = (chip.enrolled ?? 0) + b.partySize;
+        if (chip.status === "cancelled" || chip.status === "no_show") chip.status = b.status;
+      }
+    }
+  }
+
   const titleDate = view === "week" ? `${formatThaiYmd(ymdToString(weekStart), { short: true })} – ${formatThaiYmd(ymdToString(addDays(weekStart, 6)), { short: true })}` : formatThaiYmd(date, { weekday: true });
   const nowMin = date === today ? bkkMinutes(now) : null;
 
@@ -136,21 +175,7 @@ export default async function BookingsPage({ params, searchParams }: { params: P
             closeMin={closeMin}
             nowMin={nowMin}
             canCreate={canWrite}
-            // a group booking served by several staff shows in each of their columns (SBR-004)
-            bookings={list.flatMap((b) => (b.extraStaffIds.length ? [b.staffId, ...b.extraStaffIds] : [b.staffId]).map((sid) => ({ b, sid }))).map(({ b, sid }) => ({
-              id: b.id,
-              number: b.number,
-              status: b.status,
-              startsAt: b.startsAt.toISOString(),
-              endsAt: b.endsAt.toISOString(),
-              customerName: b.customerName,
-              serviceName: b.serviceName,
-              staffId: sid,
-              partySize: b.partySize,
-              paymentStatus: b.paymentStatus,
-              depositAmount: b.depositAmount,
-              payAtShop: b.payAtShop,
-            }))}
+            bookings={gridBookings}
           />
         </>
       ) : (

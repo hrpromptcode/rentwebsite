@@ -35,9 +35,10 @@ const CATEGORY_TH: Record<string, string> = {
   topup: "เติมเกม",
   restaurant: "ร้านอาหาร",
   clinic: "คลินิก",
+  rental: "ห้องพัก",
   layout: "เลย์เอาต์",
 };
-const CATEGORY_ORDER = ["hero", "content", "media", "social", "cta", "commerce", "booking", "topup", "restaurant", "clinic", "layout"];
+const CATEGORY_ORDER = ["hero", "content", "media", "social", "cta", "commerce", "booking", "topup", "restaurant", "clinic", "rental", "layout"];
 
 export interface PageMeta {
   title: string;

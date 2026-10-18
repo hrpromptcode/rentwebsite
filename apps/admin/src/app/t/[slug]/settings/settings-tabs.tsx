@@ -7,6 +7,7 @@ import { cn } from "@rentweb/ui/lib/utils";
 export const SETTINGS_TABS = [
   { key: "general", label: "ทั่วไป", path: "" },
   { key: "payments", label: "รับเงิน", path: "/payments" },
+  { key: "line", label: "LINE Login", path: "/line" },
   { key: "domains", label: "โดเมน", path: "/domains" },
   { key: "team", label: "ทีม", path: "/team" },
   { key: "billing", label: "แพ็กเกจ", path: "/billing" },

@@ -8,7 +8,7 @@ import { Img } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
 import type { ClassInstructor, ClassItem, TimetableSession } from "../services/classes";
 import { levelLabel } from "../services/classes";
-import { formatBkkTime, formatThaiYmd, THAI_WEEKDAYS, THAI_WEEKDAYS_SHORT } from "../services/time";
+import { formatBkkTime, formatThaiYmd, parseYmd, THAI_WEEKDAYS, THAI_WEEKDAYS_SHORT, weekdayOf } from "../services/time";
 import { L } from "../labels";
 
 /* Server-safe presentational pieces for classes, instructors and timetable sessions (course template). */
@@ -186,7 +186,7 @@ export function SessionRow({ s, showDate, showPrice, className }: { s: Timetable
   return (
     <div className={cn("card flex items-center gap-3 p-3 transition sm:gap-4 sm:p-4", bookable && "hover:-translate-y-0.5 hover:border-primary/50", !bookable && "opacity-80", className)}>
       <div className="flex w-16 shrink-0 flex-col items-center rounded-[var(--radius-lg)] bg-primary-soft py-2 text-primary">
-        {showDate && <span className="text-[11px]">{THAI_WEEKDAYS_SHORT[new Date(s.start).getUTCDay() /* placeholder, replaced below */]}</span>}
+        {showDate && <span className="text-[11px]">{THAI_WEEKDAYS_SHORT[weekdayOf(parseYmd(s.date) ?? { y: 1970, m: 1, d: 1 })]}. {parseYmd(s.date)?.d}</span>}
         <span className="font-heading text-lg font-semibold leading-none tabular-nums">{formatBkkTime(s.start)}</span>
         <span className="mt-0.5 text-[11px]">{L.minutes(s.durationMin)}</span>
       </div>

@@ -473,6 +473,48 @@ export const passPricing = defineSection({
   defaults: {},
 });
 
+/* ------------------------------------------------------------------ */
+/* Hotel / resort template (rental module): date-range search hero, room-type grid */
+/* ------------------------------------------------------------------ */
+
+export const staySearch = defineSection({
+  type: "stay-search",
+  module: "rental",
+  name: { th: "ฮีโร่ค้นหาห้องว่าง (เช็กอิน–เช็กเอาต์)", en: "Stay search hero" },
+  category: "hero",
+  schema: z.object({
+    eyebrow: z.string().default(""),
+    heading: z.string().default("พักผ่อนริมทะเล ในแบบของคุณ"),
+    subheading: z.string().default(""),
+    image: image.default({ url: "", alt: "" }),
+    /** second photo for the collage (desktop) */
+    imageSecondary: image.optional(),
+    badges: z.array(z.string()).default([]),
+    stats: z.array(z.object({ value: z.string(), label: z.string() })).default([]),
+    /** fullscreen photo with the search card floating at the bottom, or split photo + card */
+    variant: z.enum(["fullscreen", "split"]).default("fullscreen"),
+    overlay: z.number().min(0).max(1).default(0.45),
+    textReveal: z.boolean().default(true),
+  }),
+  defaults: {},
+});
+
+export const roomGrid = defineSection({
+  type: "room-grid",
+  module: "rental",
+  name: { th: "ประเภทห้องพัก", en: "Room types" },
+  category: "rental",
+  schema: z.object({
+    eyebrow: z.string().default("ห้องพัก"),
+    heading: z.string().default("ห้องพักและวิลล่า"),
+    subheading: z.string().default(""),
+    featured: z.boolean().default(false),
+    limit: z.number().default(6),
+    variant: z.enum(["cards", "editorial"]).default("cards"),
+  }),
+  defaults: {},
+});
+
 export const SECTION_DEFS: Record<string, SectionDefinition> = Object.fromEntries(
   [
     hero,
@@ -507,6 +549,8 @@ export const SECTION_DEFS: Record<string, SectionDefinition> = Object.fromEntrie
     weeklySchedule,
     instructorGrid,
     passPricing,
+    staySearch,
+    roomGrid,
   ].map((d) => [d.type, d as SectionDefinition]),
 );
 

@@ -2,11 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { OtpRateLimitError, parseOtpTarget, requestOtp, revokeCustomerSession, verifyOtp, CUSTOMER_COOKIE, OTP_VERIFY_ERROR_MESSAGES } from "@rentweb/core/customer";
+import { audit } from "@rentweb/core";
+import { OtpRateLimitError, parseOtpTarget, requestOtp, revokeCustomerSession, verifyOtp, unlinkLine, CUSTOMER_COOKIE, LINE_LOGIN_ERROR_MESSAGES, OTP_VERIFY_ERROR_MESSAGES } from "@rentweb/core/customer";
 import { cookies } from "next/headers";
 import { tenantTx } from "@/lib/tenant";
-import { clearCustomerCookie, requestMeta, setCustomerCookie } from "@/lib/customer";
+import { clearCustomerCookie, getCurrentCustomer, requestMeta, setCustomerCookie } from "@/lib/customer";
 import { safeNext } from "./safe-next";
+import type { UnlinkState } from "./line-link-card";
 
 export type OtpState = { step: "target" | "code"; target?: string; error?: string; devCode?: string };
 
@@ -65,4 +67,33 @@ export async function logoutAction(tenantId: string) {
   if (token) await tenantTx(tenantId, (tx) => revokeCustomerSession(tx, tenantId, token));
   await clearCustomerCookie();
   redirect("/");
+}
+
+/**
+ * Account page → "ยกเลิกการเชื่อมต่อ LINE". Refused (Thai message) when LINE is the customer's only way back in;
+ * on success the page reloads with ?line=unlinked so the banner confirms it.
+ */
+export async function unlinkLineAction(tenantId: string, _prev: UnlinkState, _form: FormData): Promise<UnlinkState> {
+  const customer = await getCurrentCustomer(tenantId);
+  if (!customer) redirect("/account/login");
+  const meta = await requestMeta();
+  const result = await tenantTx(tenantId, async (tx) => {
+    const r = await unlinkLine(tx, tenantId, customer.id);
+    if (r.ok) {
+      await audit(tx, {
+        tenantId,
+        actorType: "customer",
+        actorId: customer.id,
+        action: "customer.line.unlink",
+        targetType: "customer",
+        targetId: customer.id,
+        diff: { lineUserId: customer.lineUserId },
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+      });
+    }
+    return r;
+  });
+  if (!result.ok) return { error: LINE_LOGIN_ERROR_MESSAGES[result.error] };
+  redirect("/account?line=unlinked");
 }

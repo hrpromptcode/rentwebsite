@@ -18,7 +18,7 @@ const UPLOAD_HEADERS = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["@rentweb/core", "@rentweb/db", "@rentweb/ui", "@rentweb/storefront", "@rentweb/templates", "@rentweb/i18n", "@rentweb/integrations", "@rentweb/module-commerce", "@rentweb/module-booking", "@rentweb/module-topup", "@rentweb/module-restaurant"],
+  transpilePackages: ["@rentweb/core", "@rentweb/db", "@rentweb/ui", "@rentweb/storefront", "@rentweb/templates", "@rentweb/i18n", "@rentweb/integrations", "@rentweb/module-commerce", "@rentweb/module-booking", "@rentweb/module-topup", "@rentweb/module-restaurant", "@rentweb/module-rental"],
   serverExternalPackages: ["postgres"],
   images: {
     remotePatterns: [{ protocol: "https", hostname: "**" }, { protocol: "http", hostname: "localhost" }],

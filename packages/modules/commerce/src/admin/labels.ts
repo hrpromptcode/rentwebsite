@@ -51,6 +51,7 @@ export const REF_TYPE: Record<string, string> = {
   reservation: "จองโต๊ะ",
   patient_package: "แพ็กเกจคลินิก",
   invoice: "ใบแจ้งหนี้",
+  stay: "จองห้องพัก",
 };
 
 export const PRODUCT_STATUS: Record<string, { label: string; tone: Tone }> = {

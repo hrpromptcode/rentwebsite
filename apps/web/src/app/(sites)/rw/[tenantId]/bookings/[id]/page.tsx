@@ -53,7 +53,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pa
     );
   }
 
-  const { booking, service, staff, extraStaff, payment, package: course } = detail;
+  const { booking, service, staff, extraStaff, payment, package: course, instructor } = detail;
   const config = bookingConfig(runtime.config.moduleConfig);
   const settings = paymentSettings(runtime.config.settings);
   const now = new Date();
@@ -68,7 +68,8 @@ export default async function BookingPage({ params, searchParams }: { params: Pa
   const renew: "expired" | "failed" | "none" | null = needsDeposit && !paymentLive ? (paymentExpired || payment?.status === "expired" ? "expired" : payment?.status === "failed" ? "failed" : "none") : null;
   const refundNote = booking.status === "cancelled" && payment?.status === "paid" ? paymentRefundRequired(payment) : null;
   const group = service.capacity > 1 || !service.requiresStaff;
-  const staffNames = [staff?.name, ...extraStaff.map((s) => s.name)].filter(Boolean).join(", ");
+  // classes: the session's instructor stands in for the (null) staff
+  const staffNames = [staff?.name ?? instructor?.name, ...extraStaff.map((s) => s.name)].filter(Boolean).join(", ");
   const canModify = canCustomerModify(booking, config, now);
   const isActive = booking.status === "pending" || booking.status === "confirmed";
   const { today, maxDate } = wizardDates(config, now);

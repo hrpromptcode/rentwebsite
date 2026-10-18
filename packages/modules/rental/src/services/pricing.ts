@@ -158,3 +158,17 @@ export function quoteStay(type: UnitTypeLike, rules: RateRuleLike[], extras: Ext
     quote: { checkIn: input.checkIn, checkOut: input.checkOut, nights, guests, nightly, roomTotal, extraGuests, extraGuestTotal, extras: lines, extrasTotal, total, deposit, depositPercent: pct, appliedRules: [...applied] },
   };
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** "id:qty,id:qty" (query string / URL) → [{ id, qty }]; malformed entries are dropped, qty capped at 20. */
+export function parseExtrasParam(raw: string | null | undefined): Array<{ id: string; qty: number }> {
+  if (!raw) return [];
+  const out: Array<{ id: string; qty: number }> = [];
+  for (const part of raw.split(",")) {
+    const [id, q] = part.split(":");
+    const qty = Math.floor(Number(q ?? 1));
+    if (id && UUID_RE.test(id) && Number.isFinite(qty) && qty >= 1) out.push({ id, qty: Math.min(qty, 20) });
+  }
+  return out;
+}

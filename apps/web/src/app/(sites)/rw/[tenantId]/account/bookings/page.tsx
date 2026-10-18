@@ -7,7 +7,7 @@ import { Reveal, Stagger, StaggerItem } from "@rentweb/ui/motion";
 import { cn } from "@rentweb/ui/lib/utils";
 import { Img } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
-import { formatBkkTime, formatThaiDate, listCustomerBookings, packagesEnabled, type BookingListItem } from "@rentweb/module-booking/services";
+import { countActiveSessions, formatBkkTime, formatThaiDate, listCustomerBookings, packagesEnabled, type BookingListItem } from "@rentweb/module-booking/services";
 import { BookingStatusBadge } from "@rentweb/module-booking/ui";
 import { L, PAYMENT_STATUS } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -15,6 +15,8 @@ import { getCurrentCustomer } from "@/lib/customer";
 import { PageBody } from "@/components/page-body";
 
 export const metadata: Metadata = { title: "การจองของฉัน" };
+
+/** course template (siteType "course"): the same page reads as "คลาสของฉัน" and shows the pass sessions left */
 
 type Params = Promise<{ tenantId: string }>;
 type Search = Promise<{ scope?: string }>;
@@ -29,12 +31,18 @@ export default async function AccountBookingsPage({ params, searchParams }: { pa
   const customer = await getCurrentCustomer(tenantId);
   if (!customer) redirect(`/account/login?next=${encodeURIComponent("/account/bookings")}`);
 
-  const { upcoming, past } = await tenantTx(tenantId, async (tx) => ({
+  const passes = packagesEnabled(runtime.config.modules, runtime.config.moduleConfig);
+  const clinic = runtime.config.modules.includes("clinic");
+  const course = runtime.config.siteType === "course";
+  const { upcoming, past, sessionsLeft } = await tenantTx(tenantId, async (tx) => ({
     upcoming: await listCustomerBookings(tx, tenantId, customer.id, { scope: "upcoming", limit: 100 }),
     past: await listCustomerBookings(tx, tenantId, customer.id, { scope: "past", limit: 100 }),
+    sessionsLeft: passes ? await countActiveSessions(tx, tenantId, customer) : 0,
   }));
   const list = scope === "upcoming" ? upcoming : past;
-  const hasClinic = packagesEnabled(runtime.config.modules, runtime.config.moduleConfig);
+  const copy = course
+    ? { title: "คลาสของฉัน", stats: `คลาสถัดไป ${upcoming.length} รอบ · เรียนไปแล้ว ${past.length} รอบ`, upcoming: "คลาสถัดไป", past: "เรียนแล้ว", emptyUpcoming: "ยังไม่มีคลาสถัดไป เลือกรอบจากตารางเรียนได้เลย", emptyPast: "ยังไม่มีประวัติการเรียน", cta: L.schedule, ctaHref: "/schedule" }
+    : { title: "การจองของฉัน", stats: `นัดถัดไป ${upcoming.length} รายการ · ประวัติ ${past.length} รายการ`, upcoming: "นัดถัดไป", past: "ประวัติ", emptyUpcoming: "ยังไม่มีนัดถัดไป จองคิวใหม่ได้เลย", emptyPast: "ยังไม่มีประวัติการจอง", cta: L.bookNow, ctaHref: "/book" };
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
@@ -45,22 +53,23 @@ export default async function AccountBookingsPage({ params, searchParams }: { pa
           </Link>
           <Reveal className="mt-2 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="heading-display text-4xl font-semibold md:text-5xl">การจองของฉัน</h1>
+              <h1 className="heading-display text-4xl font-semibold md:text-5xl">{copy.title}</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                นัดถัดไป {upcoming.length} รายการ · ประวัติ {past.length} รายการ
+                {copy.stats}
+                {passes && sessionsLeft > 0 ? ` · ${clinic ? "คอร์ส" : "คลาสพาส"}เหลือ ${sessionsLeft} ครั้ง` : ""}
               </p>
             </div>
             <div className="flex gap-2">
-              {hasClinic && (
+              {passes && (
                 <Button asChild variant="outline" className="h-11">
                   <Link href="/account/packages">
-                    <Wallet /> คอร์สของฉัน
+                    <Wallet /> {clinic ? "คอร์สของฉัน" : L.myPasses}
                   </Link>
                 </Button>
               )}
               <Button asChild className="h-11">
-                <Link href="/book">
-                  <Sparkles /> {L.bookNow}
+                <Link href={copy.ctaHref}>
+                  <Sparkles /> {copy.cta}
                 </Link>
               </Button>
             </div>
@@ -68,19 +77,19 @@ export default async function AccountBookingsPage({ params, searchParams }: { pa
 
           <nav aria-label="ช่วงเวลา" className="mt-6 grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
             <ScopeTab href="/account/bookings" active={scope === "upcoming"}>
-              นัดถัดไป ({upcoming.length})
+              {copy.upcoming} ({upcoming.length})
             </ScopeTab>
             <ScopeTab href="/account/bookings?scope=past" active={scope === "past"}>
-              ประวัติ ({past.length})
+              {copy.past} ({past.length})
             </ScopeTab>
           </nav>
 
           {list.length === 0 ? (
             <div className="card mt-6 flex flex-col items-center gap-3 p-10 text-center">
               <CalendarDays className="size-10 text-muted-foreground" />
-              <p className="text-muted-foreground">{scope === "upcoming" ? "ยังไม่มีนัดถัดไป จองคิวใหม่ได้เลย" : "ยังไม่มีประวัติการจอง"}</p>
+              <p className="text-muted-foreground">{scope === "upcoming" ? copy.emptyUpcoming : copy.emptyPast}</p>
               <Button asChild size="lg">
-                <Link href="/book">{L.bookNow}</Link>
+                <Link href={copy.ctaHref}>{copy.cta}</Link>
               </Button>
             </div>
           ) : (

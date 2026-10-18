@@ -18,6 +18,8 @@ export interface ServiceFormValues {
   requiresStaff: boolean;
   /** "" = priced per guest (customer picks the party size); "2" = package for 2 guests, priced per booking */
   seatsPerBooking: string;
+  /** classes: beginner | intermediate | advanced | all | "" */
+  level: string;
   active: boolean;
   featured: boolean;
   sort: string;
@@ -39,6 +41,7 @@ export const EMPTY_SERVICE: ServiceFormValues = {
   capacity: "1",
   requiresStaff: true,
   seatsPerBooking: "",
+  level: "",
   active: true,
   featured: false,
   sort: "0",
@@ -60,6 +63,7 @@ export function serviceToForm(s: {
   capacity: number;
   requiresStaff: boolean;
   seatsPerBooking?: number | null;
+  level?: string | null;
   active: boolean;
   featured: boolean;
   sort: number;
@@ -80,6 +84,7 @@ export function serviceToForm(s: {
     capacity: String(s.capacity),
     requiresStaff: s.requiresStaff,
     seatsPerBooking: s.seatsPerBooking ? String(s.seatsPerBooking) : "",
+    level: s.level ?? "",
     active: s.active,
     featured: s.featured,
     sort: String(s.sort),

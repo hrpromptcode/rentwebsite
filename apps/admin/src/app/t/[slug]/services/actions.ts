@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { media } from "@rentweb/db";
 import { isUuid } from "@rentweb/core";
 import { getStorage, MAX_UPLOAD_BYTES, objectKey, sniffImage } from "@rentweb/core/storage";
-import { deleteCategory, deleteService, saveCategory, saveService, setServiceFlags, uniqueServiceSlug, type Actor } from "@rentweb/module-booking/admin";
-import { categorySchema, fieldErrors, serviceSchema, type CategoryInput, type FormResult, type ServiceInput } from "@rentweb/module-booking/admin/schemas";
+import { deleteCategory, deleteService, saveCategory, saveClassSessions, saveService, setServiceFlags, uniqueServiceSlug, type Actor } from "@rentweb/module-booking/admin";
+import { categorySchema, classSessionsSchema, fieldErrors, serviceSchema, type CategoryInput, type ClassSessionsInput, type FormResult, type ServiceInput } from "@rentweb/module-booking/admin/schemas";
 import { assertRole, getTenantCtx, tenantTx, type TenantCtx } from "@/lib/tenant";
 
 function actorOf(ctx: TenantCtx): Actor {
@@ -28,6 +28,19 @@ export async function saveServiceAction(slug: string, id: string | null, input: 
   if (!r.ok) return { ok: false, error: r.error.message, fieldErrors: { [r.error.field]: r.error.message } };
   revalidate(slug, r.value.id);
   return { ok: true, message: id ? "บันทึกบริการแล้ว" : "สร้างบริการแล้ว", data: r.value };
+}
+
+/** Weekly timetable of a class (course template): replaces the availability_rules rows with service_id = serviceId. */
+export async function saveClassSessionsAction(slug: string, input: ClassSessionsInput): Promise<FormResult<{ count: number }>> {
+  const ctx = await getTenantCtx(slug);
+  assertRole(ctx, "manager");
+  const parsed = classSessionsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "กรุณาตรวจสอบข้อมูล", fieldErrors: fieldErrors(parsed.error) };
+  const r = await tenantTx(ctx.tenant.id, (tx) => saveClassSessions(tx, ctx.tenant.id, parsed.data.serviceId, parsed.data.sessions, actorOf(ctx)));
+  if (!r.ok) return { ok: false, error: r.error };
+  revalidate(slug, parsed.data.serviceId);
+  revalidatePath(`/t/${slug}/bookings`);
+  return { ok: true, message: `บันทึกรอบเรียนแล้ว (${r.value.count} รอบ/สัปดาห์)`, data: r.value };
 }
 
 export async function suggestServiceSlugAction(slug: string, name: string, excludeId?: string | null): Promise<string> {

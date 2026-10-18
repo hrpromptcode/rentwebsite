@@ -20,6 +20,7 @@ const DEMO_NAMES: Record<string, string> = {
   salon: "สบาย สบาย",
   corporate: "Northstar Studio",
   cafe: "Sugar Puff",
+  course: "Sala Flow",
 };
 
 async function main() {

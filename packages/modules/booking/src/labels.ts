@@ -21,6 +21,9 @@ export const L = {
   deposit: "มัดจำ",
   depositNote: (amount: string) => `ชำระมัดจำ ${amount} เพื่อยืนยันคิว ส่วนที่เหลือชำระที่ร้าน`,
   noDeposit: "ไม่ต้องมัดจำ ยืนยันทันที",
+  /** classes (course template): the online payment is the whole class fee, not a deposit */
+  fullPay: "ค่าเรียน",
+  fullPayNote: (amount: string) => `ชำระค่าเรียน ${amount} เพื่อยืนยันที่นั่ง`,
   /** ADMIN_B2-04: deposit service, but the shop has no payment receiver yet → booked without a deposit, paid at the shop */
   payAtShopBadge: "ไม่ต้องมัดจำ ชำระที่ร้าน",
   /** ADMIN_B2-04: package purchase page when no PromptPay / bank receiver is configured (= PAYMENTS_NOT_CONFIGURED_MESSAGE + …) */

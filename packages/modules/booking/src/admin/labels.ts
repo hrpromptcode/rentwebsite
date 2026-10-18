@@ -42,6 +42,9 @@ export const ACTION_LABEL: Record<BookingAction, string> = {
 };
 
 /** ADMIN_B2-04: booking.answers.payAtShop — booked while the shop had no payment receiver, so no deposit was taken */
+/** class levels (course template) – = LEVEL_LABELS in ../services/classes */
+export const CLASS_LEVEL_LABEL: Record<string, string> = { beginner: "เริ่มต้น", intermediate: "ระดับกลาง", advanced: "ขั้นสูง", all: "ทุกระดับ" };
+
 export const PAY_AT_SHOP_LABEL = "ชำระที่ร้าน";
 export const PAY_AT_SHOP_DETAIL = "ลูกค้าจองตอนที่ร้านยังไม่ได้ตั้งค่าช่องทางรับชำระเงินออนไลน์ จึงไม่ได้เก็บมัดจำ — เก็บค่าบริการเต็มจำนวนที่หน้าร้าน";
 

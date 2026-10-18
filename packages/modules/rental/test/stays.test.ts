@@ -113,7 +113,8 @@ describe("payment hooks", () => {
     expect(st.confirmedAt).toBeInstanceOf(Date);
     // idempotent: the handler is not re-run by markPaid and a direct second call is a no-op
     await s.tx((tx) => markPaid(tx, s.tenantId, pid, { verifiedBy: "test" }));
-    expect(await s.tx(async (tx) => onStayPaid(tx, (await paymentRow(pid)) as never))).toBeUndefined();
+    const paidRow = await paymentRow(pid); // read outside the tx: PGlite has one connection, a nested s.tx() deadlocks
+    expect(await s.tx((tx) => onStayPaid(tx, paidRow as never))).toBeUndefined();
     st = await stayRow(r.value.stay.id);
     expect(st.paidAmount).toBe(r.value.stay.depositAmount);
     expect((await events("stay.confirmed")).length).toBeGreaterThanOrEqual(1);
@@ -168,7 +169,8 @@ describe("payment hooks", () => {
     expect((await paymentRow(old.id)).status).toBe("cancelled");
     expect((await stayRow(r.value.stay.id)).status).toBe("pending");
     // closing the old payment again (idempotent) must not touch the stay
-    await s.tx(async (tx) => onStayPaymentClosed(tx, (await paymentRow(old.id)) as never, { status: "cancelled", reason: "x" }));
+    const oldRow = await paymentRow(old.id);
+    await s.tx((tx) => onStayPaymentClosed(tx, oldRow as never, { status: "cancelled", reason: "x" }));
     expect((await stayRow(r.value.stay.id)).status).toBe("pending");
     await s.tx((tx) => markPaid(tx, s.tenantId, renewed.value.payment.id, { verifiedBy: "test" }));
     expect((await stayRow(r.value.stay.id)).status).toBe("confirmed");

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertCircle, CalendarDays, CheckCircle2, LogOut, ShoppingBag, Wallet, Zap } from "lucide-react";
+import { AlertCircle, CalendarDays, CheckCircle2, LogOut, ShoppingBag, Ticket, Wallet, Zap, BedDouble } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
 import { LINE_LOGIN_ERROR_MESSAGES, isLineLoginEnabled, isLineLoginErrorCode } from "@rentweb/core/customer";
+import { packagesEnabled } from "@rentweb/module-booking/services";
 import { getRuntime, makeT } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
 import { logoutAction, unlinkLineAction } from "./actions";
@@ -30,13 +31,18 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   const [runtime, sp] = await Promise.all([getRuntime(tenantId), searchParams]);
   const t = makeT(runtime?.config.locale ?? "th");
   const modules = runtime?.config.modules ?? [];
+  // course template: bookings are class enrolments and passes (patient_packages) are sold without the clinic module
+  const course = runtime?.config.siteType === "course";
+  const passes = packagesEnabled(modules, runtime?.config.moduleConfig ?? null);
   const lineEnabled = isLineLoginEnabled(runtime?.config.settings);
   const linked = !!customer.lineUserId;
   const banner = lineBanner(sp);
 
   const links = [
     modules.includes("commerce") && { href: "/account/orders", icon: ShoppingBag, label: t("order.myOrders") },
-    modules.includes("booking") && { href: "/account/bookings", icon: CalendarDays, label: t("booking.myBookings") },
+    modules.includes("booking") && { href: "/account/bookings", icon: CalendarDays, label: course ? "คลาสของฉัน" : t("booking.myBookings") },
+    passes && { href: "/account/packages", icon: Ticket, label: modules.includes("clinic") ? "คอร์สของฉัน" : "คลาสพาสของฉัน" },
+    modules.includes("rental") && { href: "/account/stays", icon: BedDouble, label: "การเข้าพักของฉัน" },
     modules.includes("topup") && { href: "/account/topups", icon: Zap, label: "ประวัติการเติม" },
     modules.includes("topup") && { href: "/wallet", icon: Wallet, label: t("topup.wallet") },
   ].filter(Boolean) as Array<{ href: string; icon: typeof ShoppingBag; label: string }>;
@@ -53,18 +59,18 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
             <span>{banner.text}</span>
           </p>
         )}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             {customer.avatar && <img src={customer.avatar} alt="" width={56} height={56} className="size-14 shrink-0 rounded-full object-cover ring-2 ring-border" />}
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">{t("common.account")}</p>
-              <h1 className="font-heading truncate text-3xl font-semibold" data-testid="account-name">
+              <h1 className="font-heading text-2xl font-semibold break-words sm:text-3xl" data-testid="account-name">
                 {title}
               </h1>
               {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
             </div>
           </div>
-          <form action={logoutAction.bind(null, tenantId)}>
+          <form action={logoutAction.bind(null, tenantId)} className="self-start sm:self-auto">
             <Button variant="outline" size="sm" type="submit" className="h-11 md:h-9">
               <LogOut className="size-4" /> {t("common.logout")}
             </Button>

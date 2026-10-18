@@ -289,6 +289,8 @@ export function BookingWizard({ services: allServices, staff, config, today, max
   const unitDeposit = service && !course && config.depositEnabled && service.depositRequired ? service.depositAmount : 0;
   const deposit = perPerson ? (service && service.price > 0 ? Math.min(unitDeposit * party, service.price * party) : unitDeposit * party) : unitDeposit;
   const depositWaived = payAtShop && !!service && !course && service.depositRequired && service.depositAmount > 0;
+  // classes prepay the whole fee online: say "ค่าเรียน", not "มัดจำ … ส่วนที่เหลือชำระที่ร้าน"
+  const fullPay = deposit > 0 && !!service && service.price > 0 && deposit >= (perPerson ? service.price * party : service.price);
   const changeParty = (n: number) => {
     setPartyWanted(n);
     setStart(null);
@@ -341,6 +343,7 @@ export function BookingWizard({ services: allServices, staff, config, today, max
       start={start}
       instructorName={instructorName}
       deposit={deposit}
+      fullPay={fullPay}
       party={party}
       course={course ?? null}
       onEdit={(k) => go(k)}
@@ -472,7 +475,7 @@ export function BookingWizard({ services: allServices, staff, config, today, max
                       </div>
                       {deposit > 0 ? (
                         <div className="text-right">
-                          <p className="text-xs text-muted-foreground">{L.dueNow} ({L.deposit})</p>
+                          <p className="text-xs text-muted-foreground">{L.dueNow} ({fullPay ? L.fullPay : L.deposit})</p>
                           <p className="font-heading text-2xl font-semibold text-primary">{thb(deposit)}</p>
                         </div>
                       ) : depositWaived ? (
@@ -497,7 +500,7 @@ export function BookingWizard({ services: allServices, staff, config, today, max
                     <div>
                       <p className="mb-2 text-sm font-medium">{L.paymentMethod}</p>
                       <PaymentMethodPicker options={paymentMethods} value={method} onChange={setMethod} />
-                      <p className="mt-2 text-xs text-muted-foreground">{L.depositNote(thb(deposit))}</p>
+                      <p className="mt-2 text-xs text-muted-foreground">{fullPay ? L.fullPayNote(thb(deposit)) : L.depositNote(thb(deposit))}</p>
                     </div>
                   )}
 
@@ -754,6 +757,7 @@ function Summary({
   start,
   instructorName,
   deposit,
+  fullPay,
   party,
   course,
   onEdit,
@@ -766,6 +770,8 @@ function Summary({
   /** class session instructor (group services with a timetable) */
   instructorName?: string | null;
   deposit: number;
+  /** the online payment is the whole fee (classes) */
+  fullPay?: boolean;
   party: number;
   course: WizardCourse | null;
   onEdit: (k: StepKey) => void;
@@ -804,7 +810,7 @@ function Summary({
             <span className="font-semibold">{course ? L.useCourse : priceLabel(service, party)}</span>
           </div>
           <div className="mt-1 flex justify-between">
-            <span className="text-muted-foreground">{deposit > 0 ? `${L.deposit} (${L.dueNow})` : L.deposit}</span>
+            <span className="text-muted-foreground">{deposit > 0 ? `${fullPay ? L.fullPay : L.deposit} (${L.dueNow})` : L.deposit}</span>
             <span className={cn("font-semibold", deposit > 0 && "text-primary")}>{deposit > 0 ? thb(deposit) : "–"}</span>
           </div>
         </div>

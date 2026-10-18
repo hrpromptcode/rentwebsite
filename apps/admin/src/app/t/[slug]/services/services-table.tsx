@@ -9,6 +9,7 @@ import { Switch } from "@rentweb/ui/components/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@rentweb/ui/components/table";
 import { toast } from "@rentweb/ui/components/sonner";
 import { cn } from "@rentweb/ui/lib/utils";
+import { CLASS_LEVEL_LABEL } from "@rentweb/module-booking/admin/labels";
 import { thb } from "@/lib/format";
 import { toggleServiceFlagAction } from "./actions";
 import { durationLabel } from "./form-values";
@@ -28,6 +29,8 @@ export interface ServiceRowVM {
   depositAmount: number;
   capacity: number;
   requiresStaff: boolean;
+  /** classes (course template) */
+  level: string | null;
   active: boolean;
   featured: boolean;
   staffCount: number;
@@ -77,6 +80,12 @@ export function ServicesTable({ slug, rows, canWrite }: { slug: string; rows: Se
                     <span className="line-clamp-2 font-medium sm:line-clamp-none sm:block sm:max-w-[18rem] sm:truncate">{s.name}</span>
                     <span className="block truncate text-xs text-muted-foreground">
                       {s.categoryName ?? "ไม่ระบุหมวดหมู่"}
+                      {!s.requiresStaff && s.capacity > 1 && (
+                        <span data-testid="class-seats">
+                          {" "}
+                          · คลาส {s.capacity} ที่นั่ง/รอบ{s.level ? ` · ${CLASS_LEVEL_LABEL[s.level] ?? s.level}` : ""}
+                        </span>
+                      )}
                       <span className="sm:hidden"> · {durationLabel(s.durationMin)}</span>
                       {s.depositRequired && <span className="sm:hidden"> · มัดจำ {thb(s.depositAmount)}</span>}
                       <span className="hidden lg:inline 2xl:hidden"> · {!s.requiresStaff ? "ไม่ผูกพนักงาน" : `${s.staffCount} ผู้ให้บริการ`}</span>
@@ -99,7 +108,7 @@ export function ServicesTable({ slug, rows, canWrite }: { slug: string; rows: Se
                 )}
               </TableCell>
               <TableCell className="hidden text-muted-foreground 2xl:table-cell">
-                {!s.requiresStaff ? "ไม่ผูกพนักงาน" : s.staffCount ? `${s.staffCount} คน` : <span className="text-destructive">ยังไม่มีผู้ให้บริการ</span>}
+                {!s.requiresStaff ? (s.capacity > 1 ? `ครู ${s.staffCount} คน` : "ไม่ผูกพนักงาน") : s.staffCount ? `${s.staffCount} คน` : <span className="text-destructive">ยังไม่มีผู้ให้บริการ</span>}
                 {s.capacity > 1 && <span className="block text-xs">รับ {s.capacity} คน/รอบ</span>}
               </TableCell>
               <TableCell className="hidden text-center sm:table-cell">

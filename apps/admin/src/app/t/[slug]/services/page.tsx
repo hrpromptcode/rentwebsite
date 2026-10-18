@@ -146,6 +146,7 @@ export default async function ServicesPage({ params, searchParams }: { params: P
                   depositAmount: s.depositAmount,
                   capacity: s.capacity,
                   requiresStaff: s.requiresStaff,
+                  level: s.level,
                   active: s.active,
                   featured: s.featured,
                   staffCount: s.staffCount,
