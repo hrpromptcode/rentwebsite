@@ -1,0 +1,33 @@
+{
+  "ui": {
+    "fulfillBtn": 0,
+    "noteComposer": 1,
+    "navTopup": 9,
+    "deliveredCodeShown": 0
+  },
+  "fulfill": {
+    "raw": "0:{\"a\":\"$@1\",\"q\":\"\",\"i\":true,\"b\":\"development\"}\n1:D\"$2\"\n1:E{\"digest\":\"758189536\",\"name\":\"Error\",\"message\":\"คุณไม่มีสิทธิ์ดำเนินการนี้\",\"stack\":[[\"assertRole\",\"D:\\\\Projects\\\\promptcode_rentweb\\\\apps\\\\admin\\\\.next\\\\dev\\\\server\\\\chunks\\\\ssr\\\\apps_admin_src_10k0plsmzufxb._.js\",510,35,0,0,false],[\"fulfillOrderAction\",\"D:\\\\Projects\\\\promptcode_rentweb\\\\apps\\\\admin\\\\.next\\\\dev\\\\server\\\\chunks\\\\ssr\\\\_06ho"
+  },
+  "fulfillRaw": "0:{\"a\":\"$@1\",\"q\":\"\",\"i\":true,\"b\":\"development\"}\n1:D\"$2\"\n1:E{\"digest\":\"758189536\",\"name\":\"Error\",\"message\":\"คุณไม่มีสิทธิ์ดำเนินการนี้\",\"stack\":[[\"assertRole\",\"D:\\\\Projects\\\\promptcode_rentweb\\\\apps\\\\admin\\\\.next\\\\dev\\\\server\\\\chunks\\\\ssr\\\\apps_admin_src_10k0plsmzufxb._.js\",510,35,0,0,false],[\"fulfil",
+  "adjust": {
+    "raw": "0:{\"a\":\"$@1\",\"q\":\"\",\"i\":true,\"b\":\"development\"}\n1:D\"$2\"\n1:E{\"digest\":\"3995069552\",\"name\":\"Error\",\"message\":\"คุณไม่มีสิทธิ์ดำเนินการนี้\",\"stack\":[[\"assertRole\",\"D:\\\\Projects\\\\promptcode_rentweb\\\\apps\\\\admin\\\\.next\\\\dev\\\\server\\\\chunks\\\\ssr\\\\apps_admin_src_10k0plsmzufxb._.js\",510,35,0,0,false],[\"adjustWalletAction\",\"D:\\\\Projects\\\\promptcode_rentweb\\\\apps\\\\admin\\\\.next\\\\dev\\\\server\\\\chunks\\\\ssr\\\\_0sy"
+  },
+  "note": {
+    "ok": true,
+    "message": "เพิ่มโน้ตแล้ว"
+  },
+  "orderAfter": "processing",
+  "balance": "80200",
+  "gamesNew": "http://localhost:3001/t/demo-topup/topup/wallets/01a15039-10cb-7328-9118-4ad3cb1c2dee",
+  "stockUi": {
+    "status": 200,
+    "importBtn": 0,
+    "voidBtn": 0,
+    "maskedRows": 50
+  },
+  "walUi": {
+    "status": 200,
+    "adjustBtn": 0,
+    "freezeBtn": 0
+  }
+}

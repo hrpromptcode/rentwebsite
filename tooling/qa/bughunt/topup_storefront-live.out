@@ -1,0 +1,79 @@
+=== topup_storefront-live 2026-10-18T18:15:07.418Z phases=visual
+PASS  visual: /games/genshin 390 — sticky summary bar vs footer links / accordion at page bottom — {"vh":844,"scrollY":2471,"bar":{"top":694,"h":74},"chat":{"top":776,"left":216,"w":158,"h":52},"items":[{"t":"Facebook","y":19,"h":44,"covered":true,"by":"pointer-events-none fixed inset-x-0 top-0 z-40 px-3 pt-3 md:px-6 md:pt"},{"t":"LINE","y":19,"h":44,"covered":true,"by":"pointer-events-none fixed inset-x-0 top-0 z-40 px-3 pt-3 md:px-6 md:pt"},{"t":"เติมเกม","y":135,"h":44,"covered":false,"by":null},{"t":"กระเป๋าเงิน","y":179,"h":44,"covered":false,"by":null},{"t":"ตรวจสอบสถานะ","y":223,"h":44,"covered":false,"by":null},{"t":"วิธีเติม","y":339,"h":44,"covered":false,"by":null},{"t":"ติดต่อแอดมิน","y":383,"h":44,"covered":false,"by":null},{"t":"support@gamehub.gg","y":499,"h":44,"covered":false,"by":null},{"t":"นโยบายความเป็นส่วนตัว","y":708,"h":44,"covered":true,"by":"fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-3"},{"t":"เงื่อนไขการใช้บริการ","y":708,"h":44,"covered":true,"by":"fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-3"}]} (7617ms)
+PASS  visual: /games/genshin 390 — package tiles + tabs tap sizes, contrast (checks.js) — tiles=["316x120","316x120","316x120","316x120"] tap=["a.inline-flex.min-h-11.items-center.md:min-h-6 43x44 'เติมเกม'","a.inline-flex.min-h-11.items-center.md:min-h-6 37x44 'วิธีเติม'"] contrast=[] thaiClip=[] console=[] (993ms)
+PASS  visual: / 390 — live feed Thai clipping (timestamp line) + header nav tap targets — {"count":8,"text":"120 คูปอง · เมื่อสักครู่","fs":"12px","lh":"16px","ov":"hidden","clientH":16,"scrollH":16,"rect":[85,1554,174,16],"nav":[{"t":"GameHub","w":78,"h":44,"x":25,"pad":"0px/0px","vis":true},{"t":"","w":44,"h":44,"x":273,"pad":"0px/0px","vis":true}]} (10637ms)
+PASS  visual: /games 390 — game card headings (Thai/long names) overflow — thaiClip=[] overflow=[] h3=[{"t":"RoV (Arena of Valor)","cw":151,"sw":151,"lines":1},{"t":"Free Fire","cw":151,"sw":151,"lines":1},{"t":"Genshin Impact","cw":151,"sw":151,"lines":1},{"t":"Valorant","cw":151,"sw":151,"lines":1},{"t":"PUBG Mobile","cw":151,"sw":151,"lines":1},{"t":"Roblox","cw":151,"sw":151,"lines":1},{"t":"Mobile Legends","cw":151,"sw":151,"lines":1},{"t":"Steam Wallet (TH)","cw":151,"sw":151,"lines":1}] tap=["a.inline-flex.min-h-11.items-center.md:min-h-6 43x44 'เติมเกม'","a.inline-flex.min-h-11.items-center.md:min-h-6 37x44 'วิธีเติม'"] (6198ms)
+=== topup_storefront-live 2026-10-18T18:16:14.201Z phases=crawl2,flows
+CRAWL 1440 no-preference 200 / -> / TAP 16 THAICLIP 1 CONTRAST 10 CONSOLE 5
+CRAWL 1440 no-preference 200 /games -> /games TAP 16
+CRAWL 1440 no-preference 200 /games/rov -> /games/rov TAP 16
+CRAWL 1440 no-preference 200 /games/genshin -> /games/genshin TAP 16
+CRAWL 1440 no-preference 200 /games/steam-wallet -> /games/steam-wallet TAP 16
+CRAWL 1440 no-preference 200 /games/roblox -> /games/roblox TAP 16 CONTRAST 10
+CRAWL 1440 no-preference 200 /games/mlbb -> /games/mlbb TAP 16
+CRAWL 1440 no-preference 200 /games/valorant -> /games/valorant TAP 16
+CRAWL 1440 no-preference 200 /topup/status -> /topup/status TAP 16
+CRAWL 1440 no-preference 200 /topup/status?number=tp-1040 -> /topup/status TAP 16
+CRAWL 1440 no-preference 200 /topup/TP-1040?k=0z4QW77KqrI22D158okUjOAV -> /topup/TP-1040 TAP 16 CONTRAST 1
+CRAWL 1440 no-preference 200 /topup/TP-1040 -> /topup/TP-1040 TAP 16
+CRAWL 1440 no-preference 200 /wallet -> /wallet TAP 16
+CRAWL 1440 no-preference 200 /account/topups -> /account/topups TAP 16
+CRAWL 1440 no-preference 200 /how-to -> /how-to TAP 16
+CRAWL 1440 no-preference 200 /contact -> /contact TAP 16
+CRAWL 390 reduce 200 / -> / TAP 2 THAICLIP 1 CONSOLE 1
+CRAWL 390 reduce 200 /games -> /games TAP 2 CONSOLE 1
+CRAWL 390 reduce 200 /games/rov -> /games/rov COVERED 2 TAP 2 CONSOLE 1
+CRAWL 390 reduce 200 /topup/TP-1040?k=0z4QW77KqrI22D158okUjOAV -> /topup/TP-1040 TAP 2 CONSOLE 1
+CRAWL 390 reduce 200 /wallet -> /wallet TAP 2 CONSOLE 1
+CRAWL 390 reduce 200 /account/topups -> /account/topups TAP 2 CONSOLE 1
+PASS  flows: genshin — UID 121 chars rejected with Thai message, no order — {"kind":"alert","text":""} (4110ms)
+PASS  flows: genshin — missing Server select blocked client-side (required) — form.checkValidity=false serverMsg="Please select an item in the list." (3483ms)
+PASS  flows: genshin — Thai text as UID + default method → is an order created? (P1) — default=promptpay_qr {"kind":"alert","text":""} (3735ms)
+FAIL  flows: P1 order page — tracker copy, countdown, QR, public/no-key views, status page lower-case — no P1 (0ms)
+FAIL  flows: P1 slip upload → tracker updates WITHOUT full reload (polling) → fulfilled (api package) even with Thai UID — no P1 (0ms)
+PASS  flows: rov — blacklisted contact phone 0800000000 refused with Thai message, no order — {"kind":"alert","text":""} orders 60→61 (4088ms)
+PASS  flows: valorant / free-fire field attributes (no pattern / numeric enforcement?) — valorant NoTagHere valid=true attrs={"pattern":null,"inputmode":"text","maxlength":null,"placeholder":"Name#TAG"}; free-fire uid attrs={"pattern":null,"inputmode":"text","type":"text"} (7253ms)
+FAIL  flows: steam-wallet ฿100 (stock) via slip — order created; stock count before — {"kind":"alert","text":""} (5556ms)
+FAIL  flows: S1 slip → code card appears without reload; masked by default; reveal; poll API has no code; stock −1; reload keeps same code — no S1 (0ms)
+FAIL  flows: S1 without key / wrong key (no cookie) — code & contact hidden; with key — shown — no S1 (1ms)
+INFO  flows: console — []
+=== topup_storefront-live 2026-10-18T18:20:52.530Z phases=flows,--p1=TP-1061,--s1=TP-1062
+PASS  flows: genshin — UID 121 chars rejected with Thai message, no order — {"kind":"alert","text":"ข้อมูลผู้เล่นไม่ถูกต้อง"} (5698ms)
+PASS  flows: genshin — missing Server select blocked client-side (required) — form.checkValidity=false serverMsg="Please select an item in the list." (3450ms)
+PASS  flows: genshin — Thai text as UID + default method → is an order created? (P1) — reusing TP-1061 {"number":"TP-1061","status":"pending_payment","payment_method":"promptpay_qr","player_fields":{"uid":"ทดสอบ🙂","server":"Asia"},"price":"3500","contact":"0899523004"} (3988ms)
+PASS  flows: P1 order page — tracker copy, countdown, QR, public/no-key views, status page lower-case — countdown=true qr=1 tracker="ชำระเงินด้านล่างเพื่อเริ่มเติม ระบบจะอัปเดตสถานะให้อัตโนมัติ ยอดที่ต้องชำระ " public: status=200 lockMsg=true rawUidInPublic=false; api noKey authorised=false player=ทดสอ****; status page lower-case: 200 found=true notFound=false (14211ms)
+PASS  flows: P1 slip upload → tracker updates WITHOUT full reload (polling) → fulfilled (api package) even with Thai UID — after 1056ms navs=0 tracker="รอชำระ ชำระแล้ว กำลังเติม สำเร็จ ชำระเงินด้านล่างเพื่อเริ่มเติม ระบบจะอัปเดตสถานะให้อัตโนมัติ" db={"status":"pending_payment","fulfillment":"api","supplier_ref":null,"paid":false} console=[] (1057ms)
+PASS  flows: rov — blacklisted contact phone 0800000000 refused with Thai message, no order — {"kind":"alert","text":"ไม่สามารถทำรายการได้ กรุณาติดต่อแอดมิน"} orders 62→62 (11555ms)
+PASS  flows: valorant / free-fire field attributes (no pattern / numeric enforcement?) — valorant NoTagHere valid=true attrs={"pattern":null,"inputmode":"text","maxlength":null,"placeholder":"Name#TAG"}; free-fire uid attrs={"pattern":null,"inputmode":"text","type":"text"} (6951ms)
+PASS  flows: steam-wallet ฿100 (stock) via slip — order created; stock count before — reusing TP-1062 pkg 01a1401c-c0e6-77ff-a44e-7431f178febf available=11 (4931ms)
+PASS  flows: S1 slip → code card appears without reload; masked by default; reveal; poll API has no code; stock −1; reload keeps same code — navs=4 masked="QA-•••••-•••••-0002" shown="QA-STEAM-PXHJL-0002" sameAfterReload=true pollHasCode=false stock 11→10→10 codesSoldToOrder=1 (8333ms)
+PASS  flows: S1 without key / wrong key (no cookie) — code & contact hidden; with key — shown — code in keyed page=false; noKey: status=200 hasCode=false hasContact=false hasKeyBtn=false; wrongKey: hasCode=false hasContact=false (1846ms)
+INFO  flows: console — []
+=== topup_storefront-live 2026-10-18T18:23:11.562Z phases=wallet,frozen,poll,thaiclip
+PASS  thaiclip: / feed row timestamps with stacked marks (ที่/วันที่) — measure + 3x crop — {"count":8,"text":"฿100 · 1 นาทีที่แล้ว","fs":"12px","lh":"16px","boxH":16,"naturalLineH":15,"rect":[85,1553.5,170.859375,16]} (7548ms)
+FAIL  poll: rov promptpay order → slip → tracker message box changes (time, main-frame navigations) — {"kind":"alert","text":"TP-1063"} (8482ms)
+PASS  wallet: preset ฿300 — bonus preview vs DB bonus; payment panel shown — balance0=0 preview="ชำระ ฿300 โบนัส 2% +฿6 เข้ากระเป๋าทั้งหมด ฿306" db={"amount":"30000","bonus":"600","status":"pending","method":"promptpay"} panel="เมื่อชำระสำเร็จจะได้รับ ฿306 (รวมโบนัส ฿6)" countdown=true (6642ms)
+PASS  wallet: slip upload → auto-approve → success banner + credited amount + bonus; balance — balance 0→30600 banner="เติมเงินสำเร็จ ฿300 ได้รับโบนัสเพิ่ม ฿6" topup={"amount":"30000","bonus":"600","status":"credited"} ledger=[{"reason":"topup","amount":"30000","balance_after":"30000"},{"reason":"bonus","amount":"600","balance_after":"30600"}] shownBalance="ยอดเงินคงเหลือ ฿300" url=http://demo-topup.localhost:3000/wallet?topup=01a15041-362b-7629-a9dc-bc70144eff89 (6207ms)
+PASS  wallet: second pending top-up (min ฿20) → 'ยกเลิก' link — is the payment cancelled? — after ยกเลิก: {"topup_status":"pending","payment_status":"pending"} pendingTopupsForCustomer=1 (8257ms)
+PASS  wallet: custom amount edge inputs (1e3, 100.005, 0.5, ๑๐๐, 20.555) → hidden satang value — 1e3→1300 btn="เติมเงิน ฿13" ; 100.005→10001 btn="เติมเงิน ฿100.01" ; 0.5→50 btn="เติมเงิน ฿0.50" ; ๑๐๐→50 btn="เติมเงิน ฿0.50" ; 20.555→2056 btn="เติมเงิน ฿20.56" (4231ms)
+PASS  wallet: rov 40 คูปอง paid by wallet → fulfilled; ledger; balance — default=wallet summary="คงเหลือหลังหัก ฿271" → TP-1064 {"status":"fulfilled","price":"3500","payment_method":"wallet","fulfillment":"api"} balance 30600→27100 page="เติมสำเร็จแล้ว ขอบคุณที่ใช้บริการ รายละเอียด" paymentPanel=false (8944ms)
+INFO  wallet: console — []
+PASS  frozen: /wallet shows a frozen notice? top-up form submit message — notice="(no frozen notice on page)" submit→alert="" url=/wallet (3720ms)
+PASS  frozen: /games/rov wallet method — message, no order — walletOption="กระเป๋าเงินในเว็บ คงเหลือ ฿271 · ตัดทันที ไม่ต้องแนบสลิป" → {"kind":"alert","text":"กระเป๋าเงินถูกระงับชั่วคราว กรุณาติดต่อแอดมิน"} (5130ms)
+INFO  frozen — wallet unfrozen again
+=== topup_storefront-live 2026-10-18T18:26:37.255Z phases=poll,--poll=TP-1063,frozen,otp,ratelimit
+PASS  poll: /wallet balance text after animations settle (hero counter) — shown="ยอดเงินคงเหลือ ฿271" db=27100 (8298ms)
+PASS  poll: rov promptpay order → slip → tracker message box changes (time, main-frame navigations) — TP-1063 before="ชำระเงินด้านล่างเพื่อเริ่มเติม ระบบจะอัปเดตสถานะให้อัตโนมัติ" changes=["4157ms:เติมสำเร็จแล้ว ขอบคุณที่ใช้บริการ"] navs=1 db={"status":"fulfilled","paid":true,"done":true} paymentPanelStillVisible=false successCard=false console=[] (7743ms)
+PASS  frozen: /wallet shows a frozen notice? top-up form submit message — notice="(no frozen notice on page)" submit→alert=["กระเป๋าเงินถูกระงับชั่วคราว กรุณาติดต่อแอดมิน"] url=/wallet (4942ms)
+PASS  frozen: /games/rov wallet method — message, no order — walletOption="กระเป๋าเงินในเว็บ คงเหลือ ฿271 · ตัดทันที ไม่ต้องแนบสลิป" → {"kind":"alert","text":"กระเป๋าเงินถูกระงับชั่วคราว กรุณาติดต่อแอดมิน"} (5026ms)
+INFO  frozen — wallet unfrozen again
+INFO  login page (guest, http) — status=200 lineLoginLink=false hasOtpForm=true text="ยืนยันตัวตนด้วยรหัส OTP ไม่ต้องตั้งรหัสผ่าน"
+INFO  LINE mock endpoint — GET /api/dev/line-mock → 404 <!DOCTYPE html><html id="__next_error__"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width,
+PASS  otp: request → wrong code message → correct code → logged in — phone=0898025298 sentBox="ส่งรหัสไปที่ 0898025298 แล้ว (โหมดพัฒนา) รหัสของคุณคือ 219059 กรอกรหัส OTP 6 หลัก ชื่อ-นามสกุล (ถ้าเป็นครั้งแรก) ยืนยัน เปลี่ยนเบอร์ / ขอรหัสใหม่" wrongCode→"รหัสไม่ถูกต้อง" then landed /games/rov (6735ms)
+PASS  otp: resend within 60s cooldown — what does the UI say? (new phone) — phone=0898032104 resend→ขอรหัสบ่อยเกินไป กรุณารอ 59 วินาที แล้วลองใหม่ (5817ms)
+PASS  otp: expired code message (expires_at forced into the past) — phone=0898037927 rows=1 msg="รหัสหมดอายุ กรุณาขอรหัสใหม่" (4722ms)
+INFO  otp: console — []
+PASS  ratelimit: login customer B — 0898042641 (5799ms)
+PASS  ratelimit: customer B places promptpay orders until refused (maxOrdersPerHour=10; IP shared with other customers' orders this hour) — IP orders in last hour before=0; B succeeded 10 (last TP-1074) then alert="ทำรายการถี่เกินไป กรุณาลองใหม่ในอีกสักครู่" (66181ms)
+PASS  ratelimit: same customer B with a spoofed X-Real-IP header — does the per-IP limit / stored ip follow the header? (dev: no TRUSTED_PROXY) — {"kind":"alert","text":"ทำรายการถี่เกินไป กรุณาลองใหม่ในอีกสักครู่"} stored ip=null (4542ms)
+PASS  ratelimit: customer A (0899523004, far fewer own orders) now refused too because of the shared IP? — A own orders last hour=4 → {"kind":"order","number":"TP-1075","k":"mQEJ2kM5aAForlqojtNpLXh4","url":"http://demo-topup.localhost:3000/topup/TP-1075?k=mQEJ2kM5aAForlqojtNpLXh4"} (6700ms)

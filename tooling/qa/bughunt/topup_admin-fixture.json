@@ -1,0 +1,40 @@
+{
+  "run": "5ag0t",
+  "phone": "0869609875",
+  "customerId": "01a15039-0c46-766d-85b4-941ec4aec8f1",
+  "walletId": "01a15039-10cb-7328-9118-4ad3cb1c2dee",
+  "orders": {
+    "O1": {
+      "id": "86f842c6-d123-40aa-a791-7ea6f0e0f3a1",
+      "number": "TP-1057",
+      "paymentId": "01a15039-6b7a-70d6-9756-8f86a5d49516"
+    },
+    "O2": {
+      "id": "b99a06a5-0907-4c8f-9d51-fdf5e0ccf610",
+      "number": "TP-1058",
+      "paymentId": "01a15039-8863-722a-9ea5-0428be2cadb0"
+    },
+    "O3": {
+      "id": "f6b7d811-921b-4f75-b3fe-35c9cb619059",
+      "number": "TP-1059",
+      "paymentId": "01a15039-a0ba-7537-bac1-f9d43b9e33b7"
+    },
+    "O4": {
+      "id": "c43c82e0-5c79-4eb1-9ff3-4dcde2ced9c2",
+      "number": "TP-1060",
+      "paymentId": "01a15039-c0e4-705b-a045-9f033e598577"
+    }
+  },
+  "steam": {
+    "gameId": "01a1401c-c0a5-7385-9c13-47dea5a2c894",
+    "stockPkgId": "01a1401c-c0e6-77ff-a44e-7431f178febf"
+  },
+  "fresh": {
+    "slug": "qa-topup-empty-5huc8",
+    "tenantId": "01a15040-19d3-75e7-b6a1-70e6e17037d1"
+  },
+  "staff": {
+    "email": "qa-am-staff@rentweb.test",
+    "userId": "eb78543c-72d5-4625-9ee0-2a7065d29e00"
+  }
+}

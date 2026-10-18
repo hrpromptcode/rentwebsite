@@ -39,3 +39,5 @@ tooling/qa/bughunt/*-creds.json
 tooling/qa/bughunt/*-state-*.json
 tooling/qa/bughunt/*.log
 tooling/qa/bughunt/*.png
+tooling/qa/final-logs/
+apps/*/AGENTS.md

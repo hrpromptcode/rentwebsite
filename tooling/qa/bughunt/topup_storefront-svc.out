@@ -1,0 +1,47 @@
+rov pkg 01a1401c-bc33-708f-abac-122aa25de837 40 คูปอง 3500 api
+S0 paymentHookSummary: {"paid":["order","booking","patient_package","topup","wallet_topup","rest_order","reservation","stay","ticket_order"],"failed":[],"closed":["order","booking","patient_package","rest_order","reservation","stay","ticket_order"],"target":["stay","ticket_order"],"access":["stay","ticket_order"]}
+S1 guest order TP-1053 created; order.customer_id=01a1401d-bea9-752e-882c-1f75b0c9438f existing(0812345678).id=01a1401d-bea9-752e-882c-1f75b0c9438f name=ทดสอบ เติมเกม → ATTACHED TO EXISTING CUSTOMER (merge); orders of that customer before=2
+S2 BLOCKED customer (blocked_at set, phone 0868000001) could order as guest: TP-1054 customer_id=01a15032-8cbc-734d-8057-d9eae474d7a2 (== blocked 01a15032-8cbc-734d-8057-d9eae474d7a2: true)
+S2b createTopupOrder with customer={blocked id} accepted: TP-1055
+DrizzleQueryError: Failed query: select count(*)::int as n, max(id)::text as id from customers where tenant_id = $1 and phone = $2
+params: 01a1401c-b9af-71d6-8837-f2f2f33a2579,0868000002
+    at PostgresJsPreparedQuery.queryWithCache (D:\Projects\promptcode_rentweb\node_modules\.pnpm\drizzle-orm@0.45.4_@electric-sql+pglite@0.5.10_@upstash+redis@1.39.0_kysely@0.29.6_postgres@3.4.9\node_modules\src\pg-core\session.ts:73:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async main (D:\Projects\promptcode_rentweb\tooling\qa\bughunt\topup_storefront-svc.ts:58:19) {
+  query: 'select count(*)::int as n, max(id)::text as id from customers where tenant_id = $1 and phone = $2',
+  params: [ '01a1401c-b9af-71d6-8837-f2f2f33a2579', '0868000002' ],
+  cause: PostgresError: function max(uuid) does not exist
+      at ErrorResponse (file:///D:/Projects/promptcode_rentweb/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:815:30)
+      at handle (file:///D:/Projects/promptcode_rentweb/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:489:6)
+      at TLSSocket.data (file:///D:/Projects/promptcode_rentweb/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:324:9)
+      at TLSSocket.emit (node:events:509:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23) {
+    severity_local: 'ERROR',
+    severity: 'ERROR',
+    code: '42883',
+    hint: 'No function matches the given name and argument types. You might need to add explicit type casts.',
+    position: '28',
+    file: 'parse_func.c',
+    line: '629',
+    routine: 'ParseFuncOrColumn'
+  }
+}
+rov pkg 01a1401c-bc33-708f-abac-122aa25de837 40 คูปอง 3500 api
+S0 paymentHookSummary: {"paid":["order","booking","patient_package","topup","wallet_topup","rest_order","reservation","stay","ticket_order"],"failed":[],"closed":["order","booking","patient_package","rest_order","reservation","stay","ticket_order"],"target":["stay","ticket_order"],"access":["stay","ticket_order"]}
+S3 otp gate: result otp_required; customers with phone 0868000002 before=1 after=1 (01a15032-968b-7499-a242-45cb143853f1)
+ReferenceError: existing is not defined
+    at <anonymous> (D:\Projects\promptcode_rentweb\tooling\qa\bughunt\topup_storefront-svc.ts:66:175)
+    at <anonymous> (D:\Projects\promptcode_rentweb\packages\db\src\tenant.ts:31:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async scope (file:///D:/Projects/promptcode_rentweb/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+    at async sql.begin (file:///D:/Projects/promptcode_rentweb/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+    at async main (D:\Projects\promptcode_rentweb\tooling\qa\bughunt\topup_storefront-svc.ts:65:14)
+rov pkg 01a1401c-bc33-708f-abac-122aa25de837 40 คูปอง 3500 api
+S0 paymentHookSummary: {"paid":["order","booking","patient_package","topup","wallet_topup","rest_order","reservation","stay","ticket_order"],"failed":[],"closed":["order","booking","patient_package","rest_order","reservation","stay","ticket_order"],"target":["stay","ticket_order"],"access":["stay","ticket_order"]}
+S3 otp gate: result otp_required; customers with phone 0868000003 before=0 after=1 (01a15033-bfdd-7433-a397-605be06e2941)
+S4 sweep: order TP-1056 payment expired 2h ago; expireStalePayments → {"expired":8,"skipped":0,"errors":0}; payment.status=pending order.status=pending_payment
+S4b cancelPayment(runHandler default) → cancelled; order.status after=pending_payment
+S5 failed orders vs payment refundRequired: [{"number":"TP-1048","status":"failed","payment_method":"promptpay_qr","order_rr":"true","pstatus":"paid","pay_rr":null,"failure_reason":null},{"number":"TP-1038","status":"failed","payment_method":"promptpay_qr","order_rr":"true","pstatus":"paid","pay_rr":null,"failure_reason":"ยอดเงินไม่ตรง"},{"number":"TP-1032","status":"failed","payment_method":"promptpay_qr","order_rr":"true","pstatus":"paid","pay_rr":null,"failure_reason":"ยอดเงินไม่ตรง"},{"number":"TP-1026","status":"failed","payment_method":"promptpay_qr","order_rr":"true","pstatus":"paid","pay_rr":null,"failure_reason":"ยอดเงินไม่ตรง"},{"number":"TP-1020","status":"failed","payment_method":"promptpay_qr","order_rr":"true","pstatus":"paid","pay_rr":null,"failure_reason":"ยอดเงินไม่ตรง"}]
