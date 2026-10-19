@@ -1,11 +1,12 @@
 import "../load-env";
-import { sql, getAdminDb } from "@rentweb/db";
+import { eq, sql, getAdminDb, tenants } from "@rentweb/db";
 
 /**
  * Read-only peek at the demo-topup back-office data (orders by status, games/packages, stock, wallets, suppliers).
  *   MSYS_NO_PATHCONV=1 pnpm --filter @rentweb/tooling exec tsx qa/topup-admin-db.ts
  */
-const T = "01a1401c-b9af-71d6-8837-f2f2f33a2579";
+/** resolved by slug — the id changes on every demo reset */
+const T: string = (await getAdminDb().select({ id: tenants.id }).from(tenants).where(eq(tenants.slug, "demo-topup")).limit(1))[0]?.id ?? (() => { throw new Error("tenant demo-topup not found — run reset-demo --template topup"); })();
 const rows = (r: unknown) => (Array.isArray(r) ? r : ((r as { rows: unknown[] }).rows ?? []));
 
 async function main() {

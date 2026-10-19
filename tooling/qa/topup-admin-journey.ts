@@ -2,7 +2,7 @@ import "../load-env";
 import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium, expect, type Browser, type BrowserContext, type Page } from "@playwright/test";
-import { and, eq, getAdminDb, sql, codeStock, eventsOutbox, payments, topupBlacklist, topupOrders, topupSuppliers, walletTransactions, wallets, customers } from "@rentweb/db";
+import { and, eq, getAdminDb, sql, tenants, codeStock, eventsOutbox, payments, topupBlacklist, topupOrders, topupSuppliers, walletTransactions, wallets, customers } from "@rentweb/db";
 
 /**
  * Top-up back-office journey (admin on :3001 + storefront on demo-topup.localhost:3000).
@@ -14,7 +14,8 @@ import { and, eq, getAdminDb, sql, codeStock, eventsOutbox, payments, topupBlack
 const ADMIN = (process.env.ADMIN_URL ?? "http://localhost:3001").replace(/\/$/, "");
 const STORE = "http://demo-topup.localhost:3000";
 const SLUG = "demo-topup";
-const TENANT = "01a1401c-b9af-71d6-8837-f2f2f33a2579";
+/** resolved by slug — the id changes on every demo reset */
+const TENANT: string = (await getAdminDb().select({ id: tenants.id }).from(tenants).where(eq(tenants.slug, SLUG)).limit(1))[0]?.id ?? (() => { throw new Error(`tenant ${SLUG} not found — run reset-demo --template topup`); })();
 const EMAIL = "admin@rentweb.local";
 const PASSWORD = "Admin1234!";
 const RUN = Date.now().toString(36).slice(-5);

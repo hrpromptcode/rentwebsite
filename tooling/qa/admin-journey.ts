@@ -582,6 +582,7 @@ async function main() {
     const status = await goto(page, `/t/${SLUG}/settings/payments`);
     assert(status === 200, `HTTP ${status}`);
     await page.locator("#p-id").waitFor();
+    const before = (await tenantRow(SLUG)).settings as Record<string, unknown>;
     const exp = page.locator("#p-exp");
     const orig = await exp.inputValue();
     await exp.fill(String(Number(orig || 30) + 1));
@@ -591,7 +592,10 @@ async function main() {
     assert(pay.expiresMinutes === Number(orig || 30) + 1, `DB expiresMinutes=${pay.expiresMinutes}`);
     await exp.fill(orig || "30");
     await expectToast(page, /บันทึก/, () => page.locator("form button[type=submit]").first().click());
-    return `PromptPay/bank/method cards render; expiresMinutes round-tripped (${orig})`;
+    // the form also writes defaults the demo never had (autoApproveSlips:false overrides DEV_AUTO_APPROVE_SLIPS) — restore exactly
+    const now = (await tenantRow(SLUG)).settings as Record<string, unknown>;
+    await db.update(tenants).set({ settings: { ...now, payments: before.payments } }).where(eq(tenants.slug, SLUG));
+    return `PromptPay/bank/method cards render; expiresMinutes round-tripped (${orig}); payments settings restored`;
   });
 
   const qaHost = `qa-${RAND}.example.com`;
