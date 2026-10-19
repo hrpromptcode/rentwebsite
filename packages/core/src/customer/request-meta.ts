@@ -68,7 +68,24 @@ export function clientIp(h: HeaderLike, hops: number = trustedProxyHops()): stri
       if (ip) return ip;
     }
   }
-  return normalizeIp(h.get("x-real-ip"));
+  const ip = normalizeIp(h.get("x-real-ip"));
+  if (!ip) warnUnknownClientIp(hops);
+  return ip;
+}
+
+let warnedUnknownIp = false;
+
+/**
+ * STOREFRONT-16: a production deployment whose proxy sends neither X-Real-IP nor a trusted X-Forwarded-For silently
+ * disables every per-IP limit (OTP, top-up hourly cap, IP blacklist). Say so once per process. Behaviour is unchanged
+ * (still null); dev is not warned (no proxy there, and a loopback fallback would put every tester behind one IP).
+ */
+function warnUnknownClientIp(hops: number): void {
+  if (warnedUnknownIp || process.env.NODE_ENV !== "production") return;
+  warnedUnknownIp = true;
+  console.warn(
+    `[request-meta] client IP unknown (no X-Real-IP${hops > 0 ? `, X-Forwarded-For has no entry ${hops} hop(s) from the right` : ", TRUSTED_PROXY unset"}): per-IP limits and IP blacklists are inactive until the reverse proxy sends X-Real-IP or TRUSTED_PROXY is configured`,
+  );
 }
 
 /**

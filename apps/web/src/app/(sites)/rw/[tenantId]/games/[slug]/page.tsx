@@ -9,7 +9,7 @@ import { Img } from "@rentweb/storefront";
 import type { PaymentMethodOption } from "@rentweb/storefront/payments";
 import { enabledMethods } from "@rentweb/core/payments";
 import { thb } from "@rentweb/core/money";
-import { bestTierPrice, getGameBySlug, getWallet, priceFor, topupConfig } from "@rentweb/module-topup/services";
+import { bestTierPrice, getGameBySlug, getWallet, priceFor, safeFieldPattern, topupConfig } from "@rentweb/module-topup/services";
 import { TopupForm, type TopupFormPackage } from "@rentweb/module-topup/components";
 import { CATEGORY_LABEL } from "@rentweb/module-topup/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -43,17 +43,20 @@ export default async function GamePage({ params, searchParams }: { params: Param
   const enabled = enabledMethods(settings);
   const walletEnabled = cfg.walletEnabled && enabled.includes("wallet");
   const methods: PaymentMethodOption[] = [];
+  const walletFrozen = !!wallet?.frozen;
   if (walletEnabled) {
     methods.push(
-      customer
-        ? { value: "wallet", label: "กระเป๋าเงินในเว็บ", description: `คงเหลือ ${thb(wallet?.balance ?? 0)} · ตัดทันที ไม่ต้องแนบสลิป`, disabled: false }
-        : { value: "wallet", label: "กระเป๋าเงินในเว็บ", description: "เข้าสู่ระบบเพื่อใช้กระเป๋า", disabled: true },
+      !customer
+        ? { value: "wallet", label: "กระเป๋าเงินในเว็บ", description: "เข้าสู่ระบบเพื่อใช้กระเป๋า", disabled: true }
+        : walletFrozen
+          ? { value: "wallet", label: "กระเป๋าเงินในเว็บ (ใช้ไม่ได้)", description: "กระเป๋าเงินถูกระงับชั่วคราว กรุณาติดต่อแอดมิน · เลือกชำระด้วย PromptPay หรือโอนเงินแทน", disabled: true }
+          : { value: "wallet", label: "กระเป๋าเงินในเว็บ", description: `คงเหลือ ${thb(wallet?.balance ?? 0)} · ตัดทันที ไม่ต้องแนบสลิป`, disabled: false },
     );
   }
   if (enabled.includes("promptpay_qr")) methods.push({ value: "promptpay_qr", label: "PromptPay QR", description: "สแกนจ่าย แนบสลิป ระบบตรวจอัตโนมัติ" });
   if (enabled.includes("slip")) methods.push({ value: "slip", label: "โอนเงินผ่านธนาคาร", description: "โอนแล้วแนบสลิปยืนยัน" });
-  // signed-in customers default to the wallet when it can cover the cheapest package
-  if (customer && walletEnabled && methods[0]?.value === "wallet" && (wallet?.balance ?? 0) <= 0) methods.push(methods.shift()!);
+  // signed-in customers default to the wallet only when it has a balance and is not frozen (the form preselects the first enabled method)
+  if (customer && walletEnabled && methods[0]?.value === "wallet" && (walletFrozen || (wallet?.balance ?? 0) <= 0)) methods.push(methods.shift()!);
 
   const formPackages: TopupFormPackage[] = packages.map((p) => ({
     id: p.id,
@@ -67,6 +70,8 @@ export default async function GamePage({ params, searchParams }: { params: Param
     available: p.available,
     tierHint: bestTierPrice(p),
   }));
+  // RV-01: only patterns the server itself accepts reach the input (an unsafe / invalid one is ignored on both sides)
+  const formFields = (game.fields ?? []).map((f) => ({ ...f, pattern: safeFieldPattern(f.pattern) ? f.pattern : undefined }));
   const autoCount = packages.filter((p) => p.fulfillment !== "manual").length;
   const action = createTopupOrderAction.bind(null, tenantId, slug);
 
@@ -120,12 +125,12 @@ export default async function GamePage({ params, searchParams }: { params: Param
           <div className="card p-10 text-center text-muted-foreground">ยังไม่มีแพ็กเกจสำหรับเกมนี้</div>
         ) : (
           <TopupForm
-            game={{ name: game.name, slug: game.slug, fields: game.fields ?? [], instructions: game.instructions }}
+            game={{ name: game.name, slug: game.slug, fields: formFields, instructions: game.instructions }}
             packages={formPackages}
             methods={methods}
             loggedIn={!!customer}
             otpRequired={cfg.otpRequiredFirstOrder}
-            walletBalance={customer ? (wallet?.balance ?? 0) : null}
+            walletBalance={customer && !walletFrozen ? (wallet?.balance ?? 0) : null}
             tier={customer?.tier ?? null}
             defaultContact={customer?.phone ?? customer?.email ?? ""}
             loginHref={`/account/login?next=${encodeURIComponent(`/games/${slug}`)}`}

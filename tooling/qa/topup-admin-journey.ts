@@ -206,7 +206,9 @@ async function main() {
   });
 
   await step("4 /topup/orders รอเติม tab lists the manual orders; search by number and by UID", async () => {
-    await a.goto(`${base}/orders?tab=manual`, { waitUntil: "networkidle" });
+    // the รอเติม queue is FIFO (paid_at asc) with 20 rows per page: on a demo that has collected older manual orders this run's
+    // orders are on a later page, so narrow the tab to this run's UID (same queue filter + search the shop uses)
+    await a.goto(`${base}/orders?tab=manual&q=${UID}`, { waitUntil: "networkidle" });
     await expect(a.getByRole("heading", { level: 1, name: "รายการเติม" })).toBeVisible();
     for (const k of ["A", "B", "C", "D"]) await expect(a.getByRole("link", { name: shared[k]!, exact: true })).toBeVisible();
     await expect(a.locator('nav[aria-label="ตัวกรองด่วน"] a[aria-current="page"]')).toContainText("รอเติม");
@@ -217,6 +219,8 @@ async function main() {
     await expect(links).toHaveCount(6);
     await a.goto(`${base}/orders?tab=all&q=${PHONE}`, { waitUntil: "networkidle" });
     await expect(links).toHaveCount(6);
+    await a.goto(`${base}/orders?tab=manual&q=${UID}`, { waitUntil: "networkidle" });
+    await expect(links).toHaveCount(4);
     return "4 in รอเติม; number→1 row, UID→6, phone→6";
   });
 
@@ -298,7 +302,7 @@ async function main() {
     return "C + D fulfilled";
   });
 
-  await step("10 slip: F → pending_verification (db) → รอตรวจสลิป → ปฏิเสธ → อนุมัติ → รอเติม → fail flags ต้องคืนเงินมือ", async () => {
+  await step("10 slip: F → pending_verification (db) → รอตรวจสลิป → ปฏิเสธ → อนุมัติ → รอเติม → fail flags ต้องคืนเงินมือ → บันทึกว่าคืนเงินแล้ว", async () => {
     const f = await orderId(shared.F!);
     assert(f.paymentId, "F has no payment");
     // DEV_AUTO_APPROVE_SLIPS=true would approve a real upload instantly – emulate a slip waiting for review
@@ -323,14 +327,28 @@ async function main() {
     assert(p2?.status === "paid", `payment after approve ${p2?.status}`);
     await expect(a.getByText("ชำระแล้ว", { exact: true }).first()).toBeVisible();
     await a.getByRole("button", { name: "เติมไม่สำเร็จ" }).click();
-    await expect(a.getByRole("dialog").getByText(/ต้องคืนเงินมือ/)).toBeVisible();
+    // fix wave: the dialog explains the ต้องคืนเงิน flag and the บันทึกว่าคืนเงินแล้ว follow-up (SERVICES-15 / ADMIN-12)
+    await expect(a.getByRole("dialog").getByText(/ระบบจะติดธง “ต้องคืนเงิน”.*บันทึกว่าคืนเงินแล้ว/)).toBeVisible();
     await a.getByRole("dialog").getByRole("button", { name: "ยืนยันเติมไม่สำเร็จ" }).click();
     await toast(a, /กรุณาคืนเงินลูกค้าด้วยตนเอง/);
     await expect(a.getByText("ต้องคืนเงินมือ").first()).toBeVisible({ timeout: 15_000 });
-    return "reject → payment failed, approve → payment paid + order processing, fail → refundRequired";
+    const [p3] = await db.select({ status: payments.status, pp: payments.providerPayload }).from(payments).where(eq(payments.id, f.paymentId));
+    assert(p3?.status === "paid" && (p3.pp as { refundRequired?: unknown } | null)?.refundRequired, `payment after fail: ${p3?.status} flag=${JSON.stringify((p3?.pp as { refundRequired?: unknown } | null)?.refundRequired)}`);
+    // while the refund is pending, ลองใหม่ is secondary and needs an explicit ack; record the manual refund
+    await a.getByRole("button", { name: "บันทึกว่าคืนเงินแล้ว" }).click();
+    await a.getByRole("dialog").locator("#refund-note").fill(`QA โอนคืน ${RUN}`);
+    await confirmDialog("ยืนยันคืนเงินแล้ว");
+    await toast(a, new RegExp(`บันทึกว่าคืนเงิน ${shared.F} แล้ว`));
+    const f2 = await orderId(shared.F!);
+    const [p4] = await db.select({ status: payments.status, refunded: payments.refundedAmount, amount: payments.amount }).from(payments).where(eq(payments.id, f.paymentId));
+    assert(f2.status === "refunded", `F after mark-refunded ${f2.status}`);
+    assert(p4?.status === "refunded" && p4.refunded === p4.amount, `payment after mark-refunded ${JSON.stringify(p4)}`);
+    await expect(a.getByRole("button", { name: "ลองใหม่" })).toHaveCount(0, { timeout: 15_000 });
+    await expect(a.getByRole("button", { name: "บันทึกว่าคืนเงินแล้ว" })).toHaveCount(0);
+    return "reject → payment failed, approve → payment paid + order processing, fail → refundRequired flag, บันทึกว่าคืนเงินแล้ว → order + payment refunded, no retry";
   });
 
-  await step("11 api retry: E stuck in processing (db) → ลองใหม่ → fulfilled with a new SIM ref", async () => {
+  await step("11 api retry: E stuck in processing (db) → ลองใหม่ → fulfilled, supplier queried first, same SIM ref (idempotent)", async () => {
     const e0 = await orderId(shared.E!);
     await db.update(topupOrders).set({ status: "processing", fulfilledAt: null, supplierRef: null }).where(and(eq(topupOrders.tenantId, TENANT), eq(topupOrders.id, e0.id)));
     await openOrder(shared.E!);
@@ -338,9 +356,14 @@ async function main() {
     await confirmDialog("ลองใหม่");
     await toast(a, /ลองใหม่สำเร็จ/);
     const e1 = await orderId(shared.E!);
-    assert(e1.status === "fulfilled" && e1.supplierRef?.startsWith("SIM-") && e1.supplierRef !== e0.supplierRef, `after retry ${JSON.stringify(e1)}`);
+    // fix wave (SERVICES-11 / RV-02): the retry asks the supplier by the idempotency key before submitting again, and the
+    // simulator's reference is deterministic per key → the SAME ref (a real supplier answers "already done", no second top-up)
+    assert(e1.status === "fulfilled" && e1.supplierRef?.startsWith("SIM-") && e1.supplierRef === e0.supplierRef, `after retry ${JSON.stringify(e1)} (before ${e0.supplierRef})`);
+    const [sr] = await db.select({ r: topupOrders.supplierResponse }).from(topupOrders).where(and(eq(topupOrders.tenantId, TENANT), eq(topupOrders.id, e0.id)));
+    const attempts = ((sr?.r as { attempts?: Array<{ action: string; status: string }> } | null)?.attempts ?? []).map((x) => `${x.action}:${x.status}`);
+    assert(attempts.length >= 2 && attempts[0] === "submit:success" && attempts[1]?.startsWith("query:"), `supplier attempts ${attempts.join(",")}`);
     await expect(a.getByText("แอดมินสั่งลองเติมใหม่")).toBeVisible({ timeout: 15_000 });
-    return `${e0.supplierRef} → ${e1.supplierRef}`;
+    return `${e0.supplierRef} → ${e1.supplierRef} (attempts ${attempts.join(" → ")})`;
   });
 
   /* ───────── wallets ───────── */
@@ -373,7 +396,7 @@ async function main() {
   });
 
   /* ───────── games + stock ───────── */
-  await step("13 games: steam-wallet → สต็อกโค้ด ฿100 → import 3 codes (+3, encrypted) → void one (−1)", async () => {
+  await step("13 games: steam-wallet → สต็อกโค้ด ฿100 → import 3 codes (+3, encrypted) → re-import skipped as duplicates (ADMIN-06) → void one (−1)", async () => {
     await a.goto(`${base}/games`, { waitUntil: "networkidle" });
     await expect(a.getByRole("heading", { level: 1, name: "เกมและแพ็กเกจ" })).toBeVisible();
     await shot(a, "games-1440");
@@ -394,6 +417,11 @@ async function main() {
     await expect(avail).toHaveText(String(before + 3), { timeout: 15_000 });
     const rows = await db.select({ enc: codeStock.codeEncrypted }).from(codeStock).where(and(eq(codeStock.tenantId, TENANT), eq(codeStock.packageId, pkgId), eq(codeStock.status, "available"))).orderBy(sql`${codeStock.createdAt} desc`).limit(3);
     assert(rows.length === 3 && rows.every((r) => !r.enc.includes("QA-STEAM")), "codes not stored encrypted");
+    // ADMIN-06: the same codes again (one with lower case / spaces) → nothing imported, reported as duplicates, count unchanged
+    await a.locator("#stock-codes").fill([codes[0]!.toLowerCase(), ` ${codes[1]} `, codes[2]!].join("\n"));
+    await a.getByRole("button", { name: "นำเข้าโค้ด" }).click();
+    await expect(a.getByText(/ไม่ได้นำเข้าโค้ดใหม่.*ข้ามโค้ดซ้ำ 3/).first()).toBeVisible({ timeout: 15_000 });
+    await expect(avail).toHaveText(String(before + 3));
     await shot(a, "game-stock-1440");
     await a.getByRole("button", { name: /^ยกเลิกโค้ด/ }).first().click();
     await confirmDialog("ยกเลิกโค้ด");

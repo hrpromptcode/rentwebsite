@@ -59,12 +59,15 @@ export function StockPanel({
   const [expires, setExpires] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  /** ADMIN-06: the last import's outcome stays visible (how many were skipped as duplicates and why) */
+  const [notice, setNotice] = React.useState<{ text: string; tone: "ok" | "warn" } | null>(null);
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const unique = new Set(lines.map((l) => (l.includes("\t") ? l.split("\t", 2)[1]!.trim() : l))).size;
   const selected = packages.find((p) => p.id === selectedId);
 
   async function importCodes() {
     setError(null);
+    setNotice(null);
     setPending(true);
     try {
       const r = await importStockAction(slug, gameId, selectedId, { codes: text, expiresAt: expires });
@@ -73,7 +76,11 @@ export function StockPanel({
         toast.error(r.error);
         return;
       }
-      toast.success(r.message ?? "นำเข้าแล้ว");
+      const nothing = r.data?.imported === 0;
+      const dupes = (r.data?.duplicates ?? 0) > 0;
+      if (nothing) toast.warning(r.message ?? "ไม่ได้นำเข้าโค้ดใหม่");
+      else toast.success(r.message ?? "นำเข้าแล้ว");
+      setNotice(r.message ? { text: r.message, tone: nothing || dupes ? "warn" : "ok" } : null);
       setText("");
       setExpires("");
       router.refresh();
@@ -125,6 +132,11 @@ export function StockPanel({
             </div>
             <Field label="โค้ด (บรรทัดละ 1 โค้ด)" htmlFor="stock-codes" error={error} hint={'มีเลขซีเรียล? ใส่ "ซีเรียล<Tab>โค้ด" ต่อบรรทัด'}>
               <Textarea id="stock-codes" value={text} onChange={(e) => setText(e.target.value)} placeholder={"STEAM-AAAA-BBBB-CCCC\nSTEAM-DDDD-EEEE-FFFF"} className="min-h-40 font-mono text-sm" spellCheck={false} autoComplete="off" aria-invalid={!!error} />
+              {notice && (
+                <p role="status" className={notice.tone === "warn" ? "rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200" : "rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-sm"}>
+                  {notice.text}
+                </p>
+              )}
             </Field>
             <Field label="วันหมดอายุ (ไม่บังคับ)" htmlFor="stock-expires">
               <Input id="stock-expires" type="date" value={expires} onChange={(e) => setExpires(e.target.value)} className="w-full sm:w-48" />

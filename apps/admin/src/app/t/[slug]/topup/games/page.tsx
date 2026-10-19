@@ -9,7 +9,7 @@ import { listAdminGames } from "@rentweb/module-topup/admin";
 import { CATEGORY_LABEL } from "@rentweb/module-topup/admin/labels";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
-import { fmtNumber, thb } from "@/lib/format";
+import { assetUrl, fmtNumber, thb } from "@/lib/format";
 import { getTenantCtx, hasRole, tenantTx } from "@/lib/tenant";
 
 export const metadata: Metadata = { title: "เกมและแพ็กเกจ" };
@@ -89,7 +89,7 @@ export default async function TopupGamesPage({ params, searchParams }: { params:
                 <TableRow key={g.id} className="relative">
                   <TableCell>
                     <span className="flex items-center gap-3">
-                      {g.image ? <img src={g.image} alt="" className="size-11 shrink-0 rounded-xl object-cover" /> : <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground"><Gamepad2 className="size-5" aria-hidden /></span>}
+                      {g.image ? <img src={assetUrl(g.image)} alt="" className="size-11 shrink-0 rounded-xl object-cover" /> : <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground"><Gamepad2 className="size-5" aria-hidden /></span>}
                       <span className="min-w-0">
                         <Link href={`${base}/${g.id}`} className="flex items-center gap-1.5 font-semibold after:absolute after:inset-0 after:content-['']">
                           <span className="truncate">{g.name}</span>

@@ -18,10 +18,28 @@ export interface FeedRow {
   at: string;
 }
 
-export function TopupFeedClient({ initial, limit = 10, pollMs = 10_000, className }: { initial: FeedRow[]; limit?: number; pollMs?: number; className?: string }) {
+export function TopupFeedClient({
+  initial,
+  limit = 10,
+  pollMs = 10_000,
+  className,
+  renderedAt,
+}: {
+  initial: FeedRow[];
+  limit?: number;
+  pollMs?: number;
+  className?: string;
+  /** ISO time the server rendered `initial` at. The relative times ("6 นาทีที่แล้ว") are computed against it until the
+   * component has mounted, so server HTML and the hydration render agree even when a minute boundary passes in between. */
+  renderedAt?: string;
+}) {
   const [rows, setRows] = React.useState<FeedRow[]>(initial);
   const [tick, setTick] = React.useState(0);
+  const [now, setNow] = React.useState<number>(() => (renderedAt ? Date.parse(renderedAt) : Date.now()));
   const reduce = useReducedMotion();
+
+  // after hydration: switch to the viewer's clock
+  React.useEffect(() => setNow(Date.now()), []);
 
   React.useEffect(() => {
     let alive = true;
@@ -38,6 +56,7 @@ export function TopupFeedClient({ initial, limit = 10, pollMs = 10_000, classNam
     const id = setInterval(() => {
       void load();
       setTick((t) => t + 1);
+      setNow(Date.now());
     }, pollMs);
     return () => {
       alive = false;
@@ -84,7 +103,7 @@ export function TopupFeedClient({ initial, limit = 10, pollMs = 10_000, classNam
                     <span className="font-mono text-muted-foreground">{r.player}</span> เติม <span className="font-medium">{r.gameName}</span>
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {r.packageName} · {timeAgoTh(r.at)}
+                    {r.packageName} · {timeAgoTh(r.at, now)}
                   </p>
                 </div>
                 <StatusBadge status={r.status} className="shrink-0" />

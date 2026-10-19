@@ -1,30 +1,32 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Gift, History, Plus, Sparkles, Wallet, Zap } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, Gift, History, Info, Lock, Plus, Sparkles, Wallet, X, Zap } from "lucide-react";
 import { Badge } from "@rentweb/ui/components/badge";
 import { Button } from "@rentweb/ui/components/button";
 import { cn } from "@rentweb/ui/lib/utils";
 import { Counter, Reveal } from "@rentweb/ui/motion";
 import { PaymentPanel, type PaymentMethodOption } from "@rentweb/storefront/payments";
-import { enabledMethods, getPayment, paymentSettings, promptpayQrDataUrl } from "@rentweb/core/payments";
+import { enabledMethods, getPayment, isOpenPaymentStatus, paymentSettings, promptpayQrDataUrl } from "@rentweb/core/payments";
 import { thb } from "@rentweb/core/money";
+import { isUuid } from "@rentweb/core";
 import { getOrCreateWallet, getWallet, getWalletTopup, listTransactions, reconcileWalletTopup, topupConfig } from "@rentweb/module-topup/services";
 import { WalletTopupForm, dateTimeTh } from "@rentweb/module-topup/components";
 import { WALLET_REASON_LABEL } from "@rentweb/module-topup/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
 import { PageBody } from "@/components/page-body";
-import { createWalletTopupAction } from "./actions";
+import { cancelWalletTopupAction, createWalletTopupAction } from "./actions";
 import { cmsFallback } from "@/lib/cms-fallback";
 
 export const metadata: Metadata = { title: "กระเป๋าเงิน" };
 
 const PRESETS = [10000, 30000, 50000, 100000]; // satang
 
-export default async function WalletPage({ params, searchParams }: { params: Promise<{ tenantId: string }>; searchParams: Promise<{ topup?: string }> }) {
+export default async function WalletPage({ params, searchParams }: { params: Promise<{ tenantId: string }>; searchParams: Promise<{ topup?: string; cancelled?: string; cancel?: string }> }) {
   const { tenantId } = await params;
-  const { topup: topupId } = await searchParams;
+  const { topup: rawTopupId, cancelled, cancel } = await searchParams;
+  const topupId = typeof rawTopupId === "string" && isUuid(rawTopupId) ? rawTopupId : null;
   const runtime = await getRuntime(tenantId);
   if (!runtime) notFound();
   if (!runtime.config.modules.includes("topup")) return cmsFallback(runtime, "wallet");
@@ -48,7 +50,11 @@ export default async function WalletPage({ params, searchParams }: { params: Pro
   const methods: PaymentMethodOption[] = enabledMethods(runtime.config.settings)
     .filter((m): m is "promptpay_qr" | "slip" => m === "promptpay_qr" || m === "slip")
     .map((m) => (m === "promptpay_qr" ? { value: m, label: "PromptPay QR", description: "สแกนจ่าย แนบสลิป เข้ากระเป๋าอัตโนมัติ" } : { value: m, label: "โอนเงินผ่านธนาคาร", description: "โอนแล้วแนบสลิปยืนยัน" }));
-  const showPanel = pending && payment && pending.status !== "credited" && payment.status !== "paid";
+  const frozen = wallet.frozen;
+  // only an open payment can still be paid into; a cancelled / expired / failed one shows a closed notice instead
+  const showPanel = !frozen && pending && payment && pending.status !== "credited" && isOpenPaymentStatus(payment.status);
+  const closedTopup = pending && payment && pending.status !== "credited" && payment.status !== "paid" && !isOpenPaymentStatus(payment.status);
+  const canCancel = showPanel && payment.status === "pending";
   const justCredited = pending && pending.status === "credited";
   const balanceBaht = wallet.balance / 100;
 
@@ -87,8 +93,32 @@ export default async function WalletPage({ params, searchParams }: { params: Pro
             </div>
           </Reveal>
 
+          {frozen && (
+            <div role="alert" className="card flex items-start gap-3 border-destructive/50 bg-destructive/10 p-5 lg:col-span-2">
+              <Lock className="mt-0.5 size-5 shrink-0 text-destructive" />
+              <div className="text-sm">
+                <p className="font-semibold text-foreground">กระเป๋าเงินถูกระงับชั่วคราว</p>
+                <p className="mt-1 text-muted-foreground">กรุณาติดต่อแอดมิน ระหว่างนี้เติมเงินเข้ากระเป๋าหรือใช้ยอดคงเหลือซื้อแพ็กเกจไม่ได้ (ยอดเงินยังอยู่ครบ) ยังเติมเกมด้วย PromptPay / โอนเงินได้ตามปกติ</p>
+              </div>
+            </div>
+          )}
+
           {/* main column */}
           <div className="grid gap-6">
+            {cancelled === "1" && !pending && (
+              <div role="status" className="card flex items-center gap-3 p-5 text-sm">
+                <X className="size-5 shrink-0 text-muted-foreground" />
+                <p>ยกเลิกรายการเติมเงินแล้ว ไม่มีการเรียกเก็บเงิน</p>
+              </div>
+            )}
+            {closedTopup && (
+              <div role="status" className="card flex items-start gap-3 p-5 text-sm">
+                <Info className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+                <p>
+                  รายการเติมเงิน {thb(pending.amount)} {payment.status === "cancelled" ? "ถูกยกเลิกแล้ว" : payment.status === "expired" ? "หมดเวลาชำระแล้ว" : "ไม่สำเร็จ"} — หากโอนเงินไปแล้ว กรุณาติดต่อแอดมินพร้อมสลิป
+                </p>
+              </div>
+            )}
             {justCredited && (
               <Reveal className="card flex items-center gap-3 border-emerald-500/40 bg-emerald-500/10 p-5">
                 <CheckCircle2 className="size-6 shrink-0 text-emerald-500" />
@@ -106,10 +136,23 @@ export default async function WalletPage({ params, searchParams }: { params: Pro
               <Reveal className="grid gap-4">
                 <div className="flex items-center justify-between">
                   <h2 className="font-heading text-xl font-semibold">ชำระเงินเพื่อเติมกระเป๋า</h2>
-                  <Button asChild variant="ghost" size="sm">
-                    <Link href="/wallet">ยกเลิก</Link>
-                  </Button>
+                  {canCancel ? (
+                    <form action={cancelWalletTopupAction.bind(null, tenantId, pending.id)}>
+                      <Button type="submit" variant="ghost" size="sm" className="h-11">
+                        <X /> ยกเลิกรายการ
+                      </Button>
+                    </form>
+                  ) : (
+                    <Button asChild variant="ghost" size="sm" className="h-11">
+                      <Link href="/wallet">กลับ</Link>
+                    </Button>
+                  )}
                 </div>
+                {cancel === "slip" && (
+                  <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="size-4 shrink-0" /> ส่งสลิปแล้ว รอร้านตรวจสอบ จึงยกเลิกเองไม่ได้ หากต้องการยกเลิกกรุณาติดต่อแอดมิน
+                  </p>
+                )}
                 <PaymentPanel
                   payment={{ id: payment.id, method: payment.method, status: payment.status, amount: payment.amount, qrDataUrl: payment.qrPayload ? await promptpayQrDataUrl(payment.qrPayload) : null, expiresAt: payment.expiresAt?.toISOString() ?? null, slipUrl: payment.slipUrl }}
                   amountLabel={thb(payment.amount)}
@@ -124,6 +167,13 @@ export default async function WalletPage({ params, searchParams }: { params: Pro
                   </p>
                 )}
               </Reveal>
+            ) : frozen ? (
+              <div className="card p-5 md:p-7">
+                <h2 className="font-heading flex items-center gap-2 text-xl font-semibold">
+                  <Lock className="size-5 text-muted-foreground" /> เติมเงินเข้ากระเป๋า
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground">ปิดการเติมเงินชั่วคราวเพราะกระเป๋าเงินถูกระงับ กรุณาติดต่อแอดมินเพื่อปลดระงับ</p>
+              </div>
             ) : (
               <Reveal className="card p-5 md:p-7" delay={0.05}>
                 <h2 className="font-heading flex items-center gap-2 text-xl font-semibold">

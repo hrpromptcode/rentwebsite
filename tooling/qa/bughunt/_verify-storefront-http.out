@@ -1,0 +1,72 @@
+◇ injected env (13) from ..\.env // tip: ⌘ enable debugging { debug: true }
+stock order TP-1118 payment 01a15177-fa49-75ea-ba86-d55434408931; roblox pkg 01a1401c-bfd7-74a4-982d-ddadf783edde
+PASS  xtenant demo-shop.localhost /games — status 404 779ms loc=-
+PASS  xtenant demo-shop.localhost /games/rov — status 404 506ms loc=-
+PASS  xtenant demo-shop.localhost /topup/TP-1118 — status 404 486ms loc=-
+PASS  xtenant demo-shop.localhost /topup/TP-1118?k=d5NjPtHrRYwBRk-jgbY9Gc4j — status 404 448ms loc=-
+PASS  xtenant demo-shop.localhost /topup/status — status 404 493ms loc=-
+PASS  xtenant demo-shop.localhost /topup/status?number=TP-1118 — status 404 377ms loc=-
+PASS  xtenant demo-shop.localhost /wallet — status 404 477ms loc=-
+PASS  xtenant demo-shop.localhost /account/topups — status 404 470ms loc=-
+PASS  xtenant demo-shop.localhost /api/topup/feed — status 404 108ms loc=-
+PASS  xtenant demo-shop.localhost /api/topup/orders/TP-1118?k=d5NjPtHrRYwBRk-jgbY9Gc4j — status 404 169ms loc=-
+PASS  xtenant demo-shop.localhost /api/topup/stock/01a1401c-c0e6-77ff-a44e-7431f178febf — status 404 107ms loc=-
+PASS  xtenant demo-shop.localhost /api/payments/01a15177-fa49-75ea-ba86-d55434408931?k=d5NjPtHrRYwBRk-jgbY9Gc4j — status 404 379ms loc=-
+PASS  xtenant nope-tenant.localhost /games — status 404 57ms loc=-
+PASS  xtenant nope-tenant.localhost /games/rov — status 404 62ms loc=-
+PASS  xtenant nope-tenant.localhost /topup/TP-1118 — status 404 54ms loc=-
+PASS  xtenant nope-tenant.localhost /topup/TP-1118?k=d5NjPtHrRYwBRk-jgbY9Gc4j — status 404 51ms loc=-
+PASS  xtenant nope-tenant.localhost /topup/status — status 404 64ms loc=-
+PASS  xtenant nope-tenant.localhost /topup/status?number=TP-1118 — status 404 59ms loc=-
+PASS  xtenant nope-tenant.localhost /wallet — status 404 84ms loc=-
+PASS  xtenant nope-tenant.localhost /account/topups — status 404 80ms loc=-
+PASS  xtenant nope-tenant.localhost /api/topup/feed — status 404 78ms loc=-
+PASS  xtenant nope-tenant.localhost /api/topup/orders/TP-1118?k=d5NjPtHrRYwBRk-jgbY9Gc4j — status 404 62ms loc=-
+PASS  xtenant nope-tenant.localhost /api/topup/stock/01a1401c-c0e6-77ff-a44e-7431f178febf — status 404 85ms loc=-
+PASS  xtenant nope-tenant.localhost /api/payments/01a15177-fa49-75ea-ba86-d55434408931?k=d5NjPtHrRYwBRk-jgbY9Gc4j — status 404 125ms loc=-
+PASS  api no key: authorised false, masked, no PII — 200 {"number":"TP-1118","status":"fulfilled","gameName":"Steam Wallet (TH)","packageName":"฿100","player":"qa-s****","price":10900,"fulfillment":"stock","failureReason":null,"placedAt":"2026-10-19T00:02:5
+PASS  api wrong key: authorised false — {"number":"TP-1118","status":"fulfilled","gameName":"Steam Wallet (TH)","packageName":"฿100","player":"qa-s****","price"
+PASS  api key of another order: authorised false — {"number":"TP-1118","status":"fulfilled","gameName":"Steam Wallet (TH)","packageName":"฿100","player":"qa-s****","price"
+PASS  api right key (lowercase number): authorised true, still masked, no code — 200 {"number":"TP-1118","status":"fulfilled","gameName":"Steam Wallet (TH)","packageName":"฿100","player":"qa-s****","price":10900,"fulfillment":"stock","failureReason":null,"placedAt":"2026-10-19T00:02:5
+PASS  api cache-control no-store — no-store
+PASS  api bad number TP-999999: 404 (not 500) — status 404 {"error":"not found"}
+PASS  api bad number TP-1040%27--: 404 (not 500) — status 404 {"error":"not found"}
+PASS  api bad number TP-1040%00: 404 (not 500) — status 404 {"error":"not found"}
+PASS  api bad number xxxxxxxxxxxxxxxxxxxx: 404 (not 500) — status 404 {"error":"not found"}
+PASS  api bad number %E0%B8%97%E0%B8%94: 404 (not 500) — status 404 {"error":"not found"}
+PASS  api bad number TP-1040%2F..%2FTP-10: 404 (not 500) — status 404 {"error":"not found"}
+PASS  api POST order status: 405 — status 405
+PASS  stock abc: 404 — status 404
+PASS  stock 00000000-000: 404 — status 404
+PASS  stock roblox sold out: available 0 / inStock false — {"packageId":"01a1401c-bfd7-74a4-982d-ddadf783edde","fulfillment":"stock","available":0,"inStock":false}
+PASS  stock 01a1401c-bfd: 200 — status 200 available=0 inStock=false
+PASS  stock 01a1401c-c0e: 200 — status 200 available=11 inStock=true
+PASS  feed ?limit=abc: 200, <=10 items, no PII — status 200 items=10
+PASS  feed ?limit=-5: 200, <=10 items, no PII — status 200 items=10
+PASS  feed ?limit=1e9: 200, <=30 items, no PII — status 200 items=30
+PASS  feed ?limit=2.5: 200, <=3 items, no PII — status 200 items=2
+PASS  feed ?limit=0: 200, <=10 items, no PII — status 200 items=10
+PASS  feed ?: 200, <=10 items, no PII — status 200 items=10
+PASS  feed POST: 405 — status 405
+PASS  payments GET no proof: 404 — status 404 {"error":"not found"}
+PASS  payments GET x-access-key: 200 {id,status,amount} no refType/refId — status 200 {"id":"01a15177-fa49-75ea-ba86-d55434408931","status":"paid","amount":10900,"slipUrl":"/uploads/tenants/01a1401c-b9af-71d6-8837-f2f2f33a2579/slips/1792368181716
+PASS  payments GET ?k=: 200 — status 200
+PASS  payments GET wrong key: 404 — status 404
+PASS  payments GET non-uuid: 404 — status 404
+PASS  slip onto paid payment: 200 status paid (no state change) — status 200 {"status":"paid","slipUrl":"/uploads/tenants/01a1401c-b9af-71d6-8837-f2f2f33a2579/slips/1792368181716-Cv4WAcgvw4zNGl_n.p
+PASS  slip without proof: 403/404 (never 200) — status 403 {"error":"ไม่มีสิทธิ์แนบสลิปสำหรับรายการนี้ กรุณาเปิดจากลิงก์คำสั่งซื้อ/การจอง หรือเข้าสู่ระบบ"}
+PASS  public order page: 200, no contact/code/raw player — status 200 len 73688
+PASS  keyed order page: 200 with contact + code reveal — status 200
+PASS  keyed order page noindex — robots=noindex
+PASS  page /games/does-not-exist: 404 — status 404 loc=- 492ms
+PASS  page /games/%E0%B8%97%E0%B8%94: 404 — status 404 loc=- 429ms
+PASS  page /games/rov?pkg=abc: 200 — status 200 loc=- 524ms
+PASS  page /topup/status?number=%3Cscript%3Ealert(1)%3C/script%3E: 200 — status 200 loc=- 352ms
+PASS  page /topup/status?number=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: 200 — status 200 loc=- 371ms
+PASS  page /topup/TP-999999: 404 — status 404 loc=- 537ms
+PASS  page /wallet: 307 — status 307 loc=/account/login?next=%2Fwallet 367ms
+PASS  page /account/topups: 307 — status 307 loc=/account/login?next=%2Faccount%2Ftopups 425ms
+PASS  page /account/login?next=//evil.example: 200 — status 200 loc=- 468ms
+PASS  link crawl: 18 internal URLs, none >=400 — / /games /how-to /contact /topup/status /account/login /wallet /account /games/rov /games/free-fire /games/genshin /games/valorant /games/pubg-mobile /games/roblox /games/mlbb /games/steam-wallet /privacy /terms
+
+68 pass, 0 fail

@@ -39,6 +39,19 @@ export function GameGridClient({ games, showSearch = true, variant = "tiles", in
     .filter((g) => match(g.category))
     .filter((g) => !needle || g.name.toLowerCase().includes(needle) || (g.publisher ?? "").toLowerCase().includes(needle) || g.slug.includes(needle));
 
+  // an empty catalog (fresh shop) is not a search miss: no chips / search box, and copy that says games are coming
+  if (games.length === 0) {
+    return (
+      <div className="card flex flex-col items-center gap-3 p-10 text-center">
+        <span className="flex size-14 items-center justify-center rounded-full bg-primary-soft text-primary">
+          <Gamepad2 className="size-7" />
+        </span>
+        <p className="font-heading text-lg font-semibold">ร้านกำลังเตรียมเกมให้เติม</p>
+        <p className="max-w-md text-sm text-muted-foreground">เร็ว ๆ นี้จะมีเกมและแพ็กเกจให้เลือก แวะกลับมาอีกครั้ง หรือติดต่อร้านผ่านช่องแชทได้เลย</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       {(showSearch || games.length > 6) && (
@@ -74,9 +87,19 @@ export function GameGridClient({ games, showSearch = true, variant = "tiles", in
       )}
 
       {filtered.length === 0 ? (
-        <div className="card flex flex-col items-center gap-2 p-10 text-center text-muted-foreground">
-          <Search className="size-8 opacity-60" />
-          <p>ไม่พบเกมที่ค้นหา ลองคำอื่นหรือเปลี่ยนหมวด</p>
+        <div className="card flex flex-col items-center gap-3 p-10 text-center text-muted-foreground">
+          <Search className="size-8" />
+          <p>{needle ? <>ไม่พบเกม &ldquo;{q.trim()}&rdquo; ลองคำอื่นหรือเปลี่ยนหมวด</> : "ยังไม่มีเกมในหมวดนี้ ลองเลือกหมวดอื่น"}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setQ("");
+              setTab("all");
+            }}
+            className="inline-flex h-11 items-center rounded-full border border-border/70 px-5 text-sm font-medium text-foreground transition hover:border-primary/50"
+          >
+            ดูเกมทั้งหมด
+          </button>
         </div>
       ) : (
         <Stagger key={`${tab}-${needle}-${variant}`} stagger={0.05} className={cn("grid gap-3 md:gap-4", variant === "cards" ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4" : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6")}>

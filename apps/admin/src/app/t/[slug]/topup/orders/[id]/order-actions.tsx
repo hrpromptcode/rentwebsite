@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Ban, CheckCircle2, ImagePlus, Loader2, MessageSquarePlus, RotateCcw, ThumbsDown, ThumbsUp, Upload, XCircle } from "lucide-react";
+import { Ban, Banknote, CheckCircle2, ImagePlus, Loader2, MessageSquarePlus, RotateCcw, ThumbsDown, ThumbsUp, Upload, XCircle } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@rentweb/ui/components/dialog";
 import { Input } from "@rentweb/ui/components/input";
@@ -13,9 +13,23 @@ import type { FormResult } from "@rentweb/module-topup/admin/schemas";
 import { NativeSelect } from "@rentweb/module-topup/admin/ui";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Field } from "@/components/ui/form";
-import { addNoteAction, approveSlipAction, cancelOrderAction, failOrderAction, fulfillOrderAction, rejectSlipAction, retryOrderAction, uploadProofAction } from "../actions";
+import { addNoteAction, approveSlipAction, cancelOrderAction, failOrderAction, fulfillOrderAction, markRefundedAction, rejectSlipAction, retryOrderAction, uploadProofAction } from "../actions";
 
-export type OrderLite = { id: string; number: string; status: string; fulfillment: string; paymentMethod: string; price: number; paidAt: string | null };
+export type OrderLite = {
+  id: string;
+  number: string;
+  status: string;
+  fulfillment: string;
+  paymentMethod: string;
+  price: number;
+  paidAt: string | null;
+  /** failed and flagged ต้องคืนเงิน (money not returned yet) */
+  refundRequired?: boolean;
+  /** the shop recorded the refund (or the wallet was credited back) */
+  refunded?: boolean;
+  /** RV-05: the payment layer flagged the order's money ต้องคืนเงิน (e.g. a slip approved after the order was cancelled) */
+  paymentRefund?: string | null;
+};
 export type PaymentLite = { id: string; status: string; amount: number; method: string; slipUrl: string | null } | null;
 
 function useRun() {
@@ -47,13 +61,15 @@ function useRun() {
 }
 
 /** Primary action bar for one top-up order. */
-export function TopupActionBar({ slug, order, payment, canWrite }: { slug: string; order: OrderLite; payment: PaymentLite; canWrite: boolean }) {
-  const { run, pending } = useRun();
+export function TopupActionBar({ slug, order, payment, canWrite, assetBase }: { slug: string; order: OrderLite; payment: PaymentLite; canWrite: boolean; assetBase: string }) {
+  const { pending } = useRun();
   const [fulfillOpen, setFulfillOpen] = React.useState(false);
   const [failOpen, setFailOpen] = React.useState(false);
   if (!canWrite) return null;
   const fulfillable = order.status === "processing" || order.status === "paid";
-  const retryable = order.fulfillment !== "manual" && !!order.paidAt && ["failed", "processing", "paid"].includes(order.status);
+  // ADMIN-12: money that went back is never re-fulfilled; while a refund is pending the refund is the primary action
+  const refundPending = !order.refunded && ((order.status === "failed" && !!order.refundRequired) || (!!order.paymentRefund && (order.status === "cancelled" || order.status === "failed")));
+  const retryable = order.fulfillment !== "manual" && !!order.paidAt && !order.refunded && ["failed", "processing", "paid"].includes(order.status);
   const slipPending = order.status === "pending_payment" && payment && ["pending", "pending_verification", "failed", "expired"].includes(payment.status);
 
   return (
@@ -63,19 +79,24 @@ export function TopupActionBar({ slug, order, payment, canWrite }: { slug: strin
           <CheckCircle2 aria-hidden /> เติมสำเร็จ
         </Button>
       )}
+      {refundPending && <MarkRefundedButton slug={slug} order={order} />}
       {retryable && (
         <ConfirmButton
-          variant={order.status === "failed" ? "default" : "outline"}
-          title="ลองเติมใหม่อีกครั้ง?"
-          description="ระบบจะส่งคำสั่งเติมไปยัง supplier / ตัดโค้ดจากสต็อกอีกครั้งด้วยข้อมูลผู้เล่นเดิม"
-          confirmLabel="ลองใหม่"
-          action={() => retryOrderAction(slug, order.id)}
+          variant={order.status === "failed" && !refundPending ? "default" : "outline"}
+          title={refundPending ? "ลองเติมใหม่ทั้งที่ติดธงต้องคืนเงิน?" : "ลองเติมใหม่อีกครั้ง?"}
+          description={
+            refundPending
+              ? "กดลองใหม่เฉพาะเมื่อยังไม่ได้โอนเงินคืนลูกค้า — ถ้าโอนคืนไปแล้วให้กด “บันทึกว่าคืนเงินแล้ว” แทน มิฉะนั้นลูกค้าจะได้ทั้งเงินคืนและของ"
+              : "ระบบจะส่งคำสั่งเติมไปยัง supplier / ตัดโค้ดจากสต็อกอีกครั้งด้วยข้อมูลผู้เล่นเดิม (ระบบตรวจสอบกับ supplier ก่อนส่งซ้ำ)"
+          }
+          confirmLabel={refundPending ? "ยังไม่ได้คืนเงิน ลองใหม่" : "ลองใหม่"}
+          action={() => retryOrderAction(slug, order.id, { ackRefundPending: refundPending })}
           disabled={pending !== null}
         >
           <RotateCcw aria-hidden /> ลองใหม่
         </ConfirmButton>
       )}
-      {(fulfillable || (order.status === "failed" && order.fulfillment !== "manual")) && order.status !== "failed" && (
+      {fulfillable && (
         <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setFailOpen(true)} disabled={pending !== null}>
           <XCircle aria-hidden /> เติมไม่สำเร็จ
         </Button>
@@ -94,15 +115,15 @@ export function TopupActionBar({ slug, order, payment, canWrite }: { slug: strin
           {payment!.status !== "failed" && <RejectSlipButton slug={slug} orderId={order.id} />}
         </>
       )}
-      {order.status === "pending_payment" && <CancelButton slug={slug} orderId={order.id} number={order.number} />}
+      {order.status === "pending_payment" && <CancelButton slug={slug} orderId={order.id} number={order.number} slipUnderReview={payment?.status === "pending_verification"} />}
 
-      <FulfillDialog slug={slug} order={order} open={fulfillOpen} onOpenChange={setFulfillOpen} />
+      <FulfillDialog slug={slug} order={order} open={fulfillOpen} onOpenChange={setFulfillOpen} assetBase={assetBase} />
       <FailDialog slug={slug} order={order} open={failOpen} onOpenChange={setFailOpen} />
     </div>
   );
 }
 
-function FulfillDialog({ slug, order, open, onOpenChange }: { slug: string; order: OrderLite; open: boolean; onOpenChange: (v: boolean) => void }) {
+function FulfillDialog({ slug, order, open, onOpenChange, assetBase }: { slug: string; order: OrderLite; open: boolean; onOpenChange: (v: boolean) => void; assetBase: string }) {
   const { run, pending } = useRun();
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [proof, setProof] = React.useState<string | null>(null);
@@ -150,7 +171,7 @@ function FulfillDialog({ slug, order, open, onOpenChange }: { slug: string; orde
         <div className="grid gap-4">
           <Field label="ภาพหลักฐาน (ไม่บังคับ)" htmlFor="proof-file" hint="ภาพหน้าจอผลการเติมจากเกม / supplier">
             <div className="flex items-start gap-3">
-              {proof ? <img src={proof} alt="หลักฐานการเติม" className="size-20 shrink-0 rounded-lg border object-cover" /> : <span className="grid size-20 shrink-0 place-items-center rounded-lg border border-dashed bg-muted text-muted-foreground"><ImagePlus className="size-5" aria-hidden /></span>}
+              {proof ? <img src={proof.startsWith("/") ? `${assetBase}${proof}` : proof} alt="หลักฐานการเติม" className="size-20 shrink-0 rounded-lg border object-cover" /> : <span className="grid size-20 shrink-0 place-items-center rounded-lg border border-dashed bg-muted text-muted-foreground"><ImagePlus className="size-5" aria-hidden /></span>}
               <div className="grid flex-1 gap-2">
                 <input ref={fileRef} id="proof-file" type="file" accept="image/*" className="sr-only" onChange={(e) => upload(e.target.files?.[0])} />
                 <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
@@ -189,15 +210,16 @@ function FailDialog({ slug, order, open, onOpenChange }: { slug: string; order: 
   const [preset, setPreset] = React.useState<string>(FAIL_REASONS[0]);
   const [custom, setCustom] = React.useState("");
   const reason = preset === "__other" ? custom.trim() : preset;
-  const paid = order.status !== "pending_payment";
-  const walletRefund = paid && order.paymentMethod === "wallet";
+  const walletRefund = order.paymentMethod === "wallet";
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>บันทึกเติมไม่สำเร็จ · {order.number}</DialogTitle>
           <DialogDescription>
-            {walletRefund ? `ระบบจะคืนเงิน ${(order.price / 100).toLocaleString("th-TH")} บาท เข้ากระเป๋าเงินของลูกค้าอัตโนมัติ` : paid ? "รายการนี้ชำระผ่านช่องทางอื่น ระบบจะติดธง “ต้องคืนเงินมือ” ให้คุณโอนคืนลูกค้าเอง" : "รายการยังไม่ชำระเงิน จะถูกปิดเป็นไม่สำเร็จ"}
+            {walletRefund
+              ? `ระบบจะคืนเงิน ${(order.price / 100).toLocaleString("th-TH")} บาท เข้ากระเป๋าเงินของลูกค้าอัตโนมัติ`
+              : "รายการนี้ชำระผ่านช่องทางอื่น ระบบจะติดธง “ต้องคืนเงิน” ให้คุณโอนคืนลูกค้าเอง แล้วกด “บันทึกว่าคืนเงินแล้ว”"}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
@@ -243,7 +265,7 @@ function RejectSlipButton({ slug, orderId }: { slug: string; orderId: string }) 
         <DialogContent>
           <DialogHeader>
             <DialogTitle>ปฏิเสธสลิปนี้?</DialogTitle>
-            <DialogDescription>ลูกค้าจะเห็นเหตุผลและสามารถแนบสลิปใหม่ได้</DialogDescription>
+            <DialogDescription>ลูกค้าจะเห็นเหตุผลที่หน้ารายการ และกด “ชำระเงินใหม่” เพื่อชำระอีกครั้งได้</DialogDescription>
           </DialogHeader>
           <Field label="เหตุผล" htmlFor="reject-reason">
             <NativeSelect id="reject-reason" value={reason} onChange={(e) => setReason(e.target.value)}>
@@ -269,7 +291,41 @@ function RejectSlipButton({ slug, orderId }: { slug: string; orderId: string }) 
   );
 }
 
-function CancelButton({ slug, orderId, number }: { slug: string; orderId: string; number: string }) {
+function MarkRefundedButton({ slug, order }: { slug: string; order: OrderLite }) {
+  const { run, pending } = useRun();
+  const [open, setOpen] = React.useState(false);
+  const [note, setNote] = React.useState("");
+  return (
+    <>
+      <Button onClick={() => setOpen(true)} disabled={pending !== null}>
+        <Banknote aria-hidden /> บันทึกว่าคืนเงินแล้ว
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>บันทึกว่าคืนเงิน {order.number} แล้ว?</DialogTitle>
+            <DialogDescription>
+              ยืนยันว่าโอนเงิน {(order.price / 100).toLocaleString("th-TH")} บาท คืนลูกค้าเรียบร้อยแล้ว ระบบจะปิดรายการเป็น “คืนเงินแล้ว” บันทึกการคืนเงินในรายการชำระเงิน และจะลองเติมใหม่ไม่ได้อีก
+            </DialogDescription>
+          </DialogHeader>
+          <Field label="เลขอ้างอิงการโอน / หมายเหตุ (ไม่บังคับ)" htmlFor="refund-note" hint="เช่น โอนคืนพร้อมเพย์ 14:20 อ้างอิง 0123">
+            <Input id="refund-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} placeholder="อ้างอิงการโอนคืน" />
+          </Field>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={pending !== null}>
+              กลับ
+            </Button>
+            <Button disabled={pending !== null} onClick={() => run("refund", () => markRefundedAction(slug, order.id, note), () => setOpen(false))}>
+              {pending === "refund" ? <Loader2 className="animate-spin" aria-hidden /> : <Banknote aria-hidden />} ยืนยันคืนเงินแล้ว
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function CancelButton({ slug, orderId, number, slipUnderReview }: { slug: string; orderId: string; number: string; slipUnderReview?: boolean }) {
   const { run, pending } = useRun();
   const [open, setOpen] = React.useState(false);
   const [reason, setReason] = React.useState("");
@@ -281,8 +337,12 @@ function CancelButton({ slug, orderId, number }: { slug: string; orderId: string
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>ยกเลิก {number}?</DialogTitle>
-            <DialogDescription>ใช้เมื่อลูกค้าไม่ชำระเงิน รายการชำระเงินที่ค้างอยู่จะถูกปิด</DialogDescription>
+            <DialogTitle>{slipUnderReview ? `ยกเลิก ${number} ทั้งที่มีสลิปรอตรวจ?` : `ยกเลิก ${number}?`}</DialogTitle>
+            <DialogDescription>
+              {slipUnderReview
+                ? "ลูกค้าแนบสลิปไว้แล้วแต่ยังไม่ได้ตรวจ — ถ้ายกเลิก สลิปนี้จะถูกปิดและลูกค้าต้องสั่งใหม่ (ถ้าได้รับเงินจริง ให้กด “อนุมัติสลิป” แทน)"
+                : "ใช้เมื่อลูกค้าไม่ชำระเงิน รายการชำระเงินที่ค้างอยู่จะถูกปิด"}
+            </DialogDescription>
           </DialogHeader>
           <Field label="เหตุผล (ไม่บังคับ)" htmlFor="cancel-reason">
             <Input id="cancel-reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} placeholder="เช่น ลูกค้าไม่โอนภายในเวลา" />
@@ -291,7 +351,7 @@ function CancelButton({ slug, orderId, number }: { slug: string; orderId: string
             <Button variant="outline" onClick={() => setOpen(false)} disabled={pending !== null}>
               กลับ
             </Button>
-            <Button variant="destructive" disabled={pending !== null} onClick={() => run("cancel", () => cancelOrderAction(slug, orderId, reason), () => setOpen(false))}>
+            <Button variant="destructive" disabled={pending !== null} onClick={() => run("cancel", () => cancelOrderAction(slug, orderId, reason, { allowSlipPending: !!slipUnderReview }), () => setOpen(false))}>
               {pending === "cancel" && <Loader2 className="animate-spin" aria-hidden />} ยืนยันยกเลิก
             </Button>
           </DialogFooter>

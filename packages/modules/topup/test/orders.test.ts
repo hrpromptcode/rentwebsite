@@ -73,7 +73,7 @@ describe("createTopupOrder", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.value.order.status).toBe("pending_payment");
-    expect(r.value.order.customerId).toBeTruthy(); // guest customer created from the phone
+    expect(r.value.order.customerId).toBeNull(); // STOREFRONT-05: guest orders never get / reuse a customers row
     expect(r.value.order.riskFlags).toContain("guest");
     expect(r.value.payment!.method).toBe("promptpay_qr");
     expect(r.value.payment!.qrPayload).toBeTruthy();
@@ -94,10 +94,10 @@ describe("createTopupOrder", () => {
   it("rejects missing / invalid player fields", async () => {
     const r = await f.tx((tx) => createTopupOrder(tx, f.tenantId, base({ playerFields: { server: "Asia" } })));
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toBe("missing_field");
+    if (!r.ok) expect(r.code).toBe("missing_field");
     const r2 = await f.tx((tx) => createTopupOrder(tx, f.tenantId, base({ playerFields: { uid: "1", server: "Mars" } })));
     expect(r2.ok).toBe(false);
-    if (!r2.ok) expect(r2.error).toBe("invalid_field");
+    if (!r2.ok) expect(r2.code).toBe("invalid_field");
   });
 
   it("requires login for wallet payments", async () => {

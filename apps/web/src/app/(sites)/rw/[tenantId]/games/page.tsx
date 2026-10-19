@@ -24,9 +24,11 @@ export default async function GamesPage({ params, searchParams }: { params: Prom
     <PageBody theme={runtime.theme} sections={[]}>
       <section className="container-x pb-16 md:pb-24">
         <Reveal className="mb-10 max-w-3xl">
-          <Badge variant="soft" className="mb-4 gap-1.5 px-3 py-1 text-sm">
-            <Gamepad2 /> {games.length} เกมที่รองรับ
-          </Badge>
+          {games.length > 0 && (
+            <Badge variant="soft" className="mb-4 gap-1.5 px-3 py-1 text-sm">
+              <Gamepad2 /> {games.length} เกมที่รองรับ
+            </Badge>
+          )}
           <h1 className="heading-display text-4xl font-semibold md:text-6xl">เลือกเกมที่จะเติม</h1>
           <p className="mt-4 text-base text-muted-foreground md:text-lg">กดเลือกเกม กรอก ID เลือกแพ็กเกจ แล้วชำระเงิน ระบบเติมให้อัตโนมัติภายในไม่กี่วินาที</p>
           <div className="mt-5 flex flex-wrap gap-2 text-sm text-muted-foreground">

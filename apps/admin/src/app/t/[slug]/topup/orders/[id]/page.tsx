@@ -7,10 +7,12 @@ import { Badge } from "@rentweb/ui/components/badge";
 import { Button } from "@rentweb/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@rentweb/ui/components/card";
 import { getAdminTopupOrder } from "@rentweb/module-topup/admin";
+import { topupFailureText } from "@rentweb/module-topup/services";
 import { RISK_FLAG_LABEL, TIER_LABEL } from "@rentweb/module-topup/admin/labels";
 import { CopyField, FulfillmentBadge, ImagePreview, PaymentStatusBadge, TopupStatusBadge, ToneBadge, paymentMethodLabel } from "@rentweb/module-topup/admin/ui";
 import { assetUrl, fmtDate, fmtNumber, fmtRelative, thb } from "@/lib/format";
 import { getTenantCtx, hasRole, tenantTx } from "@/lib/tenant";
+import { assetBase } from "../../_shared";
 import { NoteComposer, TopupActionBar } from "./order-actions";
 
 export const metadata: Metadata = { title: "รายละเอียดรายการเติม" };
@@ -49,16 +51,37 @@ export default async function TopupOrderDetailPage({ params }: { params: Promise
             </p>
           </div>
         </div>
-        <TopupActionBar slug={slug} order={{ id: order.id, number: order.number, status: order.status, fulfillment: order.fulfillment, paymentMethod: order.paymentMethod, price: order.price, paidAt: order.paidAt?.toISOString() ?? null }} payment={payment ? { id: payment.id, status: payment.status, amount: payment.amount, method: payment.method, slipUrl: payment.slipUrl } : null} canWrite={canWrite} />
+        <TopupActionBar slug={slug} order={{ id: order.id, number: order.number, status: order.status, fulfillment: order.fulfillment, paymentMethod: order.paymentMethod, price: order.price, paidAt: order.paidAt?.toISOString() ?? null, refundRequired: data.refundRequired, refunded: order.status === "refunded" || !!data.refund, paymentRefund: data.paymentRefundReason }} payment={payment ? { id: payment.id, status: payment.status, amount: payment.amount, method: payment.method, slipUrl: payment.slipUrl } : null} canWrite={canWrite} assetBase={assetBase()} />
       </div>
 
       {order.status === "failed" && order.failureReason && (
         <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
-          <span className="font-medium text-destructive">เติมไม่สำเร็จ:</span> {order.failureReason}
-          {data.refundRequired && <span className="block text-muted-foreground">ชำระผ่าน {paymentMethodLabel(order.paymentMethod)} — กรุณาโอนคืนลูกค้า {thb(order.price)} ด้วยตนเอง แล้วบันทึกโน้ตไว้</span>}
+          <span className="font-medium text-destructive">เติมไม่สำเร็จ:</span> {topupFailureText(order.failureReason)}
+          {data.refundRequired && (
+            <span className="block text-muted-foreground">
+              ต้องคืนเงิน — ชำระผ่าน {paymentMethodLabel(order.paymentMethod)} กรุณาโอนคืนลูกค้า {thb(order.price)} ด้วยตนเอง แล้วกด “บันทึกว่าคืนเงินแล้ว”
+            </span>
+          )}
         </div>
       )}
-      {order.status === "refunded" && <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm">คืนเงิน {thb(order.price)} เข้ากระเป๋าลูกค้าแล้ว{order.failureReason ? ` · เหตุผล: ${order.failureReason}` : ""}</div>}
+      {data.paymentRefundReason && order.status !== "refunded" && !data.refundRequired && (
+        <div role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
+          <span className="font-medium text-destructive">ได้รับเงินแล้วแต่ต้องคืนลูกค้า:</span> {data.paymentRefundReason}
+          <span className="block text-muted-foreground">
+            {order.status === "cancelled" || order.status === "failed"
+              ? `โอนคืนลูกค้า ${thb(payment?.amount ?? order.price)} ด้วยตนเอง แล้วกด “บันทึกว่าคืนเงินแล้ว”`
+              : "ตรวจสอบรายการชำระเงินที่หน้า “การชำระเงิน” แล้วโอนคืนลูกค้าด้วยตนเอง"}
+          </span>
+        </div>
+      )}
+      {order.status === "refunded" && (
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm">
+          {data.refund
+            ? `บันทึกว่าคืนเงิน ${thb(data.refund.amount ?? order.price)} ให้ลูกค้าแล้ว เมื่อ ${fmtDate(data.refund.at, { withTime: true })}${data.refund.note ? ` · ${data.refund.note}` : ""}`
+            : `คืนเงิน ${thb(order.price)} เข้ากระเป๋าลูกค้าแล้ว`}
+          {order.failureReason ? ` · เหตุผล: ${topupFailureText(order.failureReason)}` : ""}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="space-y-6">
@@ -84,7 +107,7 @@ export default async function TopupOrderDetailPage({ params }: { params: Promise
             </CardHeader>
             <CardContent className="grid gap-4">
               <div className="flex items-start gap-3">
-                {game?.image ? <img src={game.image} alt="" className="size-14 rounded-xl object-cover" /> : <span className="size-14 rounded-xl bg-muted" />}
+                {game?.image ? <img src={assetUrl(game.image)} alt="" className="size-14 rounded-xl object-cover" /> : <span className="size-14 rounded-xl bg-muted" />}
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold">{order.packageName}</p>
                   <p className="text-sm text-muted-foreground">
@@ -135,7 +158,7 @@ export default async function TopupOrderDetailPage({ params }: { params: Promise
               )}
               {order.proofImage && (
                 <div className="flex items-center gap-3">
-                  <ImagePreview src={order.proofImage} title="หลักฐานการเติม" />
+                  <ImagePreview src={assetUrl(order.proofImage)} title="หลักฐานการเติม" />
                   <span className="text-sm text-muted-foreground">หลักฐานการเติมที่แอดมินแนบไว้</span>
                 </div>
               )}
@@ -153,7 +176,7 @@ export default async function TopupOrderDetailPage({ params }: { params: Promise
                 <p className="text-sm text-muted-foreground">ไม่มีข้อมูลการชำระเงิน</p>
               ) : (
                 <div className="flex flex-wrap items-start gap-4">
-                  {payment.method === "slip" && <ImagePreview src={assetUrl(payment.slipUrl)} title={`สลิป ${order.number}`} description={payment.slipTransRef ? `อ้างอิงธนาคาร ${payment.slipTransRef}` : undefined} size="lg" />}
+                  {payment.method === "slip" && payment.slipUrl && <ImagePreview src={assetUrl(payment.slipUrl)} title={`สลิป ${order.number}`} description={payment.slipTransRef ? `อ้างอิงธนาคาร ${payment.slipTransRef}` : undefined} size="lg" />}
                   <dl className="grid flex-1 gap-2 text-sm sm:grid-cols-2">
                     <div>
                       <dt className="text-xs text-muted-foreground">ช่องทาง</dt>

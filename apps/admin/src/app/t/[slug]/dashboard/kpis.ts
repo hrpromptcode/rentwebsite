@@ -6,6 +6,7 @@
  */
 import { and, bookings, count, customers, eq, games, gte, inArray, lt, menuItems, orders, products, reservations, restaurantOrders, services, sql, sum, tableSessions, topupOrders, type Tx } from "@rentweb/db";
 import { paymentQueueCounts } from "@rentweb/module-commerce/admin";
+import { TOPUP_SALE_STATUSES } from "@rentweb/module-topup/admin";
 
 export interface Kpis {
   ordersToday: number | null;
@@ -88,13 +89,14 @@ export async function computeKpis(
     realItem ||= num(sv?.c) > 0;
   }
   if (hasTopup) {
-    const [t] = await tx.select({ c: count() }).from(topupOrders).where(and(eq(topupOrders.tenantId, tenantId), gte(topupOrders.placedAt, today), lt(topupOrders.placedAt, tomorrow)));
+    // ADMIN-10: the same definition as the module header (topupKpis): paid orders placed today, not every row
+    const [t] = await tx.select({ c: count() }).from(topupOrders).where(and(eq(topupOrders.tenantId, tenantId), gte(topupOrders.placedAt, today), lt(topupOrders.placedAt, tomorrow), inArray(topupOrders.status, [...TOPUP_SALE_STATUSES])));
     k.topupsToday = num(t?.c);
     if (!hasCommerce) {
       const [paid] = await tx
         .select({ s: sum(topupOrders.price) })
         .from(topupOrders)
-        .where(and(eq(topupOrders.tenantId, tenantId), gte(topupOrders.placedAt, today), lt(topupOrders.placedAt, tomorrow), inArray(topupOrders.status, ["paid", "processing", "fulfilled"])));
+        .where(and(eq(topupOrders.tenantId, tenantId), gte(topupOrders.placedAt, today), lt(topupOrders.placedAt, tomorrow), inArray(topupOrders.status, [...TOPUP_SALE_STATUSES])));
       addRevenue(num(paid?.s));
     }
     const [q] = await tx.select({ c: count() }).from(topupOrders).where(and(eq(topupOrders.tenantId, tenantId), inArray(topupOrders.status, ["paid", "processing"])));

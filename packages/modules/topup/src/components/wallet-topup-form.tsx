@@ -9,6 +9,7 @@ import { Label } from "@rentweb/ui/components/label";
 import { cn } from "@rentweb/ui/lib/utils";
 import { PaymentMethodPicker, type PaymentMethodOption } from "@rentweb/storefront/payments";
 import { percentOf, thb } from "@rentweb/core/money";
+import { MAX_WALLET_TOPUP_SATANG, parseBahtInput } from "./format";
 
 export interface WalletTopupState {
   error?: string;
@@ -20,6 +21,7 @@ export function WalletTopupForm({
   bonusPercent,
   methods,
   action,
+  maxAmount = MAX_WALLET_TOPUP_SATANG,
 }: {
   /** satang */
   presets: number[];
@@ -27,22 +29,25 @@ export function WalletTopupForm({
   bonusPercent: number;
   methods: PaymentMethodOption[];
   action: (prev: WalletTopupState, form: FormData) => Promise<WalletTopupState>;
+  /** satang; defaults to the server action's cap (฿100,000) */
+  maxAmount?: number;
 }) {
   const [state, submit, pending] = useActionState(action, {} as WalletTopupState);
-  const [amount, setAmount] = React.useState<number>(presets[1] ?? presets[0] ?? minAmount);
+  const [preset, setPreset] = React.useState<number>(presets[1] ?? presets[0] ?? minAmount);
   const [custom, setCustom] = React.useState<string>("");
   const [method, setMethod] = React.useState<PaymentMethodOption["value"]>(methods.find((m) => !m.disabled)?.value ?? "promptpay_qr");
+  // a typed amount always wins over the preset; an unparsable one blocks the submit with an inline reason
+  const usingCustom = custom.trim() !== "";
+  const parsed = usingCustom ? parseBahtInput(custom, { max: maxAmount }) : null;
+  const customError = parsed && !parsed.ok ? parsed.error : null;
+  const amount = parsed ? (parsed.ok ? parsed.satang : 0) : preset;
   const bonus = percentOf(amount, bonusPercent);
-  const tooLow = amount < minAmount;
+  const tooLow = !customError && amount < minAmount;
+  const blocked = !!customError || tooLow || amount <= 0;
 
   const pickPreset = (v: number) => {
-    setAmount(v);
+    setPreset(v);
     setCustom("");
-  };
-  const onCustom = (v: string) => {
-    setCustom(v);
-    const n = Math.round(Number(v.replace(/[^0-9.]/g, "")) * 100);
-    if (Number.isFinite(n) && n > 0) setAmount(n);
   };
 
   return (
@@ -52,7 +57,7 @@ export function WalletTopupForm({
         <Label className="mb-3 block">เลือกจำนวนเงิน</Label>
         <div role="radiogroup" aria-label="จำนวนเงิน" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {presets.map((p) => {
-            const active = amount === p && custom === "";
+            const active = preset === p && !usingCustom;
             return (
               <button
                 key={p}
@@ -75,15 +80,31 @@ export function WalletTopupForm({
           <Label htmlFor="custom-amount">หรือระบุจำนวนเอง (บาท)</Label>
           <div className="relative">
             <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted-foreground">฿</span>
-            <Input id="custom-amount" inputMode="decimal" value={custom} onChange={(e) => onCustom(e.target.value)} placeholder={`ขั้นต่ำ ${thb(minAmount)}`} className="h-12 pl-8" />
+            <Input
+              id="custom-amount"
+              inputMode="decimal"
+              autoComplete="off"
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+              placeholder={`ขั้นต่ำ ${thb(minAmount)}`}
+              className="h-12 pl-8"
+              maxLength={16}
+              aria-invalid={customError ? true : undefined}
+              aria-describedby={customError ? "custom-amount-error" : undefined}
+            />
           </div>
+          {customError && (
+            <p id="custom-amount-error" role="alert" className="flex items-center gap-2 text-sm text-destructive">
+              <AlertTriangle className="size-4 shrink-0" /> {customError}
+            </p>
+          )}
         </div>
       </div>
 
       <div className="rounded-[var(--radius-lg)] border border-primary/30 bg-primary-soft p-4">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">ชำระ</span>
-          <span className="font-medium">{thb(amount)}</span>
+          <span className="font-medium">{amount > 0 ? thb(amount) : "—"}</span>
         </div>
         {bonusPercent > 0 && (
           <div className="mt-1 flex items-center justify-between text-sm">
@@ -95,7 +116,7 @@ export function WalletTopupForm({
         )}
         <div className="mt-2 flex items-center justify-between border-t border-primary/20 pt-2">
           <span className="font-medium">เข้ากระเป๋าทั้งหมด</span>
-          <span className="font-heading text-2xl font-semibold text-primary text-glow">{thb(amount + bonus)}</span>
+          <span className="font-heading text-2xl font-semibold text-primary text-glow">{amount > 0 ? thb(amount + bonus) : "—"}</span>
         </div>
       </div>
 
@@ -110,8 +131,8 @@ export function WalletTopupForm({
         </p>
       )}
 
-      <Button type="submit" size="xl" disabled={pending || tooLow} className="w-full">
-        {pending ? <Loader2 className="animate-spin" /> : <Plus />} {pending ? "กำลังสร้างรายการ…" : `เติมเงิน ${thb(amount)}`}
+      <Button type="submit" size="xl" disabled={pending || blocked} className="w-full">
+        {pending ? <Loader2 className="animate-spin" /> : <Plus />} {pending ? "กำลังสร้างรายการ…" : amount > 0 && !customError ? `เติมเงิน ${thb(amount)}` : "เติมเงิน"}
       </Button>
     </form>
   );

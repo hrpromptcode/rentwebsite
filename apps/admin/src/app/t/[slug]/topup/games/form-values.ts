@@ -10,6 +10,12 @@ export interface FieldRowVM {
   /** select options, one per line in the editor */
   options: string;
   helpImage: string;
+  /** STOREFRONT-12 format rule (regex source, whole value) + Thai hint + length / keypad */
+  pattern: string;
+  hint: string;
+  minLength: string;
+  maxLength: string;
+  inputMode: "" | "text" | "numeric";
 }
 
 export interface GameFormValues {
@@ -27,7 +33,7 @@ export interface GameFormValues {
   sort: string;
 }
 
-export const EMPTY_FIELD: FieldRowVM = { key: "", label: "", type: "text", required: true, placeholder: "", options: "", helpImage: "" };
+export const EMPTY_FIELD: FieldRowVM = { key: "", label: "", type: "text", required: true, placeholder: "", options: "", helpImage: "", pattern: "", hint: "", minLength: "", maxLength: "", inputMode: "" };
 
 export const EMPTY_GAME: GameFormValues = {
   name: "",
@@ -52,7 +58,7 @@ export function toGameFormValues(g: {
   image: string | null;
   banner: string | null;
   category: string;
-  fields: Array<{ key: string; label: string; type: string; required?: boolean; placeholder?: string; options?: string[]; helpImage?: string }>;
+  fields: Array<{ key: string; label: string; type: string; required?: boolean; placeholder?: string; options?: string[]; helpImage?: string; pattern?: string; hint?: string; minLength?: number; maxLength?: number; inputMode?: "text" | "numeric" }>;
   instructions: string | null;
   featured: boolean;
   active: boolean;
@@ -74,6 +80,11 @@ export function toGameFormValues(g: {
       placeholder: f.placeholder ?? "",
       options: (f.options ?? []).join("\n"),
       helpImage: f.helpImage ?? "",
+      pattern: f.pattern ?? "",
+      hint: f.hint ?? "",
+      minLength: f.minLength ? String(f.minLength) : "",
+      maxLength: f.maxLength ? String(f.maxLength) : "",
+      inputMode: f.inputMode ?? "",
     })),
     instructions: g.instructions ?? "",
     featured: g.featured,
@@ -99,6 +110,11 @@ export function toGameInput(v: GameFormValues): GameInput {
       placeholder: f.placeholder,
       options: f.type === "select" ? f.options.split(/\r?\n|,/).map((o) => o.trim()).filter(Boolean) : undefined,
       helpImage: f.helpImage,
+      pattern: f.pattern.trim() || undefined,
+      hint: f.hint.trim() || undefined,
+      minLength: f.minLength.trim() ? f.minLength.trim() : undefined,
+      maxLength: f.maxLength.trim() ? f.maxLength.trim() : undefined,
+      inputMode: f.inputMode || undefined,
     })),
     instructions: v.instructions.trim() || null,
     featured: v.featured,

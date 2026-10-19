@@ -22,6 +22,7 @@ const TOPUP_STATUS: Record<string, { label: string; variant: "success" | "warnin
   credited: { label: "เข้ากระเป๋าแล้ว", variant: "success" },
   rejected: { label: "ปฏิเสธ", variant: "destructive" },
   expired: { label: "หมดอายุ", variant: "muted" },
+  cancelled: { label: "ยกเลิก", variant: "muted" },
 };
 
 export default async function TopupWalletDetailPage({ params }: { params: Promise<{ slug: string; id: string }> }) {

@@ -1,5 +1,5 @@
 import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
-import { bookings, customers, diningTables, orders, payments, rentalStays, reservations, restaurantOrders, tableSessions, ticketOrders, topupOrders, type Tx } from "@rentweb/db";
+import { bookings, customers, diningTables, orders, payments, rentalStays, reservations, restaurantOrders, tableSessions, ticketOrders, topupOrders, walletTopups, wallets, type Tx } from "@rentweb/db";
 import { paymentRefundRequired } from "@rentweb/core/payments";
 
 export type PaymentQueueTab = "pending_verification" | "paid" | "failed";
@@ -41,7 +41,7 @@ function bangkokYmd(d: Date): string {
  * Admin route for the referenced record. Restaurant orders and reservations have no detail route (AM-01):
  * orders open the history view filtered to the order's day and number, reservations the day view.
  */
-export function refHrefFor(refType: string, refId: string, ctx: { number?: string | null; at?: Date | null } = {}): string | null {
+export function refHrefFor(refType: string, refId: string, ctx: { number?: string | null; at?: Date | null; walletId?: string | null } = {}): string | null {
   switch (refType) {
     case "order":
       return `/orders/${refId}`;
@@ -50,7 +50,8 @@ export function refHrefFor(refType: string, refId: string, ctx: { number?: strin
     case "topup":
       return `/topup/orders/${refId}`;
     case "wallet_topup":
-      return `/topup/wallets`;
+      // the customer's wallet ledger that holds this top-up (ADMIN-09); the list only when the wallet is unknown
+      return ctx.walletId ? `/topup/wallets/${ctx.walletId}` : `/topup/wallets`;
     case "rest_order": {
       if (!ctx.at) return "/restaurant/orders";
       const day = bangkokYmd(ctx.at);
@@ -82,6 +83,19 @@ async function refInfo(tx: Tx, tenantId: string, rows: Array<{ refType: string; 
   if (ids("order").length) for (const x of await tx.select({ id: orders.id, number: orders.number }).from(orders).where(and(eq(orders.tenantId, tenantId), inArray(orders.id, ids("order"))))) put("order", x.id, x.number);
   if (ids("booking").length) for (const x of await tx.select({ id: bookings.id, number: bookings.number }).from(bookings).where(and(eq(bookings.tenantId, tenantId), inArray(bookings.id, ids("booking"))))) put("booking", x.id, x.number);
   if (ids("topup").length) for (const x of await tx.select({ id: topupOrders.id, number: topupOrders.number }).from(topupOrders).where(and(eq(topupOrders.tenantId, tenantId), inArray(topupOrders.id, ids("topup"))))) put("topup", x.id, x.number);
+  if (ids("wallet_topup").length) {
+    // wallet top-ups have no number: label them with the wallet owner and link to that wallet's ledger
+    const rows = await tx
+      .select({ id: walletTopups.id, walletId: walletTopups.walletId, name: customers.name, phone: customers.phone, email: customers.email })
+      .from(walletTopups)
+      .leftJoin(wallets, and(eq(wallets.tenantId, tenantId), eq(wallets.id, walletTopups.walletId)))
+      .leftJoin(customers, and(eq(customers.tenantId, tenantId), eq(customers.id, wallets.customerId)))
+      .where(and(eq(walletTopups.tenantId, tenantId), inArray(walletTopups.id, ids("wallet_topup"))));
+    for (const x of rows) {
+      const who = x.phone ?? x.name ?? x.email;
+      map.set(`wallet_topup:${x.id}`, { number: who ? `กระเป๋าเงิน ${who}` : "กระเป๋าเงินลูกค้า", href: refHrefFor("wallet_topup", x.id, { walletId: x.walletId }) });
+    }
+  }
   if (ids("rest_order").length) {
     const restIds = ids("rest_order");
     const single = await tx.select({ id: restaurantOrders.id, number: restaurantOrders.number, at: restaurantOrders.placedAt }).from(restaurantOrders).where(and(eq(restaurantOrders.tenantId, tenantId), inArray(restaurantOrders.id, restIds)));

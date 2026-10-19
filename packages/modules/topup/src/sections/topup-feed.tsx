@@ -19,7 +19,7 @@ export async function TopupFeedSection({ ctx, props: p, id }: { ctx: StorefrontC
       <div className="container-x">
         <SectionHeading heading={p.heading} align="left" className="mb-6 md:mb-8" />
         <Reveal>
-          <TopupFeedClient initial={rows} limit={p.limit} />
+          <TopupFeedClient initial={rows} limit={p.limit} renderedAt={new Date().toISOString()} />
         </Reveal>
       </div>
     </Section>

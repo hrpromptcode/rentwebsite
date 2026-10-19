@@ -1,0 +1,10 @@
+◇ injected env (13) from ..\.env // tip: ⌘ suppress logs { quiet: true }
+rov pkg 01a1401c-bc33-708f-abac-122aa25de837 40 คูปอง 3500 api
+S0 paymentHookSummary: {"paid":["order","booking","patient_package","topup","wallet_topup","rest_order","reservation","stay","ticket_order"],"failed":[],"closed":["order","booking","patient_package","topup","wallet_topup","rest_order","reservation","stay","ticket_order"],"target":["topup","stay","ticket_order"],"access":["topup","wallet_topup","stay","ticket_order"]}
+S1 guest order TP-1141 created; order.customer_id=null existing(0812345678).id=01a1401d-bea9-752e-882c-1f75b0c9438f name=ทดสอบ เติมเกม → separate; orders of that customer before=4
+S2 blocked guest refused: ขออภัย ไม่สามารถทำรายการได้ กรุณาติดต่อร้านโดยตรง customer_blocked
+S2b refused: ขออภัย ไม่สามารถทำรายการได้ กรุณาติดต่อร้านโดยตรง customer_blocked
+S3 otp gate: result otp_required; customers with phone 0868000003 before=1 after=1 (01a15033-bfdd-7433-a397-605be06e2941)
+S4 sweep: order TP-1142 payment expired 2h ago; expireStalePayments → {"expired":26,"skipped":0,"errors":0}; payment.status=expired order.status=cancelled
+S4b cancelPayment(runHandler default) → expired; order.status after=cancelled
+S5 failed orders vs payment refundRequired: [{"number":"TP-1057","status":"failed","payment_method":"promptpay_qr","order_rr":null,"pstatus":"paid","pay_rr":null,"failure_reason":null},{"number":"TP-1048","status":"failed","payment_method":"promptpay_qr","order_rr":"true","pstatus":"paid","pay_rr":null,"failure_reason":null},{"number":"TP-1038","status":"failed","payment_method":"promptpay_qr","order_rr":"true","pstatus":"paid","pay_rr":null,"failure_reason":"ยอดเงินไม่ตรง"},{"number":"TP-1032","status":"failed","payment_method":"promptpay_qr","order_rr":"true","pstatus":"paid","pay_rr":null,"failure_reason":"ยอดเงินไม่ตรง"},{"number":"TP-1026","status":"failed","payment_method":"promptpay_qr","order_rr":"true","pstatus":"paid","pay_rr":null,"failure_reason":"ยอดเงินไม่ตรง"}]

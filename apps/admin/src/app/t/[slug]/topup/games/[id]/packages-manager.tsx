@@ -187,7 +187,7 @@ function PackageRow({ slug, gameId, p, canWrite, onEdit, stockHref }: { slug: st
               <Pencil aria-hidden />
             </Button>
             {p.orderCount === 0 && (
-              <ConfirmButton variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive" title={`ลบแพ็กเกจ “${p.name}”?`} description="ลบถาวร (แพ็กเกจที่เคยมีรายการสั่งจะลบไม่ได้ ให้ปิดขายแทน)" confirmLabel="ลบแพ็กเกจ" action={() => deletePackageAction(slug, gameId, p.id)} aria-label={`ลบ ${p.name}`}>
+              <ConfirmButton variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive" title={`ลบแพ็กเกจ “${p.name}”?`} description={(p.available ?? 0) > 0 ? `แพ็กเกจนี้ยังมีโค้ดพร้อมขาย ${p.available} โค้ด — ระบบจะไม่ลบจนกว่าจะยกเลิก (void) โค้ดทั้งหมดในแท็บสต็อกโค้ด แนะนำให้ปิดขายแทน` : "ลบถาวร (แพ็กเกจที่เคยมีรายการสั่ง หรือยังมีโค้ดที่ยังไม่ขาย จะลบไม่ได้ ให้ปิดขายแทน)"} confirmLabel="ลบแพ็กเกจ" action={() => deletePackageAction(slug, gameId, p.id)} aria-label={`ลบ ${p.name}`}>
                 <Trash2 aria-hidden />
               </ConfirmButton>
             )}

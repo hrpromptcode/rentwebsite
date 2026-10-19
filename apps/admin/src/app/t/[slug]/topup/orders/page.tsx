@@ -9,7 +9,7 @@ import { FilterTabs, Pagination, qs } from "@rentweb/module-topup/admin/ui";
 import { EmptyState } from "@/components/ui/empty-state";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { PageHeader } from "@/components/ui/page-header";
-import { fmtNumber, fmtRelative, startOfTodayBangkok, thb } from "@/lib/format";
+import { assetUrl, fmtNumber, fmtRelative, startOfTodayBangkok, thb } from "@/lib/format";
 import { getTenantCtx, hasRole, tenantTx } from "@/lib/tenant";
 import { OrdersTable } from "./orders-table";
 
@@ -85,7 +85,7 @@ export default async function TopupOrdersPage({ params, searchParams }: { params
         />
       ) : (
         <div className="card py-0">
-          <OrdersTable slug={slug} rows={list.rows.map((r) => ({ ...r, placedAt: r.placedAt.toISOString(), paidAt: r.paidAt?.toISOString() ?? null, placedRel: fmtRelative(r.placedAt), paidRel: r.paidAt ? fmtRelative(r.paidAt) : null, fulfilledAt: r.fulfilledAt?.toISOString() ?? null }))} canBatch={canWrite && tab === "manual"} />
+          <OrdersTable slug={slug} rows={list.rows.map((r) => ({ ...r, gameImage: r.gameImage ? assetUrl(r.gameImage) : null, placedAt: r.placedAt.toISOString(), paidAt: r.paidAt?.toISOString() ?? null, placedRel: fmtRelative(r.placedAt), paidRel: r.paidAt ? fmtRelative(r.paidAt) : null, fulfilledAt: r.fulfilledAt?.toISOString() ?? null }))} canBatch={canWrite && tab === "manual"} />
           <Pagination page={list.page} pages={list.pages} total={list.total} baseHref={base} params={params_} label="รายการ" />
         </div>
       )}

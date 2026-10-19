@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { isUuid } from "@rentweb/core";
-import { addOrderNote, adminApproveSlip, adminCancelOrder, adminFailOrder, adminFulfillMany, adminFulfillOrder, adminRejectSlip, adminRetryOrder } from "@rentweb/module-topup/admin";
+import { addOrderNote, adminApproveSlip, adminCancelOrder, adminFailOrder, adminFulfillMany, adminFulfillOrder, adminMarkRefunded, adminRejectSlip, adminRetryOrder } from "@rentweb/module-topup/admin";
 import { failSchema, fieldErrors, fulfillSchema, type FormResult, type FulfillInput } from "@rentweb/module-topup/admin/schemas";
 import { assertRole, getTenantCtx, tenantTx } from "@/lib/tenant";
 import { actorOf, revalidateTopup, storeImage } from "../_shared";
@@ -46,24 +46,35 @@ export async function failOrderAction(slug: string, orderId: string, reason: str
   return { ok: true, message: msg, data: { refunded: r.value.refunded, refundRequired: r.value.refundRequired } };
 }
 
-export async function retryOrderAction(slug: string, orderId: string): Promise<FormResult> {
+export async function retryOrderAction(slug: string, orderId: string, opts: { ackRefundPending?: boolean } = {}): Promise<FormResult> {
   const ctx = await getTenantCtx(slug);
   assertRole(ctx, "manager");
   if (!isUuid(orderId)) return { ok: false, error: "ไม่พบรายการ" };
-  const r = await tenantTx(ctx.tenant.id, (tx) => adminRetryOrder(tx, ctx.tenant.id, orderId, actorOf(ctx)));
+  const r = await tenantTx(ctx.tenant.id, (tx) => adminRetryOrder(tx, ctx.tenant.id, orderId, actorOf(ctx), { ackRefundPending: opts?.ackRefundPending === true }));
   revalidateTopup(slug, paths(orderId));
   if (!r.ok) return { ok: false, error: r.error };
   return { ok: true, message: `ลองใหม่สำเร็จ · อ้างอิง ${r.value.supplierRef ?? "-"}` };
 }
 
-export async function cancelOrderAction(slug: string, orderId: string, reason: string): Promise<FormResult> {
+export async function cancelOrderAction(slug: string, orderId: string, reason: string, opts: { allowSlipPending?: boolean } = {}): Promise<FormResult> {
   const ctx = await getTenantCtx(slug);
   assertRole(ctx, "manager");
   if (!isUuid(orderId)) return { ok: false, error: "ไม่พบรายการ" };
-  const r = await tenantTx(ctx.tenant.id, (tx) => adminCancelOrder(tx, ctx.tenant.id, orderId, reason.trim().slice(0, 300) || null, actorOf(ctx)));
+  const r = await tenantTx(ctx.tenant.id, (tx) => adminCancelOrder(tx, ctx.tenant.id, orderId, String(reason ?? "").trim().slice(0, 300) || null, actorOf(ctx), { allowSlipPending: opts?.allowSlipPending === true }));
   if (!r.ok) return { ok: false, error: r.error };
   revalidateTopup(slug, paths(orderId));
   return { ok: true, message: "ยกเลิกรายการแล้ว" };
+}
+
+/** SERVICES-15 / ADMIN-12: the shop transferred the money back by hand → payment refunded, order refunded. */
+export async function markRefundedAction(slug: string, orderId: string, note: string): Promise<FormResult> {
+  const ctx = await getTenantCtx(slug);
+  assertRole(ctx, "manager");
+  if (!isUuid(orderId)) return { ok: false, error: "ไม่พบรายการ" };
+  const r = await tenantTx(ctx.tenant.id, (tx) => adminMarkRefunded(tx, ctx.tenant.id, orderId, { note: String(note ?? "").slice(0, 300) }, actorOf(ctx)));
+  if (!r.ok) return { ok: false, error: r.error };
+  revalidateTopup(slug, [...paths(orderId), "/payments"]);
+  return { ok: true, message: `บันทึกว่าคืนเงิน ${r.value.number} แล้ว` };
 }
 
 export async function approveSlipAction(slug: string, orderId: string): Promise<FormResult> {
@@ -72,8 +83,10 @@ export async function approveSlipAction(slug: string, orderId: string): Promise<
   if (!isUuid(orderId)) return { ok: false, error: "ไม่พบรายการ" };
   const r = await tenantTx(ctx.tenant.id, (tx) => adminApproveSlip(tx, ctx.tenant.id, orderId, actorOf(ctx)));
   if (!r.ok) return { ok: false, error: r.error };
-  revalidateTopup(slug, paths(orderId));
-  const s = r.value.status;
+  revalidateTopup(slug, [...paths(orderId), "/payments"]);
+  // RV-04: money recorded but flagged (order closed meanwhile, stock gone, paid twice) → say it must be refunded
+  if (r.value.refundRequired) return { ok: true, message: `บันทึกรับเงินแล้ว แต่ต้องคืนเงินลูกค้า: ${r.value.refundRequired}` };
+  const s = r.value.order.status;
   return { ok: true, message: s === "fulfilled" ? "อนุมัติสลิปและเติมสำเร็จแล้ว" : s === "processing" ? "อนุมัติสลิปแล้ว — รายการเข้าคิวรอเติม" : "อนุมัติสลิปแล้ว" };
 }
 
@@ -84,7 +97,8 @@ export async function rejectSlipAction(slug: string, orderId: string, reason: st
   const r = await tenantTx(ctx.tenant.id, (tx) => adminRejectSlip(tx, ctx.tenant.id, orderId, reason.trim().slice(0, 300) || "สลิปไม่ถูกต้อง", actorOf(ctx)));
   if (!r.ok) return { ok: false, error: r.error };
   revalidateTopup(slug, paths(orderId));
-  return { ok: true, message: "ปฏิเสธสลิปแล้ว ลูกค้าสามารถแนบสลิปใหม่ได้" };
+  // RV-03: a failed payment cannot take a new slip; the customer renews it from the order page ("ชำระเงินใหม่")
+  return { ok: true, message: "ปฏิเสธสลิปแล้ว — ลูกค้ากด “ชำระเงินใหม่” ที่หน้ารายการเพื่อชำระอีกครั้งได้ หรือกด “ยกเลิกรายการ” หากไม่ต้องการรอ" };
 }
 
 const noteSchema = z.string().trim().min(1, "กรุณาพิมพ์โน้ต").max(1000);

@@ -4,4 +4,5 @@ export * from "./catalog";
 export * from "./blacklist";
 export * from "./wallet";
 export * from "./orders";
+export * from "./suppliers";
 export * from "./handlers";

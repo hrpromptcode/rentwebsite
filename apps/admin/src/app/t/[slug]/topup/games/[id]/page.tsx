@@ -10,11 +10,12 @@ import { CATEGORY_LABEL } from "@rentweb/module-topup/admin/labels";
 import { FilterTabs } from "@rentweb/module-topup/admin/ui";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { fmtDate, fmtNumber } from "@/lib/format";
+import { assetUrl, fmtDate, fmtNumber } from "@/lib/format";
 import { getTenantCtx, hasRole, tenantTx } from "@/lib/tenant";
 import { deleteGameAction } from "../actions";
 import { toGameFormValues, toPackageFormValues } from "../form-values";
 import { GameForm } from "../game-form";
+import { assetBase } from "../../_shared";
 import { PackagesManager } from "./packages-manager";
 import { StockPanel } from "./stock-panel";
 
@@ -59,7 +60,7 @@ export default async function TopupGamePage({ params, searchParams }: { params: 
               <ArrowLeft aria-hidden />
             </Link>
           </Button>
-          {game.image ? <img src={game.image} alt="" className="size-12 shrink-0 rounded-xl object-cover sm:size-14" /> : <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground sm:size-14"><Gamepad2 className="size-5" aria-hidden /></span>}
+          {game.image ? <img src={assetUrl(game.image)} alt="" className="size-12 shrink-0 rounded-xl object-cover sm:size-14" /> : <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground sm:size-14"><Gamepad2 className="size-5" aria-hidden /></span>}
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">{game.name}</h1>
@@ -83,7 +84,7 @@ export default async function TopupGamePage({ params, searchParams }: { params: 
             </a>
           </Button>
           {canWrite && totalOrders === 0 && (
-            <ConfirmButton variant="ghost" className="text-destructive hover:text-destructive" title={`ลบเกม “${game.name}”?`} description="ลบเกมและแพ็กเกจทั้งหมดถาวร (เกมที่เคยมีรายการสั่งจะลบไม่ได้ ให้ปิดขายแทน)" confirmLabel="ลบเกม" action={deleteGameAction.bind(null, slug, game.id)}>
+            <ConfirmButton variant="ghost" className="text-destructive hover:text-destructive" title={`ลบเกม “${game.name}”?`} description={stockTotal > 0 ? `เกมนี้ยังมีโค้ดพร้อมขาย ${fmtNumber(stockTotal)} โค้ด — ระบบจะไม่ลบจนกว่าจะยกเลิก (void) โค้ดทั้งหมด แนะนำให้ปิดขายแทน` : "ลบเกมและแพ็กเกจทั้งหมดถาวร (เกมที่เคยมีรายการสั่ง หรือยังมีโค้ดที่ยังไม่ขาย จะลบไม่ได้ ให้ปิดขายแทน)"} confirmLabel="ลบเกม" action={deleteGameAction.bind(null, slug, game.id)}>
               <Trash2 aria-hidden /> ลบเกม
             </ConfirmButton>
           )}
@@ -137,7 +138,7 @@ export default async function TopupGamePage({ params, searchParams }: { params: 
 
       {tab === "info" &&
         (canWrite ? (
-          <GameForm slug={slug} gameId={game.id} initial={toGameFormValues(game)} />
+          <GameForm slug={slug} gameId={game.id} initial={toGameFormValues(game)} assetBase={assetBase()} />
         ) : (
           <p className="card p-6 text-sm text-muted-foreground">คุณมีสิทธิ์ดูอย่างเดียว — ติดต่อผู้จัดการร้านเพื่อแก้ไขเกม</p>
         ))}

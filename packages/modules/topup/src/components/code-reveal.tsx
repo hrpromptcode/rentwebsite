@@ -27,7 +27,7 @@ export function CodeReveal({ code, label = "โค้ดของคุณ", hin
         <KeyRound className="size-4 text-primary" /> {label}
       </div>
       <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <code className="flex-1 rounded-[var(--radius-lg)] border border-primary/40 bg-background/60 px-4 py-3 font-mono text-lg tracking-wider text-glow select-all md:text-xl" aria-live="polite">
+        <code className="flex-1 rounded-[var(--radius-lg)] border border-primary/40 bg-background/60 px-4 py-3 font-mono text-lg tracking-wider text-foreground [text-shadow:0_0_18px_color-mix(in_oklab,var(--glow)_70%,transparent)] select-all md:text-xl" aria-live="polite">
           {shown ? code : maskCode(code)}
         </code>
         <div className="flex gap-2">

@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Gamepad2, History, Lock, Receipt, Repeat } from "lucide-react";
+import { decodeSlug } from "@/lib/slug";
+import { Gamepad2, History, Lock, Receipt, RefreshCw, Repeat } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
 import { Reveal } from "@rentweb/ui/motion";
 import { PaymentPanel } from "@rentweb/storefront/payments";
-import { getPayment, paymentSettings, promptpayQrDataUrl } from "@rentweb/core/payments";
+import { getPayment, isOpenPaymentStatus, paymentSettings, promptpayQrDataUrl } from "@rentweb/core/payments";
 import { thb } from "@rentweb/core/money";
 import { and, eq, gamePackages, games } from "@rentweb/db";
-import { getOrderByNumber, getOrderForCustomer, reconcileTopupOrder, revealDeliveredCode, toPublicOrder } from "@rentweb/module-topup/services";
+import { getOrderByNumber, getOrderForCustomer, reconcileTopupOrder, revealDeliveredCode, toPublicOrder, topupPaymentLapsed } from "@rentweb/module-topup/services";
 import { CodeReveal, OrderTracker, StatusBadge, dateTimeTh } from "@rentweb/module-topup/components";
-import { FULFILLMENT_LABEL, PAYMENT_METHOD_LABEL } from "@rentweb/module-topup/labels";
+import { FULFILLMENT_LABEL, PAYMENT_METHOD_LABEL, errorLabel, parseTopupOrderNumber } from "@rentweb/module-topup/labels";
+import { renewTopupPaymentAction } from "./actions";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
 import { PageBody } from "@/components/page-body";
@@ -18,15 +20,23 @@ import { PageBody } from "@/components/page-body";
 type Params = Promise<{ tenantId: string; number: string }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
-  const { number } = await params;
-  return { title: `รายการ ${number.toUpperCase()}`, robots: { index: false } };
+  const { tenantId, number } = await params;
+  // a shop without the top-up module answers 404 — do not title that page after the requested order number
+  const runtime = await getRuntime(tenantId);
+  if (!runtime || !runtime.config.modules.includes("topup")) return { robots: { index: false } };
+  return { title: `รายการ ${parseTopupOrderNumber(decodeSlug(number)) ?? ""}`.trim(), robots: { index: false } };
 }
 
-export default async function TopupOrderPage({ params, searchParams }: { params: Params; searchParams: Promise<{ k?: string }> }) {
-  const { tenantId, number } = await params;
-  const { k } = await searchParams;
+export default async function TopupOrderPage({ params, searchParams }: { params: Params; searchParams: Promise<{ k?: string | string[]; renew?: string | string[] }> }) {
+  const { tenantId, number: rawNumber } = await params;
+  const sp = await searchParams;
+  const k = typeof sp.k === "string" ? sp.k : undefined;
+  const renewRefusal = typeof sp.renew === "string" && /^[a-z_]{1,40}$/.test(sp.renew) ? sp.renew : null;
   const runtime = await getRuntime(tenantId);
   if (!runtime || !runtime.config.modules.includes("topup")) notFound();
+  // only TP-<digits> can exist; NUL bytes / garbage must not reach Postgres
+  const number = parseTopupOrderNumber(decodeSlug(rawNumber));
+  if (!number) notFound();
   const customer = await getCurrentCustomer(tenantId);
 
   const data = await tenantTx(tenantId, async (tx) => {
@@ -54,7 +64,9 @@ export default async function TopupOrderPage({ params, searchParams }: { params:
   const settings = paymentSettings(runtime.config.settings);
   const keyQs = k ? `?k=${encodeURIComponent(k)}` : "";
   const pollUrl = `/api/topup/orders/${encodeURIComponent(view.number)}${keyQs}`;
-  const showPayment = authorised && payment && view.status === "pending_payment" && payment.status !== "paid";
+  // RV-03: a rejected slip (failed) / lapsed QR cannot take money any more → offer a fresh payment instead of a dead panel
+  const lapsed = !!(authorised && payment && view.status === "pending_payment" && topupPaymentLapsed(payment));
+  const showPayment = authorised && payment && view.status === "pending_payment" && isOpenPaymentStatus(payment.status) && !lapsed;
   const fieldLabels = new Map<string, string>((meta?.fields ?? []).map((f) => [f.key, f.label]));
 
   return (
@@ -92,6 +104,28 @@ export default async function TopupOrderPage({ params, searchParams }: { params:
               </Reveal>
             )}
 
+            {lapsed && payment && (
+              <Reveal delay={0.1}>
+                <div className="card grid gap-3 p-5 md:p-7">
+                  <h2 className="font-heading text-lg font-semibold">{payment.status === "failed" ? "ร้านตรวจสลิปแล้วไม่ผ่าน" : "รายการชำระเงินหมดเวลาแล้ว"}</h2>
+                  {payment.status === "failed" && payment.failureReason && <p className="text-sm">เหตุผล: {payment.failureReason}</p>}
+                  <p className="text-sm text-muted-foreground">
+                    กด “ชำระเงินใหม่” เพื่อรับ QR / บัญชีโอนเงินใหม่สำหรับรายการเดิม ({thb(view.price)}) หากโอนเงินไปแล้ว กรุณาติดต่อร้านพร้อมสลิป
+                  </p>
+                  {renewRefusal && (
+                    <p role="alert" className="text-sm text-destructive">
+                      {errorLabel(renewRefusal)}
+                    </p>
+                  )}
+                  <form action={renewTopupPaymentAction.bind(null, tenantId, view.number, k ?? null)}>
+                    <Button type="submit" size="lg" className="h-12 w-full sm:w-auto">
+                      <RefreshCw /> ชำระเงินใหม่
+                    </Button>
+                  </form>
+                </div>
+              </Reveal>
+            )}
+
             {authorised && code && (
               <Reveal delay={0.1}>
                 <CodeReveal code={code} label={`โค้ด ${view.packageName}`} />
@@ -126,15 +160,15 @@ export default async function TopupOrderPage({ params, searchParams }: { params:
               <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
                 {full
                   ? Object.entries(full.playerFields ?? {}).map(([key, value]) => (
-                      <div key={key} className="flex justify-between gap-4 rounded-[var(--radius-md)] bg-muted/50 px-3 py-2 sm:block">
+                      <div key={key} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 rounded-[var(--radius-md)] bg-muted/50 px-3 py-2 sm:block">
                         <dt className="text-muted-foreground">{fieldLabels.get(key) ?? key}</dt>
-                        <dd className="font-mono font-medium">{value}</dd>
+                        <dd className="ml-auto min-w-0 text-right [overflow-wrap:anywhere] sm:ml-0 sm:text-left font-mono font-medium">{value}</dd>
                       </div>
                     ))
                   : (
-                      <div className="flex justify-between gap-4 rounded-[var(--radius-md)] bg-muted/50 px-3 py-2 sm:block">
+                      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 rounded-[var(--radius-md)] bg-muted/50 px-3 py-2 sm:block">
                         <dt className="text-muted-foreground">ผู้เล่น</dt>
-                        <dd className="font-mono font-medium">{view.player}</dd>
+                        <dd className="ml-auto min-w-0 text-right [overflow-wrap:anywhere] sm:ml-0 sm:text-left font-mono font-medium">{view.player}</dd>
                       </div>
                     )}
                 <Row label="วิธีเติม" value={FULFILLMENT_LABEL[view.fulfillment] ?? view.fulfillment} />
@@ -168,9 +202,9 @@ export default async function TopupOrderPage({ params, searchParams }: { params:
 
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex justify-between gap-4 rounded-[var(--radius-md)] bg-muted/50 px-3 py-2 sm:block">
+    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 rounded-[var(--radius-md)] bg-muted/50 px-3 py-2 sm:block">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className={mono ? "font-mono font-medium" : "font-medium"}>{value}</dd>
+      <dd className={`ml-auto min-w-0 text-right [overflow-wrap:anywhere] sm:ml-0 sm:text-left ${mono ? "font-mono font-medium" : "font-medium"}`}>{value}</dd>
     </div>
   );
 }

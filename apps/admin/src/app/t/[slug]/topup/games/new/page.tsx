@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { assetBase } from "../../_shared";
 import { getTenantCtx, hasRole } from "@/lib/tenant";
 import { EMPTY_GAME } from "../form-values";
 import { GameForm } from "../game-form";
@@ -24,7 +25,7 @@ export default async function NewTopupGamePage({ params }: { params: Promise<{ s
         </Button>
         <PageHeader title="เพิ่มเกม" description="ตั้งชื่อ รูป และช่องข้อมูลผู้เล่น — บันทึกแล้วเพิ่มแพ็กเกจต่อได้ทันที" className="flex-1" />
       </div>
-      <GameForm slug={slug} gameId={null} initial={EMPTY_GAME} />
+      <GameForm slug={slug} gameId={null} initial={EMPTY_GAME} assetBase={assetBase()} />
     </div>
   );
 }

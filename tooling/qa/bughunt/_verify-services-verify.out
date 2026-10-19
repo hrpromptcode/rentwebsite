@@ -1,0 +1,31 @@
+◇ injected env (13) from ..\.env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+PASS SERVICES-01 closed hooks registered for topup + wallet_topup — {"closed":["order","booking","patient_package","topup","wallet_topup","rest_order","reservation","stay","ticket_order"]}
+PASS SERVICES-05 target check registered for topup — {"target":["topup","stay","ticket_order"]}
+PASS SERVICES-01 access checks registered for topup + wallet_topup — {"access":["topup","wallet_topup","stay","ticket_order"]}
+PASS STOREFRONT-08 expired QR payment → order cancelled + topup.cancelled — {"payment":"expired","order":"cancelled","failureReason":"หมดเวลาชำระเงิน","events":1}
+PASS STOREFRONT-08 cancelPayment → order cancelled with the reason — {"order":"cancelled","reason":"qa cancel"}
+PASS ADMIN-01 wallet top-up: expired payment → expired, cancelled payment → cancelled — {"expired":"expired","cancelled":"cancelled"}
+PASS STOREFRONT-05 guest order with an existing customer's phone is not attached to that account — {"customerId":null,"contact":"0812345678"}
+PASS STOREFRONT-05 guest order writes no customers row — {"before":0,"after":0}
+PASS SERVICES-10 guest without IP is limited per contact — ["ok","ok","rate_limited"]
+PASS SERVICES-10 guest without IP and contact is refused (never unlimited) — contact_required
+PASS SERVICES-02 topup.paid payload has fulfillment / names / amount / contact / accessKey — {"fulfillment":"manual","gameName":"RoV (Arena of Valor)","packageName":"120 คูปอง","amount":9900,"contact":"0868111005","accessKey":"set"}
+[email:skipped] to=support@gamehub.gg subject="คิวเติมมือใหม่ TP-1157 · GameHub"
+PASS SERVICES-02 owner gets 'คิวเติมมือใหม่' with game · package — [{"text":"RoV (Arena of Valor) · 120 คูปอง (฿99) รอการเติมในหลังบ้าน","title":"คิวเติมมือใหม่ TP-1157"}]
+PASS SERVICES-03 topup.fulfilled payload has names, contact and accessKey — {"gameName":"RoV (Arena of Valor)","packageName":"40 คูปอง","contact":"0868111006","accessKey":"set"}
+[sms:skipped] to=0868111006 "GameHub: RoV (Arena of Valor) · 40 คูปอง เข้าแล้ว ขอบคุณที่ใช้บริการ GameHub"
+PASS SERVICES-03 guest notified at the typed phone; text names game · package; link carries ?k= — {"channel":"sms","recipient":"0868111006","text":"RoV (Arena of Valor) · 40 คูปอง เข้าแล้ว ขอบคุณที่ใช้บริการ GameHub","link":"http://demo-topup.localhost:3000/topup/TP-1158?k=<key>"}
+PASS STOREFRONT-12 Genshin UID 'ทดสอบ🙂' refused with Thai field message + field key — {"code":"invalid_field","error":"UID ไม่ถูกต้อง (ตัวเลข 9–10 หลัก)","field":"uid"}
+PASS STOREFRONT-12 Genshin UID 812345678 accepted — TP-1157
+PASS STOREFRONT-12 Riot ID without #TAG refused — {"code":"invalid_field","error":"Riot ID#Tag ไม่ถูกต้อง (ชื่อ 3–16 ตัว ตามด้วย #Tag 3–5 ตัว เช่น Player#TH1)"}
+PASS STOREFRONT-12 Riot ID 'ผู้เล่น#TH1' accepted — TP-1158
+PASS STOREFRONT-11 template seeds whole-baht vip / agent prices for every package — {"formula":true,"packages":31,"satang":0}
+INFO STOREFRONT-11 live demo-topup packages with satang tier prices (pre-fix seed data, re-seeded by the demo reset): 31
+PASS ADMIN-17 neutral topup home claims no game list / counts / volumes / sample brand — {"claims":[],"hero":"เลือกเกม เลือกแพ็กเกจ กรอก UID แล้วชำระเงิน ระบบเติมให้อัตโนมัติ จ่ายผ่าน PromptPay หรือกระเป๋าเงินในเว็บ"}
+PASS ADMIN-17 demo home no longer says '40+ เกม' — ok
+PASS SERVICES-13 no-proof lookup: no failureReason / paymentMethod, number lookup still works — {"status":200,"keys":["number","status","gameName","packageName","player","price","fulfillment","failureReason","placedAt","paidAt","fulfilledAt","authorised"],"failureReason":null}
+PASS SERVICES-13 feed 404 on a tenant without the module — {"status":404}
+PASS STOREFRONT-01 demo-shop.localhost /topup/TP-1040 → 404 with no order data — {"status":404,"numberEchoes":2,"leaks":false}
+PASS STOREFRONT-01 nope-tenant.localhost /topup/TP-1040 → 404 with no order data — {"status":404,"numberEchoes":1,"leaks":false}
+
+ALL PASS

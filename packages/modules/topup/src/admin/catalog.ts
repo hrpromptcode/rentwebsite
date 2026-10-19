@@ -1,4 +1,5 @@
-import { and, asc, count, desc, eq, ilike, inArray, ne, or, sql } from "drizzle-orm";
+import { createHash, createHmac } from "node:crypto";
+import { and, asc, count, desc, eq, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { codeStock, gamePackages, games, topupOrders, topupSuppliers, type GameField, type Tx } from "@rentweb/db";
 import { audit, decryptFromString, emitEvent, encryptToString, fail, ok, type Result } from "@rentweb/core";
 import { maskCode } from "../components/format";
@@ -143,6 +144,12 @@ function gameRow(v: GameValues) {
     ...(f.placeholder ? { placeholder: f.placeholder } : {}),
     ...(f.type === "select" && f.options?.length ? { options: f.options } : {}),
     ...(f.helpImage ? { helpImage: f.helpImage } : {}),
+    // STOREFRONT-12 format rules (validated by services validatePlayerFields; select fields use their options)
+    ...(f.type !== "select" && f.pattern ? { pattern: f.pattern } : {}),
+    ...(f.type !== "select" && f.minLength ? { minLength: f.minLength } : {}),
+    ...(f.type !== "select" && f.maxLength ? { maxLength: f.maxLength } : {}),
+    ...(f.type !== "select" && f.inputMode ? { inputMode: f.inputMode } : {}),
+    ...(f.hint ? { hint: f.hint } : {}),
   }));
   return {
     name: v.name,
@@ -198,12 +205,37 @@ export async function setGameActive(tx: Tx, tenantId: string, gameId: string, ac
   return r.length > 0;
 }
 
-/** Deletes a game that has never been ordered (orders reference games with ON DELETE RESTRICT). */
+/** Code rows of some packages by status group (ADMIN-07): unsold = available / reserved (expired included), sold, void. */
+async function stockCounts(tx: Tx, tenantId: string, packageIds: string[]): Promise<{ unsold: number; sold: number; void: number }> {
+  if (!packageIds.length) return { unsold: 0, sold: 0, void: 0 };
+  const [r] = await tx
+    .select({
+      unsold: sql<number>`count(*) filter (where ${codeStock.status} in ('available','reserved'))::int`,
+      sold: sql<number>`count(*) filter (where ${codeStock.status} = 'sold')::int`,
+      void: sql<number>`count(*) filter (where ${codeStock.status} = 'void')::int`,
+    })
+    .from(codeStock)
+    .where(and(eq(codeStock.tenantId, tenantId), inArray(codeStock.packageId, packageIds)));
+  return { unsold: Number(r?.unsold ?? 0), sold: Number(r?.sold ?? 0), void: Number(r?.void ?? 0) };
+}
+
+const HAS_STOCK = (n: number, what: string) => `${what}นี้ยังมีโค้ดที่ยังไม่ได้ขาย ${n.toLocaleString("th-TH")} โค้ด ลบไม่ได้ — ยกเลิก (void) โค้ดในแท็บสต็อกโค้ดก่อน หรือปิดขายแทน`;
+
+/**
+ * Deletes a game that has never been ordered (orders reference games with ON DELETE RESTRICT). ADMIN-07: refused while
+ * any of its packages still holds unsold codes (code_stock.package_id is ON DELETE RESTRICT since 0010); voided codes
+ * are removed with it (audited with their count).
+ */
 export async function deleteGame(tx: Tx, tenantId: string, gameId: string, actor: Actor): Promise<Result<null>> {
   const [c] = await tx.select({ c: count() }).from(topupOrders).where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.gameId, gameId)));
   if (Number(c?.c ?? 0) > 0) return fail("เกมนี้มีประวัติรายการเติมแล้ว ลบไม่ได้ — ปิดใช้งานแทน", "has_orders");
+  const pkgIds = (await tx.select({ id: gamePackages.id }).from(gamePackages).where(and(eq(gamePackages.tenantId, tenantId), eq(gamePackages.gameId, gameId)))).map((r) => r.id);
+  const stock = await stockCounts(tx, tenantId, pkgIds);
+  if (stock.unsold > 0) return fail(HAS_STOCK(stock.unsold, "เกม"), "has_stock");
+  if (stock.sold > 0) return fail("เกมนี้มีโค้ดที่ขายไปแล้ว ลบไม่ได้ — ปิดใช้งานแทน", "has_orders");
+  if (stock.void > 0) await tx.delete(codeStock).where(and(eq(codeStock.tenantId, tenantId), inArray(codeStock.packageId, pkgIds), eq(codeStock.status, "void")));
   await tx.delete(games).where(and(eq(games.tenantId, tenantId), eq(games.id, gameId)));
-  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.game.delete", targetType: "game", targetId: gameId });
+  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.game.delete", targetType: "game", targetId: gameId, diff: { packages: pkgIds.length, voidCodesRemoved: stock.void } });
   return ok(null);
 }
 
@@ -260,11 +292,16 @@ export async function setPackageActive(tx: Tx, tenantId: string, packageId: stri
   return r.length > 0;
 }
 
+/** Deletes a never-ordered package. ADMIN-07: refused while it holds unsold codes; voided codes are removed with it. */
 export async function deletePackage(tx: Tx, tenantId: string, packageId: string, actor: Actor): Promise<Result<null>> {
   const [c] = await tx.select({ c: count() }).from(topupOrders).where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.packageId, packageId)));
   if (Number(c?.c ?? 0) > 0) return fail("แพ็กเกจนี้มีประวัติรายการเติมแล้ว ลบไม่ได้ — ปิดขายแทน", "has_orders");
+  const stock = await stockCounts(tx, tenantId, [packageId]);
+  if (stock.unsold > 0) return fail(HAS_STOCK(stock.unsold, "แพ็กเกจ"), "has_stock");
+  if (stock.sold > 0) return fail("แพ็กเกจนี้มีโค้ดที่ขายไปแล้ว ลบไม่ได้ — ปิดขายแทน", "has_orders");
+  if (stock.void > 0) await tx.delete(codeStock).where(and(eq(codeStock.tenantId, tenantId), eq(codeStock.packageId, packageId), eq(codeStock.status, "void")));
   await tx.delete(gamePackages).where(and(eq(gamePackages.tenantId, tenantId), eq(gamePackages.id, packageId)));
-  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.package.delete", targetType: "game_package", targetId: packageId });
+  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.package.delete", targetType: "game_package", targetId: packageId, diff: { voidCodesRemoved: stock.void } });
   return ok(null);
 }
 
@@ -329,34 +366,156 @@ export async function listStockCodes(tx: Tx, tenantId: string, packageId: string
   });
 }
 
-/** Imports plaintext codes (one per line, optional "serial<TAB>code"); duplicates inside the batch are dropped. */
-export async function importStockCodes(tx: Tx, tenantId: string, packageId: string, lines: string[], opts: { expiresAt?: Date | null; actor: Actor }): Promise<Result<{ imported: number; duplicates: number; available: number }>> {
+/* ------------------------------------------------------------------ */
+/* Code de-duplication (ADMIN-06)                                       */
+/* ------------------------------------------------------------------ */
+
+/** Comparison form of a code: NFKC, upper case, without spaces / dashes ("abcd-efgh 12" ≡ "ABCDEFGH12"). */
+export function normalizeStockCode(code: string): string {
+  return code.normalize("NFKC").replace(/[\s\-‐-―]+/g, "").toUpperCase();
+}
+
+let hashKey: Buffer | null = null;
+/** Keyed hash of a code, unique per tenant (code_stock.code_hash). Keyed from SECRETS_ENCRYPTION_KEY so the DB alone never reveals a code. */
+export function stockCodeHash(tenantId: string, code: string): string {
+  hashKey ??= createHash("sha256").update(`rentweb:code_stock_hash:${process.env.SECRETS_ENCRYPTION_KEY ?? "rentweb-dev-only-key"}`).digest();
+  return createHmac("sha256", hashKey).update(`${tenantId}:${normalizeStockCode(code)}`).digest("hex");
+}
+
+/**
+ * Gives every code of the tenant a code_hash (rows written before migration 0010, template seeds, tests). A row whose
+ * code already exists under another row (the old import bug) gets a "dup:<id>" marker instead, and an unsold duplicate
+ * is voided so the same code is never handed to two customers; unreadable rows get "unreadable:<id>".
+ * Call under the tenant's stock lock (importStockCodes).
+ */
+export async function backfillStockCodeHashes(tx: Tx, tenantId: string, actor?: Actor): Promise<{ hashed: number; voidedDuplicates: number; unreadable: number }> {
+  const pending = await tx
+    .select({ id: codeStock.id, codeEncrypted: codeStock.codeEncrypted, status: codeStock.status, packageId: codeStock.packageId })
+    .from(codeStock)
+    .where(and(eq(codeStock.tenantId, tenantId), isNull(codeStock.codeHash)))
+    .orderBy(sql`case ${codeStock.status} when 'sold' then 0 when 'reserved' then 1 when 'available' then 2 else 3 end`, asc(codeStock.createdAt));
+  const out = { hashed: 0, voidedDuplicates: 0, unreadable: 0 };
+  if (!pending.length) return out;
+  const known = new Set(
+    (await tx.select({ h: codeStock.codeHash }).from(codeStock).where(and(eq(codeStock.tenantId, tenantId), sql`${codeStock.codeHash} is not null`))).map((r) => r.h!),
+  );
+  const voided: Array<{ id: string; packageId: string }> = [];
+  for (const row of pending) {
+    let h: string;
+    try {
+      h = stockCodeHash(tenantId, decryptFromString(row.codeEncrypted));
+    } catch {
+      out.unreadable += 1;
+      await tx.update(codeStock).set({ codeHash: `unreadable:${row.id}` }).where(and(eq(codeStock.tenantId, tenantId), eq(codeStock.id, row.id)));
+      continue;
+    }
+    if (known.has(h)) {
+      const unsold = row.status === "available" || row.status === "reserved";
+      await tx
+        .update(codeStock)
+        .set({ codeHash: `dup:${row.id}`, ...(unsold ? { status: "void" } : {}) })
+        .where(and(eq(codeStock.tenantId, tenantId), eq(codeStock.id, row.id)));
+      if (unsold) voided.push({ id: row.id, packageId: row.packageId });
+      continue;
+    }
+    known.add(h);
+    await tx.update(codeStock).set({ codeHash: h }).where(and(eq(codeStock.tenantId, tenantId), eq(codeStock.id, row.id)));
+    out.hashed += 1;
+  }
+  out.voidedDuplicates = voided.length;
+  if (voided.length) {
+    await audit(tx, { tenantId, actorType: actor?.actorType ?? "system", actorId: actor?.userId ?? null, action: "topup.stock.void_duplicates", targetType: "code_stock", targetId: voided[0]!.id, diff: { voided: voided.map((v) => v.id), packages: [...new Set(voided.map((v) => v.packageId))] } });
+  }
+  return out;
+}
+
+export interface StockImportResult {
+  imported: number;
+  /** every line that was not imported because the code already exists (in the paste or in the shop) */
+  duplicates: number;
+  /** repeated inside the pasted list */
+  inPaste: number;
+  /** already in the shop: still in stock (any package), already sold, or voided */
+  existing: { inStock: number; sold: number; void: number };
+  /** unsold duplicates found among older rows and voided by the backfill (data written before the fix) */
+  voidedDuplicates: number;
+  available: number;
+}
+
+/**
+ * Imports plaintext codes (one per line, optional "serial<TAB>code"). ADMIN-06: a code is imported once per shop –
+ * repeated lines, codes already in stock (in any package), already sold or voided are skipped and reported. The check
+ * is the unique (tenant_id, code_hash) index, so two concurrent imports cannot both insert the same code either.
+ */
+export async function importStockCodes(tx: Tx, tenantId: string, packageId: string, lines: string[], opts: { expiresAt?: Date | null; actor: Actor }): Promise<Result<StockImportResult>> {
   const [pkg] = await tx.select({ id: gamePackages.id, fulfillment: gamePackages.fulfillment, name: gamePackages.name }).from(gamePackages).where(and(eq(gamePackages.tenantId, tenantId), eq(gamePackages.id, packageId))).limit(1);
   if (!pkg) return fail("ไม่พบแพ็กเกจ", "not_found");
   if (pkg.fulfillment !== "stock") return fail("นำเข้าโค้ดได้เฉพาะแพ็กเกจแบบสต็อกโค้ด", "not_stock");
+  const parsed: Array<{ serial: string | null; code: string; hash: string }> = [];
   const seen = new Set<string>();
-  const values: Array<{ serial: string | null; code: string }> = [];
-  let duplicates = 0;
+  let inPaste = 0;
   for (const raw of lines) {
     const line = raw.trim();
     if (!line) continue;
     const [a, b] = line.includes("\t") ? line.split("\t", 2) : [null, line];
     const code = (b ?? a ?? "").trim();
     const serial = a && b ? a.trim() || null : null;
-    if (!code) continue;
-    if (seen.has(code)) {
-      duplicates += 1;
+    if (!code || !normalizeStockCode(code)) continue;
+    const hash = stockCodeHash(tenantId, code);
+    if (seen.has(hash)) {
+      inPaste += 1;
       continue;
     }
-    seen.add(code);
-    values.push({ serial, code });
+    seen.add(hash);
+    parsed.push({ serial, code, hash });
   }
-  if (!values.length) return fail("ไม่พบโค้ดที่นำเข้าได้", "empty");
-  await tx.insert(codeStock).values(values.map((v) => ({ tenantId, packageId, codeEncrypted: encryptToString(v.code), serial: v.serial, status: "available", expiresAt: opts.expiresAt ?? null, addedBy: opts.actor.userId })));
+  if (!parsed.length && !inPaste) return fail("ไม่พบโค้ดที่นำเข้าได้", "empty");
+
+  // one stock writer per tenant at a time: the backfill and the duplicate report stay consistent
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`code_stock:${tenantId}`}))`);
+  const backfill = await backfillStockCodeHashes(tx, tenantId, opts.actor);
+
+  const existing = { inStock: 0, sold: 0, void: 0 };
+  const already = new Set<string>();
+  for (let i = 0; i < parsed.length; i += 500) {
+    const chunk = parsed.slice(i, i + 500).map((p) => p.hash);
+    const rows = await tx.select({ h: codeStock.codeHash, status: codeStock.status }).from(codeStock).where(and(eq(codeStock.tenantId, tenantId), inArray(codeStock.codeHash, chunk)));
+    for (const r of rows) {
+      already.add(r.h!);
+      if (r.status === "sold") existing.sold += 1;
+      else if (r.status === "void") existing.void += 1;
+      else existing.inStock += 1;
+    }
+  }
+  const fresh = parsed.filter((p) => !already.has(p.hash));
+  let imported = 0;
+  if (fresh.length) {
+    const rows = await tx
+      .insert(codeStock)
+      .values(fresh.map((v) => ({ tenantId, packageId, codeEncrypted: encryptToString(v.code), codeHash: v.hash, serial: v.serial, status: "available", expiresAt: opts.expiresAt ?? null, addedBy: opts.actor.userId })))
+      .onConflictDoNothing({ target: [codeStock.tenantId, codeStock.codeHash] })
+      .returning({ id: codeStock.id });
+    imported = rows.length;
+    existing.inStock += fresh.length - rows.length; // inserted concurrently (cannot happen under the lock; kept for safety)
+  }
+  const duplicates = inPaste + existing.inStock + existing.sold + existing.void;
   const summary = await stockSummary(tx, tenantId, packageId);
-  await audit(tx, { tenantId, actorType: opts.actor.actorType, actorId: opts.actor.userId, action: "topup.stock.import", targetType: "game_package", targetId: packageId, diff: { imported: values.length, duplicates, available: summary.available, package: pkg.name } });
-  await emitEvent(tx, { tenantId, type: "topup.stock_imported", payload: { packageId, imported: values.length, available: summary.available } });
-  return ok({ imported: values.length, duplicates, available: summary.available });
+  await audit(tx, { tenantId, actorType: opts.actor.actorType, actorId: opts.actor.userId, action: "topup.stock.import", targetType: "game_package", targetId: packageId, diff: { imported, duplicates, inPaste, existing, voidedDuplicates: backfill.voidedDuplicates, available: summary.available, package: pkg.name } });
+  if (imported) await emitEvent(tx, { tenantId, type: "topup.stock_imported", payload: { packageId, imported, available: summary.available } });
+  return ok({ imported, duplicates, inPaste, existing, voidedDuplicates: backfill.voidedDuplicates, available: summary.available });
+}
+
+/** Thai summary of an import for the toast / dialog. */
+export function stockImportMessage(r: StockImportResult): string {
+  const parts: string[] = [];
+  if (r.inPaste) parts.push(`ซ้ำในรายการที่วาง ${r.inPaste}`);
+  if (r.existing.inStock) parts.push(`มีในสต็อกแล้ว ${r.existing.inStock}`);
+  if (r.existing.sold) parts.push(`เคยขายไปแล้ว ${r.existing.sold}`);
+  if (r.existing.void) parts.push(`เคยยกเลิกไปแล้ว ${r.existing.void}`);
+  const head = r.imported ? `นำเข้า ${r.imported} โค้ด` : "ไม่ได้นำเข้าโค้ดใหม่";
+  const dup = r.duplicates ? ` · ข้ามโค้ดซ้ำ ${r.duplicates} (${parts.join(" · ")})` : "";
+  const fix = r.voidedDuplicates ? ` · ยกเลิกโค้ดซ้ำที่ค้างในสต็อกเดิม ${r.voidedDuplicates}` : "";
+  return `${head}${dup}${fix} · พร้อมขาย ${r.available}`;
 }
 
 export async function voidStockCode(tx: Tx, tenantId: string, codeId: string, actor: Actor): Promise<Result<null>> {

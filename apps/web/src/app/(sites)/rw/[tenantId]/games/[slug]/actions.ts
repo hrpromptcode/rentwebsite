@@ -3,8 +3,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createTopupOrder, topupConfig } from "@rentweb/module-topup/services";
-import { errorLabel } from "@rentweb/module-topup/labels";
+import { createTopupOrder, topupConfig, topupFailureField } from "@rentweb/module-topup/services";
+import { errorLabel, rateLimitedLabel, refusalLabel } from "@rentweb/module-topup/labels";
 import type { TopupFormState } from "@rentweb/module-topup/components";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer, requestMeta } from "@/lib/customer";
@@ -44,7 +44,15 @@ export async function createTopupOrderAction(tenantId: string, gameSlug: string,
       config: cfg,
     }),
   );
-  if (!result.ok) return { error: errorLabel(result.code ?? result.error) };
+  if (!result.ok) {
+    const code = result.code ?? result.error;
+    // the cap is a rolling 60-minute count of every order placed (unpaid ones included): say so, and point at the open ones
+    if (code === "rate_limited") return { error: rateLimitedLabel(cfg.maxOrdersPerHour), cta: customer ? { href: "/account/topups", label: "ดูรายการที่ค้างชำระ" } : undefined };
+    if (code === "frozen") return { error: errorLabel(code), field: "paymentMethod" };
+    // RV-01: keep the service's Thai copy (blocked customer, field name + format) and mark the offending input
+    if (code === "contact_required") return { error: refusalLabel(code, result.error), field: "contact" };
+    return { error: refusalLabel(code, result.error), field: topupFailureField(result) };
+  }
 
   revalidatePath("/account/topups");
   revalidatePath("/wallet");

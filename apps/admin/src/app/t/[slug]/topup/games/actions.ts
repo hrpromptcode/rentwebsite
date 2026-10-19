@@ -2,8 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { isUuid } from "@rentweb/core";
-import { createGame, deleteGame, deletePackage, importStockCodes, setGameActive, setPackageActive, updateGame, upsertPackage, voidStockCode } from "@rentweb/module-topup/admin";
+import { createGame, deleteGame, deletePackage, importStockCodes, setGameActive, setPackageActive, stockImportMessage, updateGame, upsertPackage, voidStockCode, type StockImportResult } from "@rentweb/module-topup/admin";
 import { fieldErrors, gameSchema, packageSchema, stockImportSchema, type FormResult, type GameInput, type PackageInput } from "@rentweb/module-topup/admin/schemas";
+import { safeFieldPattern } from "@rentweb/module-topup/services";
 import { assertRole, getTenantCtx, tenantTx } from "@/lib/tenant";
 import { actorOf, revalidateTopup, storeImage } from "../_shared";
 
@@ -22,6 +23,11 @@ export async function saveGameAction(slug: string, gameId: string | null, input:
   const keys = parsed.data.fields.map((f) => f.key);
   const dup = keys.find((k, i) => keys.indexOf(k) !== i);
   if (dup) return { ok: false, error: `key “${dup}” ซ้ำกัน`, fieldErrors: { [`fields.${keys.lastIndexOf(dup)}.key`]: "key ซ้ำกับช่องอื่น" } };
+  // STOREFRONT-12 rules: the storefront ignores unsafe patterns silently – tell the shop now instead
+  const badPattern = parsed.data.fields.findIndex((f) => !!f.pattern && safeFieldPattern(f.pattern) === null);
+  if (badPattern >= 0) return { ok: false, error: "รูปแบบ (regex) ไม่ถูกต้อง หรือซับซ้อนเกินไป", fieldErrors: { [`fields.${badPattern}.pattern`]: "รูปแบบไม่ถูกต้อง / ซับซ้อนเกินไป" } };
+  const badLen = parsed.data.fields.findIndex((f) => f.minLength !== undefined && f.maxLength !== undefined && f.minLength > f.maxLength);
+  if (badLen >= 0) return { ok: false, error: "ความยาวสั้นสุดมากกว่ายาวสุด", fieldErrors: { [`fields.${badLen}.minLength`]: "ต้องไม่เกินยาวสุด" } };
   const bad = parsed.data.fields.findIndex((f) => f.type === "select" && !(f.options?.length ?? 0));
   if (bad >= 0) return { ok: false, error: "ช่องแบบตัวเลือกต้องมีอย่างน้อย 1 ตัวเลือก", fieldErrors: { [`fields.${bad}.options`]: "ใส่ตัวเลือกอย่างน้อย 1 รายการ" } };
   const r = await tenantTx(ctx.tenant.id, (tx) => (gameId ? updateGame(tx, ctx.tenant.id, gameId, parsed.data, actorOf(ctx)) : createGame(tx, ctx.tenant.id, parsed.data, actorOf(ctx))));
@@ -92,7 +98,7 @@ export async function deletePackageAction(slug: string, gameId: string, packageI
   return { ok: true, message: "ลบแพ็กเกจแล้ว" };
 }
 
-export async function importStockAction(slug: string, gameId: string, packageId: string, input: { codes: string; expiresAt?: string }): Promise<FormResult<{ imported: number; duplicates: number; available: number }>> {
+export async function importStockAction(slug: string, gameId: string, packageId: string, input: { codes: string; expiresAt?: string }): Promise<FormResult<StockImportResult>> {
   const ctx = await getTenantCtx(slug);
   assertRole(ctx, "manager");
   if (!isUuid(packageId)) return NOT_FOUND;
@@ -107,8 +113,7 @@ export async function importStockAction(slug: string, gameId: string, packageId:
   const r = await tenantTx(ctx.tenant.id, (tx) => importStockCodes(tx, ctx.tenant.id, packageId, parsed.data.codes, { expiresAt, actor: actorOf(ctx) }));
   if (!r.ok) return { ok: false, error: r.error };
   revalidateTopup(slug, gamePaths(gameId));
-  const { imported, duplicates, available } = r.value;
-  return { ok: true, message: `นำเข้า ${imported} โค้ด${duplicates ? ` (ตัดซ้ำ ${duplicates})` : ""} · พร้อมขาย ${available}`, data: r.value };
+  return { ok: true, message: stockImportMessage(r.value), data: r.value };
 }
 
 export async function voidStockAction(slug: string, gameId: string, codeId: string): Promise<FormResult> {

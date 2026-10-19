@@ -77,9 +77,12 @@ const realLogs = (logs: string[]) => logs.filter((l) => !consoleNoise(l));
 async function pickMethod(page: Page, value: "wallet" | "promptpay_qr" | "slip") {
   await page.locator(`label:has(input[name="paymentMethod"][value="${value}"])`).first().click();
 }
-type SubmitResult = { kind: "order"; number: string; k: string; url: string } | { kind: "alert"; text: string } | { kind: "none"; url: string };
+type SubmitResult = { kind: "order"; number: string; k: string; url: string } | { kind: "alert"; text: string } | { kind: "none"; url: string } | { kind: "invalid"; fields: string[] };
 async function submitAndWait(page: Page): Promise<SubmitResult> {
   const before = page.url();
+  // verifier 2026-10-19: a form the browser refuses (pattern / required) never submits — report it instead of waiting 90 s
+  const invalid = (await page.evaluate(`Array.from(document.querySelectorAll('#topup-form :invalid')).map((e) => e.id || e.getAttribute('name') || e.tagName)`).catch(() => [])) as string[];
+  if (invalid.length) return { kind: "invalid", fields: invalid };
   await page.locator('button[type="submit"]:visible').first().click();
   const deadline = Date.now() + 90_000;
   while (Date.now() < deadline) {
@@ -96,7 +99,8 @@ async function submitAndWait(page: Page): Promise<SubmitResult> {
 async function alertTexts(page: Page): Promise<string[]> {
   return (await page
     .locator('[role="alert"]')
-    .evaluateAll((els) => els.filter((e) => !e.closest("next-route-announcer") && (e as HTMLElement).offsetParent !== null).map((e) => (e as HTMLElement).innerText))
+    // verifier 2026-10-19: the announcer's alert lives in its shadow root, where closest() cannot reach the host
+    .evaluateAll((els) => els.filter((e) => !e.closest("next-route-announcer") && (e.getRootNode() as ShadowRoot).host?.tagName !== "NEXT-ROUTE-ANNOUNCER" && (e as HTMLElement).offsetParent !== null).map((e) => (e as HTMLElement).innerText))
     .catch(() => [] as string[])).map((t) => t.replace(/\s+/g, " ").trim()).filter(Boolean);
 }
 const argOf = (name: string) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3) ?? null;
@@ -241,11 +245,22 @@ async function phaseFlows() {
         const defaultMethod = await page.evaluate(`document.querySelector('input[name="paymentMethod"]:checked')?.value`);
         await page.fill("#pf-uid", "  ทดสอบ🙂 ");
         await page.selectOption("#pf-server", "Asia");
-        const r = await submitAndWait(page);
+        let r = await submitAndWait(page);
+        let refusedThai = "";
+        if (r.kind !== "order") {
+          // verifier 2026-10-19 (STOREFRONT-12 fixed): "ทดสอบ🙂" no longer passes the UID pattern (client + server). Record the refusal,
+          // then place P1 with a valid UID and PromptPay so the tracker / polling steps below still have an unpaid order.
+          const uidValid = await page.evaluate(`document.getElementById('pf-uid').checkValidity()`);
+          refusedThai = `Thai UID refused (${JSON.stringify(r)}, pf-uid valid=${uidValid}); `;
+          if (uidValid) throw new Error(`Thai UID was not refused: ${refusedThai}`);
+          await page.fill("#pf-uid", "812345678");
+          await page.locator("label").filter({ hasText: "PromptPay" }).first().click();
+          r = await submitAndWait(page);
+        }
         if (r.kind === "order") {
           p1 = { number: r.number, k: r.k };
           const [o] = await q(`select number, status, payment_method, player_fields, price, contact from topup_orders where tenant_id='${T}' and number='${r.number}'`);
-          return `default=${defaultMethod} ORDER CREATED ${JSON.stringify(o)}`;
+          return `${refusedThai}default=${defaultMethod} ORDER CREATED ${JSON.stringify(o)}`;
         }
         return `default=${defaultMethod} ${JSON.stringify(r)}`;
       });
@@ -256,7 +271,7 @@ async function phaseFlows() {
         const qr = await page.locator('img[alt="PromptPay QR"]').count();
         const pub = await httpGet(`/topup/${p1.number}`);
         const pubLock = pub.body.includes("รายการนี้ยังไม่ชำระเงิน");
-        const pubHasUid = pub.body.includes("ทดสอบ");
+        const pubHasUid = pub.body.includes("ทดสอบ") || pub.body.includes("812345678");
         const api = JSON.parse((await httpGet(`/api/topup/orders/${p1.number}`)).body);
         const st = await httpGet(`/topup/status?number=${p1.number.toLowerCase()}`);
         return `countdown=${hasCountdown} qr=${qr} tracker="${text.match(/ชำระเงินด้านล่าง[^.]{0,60}/)?.[0]}" public: status=${pub.status} lockMsg=${pubLock} rawUidInPublic=${pubHasUid}; api noKey authorised=${api.authorised} player=${api.player}; status page lower-case: ${st.status} found=${st.body.includes(p1.number)} notFound=${st.body.includes("ไม่พบรายการ")}`;
@@ -273,7 +288,8 @@ async function phaseFlows() {
         const deadline = Date.now() + 45_000;
         while (Date.now() < deadline) {
           const txt = (await page.locator('ol[aria-label="สถานะรายการ"]').locator("..").innerText().catch(() => "")).replace(/\s+/g, " ");
-          if (/เติมสำเร็จแล้ว|กำลังเติม|ได้รับการชำระเงินแล้ว|ไม่สำเร็จ/.test(txt)) {
+          // verifier 2026-10-19: the timeline always shows the labels รอชำระ / ชำระแล้ว / กำลังเติม / สำเร็จ — wait for the final banner only
+          if (/เติมสำเร็จแล้ว|เติมไม่สำเร็จ/.test(txt)) {
             status = txt.slice(0, 160);
             break;
           }
@@ -396,8 +412,16 @@ async function phaseWallet() {
         await page.locator('form button[type="submit"]').first().click();
         await page.waitForURL(/\/wallet\?topup=/, { timeout: 60_000 });
         const id2 = new URL(page.url()).searchParams.get("topup")!;
-        await page.getByRole("link", { name: "ยกเลิก" }).click();
-        await page.waitForURL((u) => u.pathname === "/wallet" && !u.search, { timeout: 60_000 });
+        // verifier 2026-10-19 (STOREFRONT-13 fix): the old 'ยกเลิก' LINK only navigated back; it is now a server-action button
+        // "ยกเลิกรายการ" that cancels the payment (→ /wallet?cancelled=1). Earlier pending top-ups of this customer are cancelled the same way.
+        for (const old of await q(`select t.id from wallet_topups t where t.tenant_id='${T}' and t.wallet_id=(select id from wallets where customer_id='${cust}') and t.status='pending' and t.id <> '${id2}'`)) {
+          await gotoRetry(page, `${ORIGIN}/wallet?topup=${old.id}`);
+          await page.getByRole("button", { name: "ยกเลิกรายการ" }).click();
+          await page.waitForURL((u) => u.pathname === "/wallet" && u.searchParams.get("cancelled") === "1", { timeout: 60_000 });
+        }
+        if (page.url().indexOf(id2) < 0) await gotoRetry(page, `${ORIGIN}/wallet?topup=${id2}`);
+        await page.getByRole("button", { name: "ยกเลิกรายการ" }).click();
+        await page.waitForURL((u) => u.pathname === "/wallet" && u.searchParams.get("cancelled") === "1", { timeout: 60_000 });
         await page.waitForTimeout(1500);
         const [t] = await q(`select t.status as topup_status, p.status as payment_status from wallet_topups t join payments p on p.id = t.payment_id where t.id='${id2}'`);
         const pendingCount = (await q(`select count(*)::int as n from wallet_topups where tenant_id='${T}' and wallet_id=(select id from wallets where customer_id='${cust}') and status='pending'`))[0]!.n;

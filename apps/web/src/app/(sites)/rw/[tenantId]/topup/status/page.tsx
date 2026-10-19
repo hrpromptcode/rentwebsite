@@ -8,19 +8,23 @@ import { Label } from "@rentweb/ui/components/label";
 import { Reveal } from "@rentweb/ui/motion";
 import { thb } from "@rentweb/core/money";
 import { getOrderByNumber } from "@rentweb/module-topup/services";
+import { parseTopupOrderNumber } from "@rentweb/module-topup/labels";
 import { StatusBadge, dateTimeTh } from "@rentweb/module-topup/components";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
 
 export const metadata: Metadata = { title: "ตรวจสอบสถานะ" };
 
-export default async function TopupStatusPage({ params, searchParams }: { params: Promise<{ tenantId: string }>; searchParams: Promise<{ number?: string }> }) {
+export default async function TopupStatusPage({ params, searchParams }: { params: Promise<{ tenantId: string }>; searchParams: Promise<{ number?: string | string[] }> }) {
   const { tenantId } = await params;
   const { number } = await searchParams;
   const runtime = await getRuntime(tenantId);
   if (!runtime || !runtime.config.modules.includes("topup")) notFound();
-  const q = number?.trim() ?? "";
-  const order = q ? await tenantTx(tenantId, (tx) => getOrderByNumber(tx, tenantId, q)) : null;
+  // echo back a display-safe copy (no control characters); only a well-formed TP-<digits> number is looked up
+  const raw = (Array.isArray(number) ? number[0] : number) ?? "";
+  const q = raw.replace(/\p{Cc}/gu, "").trim().slice(0, 40);
+  const wanted = parseTopupOrderNumber(raw);
+  const order = wanted ? await tenantTx(tenantId, (tx) => getOrderByNumber(tx, tenantId, wanted)) : null;
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>

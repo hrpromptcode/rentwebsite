@@ -1,9 +1,9 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { createTestDb, type TestDb } from "@rentweb/db/test-utils";
-import { bookings, customers, diningTables, eventsOutbox, notifications, orders, reservations, restaurantOrders, services, staff, tenantMembers, tenants, user, withPlatform } from "@rentweb/db";
+import { bookings, customers, diningTables, eventsOutbox, gamePackages, games, notifications, orders, reservations, restaurantOrders, services, staff, tenantMembers, tenants, topupOrders, user, withPlatform } from "@rentweb/db";
 import { thb } from "@rentweb/core/money";
-import { HANDLERS, type OutboxEvent } from "../src/events/handlers";
+import { HANDLERS, IGNORED_EVENTS, type OutboxEvent } from "../src/events/handlers";
 
 /**
  * Notification rendering at send time:
@@ -182,5 +182,34 @@ describe("recipients (auth follow-ups AC-02 / AC-03 / SS-02)", () => {
     await run("order.paid", { orderId: o!.id, number: "#2004", total: 1000, customerId: c!.id });
     const rows = (await sent("order.paid")).filter((r) => (r.payload as { orderId?: string }).orderId === o!.id);
     expect(rows.map((r) => r.recipient).sort()).toEqual(["0877778888", "record@example.com"]);
+  });
+});
+
+describe("top-up refund message (review RV-06)", () => {
+  it("topup.refunded has a handler: the guest is told at the typed contact, with the access link; not sent once the order changed", async () => {
+    expect(HANDLERS["topup.refunded"]).toBeTypeOf("function");
+    expect(IGNORED_EVENTS.has("topup.refunded")).toBe(false);
+    const [g] = await db.insert(games).values({ tenantId, name: "RoV", slug: "rov-rv06", category: "mobile" }).returning({ id: games.id });
+    const [pk] = await db.insert(gamePackages).values({ tenantId, gameId: g!.id, name: "120 คูปอง", price: 9900, fulfillment: "manual" }).returning({ id: gamePackages.id });
+    const order = (status: string, contact: string) =>
+      db
+        .insert(topupOrders)
+        .values({ tenantId, number: `TP-${Math.floor(Math.random() * 1e6)}`, gameId: g!.id, packageId: pk!.id, gameName: "RoV", packageName: "120 คูปอง", price: 9900, paymentMethod: "slip", fulfillment: "manual", status, contact, deviceId: "GUEST-KEY-1" })
+        .returning()
+        .then((r) => r[0]!);
+    const refunded = await order("refunded", "0861234500");
+    await run("topup.refunded", { orderId: refunded.id, number: refunded.number, refundedAmount: 9900, note: "PP 14:20" });
+    const rows = (await sent("topup.refunded")).filter((r) => (r.payload as { orderId?: string }).orderId === refunded.id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.recipient).toBe("0861234500");
+    const body = rows[0]!.payload as { title: string; text: string; link?: string };
+    expect(body.title).toBe(`คืนเงิน ${refunded.number} แล้ว`);
+    expect(body.text).toContain(thb(9900));
+    expect(body.text).toContain("RoV · 120 คูปอง");
+    expect(JSON.stringify(rows[0]!.payload)).toContain(`/topup/${refunded.number}?k=GUEST-KEY-1`);
+
+    const reopened = await order("fulfilled", "0861234501");
+    await run("topup.refunded", { orderId: reopened.id, number: reopened.number, refundedAmount: 9900 });
+    expect((await sent("topup.refunded")).filter((r) => (r.payload as { orderId?: string }).orderId === reopened.id)).toHaveLength(0);
   });
 });

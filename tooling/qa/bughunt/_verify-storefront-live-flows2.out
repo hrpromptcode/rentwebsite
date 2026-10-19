@@ -1,0 +1,13 @@
+◇ injected env (13) from ..\.env // tip: ⌘ suppress logs { quiet: true }
+=== topup_storefront-live 2026-10-19T00:35:11.735Z phases=flows
+PASS  flows: genshin — UID 121 chars rejected with Thai message, no order — {"kind":"invalid","fields":["pf-uid"]} (4183ms)
+PASS  flows: genshin — missing Server select blocked client-side (required) — form.checkValidity=false serverMsg="Please select an item in the list." (3442ms)
+PASS  flows: genshin — Thai text as UID + default method → is an order created? (P1) — Thai UID refused ({"kind":"invalid","fields":["pf-uid"]}, pf-uid valid=false); default=wallet ORDER CREATED {"number":"TP-1152","status":"pending_payment","payment_method":"promptpay_qr","player_fields":{"uid":"812345678","server":"Asia"},"price":"3500","contact":"0899523004"} (6585ms)
+PASS  flows: P1 order page — tracker copy, countdown, QR, public/no-key views, status page lower-case — countdown=true qr=1 tracker="ชำระเงินด้านล่างเพื่อเริ่มเติม ระบบจะอัปเดตสถานะให้อัตโนมัติ ยอดที่ต้องชำระ " public: status=200 lockMsg=true rawUidInPublic=false; api noKey authorised=false player=8123****; status page lower-case: 200 found=true notFound=false (1806ms)
+PASS  flows: P1 slip upload → tracker updates WITHOUT full reload (polling) → fulfilled (api package) even with Thai UID — after 4061ms navs=1 tracker="รอชำระ ชำระแล้ว กำลังเติม สำเร็จ เติมสำเร็จแล้ว ขอบคุณที่ใช้บริการ" db={"status":"fulfilled","fulfillment":"api","supplier_ref":"SIM-8DYFC4","paid":true} console=[] (4061ms)
+PASS  flows: rov — blacklisted contact phone 0800000000 refused with Thai message, no order — {"kind":"alert","text":"ไม่สามารถทำรายการได้ กรุณาติดต่อแอดมิน"} orders 152→152 (5343ms)
+PASS  flows: valorant / free-fire field attributes (no pattern / numeric enforcement?) — valorant NoTagHere valid=false attrs={"pattern":"[^#\\s][^#]{2,15}#[A-Za-z0-9]{3,5}","inputmode":"text","maxlength":"120","placeholder":"Name#TAG"}; free-fire uid attrs={"pattern":"\\d{8,12}","inputmode":"numeric","type":"text"} (6541ms)
+FAIL  flows: steam-wallet ฿100 (stock) via slip — order created; stock count before — {"kind":"alert","text":"สั่งซื้อได้สูงสุด 10 รายการต่อชั่วโมง (นับทุกรายการที่สร้างใน 60 นาทีล่าสุด รวมรายการที่ยังไม่ชำระ) กรุณาชำระรายการที่ค้างอยู่ หรือรอแล้วลองใหม่ภายหลัง ดูรายการที่ค้างชำระ"} (5428ms)
+FAIL  flows: S1 slip → code card appears without reload; masked by default; reveal; poll API has no code; stock −1; reload keeps same code — no S1 (1ms)
+FAIL  flows: S1 without key / wrong key (no cookie) — code & contact hidden; with key — shown — no S1 (0ms)
+INFO  flows: console — []

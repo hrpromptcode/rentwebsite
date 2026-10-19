@@ -1,0 +1,32 @@
+◇ injected env (13) from ..\.env // tip: ⌁ auth for agents [www.vestauth.com]
+## customer: {"phone":"0860432571","customerId":"01a15197-b780-720b-8e34-85edea466138","walletId":"01a15197-bc09-7167-b003-69967ed35d1e"}
+## adjustWalletAction → HTTP 200: {"ok":true,"message":"เพิ่ม ฿1,000 แล้ว · คงเหลือ ฿1,000","data":{"balance":100000,"duplicate":false}}
+## fixture: {"run":"iz0mp","phone":"0860432571","customerId":"01a15197-b780-720b-8e34-85edea466138","walletId":"01a15197-bc09-7167-b003-69967ed35d1e","orders":{"O1":{"id":"bd080845-5599-49d4-9fd2-77752959b071","number":"TP-1153","paymentId":"01a15197-ef87-7289-b031-d54fdc27f901"},"O2":{"id":"946cc10a-c98e-4a60-97fa-e75bc0315335","number":"TP-1154","paymentId":"01a15198-01f9-77e5-bc2a-7f224e2dbbaa"},"O3":{"id":"a017199b-1ca4-42b8-852d-5b32f2e0d5ab","number":"TP-1155","paymentId":"01a15198-1493-7364-abeb-1e49d521bb47"},"O4":{"id":"ad201c13-258e-4348-8e16-3110b938e12a","number":"TP-1156","paymentId":"01a15198-29ae-73c9-b471-52ad62f3ef58"}},"steam":{"gameId":"01a1401c-c0a5-7385-9c13-47dea5a2c894","stockPkgId":"01a1401c-c0e6-77ff-a44e-7431f178febf"}}
+PASS setup (35.2s)
+## upload proof.svg: {"name":"proof.svg","accepted":false,"url":null,"toast":"รองรับเฉพาะไฟล์รูปภาพ (JPG, PNG, WebP, GIF, AVIF)"}
+## upload proof.png: {"name":"proof.png","accepted":false,"url":null,"toast":"รองรับเฉพาะไฟล์รูปภาพ (JPG, PNG, WebP, GIF, AVIF)"}
+## upload proof.gif: {"name":"proof.gif","accepted":false,"url":null,"toast":"รองรับเฉพาะไฟล์รูปภาพ (JPG, PNG, WebP, GIF, AVIF)"}
+PASS p1 (7.0s)
+## UI shows เติมไม่สำเร็จ on pending_payment order: 0
+## before: {"order":"pending_payment","payment":"pending"}
+## failOrderAction → HTTP 200: {"ok":false,"error":"รายการยังไม่ชำระเงิน — ใช้ “ยกเลิกรายการ” แทน"}
+## after fail: {"order":"pending_payment","payment":"pending"}
+## storefront order page: เลขที่รายการ TP-1153 รอชำระเงิน รอชำระ ชำระแล้ว กำลังเติม สำเร็จ ชำระเงินด้านล่างเพื่อเริ่มเติม ระบบจะอัปเดตสถานะให้อัตโนมัติ ยอดที่ต้องชำระ ฿99 หมดอายุใน 29:28 PromptPay GameHub 0899998888 1 เปิดแอปธนาคาร แล้วสแกน QR นี้ (หรือบันทึกรูปแล้วเลือกจากอัลบั้ม) 2 ตรวจสอบยอด ฿99 แล้วยืนยันการโอน 3 แนบสลิป
+## slip upload: {"status":200,"body":"{\"status\":\"paid\",\"slipUrl\":\"/uploads/tenants/01a1401c-b9af-71d6-8837-f2f2f33a2579/slips/1792370306495-vSA7Igs-ia-oDfZE.png\"}"}
+## after slip: {"order":"processing","payment":"paid","paidAt":"2026-10-19 00:38:26.818+00","providerPayload":{"number":"TP-1153"},"events":["payment.created","payment.slip_uploaded","topup.paid","payment.paid"]}
+PASS p2 (9.6s)
+## cancelOrderAction → HTTP 200: {"ok":true,"message":"ยกเลิกรายการแล้ว"}
+## after cancel: {"payment":"cancelled","failure_reason":"ทดสอบ QA cancel","paymentEvents":["payment.created","payment.cancelled"],"orderEvents":["topup.created","topup.cancelled"]}
+## rejectSlipAction → HTTP 200: {"ok":false,"error":"รายการชำระเงินนี้ปิดแล้ว"}
+## approveSlipAction → HTTP 200: {"ok":false,"error":"รายการชำระเงินนี้ปิดแล้ว — อนุมัติไม่ได้"}
+## after reject/approve on cancelled payment: {"payment":"cancelled","rejectText":"0:{\"a\":\"$@1\",\"q\":\"\",\"i\":true,\"b\":\"development\"}\n1:D\"$2\"\n1:{\"ok\":false,\"error\":\"รายการชำระเงินนี้ปิดแล้ว\"}\n"}
+PASS p3 (8.7s)
+## importStockAction → HTTP 200: {"ok":true,"message":"นำเข้า 1 โค้ด · พร้อมขาย 9","data":{"imported":1,"duplicates":0,"inPaste":0,"existing":{"inStock":0,"sold":0,"void":0},"voidedDuplicates":0,"available":9}}
+## importStockAction → HTTP 200: {"ok":true,"message":"ไม่ได้นำเข้าโค้ดใหม่ · ข้ามโค้ดซ้ำ 2 (ซ้ำในรายการที่วาง 1 · มีในสต็อกแล้ว 1) · พร้อมขาย 9","data":{"imported":0,"duplicates":2,"inPaste":1,"existing":{"inStock":1,"sold":0,"void":0},"voidedDuplicates":0,"available":9}}
+## stock rows for the QA code: [{"id":"01a15198-af19-71df-abe6-fddef081914a","status":"available","code":"QA-DUP-IZ0MP-AAAA-BBBB"}]
+## voidStockAction → HTTP 200: {"ok":true,"message":"ยกเลิกโค้ดแล้ว จะไม่ถูกนำไปขาย"}
+## savePackageAction → HTTP 200: {"ok":true,"message":"เพิ่มแพ็กเกจ “QA tmp stock iz0mp” แล้ว","data":{"id":"01a15198-c29c-73ad-8829-3485c662f10e"}}
+## importStockAction → HTTP 200: {"ok":true,"message":"นำเข้า 2 โค้ด · พร้อมขาย 2","data":{"imported":2,"duplicates":0,"inPaste":0,"existing":{"inStock":0,"sold":0,"void":0},"voidedDuplicates":0,"available":2}}
+## deletePackageAction → HTTP 200: {"ok":false,"error":"แพ็กเกจนี้ยังมีโค้ดที่ยังไม่ได้ขาย 2 โค้ด ลบไม่ได้ — ยกเลิก (void) โค้ดในแท็บสต็อกโค้ดก่อน หรือปิดขายแทน"}
+## delete cascade: {"imported":{"ok":true,"message":"นำเข้า 2 โค้ด · พร้อมขาย 2","data":{"imported":2,"duplicates":0,"inPaste":0,"existing":{"inStock":0,"sold":0,"void":0},"voidedDuplicates":0,"available":2}},"before":2,"deleted":{"ok":false,"error":"แพ็กเกจนี้ยังมีโค้ดที่ยังไม่ได้ขาย 2 โค้ด ลบไม่ได้ — ยกเลิก (void) โค้ดในแท็บสต็อกโค้ดก่อน หรือปิดขายแทน"},"after":2,"pkgRows":1}
+PASS p4 (15.5s)

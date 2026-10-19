@@ -57,7 +57,10 @@ async function main() {
   for (const host of ["demo-shop.localhost", "nope-tenant.localhost"]) {
     for (const p of xt) {
       const r = await req(host, p);
-      const leak = r.body.includes(stock.number) || r.body.includes("STEAM-") || r.body.includes("qa-steam@example.com");
+      // verifier 2026-10-19: the requested path is echoed in the Next.js router state (segments ["","topup","TP-…"], q "?number=TP-…")
+      // — STOREFRONT-01, a false positive. Scrub those echoes; any other occurrence (title, order data) is still a leak.
+      const scrubbed = r.body.split(`\\"${stock.number}\\"`).join("").split(`number=${stock.number}`).join("").split(`${stock.number}?k=`).join("");
+      const leak = scrubbed.includes(stock.number) || r.body.includes("STEAM-") || r.body.includes("qa-steam@example.com");
       const okStatus = host === "demo-shop.localhost" && (p === "/games" || p === "/wallet") ? [200, 404, 307].includes(r.status) : [404, 307].includes(r.status);
       check(`xtenant ${host} ${p}`, okStatus && !leak && r.status !== 500, `status ${r.status}${leak ? " LEAK" : ""} ${r.ms}ms loc=${r.headers.location ?? "-"}`);
     }
@@ -102,7 +105,7 @@ async function main() {
   /* ---------- 4. feed */
   for (const [q, max] of [
     ["limit=abc", 10],
-    ["limit=-5", 1],
+    ["limit=-5", 10], // verifier 2026-10-19: STOREFRONT-04 rule — non-finite / <= 0 → the default 10 (was clamped to 1)
     ["limit=1e9", 30],
     ["limit=2.5", 3],
     ["limit=0", 10],

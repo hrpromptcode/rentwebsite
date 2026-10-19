@@ -29,6 +29,13 @@ export function fieldErrors(err: z.ZodError): Record<string, string> {
 
 const uuid = z.string().uuid();
 
+/** Stored image reference: an uploaded "/uploads/…" path (rendered via assetUrl in the admin) or an http(s) URL. */
+const imageRef = z
+  .string()
+  .trim()
+  .max(2000)
+  .refine((v) => !v || /^https?:\/\/\S+$/i.test(v) || /^\/(?!\/)\S*$/.test(v), "ลิงก์รูปต้องขึ้นต้นด้วย https:// หรือกดอัปโหลดรูป");
+
 /** Baht string ("35", "1,290.50") → satang integer; empty → null. */
 const bahtField = (label: string, opts: { required?: boolean; min?: number } = {}) =>
   z.preprocess(
@@ -63,7 +70,14 @@ export const gameFieldSchema = z.object({
   required: z.boolean().default(true),
   placeholder: z.string().trim().max(80).optional().or(z.literal("")),
   options: z.array(z.string().trim().min(1).max(60)).max(50).optional(),
-  helpImage: z.string().trim().max(2000).optional().or(z.literal("")),
+  helpImage: imageRef.optional().or(z.literal("")),
+  // STOREFRONT-12 format rules (GameField): kept when the admin saves a game; the pattern is re-checked server-side
+  // with services safeFieldPattern (unsafe / invalid patterns refused) in saveGameAction
+  pattern: z.string().trim().max(200, "รูปแบบยาวเกิน 200 ตัวอักษร").optional().or(z.literal("")),
+  minLength: z.coerce.number().int().min(1).max(120).optional(),
+  maxLength: z.coerce.number().int().min(1).max(120).optional(),
+  inputMode: z.enum(["text", "numeric"]).optional(),
+  hint: z.string().trim().max(80, "คำแนะนำยาวเกิน 80 ตัวอักษร").optional().or(z.literal("")),
 });
 export type GameFieldInput = z.input<typeof gameFieldSchema>;
 
@@ -77,8 +91,8 @@ export const gameSchema = z.object({
     .regex(/^[\p{Ll}\p{Lo}\p{M}\p{N}]+(?:-[\p{Ll}\p{Lo}\p{M}\p{N}]+)*$/u, "slug ใช้ได้เฉพาะตัวอักษรพิมพ์เล็ก ตัวเลข และ - (เช่น rov, free-fire)"),
   publisher: z.string().trim().max(120).nullable().optional(),
   description: z.string().trim().max(2000).nullable().optional(),
-  image: z.string().trim().max(2000).nullable().optional(),
-  banner: z.string().trim().max(2000).nullable().optional(),
+  image: imageRef.nullable().optional(),
+  banner: imageRef.nullable().optional(),
   category: z.enum(["mobile", "pc", "console", "voucher", "app"]),
   fields: z.array(gameFieldSchema).max(10),
   instructions: z.string().trim().max(2000).nullable().optional(),

@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
-import { bookings, customers, diningTables, eventsOutbox, formSubmissions, forms, orders, reservations, restaurantOrders, services, staff, tenantMembers, tenants, user, type Tx } from "@rentweb/db";
+import { bookings, customers, diningTables, eventsOutbox, formSubmissions, forms, orders, reservations, restaurantOrders, services, staff, tenantMembers, tenants, topupOrders, user, type Tx } from "@rentweb/db";
 import { thb } from "@rentweb/core/money";
-import { formatDate, isUuid } from "@rentweb/core";
+import { formatDate, isUuid, normalizeThaiPhone } from "@rentweb/core";
 import { rootDomain } from "@rentweb/core/env";
 import { flexReceipt } from "../line";
 import { notify } from "../notify";
@@ -94,6 +94,24 @@ async function loadBooking(tx: Tx, tenantId: string, bookingId: unknown) {
   const [st] = b.staffId ? await tx.select({ name: staff.name }).from(staff).where(and(eq(staff.tenantId, tenantId), eq(staff.id, b.staffId))).limit(1) : [];
   return { row: b, serviceName: svc?.name ?? null, staffName: st?.name ?? null, accessKey: ((b.answers ?? {}) as { accessKey?: string }).accessKey ?? null };
 }
+
+async function loadTopupOrder(tx: Tx, tenantId: string, orderId: unknown) {
+  const id = str(orderId);
+  if (!isUuid(id)) return null;
+  const [o] = await tx.select().from(topupOrders).where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.id, id))).limit(1);
+  return o ?? null;
+}
+
+/** Phone / e-mail inside a top-up order's typed contact (a LINE id gives neither – then only the customer record can be reached). */
+function topupContact(contact: unknown): { phone: string | null; email: string | null } {
+  const v = str(contact).trim();
+  if (!v) return { phone: null, email: null };
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return { phone: null, email: v.toLowerCase() };
+  return { phone: normalizeThaiPhone(v), email: null };
+}
+
+/** Thai text for a top-up failure code (services/orders.ts topupFailureText; payload.reasonText wins). */
+const TOPUP_FAILURE_TEXT: Record<string, string> = { out_of_stock: "สินค้าหมด", supplier_failed: "ผู้ให้บริการเติมไม่สำเร็จ" };
 
 async function tableName(tx: Tx, tenantId: string, tableId: unknown): Promise<string> {
   const id = str(tableId);
@@ -236,34 +254,106 @@ export const HANDLERS: Record<string, Handler> = {
     await notify(tx, target, { title: `ยกเลิกการจอง ${str(p.number)}`, text: `การจอง${bk?.serviceName ? ` ${bk.serviceName}` : ""}ของคุณกับ ${t.name} ถูกยกเลิกแล้ว${p.reason ? ` (${str(p.reason)})` : ""}` }, { tenantId: ev.tenantId, template: "booking.cancelled", brand: t.name });
   },
 
+  /*
+   * Top-up (SERVICES-02/03). Payloads come from topupEventPayload() (number, gameName, packageName, fulfillment, amount,
+   * contact / phone / email, accessKey); the CURRENT order row wins, so an order that changed since is not misreported.
+   */
   async "topup.fulfilled"(tx, ev) {
     const t = await tenantInfo(tx, ev.tenantId!);
     if (!t) return;
     const p = ev.payload;
-    const target = await customerTarget(tx, str(p.customerId) || null, { phone: str(p.contact) || null });
-    const link = `${t.origin}/topup/${str(p.number)}`;
+    const o = await loadTopupOrder(tx, ev.tenantId!, p.orderId);
+    if (o && o.status !== "fulfilled") return; // failed / refunded since
+    const c = topupContact(o?.contact ?? p.contact);
+    const target = await customerTarget(tx, o?.customerId ?? (str(p.customerId) || null), { phone: c.phone ?? (str(p.phone) || null), email: c.email ?? (str(p.email) || null) });
+    const number = pick(o?.number, p.number);
+    const gameName = pick(o?.gameName, p.gameName);
+    const packageName = pick(o?.packageName, p.packageName);
+    const link = withKey(`${t.origin}/topup/${encodeURIComponent(number)}`, o?.deviceId ?? p.accessKey);
     await notify(tx, target, {
-      title: `เติมสำเร็จ ${str(p.number)}`,
-      text: `${str(p.gameName)} · ${str(p.packageName)} เข้าแล้ว ขอบคุณที่ใช้บริการ ${t.name}`,
-      line: flexReceipt({ brand: t.name, title: "เติมสำเร็จ ⚡", subtitle: str(p.number), rows: [{ label: "เกม", value: str(p.gameName) }, { label: "แพ็กเกจ", value: str(p.packageName), bold: true }], button: { label: "ดูรายการ", uri: link }, color: t.accent }),
+      title: `เติมสำเร็จ ${number}`,
+      text: `${gameName} · ${packageName} เข้าแล้ว ขอบคุณที่ใช้บริการ ${t.name}`,
+      line: flexReceipt({ brand: t.name, title: "เติมสำเร็จ ⚡", subtitle: number, rows: [{ label: "เกม", value: gameName || "-" }, { label: "แพ็กเกจ", value: packageName || "-", bold: true }, { label: "ยอดชำระ", value: thb(o ? o.price : num(p.amount ?? p.price)) }], button: { label: "ดูรายการ", uri: link }, color: t.accent }),
       cta: { label: "ดูรายการ", href: link },
-    }, { tenantId: ev.tenantId, template: "topup.fulfilled", brand: t.name, accent: t.accent });
+    }, { tenantId: ev.tenantId, template: "topup.fulfilled", brand: t.name, accent: t.accent, payload: { orderId: p.orderId, link } });
   },
 
   async "topup.failed"(tx, ev) {
     const t = await tenantInfo(tx, ev.tenantId!);
     if (!t) return;
     const p = ev.payload;
-    const target = await customerTarget(tx, str(p.customerId) || null, { phone: str(p.contact) || null });
-    await notify(tx, target, { title: `เติมไม่สำเร็จ ${str(p.number)}`, text: `ขออภัย รายการไม่สำเร็จ (${str(p.reason, "-")}) ${p.refunded ? "ระบบคืนเงินเข้ากระเป๋าแล้ว" : "ทีมงานจะติดต่อกลับ"}` }, { tenantId: ev.tenantId, template: "topup.failed", brand: t.name });
-    await notify(tx, { email: t.ownerEmail, lineUserId: t.ownerLine }, { title: `รายการเติมล้มเหลว ${str(p.number)}`, text: str(p.reason, "-") }, { tenantId: ev.tenantId, template: "topup.failed.owner", brand: t.name, channels: ["line", "email"] });
+    const o = await loadTopupOrder(tx, ev.tenantId!, p.orderId);
+    if (o && o.status !== "failed" && o.status !== "refunded") return; // retried successfully since
+    const c = topupContact(o?.contact ?? p.contact);
+    const target = await customerTarget(tx, o?.customerId ?? (str(p.customerId) || null), { phone: c.phone ?? (str(p.phone) || null), email: c.email ?? (str(p.email) || null) });
+    const number = pick(o?.number, p.number);
+    const what = [pick(o?.gameName, p.gameName), pick(o?.packageName, p.packageName)].filter(Boolean).join(" · ");
+    const reason = pick(p.reasonText, TOPUP_FAILURE_TEXT[str(o?.failureReason ?? p.reason)], o?.failureReason, p.reason) || "-";
+    const refunded = o ? o.status === "refunded" : !!p.refunded;
+    const link = withKey(`${t.origin}/topup/${encodeURIComponent(number)}`, o?.deviceId ?? p.accessKey);
+    await notify(
+      tx,
+      target,
+      { title: `เติมไม่สำเร็จ ${number}`, text: `ขออภัย ${what ? `${what} ` : ""}เติมไม่สำเร็จ (${reason}) ${refunded ? "ระบบคืนเงินเข้ากระเป๋าของคุณแล้ว" : "ทีมงานจะคืนเงินผ่านช่องทางที่ชำระมา และติดต่อกลับโดยเร็ว"}`, cta: { label: "ดูรายการ", href: link } },
+      { tenantId: ev.tenantId, template: "topup.failed", brand: t.name, payload: { orderId: p.orderId, link } },
+    );
+    await notify(
+      tx,
+      { email: t.ownerEmail, lineUserId: t.ownerLine },
+      { title: `รายการเติมล้มเหลว ${number}`, text: `${what ? `${what} · ` : ""}${reason}${refunded ? " · คืนเข้ากระเป๋าแล้ว" : " · ต้องคืนเงินลูกค้า"}` },
+      { tenantId: ev.tenantId, template: "topup.failed.owner", brand: t.name, channels: ["line", "email"] },
+    );
+  },
+
+  /** RV-06: the shop recorded a manual refund (admin "บันทึกว่าคืนเงินแล้ว") → tell the customer the money went back. */
+  async "topup.refunded"(tx, ev) {
+    const t = await tenantInfo(tx, ev.tenantId!);
+    if (!t) return;
+    const p = ev.payload;
+    const o = await loadTopupOrder(tx, ev.tenantId!, p.orderId);
+    if (o && o.status !== "refunded") return;
+    const c = topupContact(o?.contact ?? p.contact);
+    const target = await customerTarget(tx, o?.customerId ?? (str(p.customerId) || null), { phone: c.phone ?? (str(p.phone) || null), email: c.email ?? (str(p.email) || null) });
+    const number = pick(o?.number, p.number);
+    const what = [pick(o?.gameName, p.gameName), pick(o?.packageName, p.packageName)].filter(Boolean).join(" · ");
+    const amount = num(p.refundedAmount ?? p.amount ?? o?.price);
+    const link = withKey(`${t.origin}/topup/${encodeURIComponent(number)}`, o?.deviceId ?? p.accessKey);
+    await notify(
+      tx,
+      target,
+      { title: `คืนเงิน ${number} แล้ว`, text: `${t.name} โอนเงินคืน ${thb(amount)} สำหรับ${what ? ` ${what}` : "รายการเติมเกม"} เรียบร้อยแล้ว${p.note ? ` (อ้างอิง ${str(p.note)})` : ""}`, cta: { label: "ดูรายการ", href: link } },
+      { tenantId: ev.tenantId, template: "topup.refunded", brand: t.name, payload: { orderId: p.orderId, link } },
+    );
   },
 
   async "topup.paid"(tx, ev) {
     // manual fulfilment queue → tell the shop
     const t = await tenantInfo(tx, ev.tenantId!);
-    if (!t || ev.payload.fulfillment !== "manual") return;
-    await notify(tx, { email: t.ownerEmail, lineUserId: t.ownerLine }, { title: `คิวเติมมือใหม่ ${str(ev.payload.number)}`, text: `${str(ev.payload.gameName)} · ${str(ev.payload.packageName)} รอการเติมในหลังบ้าน` }, { tenantId: ev.tenantId, template: "topup.manual", brand: t.name, channels: ["line", "email"] });
+    if (!t) return;
+    const p = ev.payload;
+    const o = await loadTopupOrder(tx, ev.tenantId!, p.orderId);
+    if ((o?.fulfillment ?? str(p.fulfillment)) !== "manual") return;
+    if (o && o.status !== "paid" && o.status !== "processing") return; // already handled / failed
+    const number = pick(o?.number, p.number);
+    await notify(
+      tx,
+      { email: t.ownerEmail, lineUserId: t.ownerLine },
+      { title: `คิวเติมมือใหม่ ${number}`, text: `${pick(o?.gameName, p.gameName)} · ${pick(o?.packageName, p.packageName)} (${thb(o ? o.price : num(p.amount ?? p.price))}) รอการเติมในหลังบ้าน` },
+      { tenantId: ev.tenantId, template: "topup.manual", brand: t.name, channels: ["line", "email"] },
+    );
+  },
+
+  async "topup.stock_low"(tx, ev) {
+    const t = await tenantInfo(tx, ev.tenantId!);
+    if (!t) return;
+    const p = ev.payload;
+    const what = [str(p.gameName), str(p.packageName)].filter(Boolean).join(" · ") || "แพ็กเกจโค้ด";
+    await notify(
+      tx,
+      { email: t.ownerEmail, lineUserId: t.ownerLine },
+      { title: `สต็อกโค้ดใกล้หมด: ${what}`, text: `เหลือ ${num(p.remaining)} โค้ด กรุณาเติมสต็อกในหลังบ้าน` },
+      { tenantId: ev.tenantId, template: "topup.stock_low", brand: t.name, channels: ["line", "email"] },
+    );
   },
 
   async "rest_order.paid"(tx, ev) {
@@ -375,5 +465,5 @@ export const HANDLERS: Record<string, Handler> = {
   },
 };
 
-export const IGNORED_EVENTS = new Set(["payment.created", "payment.paid", "payment.failed", "payment.refunded", "payment.cancelled", "payment.expired", "topup.processing", "booking.rescheduled"]);
+export const IGNORED_EVENTS = new Set(["payment.created", "payment.paid", "payment.failed", "payment.refunded", "payment.cancelled", "payment.expired", "topup.created", "topup.processing", "topup.cancelled", "topup.stock_imported", "wallet.topup_created", "wallet.credited", "booking.rescheduled"]);
 

@@ -14,6 +14,8 @@ import { stableGoto } from "./fixes/_dev-stable";
 const only = (process.argv.find((a) => a.startsWith("--only="))?.slice(7) ?? process.argv[process.argv.indexOf("--only") + 1] ?? "").split(",").filter(Boolean);
 const want = (k: string) => only.length === 0 || only.includes(k);
 const FIX = path.join(here, "topup_admin-fixture.json");
+// verifier 2026-10-19: RoV player IDs must now match the field pattern (digits only, 5–20) (STOREFRONT-12) — base36 RUN has letters
+const RUN_NUM = String(Date.now()).slice(-6);
 const PROG = path.join(here, "topup_admin-progress.md");
 type Fixture = { run: string; phone: string; customerId: string; walletId: string; orders: Record<string, { id: string; number: string; paymentId: string | null }>; steam?: { gameId: string; stockPkgId: string }; staff?: { email: string; userId: string } };
 const fx = (): Fixture => JSON.parse(readFileSync(FIX, "utf8"));
@@ -109,10 +111,10 @@ async function setup(browser: Browser) {
     const [o] = await q<{ id: string; payment_id: string | null }>(sql`select id, payment_id from topup_orders where tenant_id = ${TENANT} and number = ${number}`);
     orders[key] = { id: o!.id, number, paymentId: o!.payment_id };
   };
-  await put("O1", await placeOrder(page, `77${RUN}01`, /120 คูปอง/, "PromptPay QR"));
-  await put("O2", await placeOrder(page, `77${RUN}02`, /120 คูปอง/, "โอนเงิน"));
-  await put("O3", await placeOrder(page, `77${RUN}03`, /120 คูปอง/, "กระเป๋าเงินในเว็บ"));
-  await put("O4", await placeOrder(page, `77${RUN}04`, /120 คูปอง/, "กระเป๋าเงินในเว็บ"));
+  await put("O1", await placeOrder(page, `77${RUN_NUM}01`, /120 คูปอง/, "PromptPay QR"));
+  await put("O2", await placeOrder(page, `77${RUN_NUM}02`, /120 คูปอง/, "โอนเงิน"));
+  await put("O3", await placeOrder(page, `77${RUN_NUM}03`, /120 คูปอง/, "กระเป๋าเงินในเว็บ"));
+  await put("O4", await placeOrder(page, `77${RUN_NUM}04`, /120 คูปอง/, "กระเป๋าเงินในเว็บ"));
   await ctx.close();
   const [g] = await q<{ id: string }>(sql`select id from games where tenant_id = ${TENANT} and slug = 'steam-wallet'`);
   const [sp] = await q<{ id: string }>(sql`select id from game_packages where tenant_id = ${TENANT} and game_id = ${g!.id} and fulfillment = 'stock' order by price asc limit 1`);

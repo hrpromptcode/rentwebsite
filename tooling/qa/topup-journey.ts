@@ -168,7 +168,10 @@ async function main() {
     assert((await tiles.count()) === 2, `publisher search "garena" expected 2 tiles, got ${await tiles.count()}`);
     await search.fill("zzzz");
     await page.waitForTimeout(300);
-    await page.getByText("ไม่พบเกมที่ค้นหา").waitFor({ timeout: 5_000 });
+    // copy changed in the fix wave: "ไม่พบเกม “zzzz” ลองคำอื่นหรือเปลี่ยนหมวด" + a 44px "ดูเกมทั้งหมด" reset button
+    await page.getByText(/ไม่พบเกม .zzzz./).waitFor({ timeout: 5_000 });
+    const rb = await page.getByRole("button", { name: "ดูเกมทั้งหมด" }).boundingBox();
+    assert(rb && rb.height >= 44, `reset button height ${rb?.height} < 44px`);
     await search.fill("");
     await page.waitForTimeout(300);
     assert((await tiles.count()) >= 8, "clearing search did not restore the grid");
@@ -300,19 +303,25 @@ async function main() {
     await page.getByText("โค้ด ฿100").waitFor();
     const codeEl = page.locator("code").first();
     const masked = (await codeEl.textContent())?.trim() ?? "";
-    assert(/^STEAM-•{4}-•{4}-[A-Z0-9]{4}$/.test(masked), `code should be masked by default, got "${masked}"`);
+    // the ฿100 stock is FIFO: once the seed STEAM-… codes are sold, codes imported by topup-admin-journey (QA-STEAM-<run>-000n, no serial) come next
+    assert(masked.includes("•") && /^[A-Z0-9]+-[•-]+-[A-Z0-9]{2,}$/.test(masked), `code should be masked by default, got "${masked}"`);
     await page.getByRole("button", { name: "แสดงโค้ด" }).click();
     const shown = (await codeEl.textContent())?.trim() ?? "";
-    assert(/^STEAM-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(shown), `revealed code malformed: "${shown}"`);
+    const maskOf = (c: string) => c.split("-").map((p, i, a) => (i === 0 || i === a.length - 1 ? p : "•".repeat(p.length))).join("-");
+    assert(/^[A-Z0-9]+(-[A-Z0-9]+){2,}$/.test(shown) && maskOf(shown) === masked, `revealed code malformed / not matching the mask: "${shown}" vs "${masked}"`);
     await page.getByRole("button", { name: "ซ่อน" }).waitFor();
-    const serial = await page.getByText(/^SW100-\d{3}$/).textContent();
-    assert(serial, "serial (SW100-00x) not shown as เลขอ้างอิง");
+    let serial = "(none: admin-imported code)";
+    if (shown.startsWith("STEAM-")) {
+      const sr = await page.getByText(/^SW100-\d{3}$/).textContent();
+      assert(sr, "serial (SW100-00x) not shown as เลขอ้างอิง");
+      serial = sr;
+    }
     await page.getByText("รับโค้ดทันที", { exact: true }).waitFor();
     const api = await apiGet<{ available: number }>(page, `/api/topup/stock/${stockOrder.packageId}`);
     assert(api.json.available === stockOrder.before - 1, `stock should be ${stockOrder.before - 1}, got ${api.json.available}`);
     // the public poll API must never carry the code
     const poll = await apiGet<Record<string, unknown>>(page, `/api/topup/orders/${stockOrder.number}?k=${encodeURIComponent(stockOrder.k)}`);
-    assert(!poll.text.includes(shown) && !/STEAM-/.test(poll.text), "poll API leaks the delivered code");
+    assert(!poll.text.includes(shown) && !/STEAM-/.test(poll.text) && !poll.text.includes(shown.split("-").slice(1, -1).join("-")), "poll API leaks the delivered code");
     return `${stockOrder.number}: code ${masked}, serial ${serial}, stock ${stockOrder.before}→${api.json.available}`;
   });
 

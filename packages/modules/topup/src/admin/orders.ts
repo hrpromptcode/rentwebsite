@@ -1,8 +1,20 @@
 import { and, count, desc, eq, gte, ilike, inArray, isNull, lte, or, sql, type SQL } from "drizzle-orm";
 import { auditLogs, customers, gamePackages, games, payments, topupOrders, topupSuppliers, type Tx } from "@rentweb/db";
-import { audit, emitEvent, encryptToString, fail, ok, type Result } from "@rentweb/core";
-import { getPayment, markFailed, markPaid } from "@rentweb/core/payments";
-import { failOrder, fulfillOrder, getOrderById, revealDeliveredCode, type TopupOrder } from "../services/orders";
+import { audit, emitEvent, encryptToString, fail, isUuid, ok, type Result } from "@rentweb/core";
+import { getPayment, isPaymentStateError, markFailed, markPaid, paymentRefundRequired, refundPayment } from "@rentweb/core/payments";
+import { getStorage } from "@rentweb/core/storage";
+import {
+  cancelUnpaidTopupOrder,
+  failPaidOrder,
+  fulfillOrder,
+  getOrderById,
+  revealDeliveredCode,
+  topupEventPayload,
+  topupFailureText,
+  type CancelTopupOrderError,
+  type FailTopupOrderError,
+  type TopupOrder,
+} from "../services/orders";
 import { getWallet } from "../services/wallet";
 import type { OrderTab } from "./labels";
 
@@ -189,13 +201,20 @@ export async function topupTabCounts(tx: Tx, tenantId: string): Promise<Record<O
   };
 }
 
-/** KPIs for the queue header: today's paid revenue / profit + queue sizes. */
+/**
+ * Statuses that count as a sale (money kept, top-up done or under way). ONE definition for the module header
+ * (topupKpis) and the dashboard card (apps/admin dashboard/kpis.ts) – ADMIN-10.
+ */
+export const TOPUP_SALE_STATUSES = ["paid", "processing", "fulfilled"] as const;
+const SALE_SQL = sql.raw(TOPUP_SALE_STATUSES.map((x) => `'${x}'`).join(","));
+
+/** KPIs for the queue header: today's paid revenue / profit + the number of paid orders (same rule as the dashboard). */
 export async function topupKpis(tx: Tx, tenantId: string, since: Date): Promise<{ revenue: number; profit: number; count: number; fulfilled: number }> {
   const [r] = await tx
     .select({
-      revenue: sql<number>`coalesce(sum(${topupOrders.price}) filter (where ${topupOrders.status} in ('paid','processing','fulfilled')), 0)::bigint`,
+      revenue: sql<number>`coalesce(sum(${topupOrders.price}) filter (where ${topupOrders.status} in (${SALE_SQL})), 0)::bigint`,
       profit: sql<number>`coalesce(sum(${topupOrders.price} - coalesce(${topupOrders.costPrice}, 0)) filter (where ${topupOrders.status} = 'fulfilled'), 0)::bigint`,
-      count: sql<number>`count(*) filter (where ${topupOrders.status} <> 'pending_payment')::int`,
+      count: sql<number>`count(*) filter (where ${topupOrders.status} in (${SALE_SQL}))::int`,
       fulfilled: sql<number>`count(*) filter (where ${topupOrders.status} = 'fulfilled')::int`,
     })
     .from(topupOrders)
@@ -214,6 +233,10 @@ export interface AdminOrderDetail {
   deliveredCode: string | null;
   notes: AdminNote[];
   refundRequired: boolean;
+  /** the shop recorded the manual refund (adminMarkRefunded) */
+  refund: ReturnType<typeof refundRecordOf>;
+  /** the payment layer flagged the money ต้องคืนเงิน (late / duplicate money, fulfilment failed) */
+  paymentRefundReason: string | null;
   timeline: Array<{ at: Date; label: string; detail?: string | null; tone: "muted" | "success" | "destructive" | "soft" | "warning" }>;
   /** how many other orders this customer / contact placed */
   customerOrderCount: number;
@@ -261,7 +284,11 @@ export async function getAdminTopupOrder(tx: Tx, tenantId: string, orderId: stri
   const timeline: AdminOrderDetail["timeline"] = [{ at: order.placedAt, label: "สร้างรายการ", detail: order.ip ? `IP ${order.ip}` : null, tone: "muted" }];
   if (payment?.slipUrl && payment.status === "pending_verification") timeline.push({ at: payment.updatedAt, label: "ลูกค้าแนบสลิป", tone: "warning" });
   if (order.paidAt) timeline.push({ at: order.paidAt, label: "ชำระเงินแล้ว", detail: payment?.verifiedBy ? `ตรวจโดย ${payment.verifiedBy}` : null, tone: "success" });
-  if (typeof sr.failedAt === "string") timeline.push({ at: new Date(sr.failedAt), label: order.status === "refunded" ? "เติมไม่สำเร็จ · คืนเงินเข้ากระเป๋าแล้ว" : "เติมไม่สำเร็จ", detail: order.failureReason, tone: "destructive" });
+  const refund = refundRecordOf(order);
+  if (typeof sr.failedAt === "string") timeline.push({ at: new Date(sr.failedAt), label: order.status === "refunded" && sr.refunded === "wallet" ? "เติมไม่สำเร็จ · คืนเงินเข้ากระเป๋าแล้ว" : "เติมไม่สำเร็จ", detail: topupFailureText(order.failureReason), tone: "destructive" });
+  if (refund) timeline.push({ at: new Date(refund.at), label: `บันทึกว่าคืนเงินแล้ว${refund.amount ? ` ${(refund.amount / 100).toLocaleString("th-TH")} บาท` : ""}`, detail: refund.note, tone: "success" });
+  // admin cancels show through the topup.cancel audit row; system (payment expired) / customer cancels only here
+  if (typeof sr.cancelledAt === "string" && (sr.cancelledBy === "system" || sr.cancelledBy === "customer")) timeline.push({ at: new Date(sr.cancelledAt), label: sr.cancelledBy === "system" ? "ระบบยกเลิกรายการ" : "ลูกค้ายกเลิกรายการ", detail: order.failureReason, tone: "muted" });
   if (order.fulfilledAt) timeline.push({ at: order.fulfilledAt, label: "เติมสำเร็จ", detail: order.processedBy && order.processedBy !== "system" ? `โดยแอดมิน` : order.supplierRef ? `อ้างอิง ${order.supplierRef}` : null, tone: "success" });
   for (const l of logs) {
     const label = AUDIT_LABEL[l.action];
@@ -280,6 +307,9 @@ export async function getAdminTopupOrder(tx: Tx, tenantId: string, orderId: stri
     deliveredCode: revealDeliveredCode(order),
     notes: notesOf(order),
     refundRequired: sr.refundRequired === true,
+    refund,
+    // RV-05: shown on the order page; for a cancelled / failed order it is also what "บันทึกว่าคืนเงินแล้ว" settles
+    paymentRefundReason: payment && (payment.status === "paid" || payment.status === "partially_refunded") ? paymentRefundRequired(payment) : null,
     timeline,
     customerOrderCount: Number(cnt?.c ?? 0),
   };
@@ -293,16 +323,34 @@ const AUDIT_LABEL: Record<string, string> = {
   "topup.note": "เพิ่มโน้ตภายใน",
 };
 
+const CLOSED = new Set(["failed", "refunded", "cancelled"]);
+
+/** Row-locks the order for a mutation (concurrent admin clicks / the paid handler serialise here). */
+async function lockOrderRow(tx: Tx, tenantId: string, orderId: string): Promise<TopupOrder | null> {
+  if (!isUuid(orderId)) return null;
+  const [row] = await tx.select().from(topupOrders).where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.id, orderId))).for("update");
+  return row ?? null;
+}
+
 function mergeResponse(order: TopupOrder, patch: Record<string, unknown>): Record<string, unknown> {
   return { ...((order.supplierResponse ?? {}) as Record<string, unknown>), ...patch };
 }
 
+/** Proof images must be files this tenant uploaded through uploadProofAction (no arbitrary / foreign URLs). */
+export function isOwnProofImage(tenantId: string, url: string): boolean {
+  const prefix = getStorage().publicUrl(`tenants/${tenantId}/topup-proof/`);
+  if (!url.startsWith(prefix)) return false;
+  return /^[A-Za-z0-9_-]{1,80}\.(jpg|png|webp|gif|avif)$/.test(url.slice(prefix.length));
+}
+
 /** Manual fulfilment: marks a paid/processing order fulfilled with optional proof image + delivered code. */
 export async function adminFulfillOrder(tx: Tx, tenantId: string, orderId: string, input: { deliveredCode?: string | null; proofImage?: string | null; note?: string | null }, actor: Actor): Promise<Result<TopupOrder>> {
-  const order = await getOrderById(tx, tenantId, orderId);
+  const order = await lockOrderRow(tx, tenantId, orderId);
   if (!order) return fail("ไม่พบรายการ", "not_found");
   if (order.status === "fulfilled") return fail("รายการนี้เติมสำเร็จไปแล้ว", "already");
   if (order.status !== "processing" && order.status !== "paid") return fail("รายการต้องชำระเงินแล้วและอยู่ระหว่างเติม", "bad_status");
+  const proof = input.proofImage?.trim() || null;
+  if (proof && !isOwnProofImage(tenantId, proof)) return fail("รูปหลักฐานไม่ถูกต้อง — กรุณาอัปโหลดรูปใหม่", "proof");
   const code = input.deliveredCode?.trim() || null;
   const notes = notesOf(order);
   if (input.note?.trim()) notes.push({ at: new Date().toISOString(), by: actor.userId, text: input.note.trim() });
@@ -312,14 +360,14 @@ export async function adminFulfillOrder(tx: Tx, tenantId: string, orderId: strin
       status: "fulfilled",
       fulfilledAt: new Date(),
       processedBy: actor.userId,
-      proofImage: input.proofImage?.trim() || order.proofImage,
+      proofImage: proof || order.proofImage,
       deliveredCodeEncrypted: code ? encryptToString(code) : order.deliveredCodeEncrypted,
       supplierResponse: mergeResponse(order, { manual: true, fulfilledBy: actor.userId, notes }),
     })
     .where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.id, order.id)))
     .returning();
-  await emitEvent(tx, { tenantId, type: "topup.fulfilled", payload: { orderId: order.id, number: order.number, customerId: order.customerId, fulfillment: order.fulfillment, manual: true, proofImage: input.proofImage ?? null, hasCode: !!code } });
-  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.fulfill", targetType: "topup_order", targetId: order.id, diff: { number: order.number, price: order.price, proof: !!input.proofImage, code: !!code } });
+  await emitEvent(tx, { tenantId, type: "topup.fulfilled", payload: topupEventPayload(updated!, { manual: true, proofImage: proof, hasCode: !!code }) });
+  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.fulfill", targetType: "topup_order", targetId: order.id, diff: { number: order.number, price: order.price, proof: !!proof, code: !!code } });
   return ok(updated!);
 }
 
@@ -335,36 +383,55 @@ export async function adminFulfillMany(tx: Tx, tenantId: string, ids: string[], 
   return { done, skipped };
 }
 
-/** Fails a paid/processing order; wallet payments refund automatically (service), others are flagged for a manual refund. */
+/** Thai copy for the failPaidOrder refusals (ADMIN-03: an unpaid order is cancelled, never "failed"). */
+export const FAIL_ORDER_ERROR: Record<FailTopupOrderError, string> = {
+  not_found: "ไม่พบรายการ",
+  not_paid: "รายการยังไม่ชำระเงิน — ใช้ “ยกเลิกรายการ” แทน",
+  closed: "รายการนี้ปิดไปแล้ว",
+};
+
+/**
+ * Fails a paid / processing order (services failPaidOrder): wallet payments are credited back automatically,
+ * others become "failed" with the order AND its payment flagged for a manual refund (payment.refund_required).
+ * ADMIN-03: an unpaid order is refused with not_paid – the admin cancels it instead (adminCancelOrder).
+ */
 export async function adminFailOrder(tx: Tx, tenantId: string, orderId: string, reason: string, actor: Actor): Promise<Result<{ order: TopupOrder; refunded: boolean; refundRequired: boolean }>> {
   const order = await getOrderById(tx, tenantId, orderId);
-  if (!order) return fail("ไม่พบรายการ", "not_found");
+  if (!order) return fail(FAIL_ORDER_ERROR.not_found, "not_found");
   if (order.status === "fulfilled") return fail("รายการนี้เติมสำเร็จแล้ว ไม่สามารถเปลี่ยนเป็นไม่สำเร็จได้", "bad_status");
-  if (["failed", "refunded", "cancelled"].includes(order.status)) return fail("รายการนี้ปิดไปแล้ว", "already");
-  if (order.status !== "pending_payment" && order.paymentMethod === "wallet" && order.customerId) {
+  if (order.status === "pending_payment") return fail(FAIL_ORDER_ERROR.not_paid, "not_paid");
+  if (order.paymentMethod === "wallet" && order.customerId && !CLOSED.has(order.status)) {
     const w = await getWallet(tx, tenantId, order.customerId);
     if (w?.frozen) return fail("กระเป๋าเงินของลูกค้าถูกระงับอยู่ — ปลดระงับก่อน ระบบจึงจะคืนเงินอัตโนมัติได้", "frozen");
   }
-  const failed = await failOrder(tx, tenantId, order.id, reason);
-  if (!failed) return fail("ไม่พบรายการ", "not_found");
-  const [updated] = await tx
-    .update(topupOrders)
-    .set({ processedBy: actor.userId })
-    .where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.id, order.id)))
-    .returning();
-  const sr = (failed.supplierResponse ?? {}) as Record<string, unknown>;
-  const refunded = failed.status === "refunded";
-  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.fail", targetType: "topup_order", targetId: order.id, diff: { number: order.number, reason, refunded, refundRequired: sr.refundRequired === true, price: order.price } });
-  return ok({ order: updated ?? failed, refunded, refundRequired: sr.refundRequired === true });
+  const r = await failPaidOrder(tx, tenantId, order.id, reason, { by: actor.userId });
+  if (!r.ok) return fail(FAIL_ORDER_ERROR[r.error], r.error);
+  const { order: failed, refunded, refundRequired: needsRefund } = r.value;
+  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.fail", targetType: "topup_order", targetId: order.id, diff: { number: order.number, reason, refunded, refundRequired: needsRefund, price: order.price } });
+  return ok({ order: failed, refunded, refundRequired: needsRefund });
 }
 
-/** Re-runs the automatic fulfilment (api / stock) for a paid order that failed or is stuck in processing. */
-export async function adminRetryOrder(tx: Tx, tenantId: string, orderId: string, actor: Actor): Promise<Result<TopupOrder>> {
-  const order = await getOrderById(tx, tenantId, orderId);
+/** supplier_response.refundedAt – the shop recorded that the money went back (adminMarkRefunded). */
+export function refundRecordOf(order: Pick<TopupOrder, "supplierResponse">): { at: string; by: string | null; note: string | null; amount: number | null } | null {
+  const sr = (order.supplierResponse ?? {}) as Record<string, unknown>;
+  if (typeof sr.refundedAt !== "string") return null;
+  return { at: sr.refundedAt, by: typeof sr.refundedBy === "string" ? sr.refundedBy : null, note: typeof sr.refundNote === "string" ? sr.refundNote : null, amount: typeof sr.refundedAmount === "number" ? sr.refundedAmount : null };
+}
+
+/**
+ * Re-runs the automatic fulfilment (api / stock) for a paid order that failed or is stuck in processing.
+ * ADMIN-12: an order whose money already went back (refunded, or refundedAt recorded) is never re-fulfilled; an
+ * order still flagged for a manual refund needs `ackRefundPending` (the admin confirms the money has NOT gone back).
+ */
+export async function adminRetryOrder(tx: Tx, tenantId: string, orderId: string, actor: Actor, opts: { ackRefundPending?: boolean } = {}): Promise<Result<TopupOrder>> {
+  const order = await lockOrderRow(tx, tenantId, orderId);
   if (!order) return fail("ไม่พบรายการ", "not_found");
   if (order.fulfillment === "manual") return fail("แพ็กเกจเติมมือ ใช้ปุ่ม “เติมสำเร็จ” แทน", "manual");
   if (!order.paidAt) return fail("รายการยังไม่ได้ชำระเงิน", "unpaid");
+  if (order.status === "refunded" || refundRecordOf(order)) return fail("รายการนี้คืนเงินลูกค้าแล้ว ลองเติมใหม่ไม่ได้", "refunded");
   if (!["failed", "processing", "paid"].includes(order.status)) return fail("สถานะปัจจุบันลองใหม่ไม่ได้", "bad_status");
+  const sr = (order.supplierResponse ?? {}) as Record<string, unknown>;
+  if (sr.refundRequired === true && !opts.ackRefundPending) return fail("รายการนี้ติดธงต้องคืนเงิน — ยืนยันก่อนว่ายังไม่ได้โอนเงินคืนลูกค้า แล้วจึงลองใหม่", "refund_pending");
   await tx
     .update(topupOrders)
     .set({ status: "paid", failureReason: null, supplierResponse: mergeResponse(order, { retriedAt: new Date().toISOString(), retriedBy: actor.userId }) })
@@ -380,56 +447,123 @@ export async function adminRetryOrder(tx: Tx, tenantId: string, orderId: string,
       .returning();
     result = kept ?? result;
   }
-  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.retry", targetType: "topup_order", targetId: order.id, diff: { number: order.number, result: result?.status ?? null } });
+  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.retry", targetType: "topup_order", targetId: order.id, diff: { number: order.number, result: result?.status ?? null, refundPending: sr.refundRequired === true } });
   if (!result) return fail("ไม่พบรายการ", "not_found");
-  if (result.status !== "fulfilled") return fail(`ลองใหม่แล้วแต่ยังไม่สำเร็จ (${result.failureReason ?? result.status})`, "retry_failed");
+  if (result.status === "processing") return fail("ยังไม่ทราบผลจากผู้ให้บริการ — กดลองใหม่อีกครั้งภายหลัง ระบบจะตรวจสอบกับผู้ให้บริการก่อนส่งซ้ำ", "retry_unknown");
+  if (result.status !== "fulfilled") return fail(`ลองใหม่แล้วแต่ยังไม่สำเร็จ (${topupFailureText(result.failureReason ?? result.status)})`, "retry_failed");
   return ok(result);
 }
 
-/** Cancels an unpaid order (customer never paid). */
-export async function adminCancelOrder(tx: Tx, tenantId: string, orderId: string, reason: string | null, actor: Actor): Promise<Result<TopupOrder>> {
-  const order = await getOrderById(tx, tenantId, orderId);
+/**
+ * SERVICES-15 / ADMIN-12: the shop returned the money of a failed order by hand (bank transfer …). Records it
+ * through the payment layer – refundPayment() (payment refunded + payment.refunded) – then the order becomes
+ * "refunded" with supplier_response.refundedAt / refundedBy / refundNote (refundRequired cleared), audit
+ * topup.refund and event topup.refunded. adminRetryOrder refuses the order afterwards.
+ */
+export async function adminMarkRefunded(tx: Tx, tenantId: string, orderId: string, input: { note?: string | null }, actor: Actor): Promise<Result<TopupOrder>> {
+  const order = await lockOrderRow(tx, tenantId, orderId);
   if (!order) return fail("ไม่พบรายการ", "not_found");
-  if (order.status !== "pending_payment") return fail("ยกเลิกได้เฉพาะรายการที่ยังไม่ชำระเงิน", "bad_status");
+  if (order.status === "refunded" || refundRecordOf(order)) return fail("บันทึกการคืนเงินของรายการนี้ไปแล้ว", "already");
+  const sr = (order.supplierResponse ?? {}) as Record<string, unknown>;
+  const current = order.paymentId ? await getPayment(tx, tenantId, order.paymentId) : null;
+  // RV-05: money that arrived after the order was closed (late slip of a cancelled order …) is flagged on the PAYMENT only
+  const lateMoney = !!current && (current.status === "paid" || current.status === "partially_refunded") && !!paymentRefundRequired(current) && (order.status === "cancelled" || order.status === "failed");
+  if (!((order.status === "failed" && sr.refundRequired === true) || lateMoney)) return fail("บันทึกคืนเงินได้เฉพาะรายการที่เติมไม่สำเร็จและติดธงต้องคืนเงิน", "bad_status");
+  const note = input.note?.trim().slice(0, 300) || null;
+  let refundedAmount = order.price;
+  if (order.paymentId) {
+    const p = current;
+    if (p && (p.status === "paid" || p.status === "partially_refunded")) {
+      try {
+        const after = await refundPayment(tx, tenantId, p.id, undefined, note ? `คืนเงินแล้ว: ${note}` : `คืนเงินแล้ว (${order.number})`);
+        refundedAmount = after.refundedAmount - p.refundedAmount || order.price;
+      } catch (err) {
+        if (!isPaymentStateError(err)) throw err; // refunded concurrently – the order update below still applies
+      }
+    } else if (p && p.status !== "refunded") {
+      return fail("การชำระเงินของรายการนี้ไม่อยู่ในสถานะชำระแล้ว — ตรวจสอบที่หน้าการชำระเงิน", "bad_payment");
+    }
+  }
   const [updated] = await tx
     .update(topupOrders)
-    .set({ status: "cancelled", failureReason: reason, processedBy: actor.userId })
+    .set({
+      status: "refunded",
+      processedBy: actor.userId,
+      supplierResponse: { ...sr, refundRequired: false, refunded: "manual", refundedAt: new Date().toISOString(), refundedBy: actor.userId, refundNote: note, refundedAmount, ...(lateMoney && order.status === "cancelled" ? { refundOf: "late_payment" } : {}) },
+    })
     .where(and(eq(topupOrders.tenantId, tenantId), eq(topupOrders.id, order.id)))
     .returning();
-  if (order.paymentId) {
-    await tx
-      .update(payments)
-      .set({ status: "cancelled", failureReason: reason ?? "ยกเลิกโดยแอดมิน" })
-      .where(and(eq(payments.tenantId, tenantId), eq(payments.id, order.paymentId), inArray(payments.status, ["pending", "pending_verification", "failed", "expired"])));
-  }
-  await emitEvent(tx, { tenantId, type: "topup.cancelled", payload: { orderId: order.id, number: order.number, customerId: order.customerId, reason } });
-  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.cancel", targetType: "topup_order", targetId: order.id, diff: { number: order.number, reason } });
+  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.refund", targetType: "topup_order", targetId: order.id, diff: { number: order.number, amount: refundedAmount, paymentId: order.paymentId, note } });
+  await emitEvent(tx, { tenantId, type: "topup.refunded", payload: topupEventPayload(updated!, { manual: true, refundedAmount, note, reasonText: topupFailureText(order.failureReason) }) });
   return ok(updated!);
 }
 
-/** Approves the uploaded slip: markPaid → onTopupPaid → fulfilment (api/stock now, manual → queue). */
-export async function adminApproveSlip(tx: Tx, tenantId: string, orderId: string, actor: Actor): Promise<Result<TopupOrder>> {
+/** Thai copy for the cancelUnpaidTopupOrder refusals. */
+export const CANCEL_ORDER_ERROR: Record<CancelTopupOrderError, string> = {
+  not_found: "ไม่พบรายการ",
+  not_pending: "ยกเลิกได้เฉพาะรายการที่ยังไม่ชำระเงิน",
+  slip_pending: "มีสลิปรอตรวจอยู่ — ตรวจสลิปก่อน หรือยืนยันยกเลิกทั้งที่มีสลิปรอตรวจ",
+  paid: "ลูกค้าชำระเงินเข้ามาแล้วระหว่างนี้ — โหลดหน้าใหม่เพื่อดูสถานะล่าสุด",
+};
+
+/**
+ * Cancels an unpaid order (ADMIN-04 / SERVICES-14): services cancelUnpaidTopupOrder voids the open payment through
+ * the payment layer (cancelPayment → payment cancelled + payment.cancelled; an expired payment stays expired) and
+ * emits topup.cancelled itself. A slip under review needs `allowSlipPending`.
+ */
+export async function adminCancelOrder(tx: Tx, tenantId: string, orderId: string, reason: string | null, actor: Actor, opts: { allowSlipPending?: boolean } = {}): Promise<Result<TopupOrder>> {
+  const r = await cancelUnpaidTopupOrder(tx, tenantId, orderId, { reason, by: "admin", actorId: actor.userId, allowSlipPending: opts.allowSlipPending === true });
+  if (!r.ok) return fail(CANCEL_ORDER_ERROR[r.error], r.error);
+  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.cancel", targetType: "topup_order", targetId: r.value.id, diff: { number: r.value.number, reason: r.value.failureReason, paymentId: r.value.paymentId } });
+  return ok(r.value);
+}
+
+/**
+ * Approves the uploaded slip: markPaid → onTopupPaid → fulfilment (api/stock now, manual → queue).
+ * RV-04: `refundRequired` is the reason markPaid flagged the money (order cancelled / closed before the money was
+ * confirmed, stock gone, paid twice …) – the money was recorded but must go back to the customer; the UI must say so.
+ */
+export async function adminApproveSlip(tx: Tx, tenantId: string, orderId: string, actor: Actor): Promise<Result<{ order: TopupOrder; refundRequired: string | null }>> {
   const order = await getOrderById(tx, tenantId, orderId);
   if (!order) return fail("ไม่พบรายการ", "not_found");
   if (!order.paymentId) return fail("รายการนี้ไม่มีข้อมูลการชำระเงิน", "no_payment");
   const payment = await getPayment(tx, tenantId, order.paymentId);
   if (!payment) return fail("ไม่พบรายการชำระเงิน", "no_payment");
   if (payment.status === "paid") return fail("ชำระเงินแล้ว", "already");
-  if (!["pending", "pending_verification", "failed", "expired"].includes(payment.status)) return fail("สถานะการชำระเงินไม่รองรับ", "bad_status");
-  await markPaid(tx, tenantId, payment.id, { verifiedBy: actor.userId });
-  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.slip.approve", targetType: "topup_order", targetId: order.id, diff: { number: order.number, paymentId: payment.id, amount: payment.amount } });
+  if (!["pending", "pending_verification", "failed", "expired"].includes(payment.status)) return fail("รายการชำระเงินนี้ปิดแล้ว — อนุมัติไม่ได้", "bad_status");
+  let refundRequired: string | null = null;
+  try {
+    const paid = await markPaid(tx, tenantId, payment.id, { verifiedBy: actor.userId });
+    refundRequired = paymentRefundRequired(paid);
+  } catch (err) {
+    if (isPaymentStateError(err)) return fail("สถานะการชำระเงินเปลี่ยนไประหว่างนี้ — โหลดหน้าใหม่", "bad_status");
+    throw err;
+  }
+  await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.slip.approve", targetType: "topup_order", targetId: order.id, diff: { number: order.number, paymentId: payment.id, amount: payment.amount, refundRequired } });
   const fresh = await getOrderById(tx, tenantId, order.id);
-  return ok(fresh ?? order);
+  return ok({ order: fresh ?? order, refundRequired });
 }
 
+/**
+ * Rejects the slip of an unpaid order (payment → failed; the customer may upload a new one). ADMIN-05: a payment
+ * that is already closed (paid / refunded / cancelled) or an order no longer waiting for money gets a friendly
+ * refusal instead of an unhandled PaymentStateError.
+ */
 export async function adminRejectSlip(tx: Tx, tenantId: string, orderId: string, reason: string, actor: Actor): Promise<Result<TopupOrder>> {
   const order = await getOrderById(tx, tenantId, orderId);
   if (!order) return fail("ไม่พบรายการ", "not_found");
   if (!order.paymentId) return fail("รายการนี้ไม่มีข้อมูลการชำระเงิน", "no_payment");
   const payment = await getPayment(tx, tenantId, order.paymentId);
   if (!payment) return fail("ไม่พบรายการชำระเงิน", "no_payment");
-  if (payment.status === "paid") return fail("ชำระเงินแล้ว ปฏิเสธไม่ได้", "already");
-  await markFailed(tx, tenantId, payment.id, reason);
+  if (payment.status === "paid" || payment.status === "partially_refunded") return fail("ชำระเงินแล้ว ปฏิเสธไม่ได้", "already");
+  if (payment.status === "failed") return fail("ปฏิเสธสลิปนี้ไปแล้ว", "already");
+  if (order.status !== "pending_payment" || !["pending", "pending_verification", "expired"].includes(payment.status)) return fail("รายการชำระเงินนี้ปิดแล้ว", "bad_status");
+  try {
+    await markFailed(tx, tenantId, payment.id, reason);
+  } catch (err) {
+    if (isPaymentStateError(err)) return fail("รายการชำระเงินนี้ปิดแล้ว", "bad_status");
+    throw err;
+  }
   await audit(tx, { tenantId, actorType: actor.actorType, actorId: actor.userId, action: "topup.slip.reject", targetType: "topup_order", targetId: order.id, diff: { number: order.number, paymentId: payment.id, reason } });
   return ok(order);
 }

@@ -18,7 +18,7 @@ import { saveGameAction, uploadGameImageAction } from "./actions";
 import { autoSlug, EMPTY_FIELD, normalizeSlug, toGameInput, type FieldRowVM, type GameFormValues } from "./form-values";
 
 /** Upload-or-paste image picker (square icon / wide banner). */
-export function ImageField({ id, label, hint, value, onChange, slug, wide, error }: { id: string; label: string; hint?: string; value: string; onChange: (url: string) => void; slug: string; wide?: boolean; error?: string }) {
+export function ImageField({ id, label, hint, value, onChange, slug, wide, error, assetBase = "" }: { id: string; label: string; hint?: string; value: string; onChange: (url: string) => void; slug: string; wide?: boolean; error?: string; assetBase?: string }) {
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [busy, setBusy] = React.useState(false);
   async function upload(file: File | undefined) {
@@ -44,7 +44,7 @@ export function ImageField({ id, label, hint, value, onChange, slug, wide, error
     <Field label={label} htmlFor={id} hint={hint} error={error}>
       <div className="flex items-start gap-3">
         <span className={cn("relative grid shrink-0 place-items-center overflow-hidden rounded-xl border bg-muted text-muted-foreground", wide ? "h-16 w-28" : "size-16")}>
-          {value ? <img src={value} alt="" className="size-full object-cover" /> : <ImagePlus className="size-5" aria-hidden />}
+          {value ? <img src={value.startsWith("/") && !value.startsWith("//") ? `${assetBase}${value}` : value} alt="" className="size-full object-cover" /> : <ImagePlus className="size-5" aria-hidden />}
         </span>
         <div className="grid min-w-0 flex-1 gap-2">
           <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder="https://… หรืออัปโหลด" aria-invalid={!!error} />
@@ -65,7 +65,7 @@ export function ImageField({ id, label, hint, value, onChange, slug, wide, error
   );
 }
 
-export function GameForm({ slug, gameId, initial }: { slug: string; gameId: string | null; initial: GameFormValues }) {
+export function GameForm({ slug, gameId, initial, assetBase }: { slug: string; gameId: string | null; initial: GameFormValues; assetBase: string }) {
   const router = useRouter();
   const [v, setV] = React.useState<GameFormValues>(initial);
   const [slugTouched, setSlugTouched] = React.useState(!!gameId);
@@ -232,6 +232,31 @@ export function GameForm({ slug, gameId, initial }: { slug: string; gameId: stri
                   <Field label="รูปช่วยหา (URL)" htmlFor={`f-help-${i}`} className="sm:col-span-2" hint="ภาพหน้าจอบอกตำแหน่ง UID ในเกม">
                     <Input id={`f-help-${i}`} value={f.helpImage} onChange={(e) => setField(i, { helpImage: e.target.value })} placeholder="https://…" />
                   </Field>
+                  {f.type !== "select" && (
+                    <>
+                      <Field label="รูปแบบที่รับ (regex ไม่บังคับ)" htmlFor={`f-pat-${i}`} error={err(`fields.${i}.pattern`)} hint={'ทั้งค่า เช่น \\d{9,10} หรือ [^#]+#[A-Za-z0-9]{3,5}'}>
+                        <Input id={`f-pat-${i}`} value={f.pattern} onChange={(e) => setField(i, { pattern: e.target.value })} placeholder="\d{9,10}" className="font-mono" maxLength={200} aria-invalid={!!err(`fields.${i}.pattern`)} />
+                      </Field>
+                      <Field label="คำแนะนำรูปแบบ (ลูกค้าเห็น)" htmlFor={`f-hint-${i}`} error={err(`fields.${i}.hint`)} hint="แสดงใต้ช่องและในข้อความผิดพลาด">
+                        <Input id={`f-hint-${i}`} value={f.hint} onChange={(e) => setField(i, { hint: e.target.value })} placeholder="เช่น ตัวเลข 9–10 หลัก" maxLength={80} />
+                      </Field>
+                      <div className="grid grid-cols-2 gap-2 sm:col-span-2 sm:grid-cols-3 lg:col-span-1">
+                        <Field label="สั้นสุด" htmlFor={`f-min-${i}`} error={err(`fields.${i}.minLength`)}>
+                          <Input id={`f-min-${i}`} value={f.minLength} onChange={(e) => setField(i, { minLength: e.target.value.replace(/\D/g, "").slice(0, 3) })} inputMode="numeric" placeholder="-" />
+                        </Field>
+                        <Field label="ยาวสุด" htmlFor={`f-max-${i}`} error={err(`fields.${i}.maxLength`)}>
+                          <Input id={`f-max-${i}`} value={f.maxLength} onChange={(e) => setField(i, { maxLength: e.target.value.replace(/\D/g, "").slice(0, 3) })} inputMode="numeric" placeholder="-" />
+                        </Field>
+                        <Field label="แป้นพิมพ์" htmlFor={`f-im-${i}`} className="col-span-2 sm:col-span-1">
+                          <NativeSelect id={`f-im-${i}`} value={f.inputMode} onChange={(e) => setField(i, { inputMode: e.target.value as FieldRowVM["inputMode"] })}>
+                            <option value="">อัตโนมัติ</option>
+                            <option value="numeric">ตัวเลข</option>
+                            <option value="text">ข้อความ</option>
+                          </NativeSelect>
+                        </Field>
+                      </div>
+                    </>
+                  )}
                   {f.type === "select" && (
                     <Field label="ตัวเลือก (บรรทัดละ 1 ตัวเลือก)" htmlFor={`f-opt-${i}`} error={err(`fields.${i}.options`)} className="sm:col-span-2 lg:col-span-3">
                       <Textarea id={`f-opt-${i}`} value={f.options} onChange={(e) => setField(i, { options: e.target.value })} placeholder={"Asia\nAmerica\nEurope"} className="min-h-20" aria-invalid={!!err(`fields.${i}.options`)} />
@@ -260,8 +285,8 @@ export function GameForm({ slug, gameId, initial }: { slug: string; gameId: stri
             <CardTitle>รูปภาพ</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-5">
-            <ImageField id="g-image" label="ไอคอน (สี่เหลี่ยมจัตุรัส)" hint="แนะนำ 512×512 px" value={v.image} onChange={(url) => set("image", url)} slug={slug} error={err("image")} />
-            <ImageField id="g-banner" label="แบนเนอร์" hint="แนะนำ 1600×600 px" value={v.banner} onChange={(url) => set("banner", url)} slug={slug} wide error={err("banner")} />
+            <ImageField id="g-image" label="ไอคอน (สี่เหลี่ยมจัตุรัส)" hint="แนะนำ 512×512 px" value={v.image} onChange={(url) => set("image", url)} slug={slug} error={err("image")} assetBase={assetBase} />
+            <ImageField id="g-banner" label="แบนเนอร์" hint="แนะนำ 1600×600 px" value={v.banner} onChange={(url) => set("banner", url)} slug={slug} wide error={err("banner")} assetBase={assetBase} />
           </CardContent>
         </Card>
 

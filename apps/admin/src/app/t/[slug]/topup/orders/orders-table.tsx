@@ -79,8 +79,10 @@ export function OrdersTable({ slug, rows, canBatch }: { slug: string; rows: Orde
     <div className="min-w-0">
       {canBatch && batchable.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
-          <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
-            <Checkbox checked={allChecked} onCheckedChange={(v) => setSelected(v ? new Set(batchable.map((r) => r.id)) : new Set())} aria-label="เลือกทั้งหมด" />
+          <label className="flex min-h-11 cursor-pointer items-center gap-1 text-sm">
+            <span className="-ml-3 grid size-11 shrink-0 place-items-center">
+              <Checkbox checked={allChecked} onCheckedChange={(v) => setSelected(v ? new Set(batchable.map((r) => r.id)) : new Set())} aria-label="เลือกทั้งหมด" />
+            </span>
             <span>
               เลือกแล้ว <span className="font-semibold tabular-nums">{selected.size}</span> / {batchable.length} รายการ
             </span>
@@ -119,7 +121,12 @@ export function OrdersTable({ slug, rows, canBatch }: { slug: string; rows: Orde
                 <TableRow key={o.id} className="relative" data-state={selected.has(o.id) ? "selected" : undefined}>
                   {canBatch && (
                     <TableCell className="relative z-10 align-top">
-                      {selectable && <Checkbox checked={selected.has(o.id)} onCheckedChange={(v) => toggle(o.id, !!v)} aria-label={`เลือก ${o.number}`} className="mt-1" />}
+                      {selectable && (
+                        // ADMIN-16: 44×44 px hit area around the 20 px box (the whole padded label toggles the row)
+                        <label className="-m-3 grid size-11 cursor-pointer place-items-center rounded-lg">
+                          <Checkbox checked={selected.has(o.id)} onCheckedChange={(v) => toggle(o.id, !!v)} aria-label={`เลือก ${o.number}`} />
+                        </label>
+                      )}
                     </TableCell>
                   )}
                   <TableCell className="align-top">
