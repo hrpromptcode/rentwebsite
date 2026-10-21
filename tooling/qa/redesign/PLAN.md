@@ -28,3 +28,11 @@ Each agent: follow docs/design/hi-end-direction.md section d for its templates, 
 ## Notes
 - 2026-10-21 23:10: port 3000 was held by an idle dev server of D:\Projects\restaurant_white_label (session "แก้ไขจุดต่างๆ หลายฟีเจอร์");
   stopped it so RentWeb can run — tell the owner: restart with `pnpm --filter @favornoms/web dev` in that project.
+
+## Status log
+- 2026-10-22 02:30 — phase 1 DONE, committed + pushed 36d72b5 (typecheck 16/16). Platform site live at localhost:3000.
+- 2026-10-22 02:35 — phase 2 launched: Workflow task w417beog1, run id wf_43110144-d79,
+  script C:\Users\B\.claude\projects\D--Projects-promptcode-rentweb\23625773-70a0-4240-b67e-436e61f0d1a9\workflows\scripts\rentweb-hiend-phase2-wf_43110144-d79.js
+  agents: commerce, booking, restaurant, topup, rental, events, common (progress files tooling/qa/redesign/<key>.md).
+  Phase-3 inputs: "For shared owners" sections in every progress file (shared kit/storefront fixes), platform.md "For kit owners",
+  re-capture showcase screenshots (tooling/qa/redesign/capture-showcase.ts then platform-og.ts), admin onboarding template preselect follow-up.
