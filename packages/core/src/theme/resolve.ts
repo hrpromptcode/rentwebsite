@@ -1,4 +1,4 @@
-import { FONTS, fontStack } from "./fonts";
+import { accentStack, fontStack, isAccentFont, isThaiFont } from "./fonts";
 import { getPreset, type ThemePreset } from "./presets";
 import { parseTheme, type FullPalette, type ThemeBrand, type ThemeEffects, type ThemeLayout, type ThemeStored } from "./schema";
 import { aaOk, foregroundFor, hex, shift, withAlpha } from "./color";
@@ -8,7 +8,8 @@ export interface ResolvedTheme {
   mode: "light" | "dark" | "system";
   light: FullPalette;
   dark: FullPalette;
-  fonts: { heading: string; body: string; display: string };
+  /** accent = Latin-only accent font key, "" when the display font is used */
+  fonts: { heading: string; body: string; display: string; accent: string };
   radius: ThemePreset["radius"];
   density: ThemePreset["density"];
   layout: ThemeLayout;
@@ -71,10 +72,13 @@ export function resolveTheme(input: unknown): ResolvedTheme {
   const light = completePalette(preset.light, stored.colors as Partial<FullPalette>, warnings, "โหมดสว่าง");
   const dark = completePalette(preset.dark, stored.darkColors as Partial<FullPalette>, warnings, "โหมดมืด");
 
+  // Latin-only accent fonts are never used for heading/body/display (Thai would fall back to system fonts)
   const fonts = {
-    heading: FONTS[stored.fonts.heading ?? ""] ? stored.fonts.heading! : preset.fonts.heading,
-    body: FONTS[stored.fonts.body ?? ""] ? stored.fonts.body! : preset.fonts.body,
-    display: FONTS[stored.fonts.display ?? ""] ? stored.fonts.display! : (preset.fonts.display ?? preset.fonts.heading),
+    heading: isThaiFont(stored.fonts.heading) ? stored.fonts.heading : preset.fonts.heading,
+    body: isThaiFont(stored.fonts.body) ? stored.fonts.body : preset.fonts.body,
+    display: isThaiFont(stored.fonts.display) ? stored.fonts.display : (preset.fonts.display ?? preset.fonts.heading),
+    // "" stored = the owner chose "use the display font"; unset = preset default
+    accent: stored.fonts.accent === "" ? "" : isAccentFont(stored.fonts.accent) ? stored.fonts.accent : isAccentFont(preset.fonts.accent) ? preset.fonts.accent : "",
   };
 
   return {
@@ -143,6 +147,7 @@ export function themeToCss(t: ResolvedTheme): ThemeCss {
     "--font-heading": fontStack(t.fonts.heading),
     "--font-body": fontStack(t.fonts.body),
     "--font-display": fontStack(t.fonts.display),
+    "--font-accent": accentStack(t.fonts.accent, t.fonts.display),
     "--radius": RADIUS_PX[t.radius],
     "--density": DENSITY_SCALE[t.density],
     "--ease-theme": t.preset.motion.ease,
@@ -184,6 +189,13 @@ export function themeToCss(t: ResolvedTheme): ThemeCss {
       "data-hero-bg": t.effects.heroBackground,
       "data-grain": String(t.effects.grain),
       "data-glass": String(t.effects.glassmorphism),
+      // hi-end shell flags (§6.1): read by SmoothScroll, the Cursor, 3D scenes and the page transition
+      "data-cursor": t.effects.cursor,
+      "data-smooth": String(t.effects.smoothScroll),
+      "data-scene3d": t.effects.scene3d,
+      "data-transition": t.effects.pageTransitions ? t.effects.transitionStyle : "none",
+      "data-preloader": t.effects.preloader,
+      ...(t.fonts.accent ? { "data-accent": t.fonts.accent } : {}),
     },
   };
 }

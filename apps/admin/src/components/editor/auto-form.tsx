@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@rentweb/ui/components/switch";
 import { Textarea } from "@rentweb/ui/components/textarea";
 import { cn } from "@rentweb/ui/lib/utils";
-import { emptyValue, type FieldSpec, type ObjectSpec } from "@/lib/zod-introspect";
+import { emptyValue, optionLabel, type FieldSpec, type ObjectSpec } from "@/lib/zod-introspect";
 import { SECTION_IMAGE_ACCEPT } from "@/app/t/[slug]/media/limits";
 
 export type Uploader = (file: File) => Promise<string | null>;
@@ -81,15 +81,15 @@ function FieldInput({ spec, value, onChange, ctx, path }: { spec: FieldSpec; val
       );
     case "enum": {
       const current = value ?? spec.defaultValue ?? spec.options[0];
-      const useButtons = spec.options.length <= 5;
+      const useButtons = spec.options.length <= 5 && spec.options.every((o) => optionLabel(spec.key, o).length <= 22);
       return (
         <div className="grid gap-1.5">
           <Label>{spec.label}</Label>
           {useButtons ? (
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={spec.label}>
               {spec.options.map((o) => (
-                <button key={String(o)} type="button" role="radio" aria-checked={current === o} disabled={ctx.disabled} onClick={() => onChange(o)} className={cn("h-10 rounded-lg border px-3 text-sm font-medium transition-colors", current === o ? "border-primary bg-primary-soft text-primary" : "hover:bg-muted")}>
-                  {String(o)}
+                <button key={String(o)} type="button" role="radio" aria-checked={current === o} disabled={ctx.disabled} onClick={() => onChange(o)} title={String(o)} className={cn("min-h-10 rounded-lg border px-3 text-sm font-medium transition-colors", current === o ? "border-primary bg-primary-soft text-primary" : "hover:bg-muted")}>
+                  {optionLabel(spec.key, o)}
                 </button>
               ))}
             </div>
@@ -101,7 +101,7 @@ function FieldInput({ spec, value, onChange, ctx, path }: { spec: FieldSpec; val
               <SelectContent>
                 {spec.options.map((o) => (
                   <SelectItem key={String(o)} value={String(o)}>
-                    {String(o)}
+                    {optionLabel(spec.key, o)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -246,7 +246,7 @@ function ArrayField({ spec, value, onChange, ctx, path }: { spec: Extract<FieldS
               ) : spec.item.kind === "object" ? (
                 <div className={cn("grid gap-3", spec.item.fields.length > 2 && "sm:grid-cols-2")}>
                   {spec.item.fields.map((f) => (
-                    <div key={f.key} className={cn(f.kind === "string" && f.multiline && "sm:col-span-2")}>
+                    <div key={f.key} className={cn(((f.kind === "string" && f.multiline) || f.kind === "array") && "sm:col-span-2")}>
                       <FieldInput spec={f} value={(item as Record<string, unknown>)?.[f.key]} onChange={(v) => onChange(items.map((x, k) => (k === i ? { ...(x as Record<string, unknown>), [f.key]: v } : x)))} ctx={ctx} path={`${path}.${i}.${f.key}`} />
                     </div>
                   ))}

@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { MotionRoot } from "@rentweb/ui/motion";
+import { MotionRoot } from "@rentweb/ui/motion/motion-root";
+import { SmoothScroll } from "@rentweb/ui/motion/smooth-scroll";
+import { Preloader } from "@rentweb/ui/motion/preloader";
+import { RouteProgress } from "@rentweb/ui/motion/route-transition";
+import { CursorProvider } from "@rentweb/ui/fx/cursor";
+import { Grain } from "@rentweb/ui/fx/grain";
 import { Toaster } from "@rentweb/ui/components/sonner";
-import { FloatingChat, ModeScript, SiteFooter, SiteHeader, ThemeEffects } from "@rentweb/storefront";
+import { FloatingChat, ModeScript, RouteKind, routeKindOf, SiteFooter, SiteHeader, ThemeEffects } from "@rentweb/storefront";
 import { fontClassNames } from "@/fonts";
 import { getNavigation, getRuntime, listNavPages } from "@/lib/tenant";
 import { buildCtx } from "@/lib/storefront-ctx";
@@ -34,20 +40,37 @@ export default async function SiteLayout({ children, params }: { children: React
     { label: "เงื่อนไขการใช้บริการ", href: "/terms" },
   ];
 
+  const fx = theme.effects;
+  // public path from the proxy (x-tenant-path): server-rendered route kind (RouteKind keeps it in sync on client
+  // navigation) and the first-visit preloader only on the home page — no inline route script (a 404 is client-rendered
+  // from Next's error shell in dev, and React warns about every <script> it has to create there).
+  const path = (await headers()).get("x-tenant-path");
+  const routeKind = path ? routeKindOf(path.split("/")[1] || null) : undefined;
+  const showPreloader = fx.preloader !== "off" && (path == null || path === "/");
+  const brandName = (theme.brand.logoText ?? runtime.config.name).trim() || runtime.config.name;
+
   return (
-    <html lang={ctx.locale} className={`${fontClassNames} ${css.htmlClass}`} {...css.dataAttrs} data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang={ctx.locale} className={`${fontClassNames} ${css.htmlClass}`} {...css.dataAttrs} data-route={routeKind} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <style id="tenant-theme" dangerouslySetInnerHTML={{ __html: css.styleTag }} />
         <ModeScript mode={theme.mode} />
       </head>
       <body className="flex min-h-dvh flex-col">
-        <MotionRoot level={theme.effects.motionLevel}>
-          <ThemeEffects cursorGlow={theme.effects.cursorGlow} scanlines={theme.effects.scanlines} />
-          <SiteHeader ctx={ctx} nav={headerNav} />
-          <main className="flex-1 overflow-x-clip">{children}</main>
-          <SiteFooter ctx={ctx} nav={nav.footer.length ? nav.footer : headerNav} legal={legal} />
-          <FloatingChat ctx={ctx} />
-          <Toaster />
+        {/* hi-end shell (docs/design/hi-end-direction.md §6.3): first-visit preloader on "/" only (first child of body) */}
+        {showPreloader && fx.preloader !== "off" && <Preloader brand={brandName} logoUrl={theme.brand.logo ?? undefined} variant={fx.preloader} allowForce />}
+        <MotionRoot level={fx.motionLevel}>
+          <RouteKind />
+          <RouteProgress />
+          <SmoothScroll enabled={fx.smoothScroll} lerp={fx.motionLevel === "subtle" ? 0.08 : 0.1} />
+          <CursorProvider mode={fx.cursor}>
+            <ThemeEffects cursorGlow={fx.cursorGlow} scanlines={fx.scanlines} cursor={fx.cursor} />
+            {fx.grain && <Grain opacity={fx.motionLevel === "subtle" ? 0.035 : 0.05} animated={fx.motionLevel !== "subtle"} />}
+            <SiteHeader ctx={ctx} nav={headerNav} />
+            <main className="flex-1 overflow-x-clip">{children}</main>
+            <SiteFooter ctx={ctx} nav={nav.footer.length ? nav.footer : headerNav} legal={legal} />
+            <FloatingChat ctx={ctx} />
+            <Toaster />
+          </CursorProvider>
         </MotionRoot>
       </body>
     </html>

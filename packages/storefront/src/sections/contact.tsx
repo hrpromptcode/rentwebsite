@@ -1,16 +1,38 @@
 import * as React from "react";
 import type { z } from "zod";
-import { Clock, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
-import { Reveal } from "@rentweb/ui/motion";
+import { ArrowUpRight, Clock, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { cn } from "@rentweb/ui/lib/utils";
 import { contactOf, type StorefrontCtx } from "../ctx";
 import { lineChat } from "../line";
 import type { contact } from "../definitions";
-import { Prose, Section, SectionHeading } from "./_shared";
+import { Prose, Rise, Section, SectionHeading, fxOf, hasAccentFont } from "./_shared";
 import { ContactForm } from "./contact-form";
 
 type Props = z.output<typeof contact.schema>;
 
+function Row({ icon, label, children, href, external }: { icon: React.ReactNode; label: string; children: React.ReactNode; href?: string; external?: boolean }) {
+  const body = (
+    <>
+      <span className="flex size-12 shrink-0 items-center justify-center rounded-full border border-border text-primary transition-colors duration-300 group-hover:border-primary group-hover:bg-primary group-hover:text-primary-foreground">{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm text-muted-foreground">{label}</span>
+        <span className="mt-0.5 block font-heading text-step-2 leading-snug font-medium break-words">{children}</span>
+      </span>
+      {href && <ArrowUpRight aria-hidden className="mt-1 size-5 shrink-0 text-muted-foreground transition-transform duration-500 group-hover:rotate-45 group-hover:text-foreground" />}
+    </>
+  );
+  return href ? (
+    <a href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined} className="group flex items-start gap-5 border-b border-border py-6 transition-colors">
+      {body}
+    </a>
+  ) : (
+    <div className="group flex items-start gap-5 border-b border-border py-6">{body}</div>
+  );
+}
+
 export function Contact({ ctx, props: p }: { ctx: StorefrontCtx; props: Props }) {
+  const fx = fxOf(p);
+  const accent = hasAccentFont(ctx);
   const c = contactOf(ctx);
   const phone = p.phone ?? c.phone;
   const email = p.email ?? c.email;
@@ -19,98 +41,79 @@ export function Contact({ ctx, props: p }: { ctx: StorefrontCtx; props: Props })
   const address = p.address ?? c.address;
   const mapUrl = p.mapEmbedUrl ?? c.mapUrl;
   const hours = c.hours ?? [];
+  const chips = p.variant === "chips";
+
+  const details = (
+    <div className="border-t border-border">
+      {phone && (
+        <Row icon={<Phone className="size-5" />} label={ctx.t("common.call")} href={`tel:${phone}`}>
+          {phone}
+        </Row>
+      )}
+      {line && (
+        <Row icon={<MessageCircle className="size-5" />} label="LINE" href={line.href ?? undefined} external>
+          {line.display}
+        </Row>
+      )}
+      {email && (
+        <Row icon={<Mail className="size-5" />} label="อีเมล" href={`mailto:${email}`}>
+          {email}
+        </Row>
+      )}
+      {address && (
+        <Row icon={<MapPin className="size-5" />} label={ctx.t("common.address")}>
+          <Prose text={address} className="font-body text-base leading-relaxed font-normal" />
+        </Row>
+      )}
+      {p.showHours && hours.length > 0 && (
+        <div className="flex items-start gap-5 border-b border-border py-6">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-full border border-border text-primary">
+            <Clock className="size-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <span className="block text-sm text-muted-foreground">{ctx.t("common.openingHours")}</span>
+            <dl className="mt-3 grid gap-2 text-sm">
+              {hours.map((h) => (
+                <div key={h.day} className="flex items-baseline gap-3">
+                  <dt className="font-medium">{h.day}</dt>
+                  <span aria-hidden className="flex-1 translate-y-[-0.2em] border-b border-dotted border-border" />
+                  <dd className="text-muted-foreground tabular-nums">{h.time}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const form = p.showForm ? (
+    <Rise fx={fx} delay={0.1} className={cn("card p-6 sm:p-8 md:p-10", chips && "md:p-12")}>
+      <ContactForm
+        interests={chips ? p.interests : []}
+        budgets={chips ? p.budgets : []}
+        t={{ submit: ctx.t("form.submit"), sent: ctx.t("form.sent"), name: ctx.t("checkout.name"), phone: ctx.t("checkout.phone"), email: ctx.t("checkout.email"), message: ctx.t("form.message") }}
+      />
+    </Rise>
+  ) : null;
+
+  const map =
+    p.showMap && mapUrl ? (
+      <Rise fx={fx} delay={0.2} className="group relative overflow-hidden rounded-[var(--radius-2xl)] border border-border">
+        <iframe src={mapUrl} title="แผนที่" className="h-72 w-full grayscale-[.85] transition-[filter] duration-700 group-hover:grayscale-0 md:h-96" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />
+        <span aria-hidden className="pointer-events-none absolute inset-0 bg-primary mix-blend-color opacity-25 transition-opacity duration-700 group-hover:opacity-0" />
+      </Rise>
+    ) : null;
 
   return (
-    <Section id="contact">
+    <Section id="contact" type="contact" fx={fx}>
       <div className="container-x">
-        <SectionHeading heading={p.heading} subheading={p.body} align="left" />
-        <div className="grid gap-10 lg:grid-cols-12">
-          <Reveal className="space-y-6 lg:col-span-5">
-            {phone && (
-              <a href={`tel:${phone}`} className="flex items-start gap-4 rounded-[var(--radius-lg)] p-3 transition hover:bg-muted">
-                <span className="flex size-11 items-center justify-center rounded-full bg-primary-soft text-primary">
-                  <Phone className="size-5" />
-                </span>
-                <span>
-                  <span className="block text-sm text-muted-foreground">{ctx.t("common.call")}</span>
-                  <span className="text-lg font-medium">{phone}</span>
-                </span>
-              </a>
-            )}
-            {line &&
-              (() => {
-                const body = (
-                  <>
-                    <span className="flex size-11 items-center justify-center rounded-full bg-[#06C755]/15 text-[#06C755]">
-                      <MessageCircle className="size-5" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-sm text-muted-foreground">LINE</span>
-                      <span className="text-lg font-medium break-all">{line.display}</span>
-                    </span>
-                  </>
-                );
-                // no usable link (e.g. an ID with Thai characters): still show the ID so customers can search for it in LINE
-                return line.href ? (
-                  <a href={line.href} target="_blank" rel="noopener noreferrer" className="flex items-start gap-4 rounded-[var(--radius-lg)] p-3 transition hover:bg-muted">
-                    {body}
-                  </a>
-                ) : (
-                  <div className="flex items-start gap-4 p-3">{body}</div>
-                );
-              })()}
-            {email && (
-              <a href={`mailto:${email}`} className="flex items-start gap-4 rounded-[var(--radius-lg)] p-3 transition hover:bg-muted">
-                <span className="flex size-11 items-center justify-center rounded-full bg-primary-soft text-primary">
-                  <Mail className="size-5" />
-                </span>
-                <span>
-                  <span className="block text-sm text-muted-foreground">อีเมล</span>
-                  <span className="text-lg font-medium">{email}</span>
-                </span>
-              </a>
-            )}
-            {address && (
-              <div className="flex items-start gap-4 p-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
-                  <MapPin className="size-5" />
-                </span>
-                <span>
-                  <span className="block text-sm text-muted-foreground">{ctx.t("common.address")}</span>
-                  <Prose text={address} className="text-base" />
-                </span>
-              </div>
-            )}
-            {p.showHours && hours.length > 0 && (
-              <div className="flex items-start gap-4 p-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
-                  <Clock className="size-5" />
-                </span>
-                <div className="w-full">
-                  <span className="block text-sm text-muted-foreground">{ctx.t("common.openingHours")}</span>
-                  <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
-                    {hours.map((h) => (
-                      <React.Fragment key={h.day}>
-                        <dt className="font-medium">{h.day}</dt>
-                        <dd className="text-muted-foreground">{h.time}</dd>
-                      </React.Fragment>
-                    ))}
-                  </dl>
-                </div>
-              </div>
-            )}
-          </Reveal>
-          <div className="space-y-6 lg:col-span-7">
-            {p.showForm && (
-              <Reveal delay={0.1} className="card p-6 md:p-8">
-                <ContactForm t={{ submit: ctx.t("form.submit"), sent: ctx.t("form.sent"), name: ctx.t("checkout.name"), phone: ctx.t("checkout.phone"), email: ctx.t("checkout.email"), message: ctx.t("form.message") }} />
-              </Reveal>
-            )}
-            {p.showMap && mapUrl && (
-              <Reveal delay={0.2} className="overflow-hidden rounded-[var(--radius-2xl)] border">
-                <iframe src={mapUrl} title="แผนที่" className="h-72 w-full md:h-80" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />
-              </Reveal>
-            )}
+        <SectionHeading heading={p.heading} subheading={p.body} align="left" layout="split" fx={fx} accent={accent} size={chips ? "lg" : "md"} />
+        <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+          <Rise fx={fx} className={cn(chips ? "lg:order-2 lg:col-span-4" : "lg:col-span-5")}>{details}</Rise>
+          <div className={cn("space-y-8", chips ? "lg:order-1 lg:col-span-8" : "lg:col-span-7")}>
+            {form}
+            {map}
           </div>
         </div>
       </div>

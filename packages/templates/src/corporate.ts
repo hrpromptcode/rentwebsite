@@ -10,10 +10,10 @@ export const corporate: TemplateDefinition = {
   category: "content",
   siteType: "corporate",
   modules: [],
-  themePreset: "quartz",
+  themePreset: "obsidian", // hi-end direction §5.6 (dark studio preset)
   // ADMIN_B2-07: the sample brand; new (non-demo) shops get their own name instead
   sampleBrand: ["Northstar"],
-  recommendedPresets: ["quartz", "aurora", "midnight", "studio"],
+  recommendedPresets: ["obsidian", "quartz", "midnight", "aurora"],
   complexity: 1,
   previewImage: u("1497366216548-37526070297c", 1200),
   settings: {

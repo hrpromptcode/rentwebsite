@@ -20,6 +20,13 @@ import { Video } from "./sections/video";
 import { Steps } from "./sections/steps";
 import { Spacer } from "./sections/spacer";
 import { Announcement } from "./sections/announcement";
+import { CurvedGallerySection } from "./sections/curved-gallery";
+import { StickyStorySection } from "./sections/sticky-story";
+import { TunnelSection } from "./sections/tunnel";
+import { GiantWordmarkSection } from "./sections/giant-wordmark";
+import { HorizontalScrollSection } from "./sections/horizontal-scroll";
+import { ProjectListSection } from "./sections/project-list";
+import { InterludeSection } from "./sections/interlude";
 
 export type SectionComponent = (props: { ctx: StorefrontCtx; props: any; id: string; index: number }) => React.ReactNode | Promise<React.ReactNode>;
 
@@ -43,6 +50,13 @@ const REGISTRY: Record<string, SectionComponent> = {
   steps: Steps,
   spacer: Spacer,
   announcement: Announcement,
+  "curved-gallery": CurvedGallerySection,
+  "sticky-story": StickyStorySection,
+  tunnel: TunnelSection,
+  "giant-wordmark": GiantWordmarkSection,
+  "horizontal-scroll": HorizontalScrollSection,
+  "project-list": ProjectListSection,
+  interlude: InterludeSection,
 };
 
 export function registerSection(type: string, component: SectionComponent) {
@@ -51,6 +65,23 @@ export function registerSection(type: string, component: SectionComponent) {
 
 export function hasSectionComponent(type: string) {
   return type in REGISTRY;
+}
+
+/**
+ * "Heavy" sections mount a WebGL canvas or a pinned scroll scene (docs/design §7.0: one heavy moment per viewport).
+ * Used for the dev warning when a page puts two of them back to back; templates own the order.
+ */
+const HEAVY_TYPES = new Set(["curved-gallery", "tunnel", "interlude", "horizontal-scroll"]);
+export function isHeavySection(s: Pick<SectionJson, "type" | "props">): boolean {
+  const p = (s.props ?? {}) as Record<string, unknown>;
+  if (p.fx === "calm" || p.fx === "off") return false;
+  if (HEAVY_TYPES.has(s.type)) return true;
+  if (s.type === "hero") return p.scene !== "none";
+  if (s.type === "gallery") return p.layout === "carousel" || p.layout === "curved" || p.layout === "filmstrip";
+  if (s.type === "steps") return p.variant === "tunnel";
+  if (s.type === "cta") return p.variant === "glow" || p.variant === "card";
+  if (s.type === "team") return p.variant === "large";
+  return false;
 }
 
 /** Section types whose component renders the page's <h1> (the hero headline). Module sections use h2. */
@@ -68,6 +99,7 @@ export async function RenderSections({ sections, ctx, pageTitle }: { sections: S
   const out: React.ReactNode[] = [];
   if (pageTitle && !sectionsRenderH1(sections)) out.push(<h1 key="page-title" className="sr-only">{pageTitle}</h1>);
   let index = 0;
+  let prevHeavy: string | null = null;
   for (const s of sections) {
     if (s.hidden) continue;
     const def = SECTION_DEFS[s.type];
@@ -84,6 +116,11 @@ export async function RenderSections({ sections, ctx, pageTitle }: { sections: S
     }
     if (def.module && !ctx.tenant.modules.includes(def.module)) continue;
     const props = parseSectionProps(s.type, s.props) ?? {};
+    const heavy = isHeavySection({ type: s.type, props });
+    if (heavy && prevHeavy && process.env.NODE_ENV !== "production") {
+      console.warn(`[sections] two heavy sections back to back ("${prevHeavy}" → "${s.type}" #${s.id}): keep one WebGL / pinned moment per viewport`);
+    }
+    prevHeavy = heavy ? s.type : null;
     out.push(
       <React.Fragment key={s.id}>
         {await Comp({ ctx, props, id: s.id, index })}

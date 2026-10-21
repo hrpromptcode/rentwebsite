@@ -30,7 +30,7 @@ export default async function DesignPage({ params }: { params: Promise<{ slug: s
     };
   });
 
-  const fonts: FontOption[] = Object.values(FONTS).map((f) => ({ key: f.key, family: f.family, category: f.category, recommendedFor: f.recommendedFor, mood: f.mood }));
+  const fonts: FontOption[] = Object.values(FONTS).map((f) => ({ key: f.key, family: f.family, category: f.category, recommendedFor: f.recommendedFor, mood: f.mood, latinOnly: !!f.latinOnly }));
 
   return (
     <div className="space-y-6">

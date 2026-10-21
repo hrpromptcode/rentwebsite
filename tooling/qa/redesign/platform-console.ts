@@ -1,0 +1,12 @@
+import { chromium } from "@playwright/test";
+import { isolateHmr, stableGoto } from "../bughunt/fixes/_dev-stable";
+const url = process.argv[2] ?? "http://localhost:3000/nope";
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+await isolateHmr(ctx);
+const page = await ctx.newPage();
+page.on("console", (m) => console.log(`[${m.type()}]`, m.text().slice(0, 400)));
+page.on("pageerror", (e) => console.log("[pageerror]", e.message.slice(0, 400)));
+await stableGoto(page, url, "load");
+await page.waitForTimeout(2500);
+await browser.close();

@@ -12,8 +12,11 @@ import {
   Chakra_Petch,
   Chonburi,
   Fahkwang,
+  Fraunces,
   IBM_Plex_Sans_Thai,
+  Instrument_Serif,
   Itim,
+  JetBrains_Mono,
   K2D,
   Kanit,
   KoHo,
@@ -27,10 +30,12 @@ import {
   Pridi,
   Prompt,
   Sarabun,
+  Space_Grotesk,
   Srisakdi,
   Taviraj,
   Thasadith,
   Trirong,
+  Unbounded,
 } from "next/font/google";
 
 const prompt = Prompt({ subsets: ["thai", "latin"], weight: ["300", "400", "500", "600", "700"], display: "swap", preload: false, variable: "--font-prompt" });
@@ -59,6 +64,13 @@ const koho = KoHo({ subsets: ["thai", "latin"], weight: ["300", "400", "500", "6
 const fahkwang = Fahkwang({ subsets: ["thai", "latin"], weight: ["300", "400", "500", "600", "700"], display: "swap", preload: false, variable: "--font-fahkwang" });
 const thasadith = Thasadith({ subsets: ["thai", "latin"], weight: ["400", "700"], display: "swap", preload: false, variable: "--font-thasadith" });
 
+// Latin-only accent fonts (theme fonts.accent; Thai glyphs fall back to the display font) + the global mono font
+const instrumentSerif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], display: "swap", preload: false, variable: "--font-instrument-serif" });
+const fraunces = Fraunces({ subsets: ["latin"], style: ["normal", "italic"], display: "swap", preload: false, variable: "--font-fraunces" });
+const unbounded = Unbounded({ subsets: ["latin"], display: "swap", preload: false, variable: "--font-unbounded" });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], display: "swap", preload: false, variable: "--font-space-grotesk" });
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], display: "swap", preload: false, variable: "--font-jetbrains-mono" });
+
 export const fonts = {
   prompt,
   kanit,
@@ -85,6 +97,11 @@ export const fonts = {
   koho,
   fahkwang,
   thasadith,
+  "instrument-serif": instrumentSerif,
+  fraunces,
+  unbounded,
+  "space-grotesk": spaceGrotesk,
+  "jetbrains-mono": jetbrainsMono,
 };
 
 export const fontClassNames = Object.values(fonts)

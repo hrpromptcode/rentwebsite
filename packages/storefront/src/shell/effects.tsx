@@ -1,12 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { CursorGlow, Scanlines } from "@rentweb/ui/fx";
+import { CursorGlow } from "@rentweb/ui/fx/cursor-glow";
+import { Scanlines } from "@rentweb/ui/fx/scanlines";
 
-export function ThemeEffects({ cursorGlow, scanlines }: { cursorGlow: boolean; scanlines: boolean }) {
+/**
+ * Legacy theme effects. `CursorGlow` is turned off automatically when the hi-end custom cursor is on
+ * (`effects.cursor !== "off"`) so there is never a double cursor (§6.3).
+ */
+export function ThemeEffects({ cursorGlow, scanlines, cursor = "off" }: { cursorGlow: boolean; scanlines: boolean; cursor?: "off" | "dot" | "label" }) {
   return (
     <>
-      {cursorGlow && <CursorGlow />}
+      {cursorGlow && cursor === "off" && <CursorGlow />}
       {scanlines && <Scanlines />}
     </>
   );

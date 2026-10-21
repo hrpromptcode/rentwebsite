@@ -9,4 +9,16 @@ export { ThemeEffects } from "./shell/effects";
 export { FloatingChat } from "./shell/floating-chat";
 export { FloatingChatOptOut } from "./shell/floating-chat-opt-out";
 export { ModeScript, ThemeToggle } from "./shell/theme-toggle";
+export { RouteKind, useRouteKind } from "./shell/route-kind";
+export { OPERATIONAL_SEGMENTS, routeKindOf, type RouteKindValue } from "./shell/route-kind-shared";
+export { CartBadge } from "./shell/cart-badge";
+export { ArrowSwap } from "./shell/header-cta";
+export { shellContact, SocialIcon, LineIcon, type ShellContact, type ShellSocial } from "./shell/social";
 export { Section, SectionHeading, Icon, Img, Prose, SmartLink } from "./sections/_shared";
+// hi-end section building blocks (sections agent, docs/design §7.0) — module sections reuse these
+export { PageIntro, DisplayText, RevealHeading, Eyebrow, CtaButton, ArrowGlyph, Rise, StaggerList, StaggerCell, fxOf, allow3d, hasAccentFont, motionOf, sized, pad2, type Fx } from "./sections/_shared";
+export { SectionStyles } from "./sections/_styles";
+export { SceneLayer, Poster, resolveScene, sceneRole, shaderFor, posterFor, presetKey, type ResolvedScene, type ScenePlacement } from "./sections/_scene";
+export { NumberedSteps } from "./sections/steps";
+export { BigTitle } from "./sections/curved-gallery";
+export { isHeavySection } from "./render";

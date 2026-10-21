@@ -36,8 +36,32 @@ export const HEADER_LAYOUTS = ["classic", "centered", "split", "floating", "mini
 export const FOOTER_LAYOUTS = ["columns", "simple", "big", "centered"] as const;
 export const BUTTON_STYLES = ["rounded", "pill", "sharp", "soft", "brutal"] as const;
 export const CARD_STYLES = ["flat", "elevated", "outlined", "glass", "brutal", "soft"] as const;
-export const HERO_BACKGROUNDS = ["none", "gradient-mesh", "aurora", "particles", "orb-3d", "grid", "noise", "blobs", "waves", "spotlight"] as const;
+export const HERO_BACKGROUNDS = [
+  "none",
+  "gradient-mesh",
+  "aurora",
+  "particles",
+  "orb-3d",
+  "grid",
+  "noise",
+  "blobs",
+  "waves",
+  "spotlight",
+  // WebGL shader backdrops (kit3d ShaderBackdrop; static poster when WebGL is off / reduced motion)
+  "shader-aurora",
+  "shader-silk",
+  "shader-mesh",
+  "shader-caustics",
+] as const;
 export const MOTION_LEVELS = ["subtle", "standard", "expressive"] as const;
+/** custom cursor (fine pointers, marketing routes only): off · dot · dot + contextual labels */
+export const CURSOR_MODES = ["off", "dot", "label"] as const;
+/** first-visit preloader on the home page: off · mono counter · brand wordmark */
+export const PRELOADERS = ["off", "counter", "wordmark"] as const;
+/** enter-only page transition (operational routes always use fade) */
+export const TRANSITION_STYLES = ["none", "fade", "rise", "curtain"] as const;
+/** 3D scenes: auto (by device tier) · lite (shader backdrops only) · off (static posters) */
+export const SCENE_QUALITY = ["auto", "lite", "off"] as const;
 export const RADII = ["none", "sm", "md", "lg", "xl", "2xl", "full"] as const;
 export const DENSITIES = ["compact", "comfortable", "spacious"] as const;
 
@@ -64,6 +88,12 @@ export const effectsSchema = z
     marquee: z.boolean(),
     glassmorphism: z.boolean(),
     scanlines: z.boolean(),
+    // hi-end shell (docs/design/hi-end-direction.md §6.1) — optional, preset defaults fill them, old themes stay valid
+    smoothScroll: z.boolean(),
+    cursor: z.enum(CURSOR_MODES),
+    preloader: z.enum(PRELOADERS),
+    transitionStyle: z.enum(TRANSITION_STYLES),
+    scene3d: z.enum(SCENE_QUALITY),
   })
   .partial();
 
@@ -84,7 +114,8 @@ export const themeSchema = z.object({
   mode: z.enum(["light", "dark", "system"]).optional(),
   colors: paletteSchema.default({}),
   darkColors: paletteSchema.default({}),
-  fonts: z.object({ heading: z.string(), body: z.string(), display: z.string() }).partial().default({}),
+  /** accent = Latin-only display font for numerals / Latin brand words ("" = use the display font) */
+  fonts: z.object({ heading: z.string(), body: z.string(), display: z.string(), accent: z.string() }).partial().default({}),
   radius: z.enum(RADII).optional(),
   density: z.enum(DENSITIES).optional(),
   layout: layoutSchema.default({}),

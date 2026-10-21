@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./motion-kit.css";
 @source "../";
 
 @custom-variant dark (&:is(.dark *));
@@ -51,7 +52,15 @@
 
   --ease-theme: var(--ease-theme);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-circ: cubic-bezier(0.85, 0, 0.15, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* hi-end kit (docs/design/hi-end-direction.md §2): accent (Latin-only display) + mono fonts, depth shadows */
+  --font-accent: var(--font-accent);
+  --font-mono: var(--font-mono);
+  --shadow-float: var(--shadow-float);
+  --shadow-glow: var(--shadow-glow);
 
   --animate-marquee: marquee var(--marquee-duration, 40s) linear infinite;
   --animate-marquee-reverse: marquee-reverse var(--marquee-duration, 40s) linear infinite;
@@ -142,6 +151,46 @@
   --dur-base: 350ms;
   --dur-slow: 700ms;
   --container: 80rem;
+
+  /* ---- hi-end kit tokens (§2.1 motion, §2.2 fluid type, §2.3 grid, §2.4 depth) ---- */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-circ: cubic-bezier(0.85, 0, 0.15, 1);
+  --dur-micro: 160ms;
+  --dur-ui: 320ms;
+  --dur-reveal: 900ms;
+  --dur-hero: 1400ms;
+  --dur-curtain: 900ms;
+  --stagger-word: 60ms;
+  --stagger-word-thai: 80ms;
+  --stagger-item: 80ms;
+  --stagger-card: 100ms;
+  --stagger-letter: 25ms;
+
+  --step--1: clamp(0.8125rem, 0.78rem + 0.10vw, 0.875rem);
+  --step-0: clamp(1rem, 0.96rem + 0.20vw, 1.125rem);
+  --step-1: clamp(1.125rem, 1.05rem + 0.35vw, 1.375rem);
+  --step-2: clamp(1.375rem, 1.20rem + 0.75vw, 1.875rem);
+  --step-3: clamp(1.75rem, 1.40rem + 1.50vw, 2.75rem);
+  --step-4: clamp(2.25rem, 1.60rem + 2.80vw, 4rem);
+  --step-5: clamp(2.75rem, 1.80rem + 4.40vw, 6rem);
+  --step-6: clamp(3.25rem, 1.80rem + 6.60vw, 8.5rem);
+  --step-7: clamp(4rem, 1.50rem + 11vw, 13rem);
+  --step-8: clamp(4.5rem, 18vw, 22rem);
+
+  /* Thai display leading (≥ 1.2; serif faces want 1.28, Kanit/Chonburi/Chakra 700 1.25). The theme may override. */
+  --leading-thai-display: 1.25;
+  --leading-thai-body: 1.7;
+  --leading-latin-display: 0.92;
+
+  --gutter: clamp(16px, 2.2vw, 40px);
+  --section-y: calc(clamp(88px, 12vw, 200px) * var(--density, 1));
+
+  --shadow-float: 0 30px 80px -20px color-mix(in oklab, var(--foreground) 35%, transparent);
+  --shadow-glow: 0 0 60px -10px var(--glow);
+
+  /* Latin-only accent display font (theme fonts.accent sets --font-accent); Thai glyphs fall through to the display face */
+  --font-accent: var(--font-display);
+  --font-mono: var(--font-jetbrains-mono, ui-monospace), ui-monospace, SFMono-Regular, Menlo, Consolas, var(--font-body);
 }
 
 .dark {
@@ -230,7 +279,7 @@
   p { text-wrap: pretty; }
   :focus-visible {
     outline: 2px solid var(--ring);
-    outline-offset: 2px;
+    outline-offset: 3px;
   }
   button, [role="button"], a { cursor: pointer; }
   ::selection { background: color-mix(in oklab, var(--primary) 25%, transparent); }

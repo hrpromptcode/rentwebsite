@@ -7,7 +7,9 @@
     ".": "./src/index.ts",
     "./definitions": "./src/definitions/index.ts",
     "./ctx": "./src/ctx.ts",
-    "./payments": "./src/payments/index.ts"
+    "./payments": "./src/payments/index.ts",
+    "./shell/route-kind": "./src/shell/route-kind.tsx",
+    "./shell/route-kind-shared": "./src/shell/route-kind-shared.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

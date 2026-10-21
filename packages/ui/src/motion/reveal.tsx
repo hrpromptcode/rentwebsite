@@ -16,7 +16,8 @@ export interface RevealProps extends Omit<HTMLMotionProps<"div">, "children"> {
   as?: "div" | "section" | "span" | "li" | "article" | "header" | "footer";
 }
 
-const EASE = [0.22, 1, 0.36, 1] as const;
+// §2.1 --ease-out-expo
+const EASE = [0.16, 1, 0.3, 1] as const;
 
 /**
  * Shared by Reveal / Stagger: `forced` flips to true when focus lands inside a block before it has been in view, and the
@@ -68,7 +69,7 @@ function keyframes(direction: Direction, distance: number) {
 export function Reveal({
   children,
   delay = 0,
-  duration = 0.65,
+  duration = 0.9,
   direction = "up",
   distance = DEFAULT_DISTANCE,
   once = true,

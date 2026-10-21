@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Moon, Sun } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
 
 const KEY = "rw-theme";
@@ -21,10 +20,22 @@ export function ThemeToggle({ labels }: { labels: { dark: string; light: string 
       /* ignore */
     }
     setDark(next);
+    // 3D scenes / canvases re-read theme colours
+    window.dispatchEvent(new Event("rw:theme"));
   };
   return (
-    <Button variant="ghost" size="icon" onClick={toggle} aria-label={dark ? labels.light : labels.dark} className="text-current md:size-9">
-      {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
+    <Button variant="ghost" size="icon" onClick={toggle} aria-label={dark ? labels.light : labels.dark} className="rw-theme-toggle text-current md:size-9" data-dark={dark ? "true" : "false"}>
+      {/* sun ↔ moon morph (§6.3): a mask circle slides over the sun to carve the crescent, the rays retract (320ms) */}
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden className="rw-sunmoon">
+        <mask id="rw-sunmoon-mask">
+          <rect x="0" y="0" width="24" height="24" fill="#fff" />
+          <circle className="rw-sunmoon-cut" cx="24" cy="2" r="7" fill="#000" />
+        </mask>
+        <circle className="rw-sunmoon-core" cx="12" cy="12" r="5" fill="currentColor" mask="url(#rw-sunmoon-mask)" />
+        <g className="rw-sunmoon-rays" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+          <path d="M12 1.8v2.2M12 20v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M1.8 12H4M20 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6" />
+        </g>
+      </svg>
     </Button>
   );
 }

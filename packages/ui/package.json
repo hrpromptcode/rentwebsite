@@ -3,13 +3,23 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
   "exports": {
     "./styles.css": "./src/styles/globals.css",
     "./lib/utils": "./src/lib/utils.ts",
     "./components/*": "./src/components/*.tsx",
     "./motion": "./src/motion/index.ts",
     "./fx": "./src/fx/index.ts",
-    "./three": "./src/three/index.ts"
+    "./three": "./src/three/index.ts",
+    "./motion/gsap": "./src/motion/gsap.ts",
+    "./motion/split": "./src/motion/split.ts",
+    "./motion/random": "./src/motion/random.ts",
+    "./motion/prefs": "./src/motion/prefs.ts",
+    "./three/*": "./src/three/*.tsx",
+    "./motion/*": "./src/motion/*.tsx",
+    "./fx/*": "./src/fx/*.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

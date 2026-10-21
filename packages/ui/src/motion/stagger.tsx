@@ -41,7 +41,7 @@ export function Stagger({ children, stagger = 0.08, delay = 0, once = true, onVi
 }
 
 const item: Variants = {
-  show: { opacity: [0, 1], y: [22, 0], scale: [0.98, 1], transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } },
+  show: { opacity: [0, 1], y: [22, 0], scale: [0.98, 1], transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } },
 };
 
 /** Hidden start state: CSS on `[data-reveal-item]` (globals.css), transform-based so motion's end state clears it. */

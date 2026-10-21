@@ -1,4 +1,6 @@
 @import "@rentweb/ui/styles.css";
+/* storefront shell (header, menu, footer, floating LINE, page states) — unlayered, see the file header */
+@import "../../../../packages/storefront/src/shell/shell.css";
 @source "../../../../packages/storefront/src";
 @source "../../../../packages/templates/src";
 @source "../../../../packages/modules";

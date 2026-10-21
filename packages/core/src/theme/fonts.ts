@@ -11,7 +11,12 @@ export interface FontDef {
   /** personality hints used by the admin font picker */
   mood: string[];
   weights: string[];
-  recommendedFor: Array<"heading" | "body" | "display">;
+  recommendedFor: Array<"heading" | "body" | "display" | "accent">;
+  /**
+   * Latin-only accent font (numerals, Latin brand words, giant wordmarks). Never a heading/body/display choice: Thai
+   * glyphs inside an accent run fall through to the theme's display font (per-glyph CSS fallback, see fontStack).
+   */
+  latinOnly?: boolean;
 }
 
 export const FONTS: Record<string, FontDef> = {
@@ -40,12 +45,44 @@ export const FONTS: Record<string, FontDef> = {
   koho: { key: "koho", family: "KoHo", category: "sans", mood: ["playful", "rounded"], weights: ["300", "400", "500", "600", "700"], recommendedFor: ["heading", "body"] },
   fahkwang: { key: "fahkwang", family: "Fahkwang", category: "sans", mood: ["wide", "fashion"], weights: ["300", "400", "500", "600", "700"], recommendedFor: ["heading", "display"] },
   thasadith: { key: "thasadith", family: "Thasadith", category: "sans", mood: ["display", "quirky"], weights: ["400", "700"], recommendedFor: ["display"] },
+  // Latin-only accent fonts (docs/design/hi-end-direction.md §2.2) — theme `fonts.accent` only
+  "instrument-serif": { key: "instrument-serif", family: "Instrument Serif", category: "serif", mood: ["editorial", "italic", "luxury"], weights: ["400"], recommendedFor: ["accent"], latinOnly: true },
+  fraunces: { key: "fraunces", family: "Fraunces", category: "serif", mood: ["soft", "luxury", "bakery"], weights: ["300", "400", "500", "600", "700", "800"], recommendedFor: ["accent"], latinOnly: true },
+  unbounded: { key: "unbounded", family: "Unbounded", category: "display", mood: ["wide", "numerals", "tech"], weights: ["400", "500", "600", "700", "800"], recommendedFor: ["accent"], latinOnly: true },
+  "space-grotesk": { key: "space-grotesk", family: "Space Grotesk", category: "sans", mood: ["grotesk", "studio", "precise"], weights: ["400", "500", "600", "700"], recommendedFor: ["accent"], latinOnly: true },
 };
+
+/** Thai-capable fonts (heading / body / display pickers). */
+export const THAI_FONT_KEYS = Object.values(FONTS)
+  .filter((f) => !f.latinOnly)
+  .map((f) => f.key);
+/** Latin-only accent fonts (the accent picker; "" = use the display font). */
+export const ACCENT_FONT_KEYS = Object.values(FONTS)
+  .filter((f) => f.latinOnly)
+  .map((f) => f.key);
+
+/** true when `key` may be used as heading / body / display (exists and is not Latin-only). */
+export function isThaiFont(key: string | undefined | null): key is string {
+  const f = FONTS[key ?? ""];
+  return !!f && !f.latinOnly;
+}
+/** true when `key` is a Latin-only accent font. */
+export function isAccentFont(key: string | undefined | null): key is string {
+  return !!FONTS[key ?? ""]?.latinOnly;
+}
 
 export type FontKey = keyof typeof FONTS;
 
 export function fontVar(key: string): string {
   return `var(--font-${key})`;
+}
+
+/**
+ * `--font-accent`: the accent font first, then the display stack — Thai characters inside an accent run (and every
+ * glyph when no accent is set) render in the theme's display font.
+ */
+export function accentStack(accent: string | undefined | null, display: string): string {
+  return isAccentFont(accent) ? `${fontVar(accent)}, "${FONTS[accent]!.family}", ${fontStack(display)}` : fontStack(display);
 }
 
 export function fontStack(key: string): string {

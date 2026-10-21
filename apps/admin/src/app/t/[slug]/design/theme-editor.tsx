@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@rentweb/ui/components
 import { Textarea } from "@rentweb/ui/components/textarea";
 import { toast } from "@rentweb/ui/components/sonner";
 import { cn } from "@rentweb/ui/lib/utils";
-import { BUTTON_STYLES, CARD_STYLES, DENSITIES, FOOTER_LAYOUTS, HEADER_LAYOUTS, HERO_BACKGROUNDS, MOTION_LEVELS, RADII, resolveTheme, type FullPalette, type ThemeEffects, type ThemeInput, type ThemeLayout } from "@rentweb/core/theme";
+import { BUTTON_STYLES, CARD_STYLES, CURSOR_MODES, DENSITIES, FOOTER_LAYOUTS, HEADER_LAYOUTS, HERO_BACKGROUNDS, MOTION_LEVELS, PRELOADERS, RADII, SCENE_QUALITY, TRANSITION_STYLES, resolveTheme, type FullPalette, type ThemeEffects, type ThemeInput, type ThemeLayout } from "@rentweb/core/theme";
 import { PresetPreview, type PresetSummary } from "@/app/onboarding/wizard";
 import { saveTheme, uploadBrandAsset } from "./actions";
 
@@ -21,6 +21,8 @@ export interface FontOption {
   category: string;
   recommendedFor: string[];
   mood: string[];
+  /** Latin-only accent face (hidden from the heading / body / display pickers) */
+  latinOnly?: boolean;
 }
 
 type Palette = NonNullable<ThemeInput["colors"]>;
@@ -38,7 +40,26 @@ const TH = {
   radius: { none: "ไม่มี", sm: "เล็ก", md: "กลาง", lg: "ใหญ่", xl: "ใหญ่มาก", "2xl": "ใหญ่พิเศษ", full: "กลมสุด" } as Record<string, string>,
   density: { compact: "กระชับ", comfortable: "พอดี", spacious: "โปร่ง" } as Record<string, string>,
   motion: { subtle: "น้อย", standard: "ปกติ", expressive: "เต็มที่" } as Record<string, string>,
-  heroBg: { none: "ไม่มี", "gradient-mesh": "ไล่สี (mesh)", aurora: "ออโรรา", particles: "อนุภาค", "orb-3d": "วัตถุ 3D", grid: "ตารางกริด", noise: "นอยซ์", blobs: "หยดน้ำ", waves: "คลื่น", spotlight: "สปอตไลต์" } as Record<string, string>,
+  heroBg: {
+    none: "ไม่มี",
+    "gradient-mesh": "ไล่สี (mesh)",
+    aurora: "ออโรรา",
+    particles: "อนุภาค",
+    "orb-3d": "วัตถุ 3D",
+    grid: "ตารางกริด",
+    noise: "นอยซ์",
+    blobs: "หยดน้ำ",
+    waves: "คลื่น",
+    spotlight: "สปอตไลต์",
+    "shader-aurora": "ออโรรา 3D",
+    "shader-silk": "ผ้าไหม 3D",
+    "shader-mesh": "เมช 3D",
+    "shader-caustics": "แสงน้ำ 3D",
+  } as Record<string, string>,
+  cursor: { off: "ปิด", dot: "จุด", label: "จุด + ป้ายบอก" } as Record<string, string>,
+  preloader: { off: "ปิด", counter: "ตัวนับ", wordmark: "โลโก้" } as Record<string, string>,
+  transition: { none: "ไม่มี", fade: "เฟด", rise: "ลอยขึ้น", curtain: "ม่านเลื่อน" } as Record<string, string>,
+  scene3d: { auto: "อัตโนมัติ", lite: "เบา", off: "ปิด" } as Record<string, string>,
   fontCat: { sans: "Sans-serif", serif: "Serif", display: "Display", handwriting: "ลายมือ", mono: "Monospace" } as Record<string, string>,
 };
 
@@ -66,7 +87,7 @@ export function ThemeEditor(props: {
   resolvedPalette: FullPalette;
   resolvedLayout: ThemeLayout;
   resolvedEffects: ThemeEffects;
-  resolvedFonts: { heading: string; body: string; display: string };
+  resolvedFonts: { heading: string; body: string; display: string; accent?: string };
   resolvedRadius: string;
   resolvedDensity: string;
 }) {
@@ -144,9 +165,11 @@ export function ThemeEditor(props: {
 
   const fontGroups = React.useMemo(() => {
     const g: Record<string, FontOption[]> = {};
-    for (const f of fonts) (g[f.category] ??= []).push(f);
+    for (const f of fonts) if (!f.latinOnly) (g[f.category] ??= []).push(f);
     return g;
   }, [fonts]);
+  const accentFonts = React.useMemo(() => fonts.filter((f) => f.latinOnly), [fonts]);
+  const accentFamily = (k: string | undefined) => (k ? (fonts.find((f) => f.key === k)?.family ?? k) : "ใช้ฟอนต์ display");
 
   const fontSelect = (field: keyof Fonts, label: string, hint: string) => (
     <div className="grid gap-2">
@@ -356,6 +379,31 @@ export function ThemeEditor(props: {
             {fontSelect("heading", "ฟอนต์หัวข้อ", "ใช้กับ h1–h6 และชื่อการ์ด")}
             {fontSelect("body", "ฟอนต์เนื้อหา", "ใช้กับย่อหน้า ปุ่ม และฟอร์ม — เลือกแบบอ่านง่าย")}
             {fontSelect("display", "ฟอนต์ดิสเพลย์", "หัวข้อใหญ่พิเศษในฮีโร่")}
+            {accentFonts.length > 0 && (
+              <div className="grid gap-2">
+                <Label>ฟอนต์ภาษาอังกฤษ (accent)</Label>
+                <Select
+                  value={theme.fonts?.accent === undefined ? "__preset" : theme.fonts.accent === "" ? "__display" : theme.fonts.accent}
+                  onValueChange={(v) => patchFonts({ accent: v === "__preset" ? undefined : v === "__display" ? "" : v })}
+                  disabled={!canEdit}
+                >
+                  <SelectTrigger className="w-full" aria-label="ฟอนต์ภาษาอังกฤษ (accent)">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__preset">ตาม preset ({accentFamily(resolved.fonts.accent || undefined)})</SelectItem>
+                    <SelectItem value="__display">ใช้ฟอนต์ display</SelectItem>
+                    {accentFonts.map((f) => (
+                      <SelectItem key={f.key} value={f.key}>
+                        {f.family}
+                        <span className="ml-2 text-xs text-muted-foreground">{f.mood.slice(0, 2).join(" · ")}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">ใช้กับตัวเลขและคำภาษาอังกฤษในหัวข้อใหญ่ ราคา และตัวอักษรยักษ์ — ตัวอักษรไทยจะใช้ฟอนต์ display เสมอ</p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="layout" className="grid gap-5 p-4 sm:grid-cols-2 sm:p-5">
@@ -376,8 +424,13 @@ export function ThemeEditor(props: {
             <div className="grid gap-5 sm:grid-cols-2">
               {enumSelect("พื้นหลังฮีโร่", theme.effects?.heroBackground, HERO_BACKGROUNDS, TH.heroBg, (v) => patchEffects({ heroBackground: v }), props.resolvedEffects.heroBackground)}
               {enumSelect("ระดับการเคลื่อนไหว", theme.effects?.motionLevel, MOTION_LEVELS, TH.motion, (v) => patchEffects({ motionLevel: v }), props.resolvedEffects.motionLevel)}
+              {enumSelect("คุณภาพ 3D", theme.effects?.scene3d, SCENE_QUALITY, TH.scene3d, (v) => patchEffects({ scene3d: v }), props.resolvedEffects.scene3d)}
+              {enumSelect("เคอร์เซอร์", theme.effects?.cursor, CURSOR_MODES, TH.cursor, (v) => patchEffects({ cursor: v }), props.resolvedEffects.cursor)}
+              {enumSelect("หน้าโหลดแรกเข้า", theme.effects?.preloader, PRELOADERS, TH.preloader, (v) => patchEffects({ preloader: v }), props.resolvedEffects.preloader)}
+              {enumSelect("สไตล์เปลี่ยนหน้า", theme.effects?.transitionStyle, TRANSITION_STYLES, TH.transition, (v) => patchEffects({ transitionStyle: v }), props.resolvedEffects.transitionStyle)}
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
+              {toggle("เลื่อนหน้าแบบนุ่มนวล", "เลื่อนลื่นแบบเว็บสตูดิโอ (ปิดอัตโนมัติในหน้าชำระเงิน/บัญชี)", theme.effects?.smoothScroll, props.resolvedEffects.smoothScroll, (v) => patchEffects({ smoothScroll: v }))}
               {toggle("เกรน (grain)", "เท็กซ์เจอร์ฟิล์มบาง ๆ ทั่วหน้า", theme.effects?.grain, props.resolvedEffects.grain, (v) => patchEffects({ grain: v }))}
               {toggle("แสงตามเมาส์", "วงแสงนุ่ม ๆ ตามเคอร์เซอร์", theme.effects?.cursorGlow, props.resolvedEffects.cursorGlow, (v) => patchEffects({ cursorGlow: v }))}
               {toggle("ทรานซิชันเปลี่ยนหน้า", "เฟดระหว่างหน้า", theme.effects?.pageTransitions, props.resolvedEffects.pageTransitions, (v) => patchEffects({ pageTransitions: v }))}
@@ -386,7 +439,10 @@ export function ThemeEditor(props: {
               {toggle("กระจกฝ้า (glass)", "พื้นหลังโปร่งเบลอบนการ์ด", theme.effects?.glassmorphism, props.resolvedEffects.glassmorphism, (v) => patchEffects({ glassmorphism: v }))}
               {toggle("เส้นสแกน (scanlines)", "สไตล์เรโทร/เกมมิ่ง", theme.effects?.scanlines, props.resolvedEffects.scanlines, (v) => patchEffects({ scanlines: v }))}
             </div>
-            <p className="text-xs text-muted-foreground">ผู้ใช้ที่ตั้งค่า “ลดการเคลื่อนไหว” บนอุปกรณ์จะเห็นเวอร์ชันนิ่งโดยอัตโนมัติ</p>
+            <p className="text-xs text-muted-foreground">
+              ผู้ใช้ที่ตั้งค่า “ลดการเคลื่อนไหว” บนอุปกรณ์จะเห็นเวอร์ชันนิ่งโดยอัตโนมัติ · คุณภาพ 3D “เบา” = พื้นหลังเชดเดอร์อย่างเดียว, “ปิด” = ภาพนิ่งแทนฉาก 3D ทุกจุด ·
+              ปรับเอฟเฟกต์รายเซ็กชันได้ที่หน้าแก้ไขเพจ (ช่อง “เอฟเฟกต์ & 3D”)
+            </p>
           </TabsContent>
 
           <TabsContent value="brand" className="space-y-5 p-4 sm:p-5">

@@ -19,6 +19,7 @@ import { SECTION_DEFS } from "@rentweb/storefront/definitions";
 import type { SectionJson, SeoJson } from "@rentweb/db";
 import { describeSchema, type ObjectSpec } from "@/lib/zod-introspect";
 import { AutoForm } from "./auto-form";
+import { SectionThumb } from "./section-thumbs";
 import { createPagePreviewLink, deletePage, publishPage, savePageDraft, unpublishPage } from "@/app/t/[slug]/pages/actions";
 import { uploadSectionImage } from "@/app/t/[slug]/media/actions";
 import { MEDIA_MAX_BYTES, tooLargeMessage } from "@/app/t/[slug]/media/limits";
@@ -492,13 +493,13 @@ export function SectionEditor(props: SectionEditorProps) {
                 <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">{g.label}</p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {g.defs.map((def) => (
-                    <button key={def.type} type="button" onClick={() => addSection(def.type)} className="flex min-h-14 items-center gap-3 rounded-xl border p-3 text-left transition-colors hover:border-primary hover:bg-primary-soft/40">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
-                        <Plus className="size-4" aria-hidden />
+                    <button key={def.type} type="button" onClick={() => addSection(def.type)} className="group flex min-h-16 items-center gap-3 rounded-xl border p-2.5 text-left transition-colors hover:border-primary hover:bg-primary-soft/40">
+                      <span className="grid h-12 w-[4.5rem] shrink-0 place-items-center overflow-hidden rounded-lg bg-muted text-foreground/80 transition-colors group-hover:bg-background">
+                        <SectionThumb type={def.type} category={def.category} className="h-11 w-16" />
                       </span>
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium">{def.name.th}</span>
-                        <span className="block truncate text-xs text-muted-foreground">{def.description?.th ?? def.type}</span>
+                        <span className="line-clamp-2 text-xs leading-snug text-muted-foreground">{def.description?.th ?? def.type}</span>
                       </span>
                     </button>
                   ))}

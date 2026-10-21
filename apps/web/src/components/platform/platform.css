@@ -1,0 +1,695 @@
+/* RentWeb platform showcase — identity "เปิดไฟหน้าร้าน" (docs/design/hi-end-direction.md §4.1).
+   Plain CSS (no Tailwind directives) imported by (platform)/layout.tsx after the app globals. Tokens are scoped to
+   html[data-site="platform"] so tenant themes never leak in; light "paper" chapters use [data-tone="paper"]. */
+
+html:has(.pf-root) {
+  --background: #07080b;
+  --foreground: #f3f1ec;
+  --card: #111319;
+  --card-foreground: #f3f1ec;
+  --popover: #111319;
+  --popover-foreground: #f3f1ec;
+  --surface: #0e1015;
+  --primary: #ff6b3d;
+  --primary-foreground: #0b0b0c;
+  --primary-hover: #ff825a;
+  --primary-soft: rgb(255 107 61 / 0.14);
+  --secondary: #14161d;
+  --secondary-foreground: #f3f1ec;
+  --accent: #8e7dff;
+  --accent-foreground: #07080b;
+  --accent-soft: rgb(142 125 255 / 0.16);
+  --muted: #14161d;
+  --muted-foreground: #a3a099;
+  --glow: #ffb38a;
+  --border: #23262f;
+  --input: #23262f;
+  --ring: #ff8a64;
+  --destructive: #ff5a5a;
+  --destructive-foreground: #07080b;
+  --radius: 1rem;
+  --header-h: 72px;
+  --font-display: var(--font-anuphan), var(--font-ibm-plex-sans-thai), system-ui, sans-serif;
+  --font-heading: var(--font-anuphan), var(--font-ibm-plex-sans-thai), system-ui, sans-serif;
+  --font-body: var(--font-ibm-plex-sans-thai), var(--font-anuphan), system-ui, sans-serif;
+  --font-accent: var(--font-pf-unbounded), var(--font-anuphan), system-ui, sans-serif;
+  --font-mono: var(--font-pf-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, var(--font-ibm-plex-sans-thai), monospace;
+  --leading-thai-display: 1.2;
+  --pf-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  color-scheme: dark;
+  background: var(--background);
+}
+html:has(.pf-root) body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+  overflow-x: clip;
+}
+html:has(.pf-root) ::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* light chapters (sticky story, pricing) */
+[data-tone="paper"] {
+  --background: #f3f1ec;
+  --foreground: #0b0b0c;
+  --card: #ffffff;
+  --card-foreground: #0b0b0c;
+  --popover: #ffffff;
+  --popover-foreground: #0b0b0c;
+  --surface: #eae7e0;
+  --primary: #c2410c;
+  --primary-foreground: #ffffff;
+  --primary-hover: #a3360a;
+  --primary-soft: rgb(194 65 12 / 0.1);
+  --accent: #5b47e0;
+  --accent-foreground: #ffffff;
+  --muted: #eae7e0;
+  --muted-foreground: #57544e;
+  --glow: #ffd3bf;
+  --border: #d6d2c8;
+  --input: #d6d2c8;
+  --ring: #c2410c;
+  color-scheme: light;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* ------------------------------------------------------------------ logo: wordmark + "online" dot */
+.pf-dot {
+  position: relative;
+  display: inline-block;
+  width: 0.42em;
+  height: 0.42em;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 0 0.6em color-mix(in oklab, var(--primary) 70%, transparent);
+}
+.pf-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pf-dot::after {
+    animation: pf-ping 2.4s var(--pf-ease) infinite;
+  }
+}
+@keyframes pf-ping {
+  0% { transform: scale(1); opacity: 0.7; }
+  70%, 100% { transform: scale(3.2); opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ header */
+.pf-header {
+  transition:
+    background-color var(--dur-ui, 320ms) var(--ease-out-quart, ease),
+    border-color var(--dur-ui, 320ms) var(--ease-out-quart, ease),
+    transform 500ms var(--pf-ease);
+  border-bottom: 1px solid transparent;
+}
+.pf-header[data-scrolled="true"] {
+  background: color-mix(in oklab, var(--background) 62%, transparent);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border-bottom-color: color-mix(in oklab, var(--foreground) 8%, transparent);
+}
+.pf-header nav a[aria-current="page"],
+.pf-menu nav a[aria-current="page"] {
+  color: var(--primary);
+}
+.pf-header[data-hidden="true"] {
+  transform: translateY(-100%);
+}
+.pf-menu[data-open="false"] {
+  visibility: hidden;
+  pointer-events: none;
+  clip-path: inset(0 0 100% 0);
+}
+.pf-menu {
+  clip-path: inset(0 0 0 0);
+  transition:
+    clip-path 700ms var(--ease-in-out-circ, ease),
+    visibility 0s linear 0s;
+}
+.pf-menu[data-open="false"] {
+  transition:
+    clip-path 600ms var(--ease-in-out-circ, ease),
+    visibility 0s linear 600ms;
+}
+.pf-menu [data-menu-item] {
+  transform: translateY(110%);
+  transition: transform 900ms var(--pf-ease);
+  transition-delay: calc(var(--i, 0) * 60ms + 200ms);
+}
+.pf-menu[data-open="true"] [data-menu-item] {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-menu,
+  .pf-menu[data-open="false"],
+  .pf-menu [data-menu-item] {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* ------------------------------------------------------------------ buttons */
+.pf-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 3rem;
+  padding: 0 1.6rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: var(--step-0, 1rem);
+  line-height: 1.2;
+  white-space: nowrap;
+  isolation: isolate;
+  overflow: hidden;
+  transition:
+    transform var(--dur-micro, 160ms) var(--ease-out-quart, ease),
+    background-color var(--dur-ui, 320ms) var(--ease-out-quart, ease),
+    color var(--dur-ui, 320ms) var(--ease-out-quart, ease),
+    border-color var(--dur-ui, 320ms) var(--ease-out-quart, ease);
+}
+.pf-btn:active {
+  transform: scale(0.97);
+}
+.pf-btn[data-variant="primary"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.pf-btn[data-variant="primary"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--foreground);
+  transform: translateY(101%);
+  transition: transform 520ms var(--pf-ease);
+}
+.pf-btn[data-variant="primary"]:hover::before,
+.pf-btn[data-variant="primary"]:focus-visible::before {
+  transform: none;
+}
+.pf-btn[data-variant="primary"]:hover,
+.pf-btn[data-variant="primary"]:focus-visible {
+  color: var(--background);
+}
+.pf-btn[data-variant="ghost"] {
+  border: 1px solid color-mix(in oklab, var(--foreground) 22%, transparent);
+  color: var(--foreground);
+}
+.pf-btn[data-variant="ghost"]:hover,
+.pf-btn[data-variant="ghost"]:focus-visible {
+  border-color: var(--foreground);
+  background: color-mix(in oklab, var(--foreground) 6%, transparent);
+}
+.pf-btn[data-size="sm"] {
+  min-height: 2.75rem;
+  padding: 0 1.15rem;
+  font-size: 0.9375rem;
+}
+.pf-btn[data-size="lg"] {
+  min-height: 3.75rem;
+  padding: 0 2rem;
+  font-size: var(--step-1, 1.125rem);
+}
+.pf-btn .pf-arrow {
+  position: relative;
+  display: inline-flex;
+  width: 1.15em;
+  height: 1.15em;
+  overflow: hidden;
+  flex: none;
+}
+.pf-btn .pf-arrow > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition: transform 520ms var(--pf-ease);
+}
+.pf-btn .pf-arrow > svg + svg {
+  transform: translateX(-120%);
+}
+.pf-btn:hover .pf-arrow > svg:first-child,
+.pf-btn:focus-visible .pf-arrow > svg:first-child {
+  transform: translateX(120%);
+}
+.pf-btn:hover .pf-arrow > svg + svg,
+.pf-btn:focus-visible .pf-arrow > svg + svg {
+  transform: none;
+}
+.pf-btn .pf-arrow[data-dir="up-right"] > svg + svg {
+  transform: translate(-120%, 120%);
+}
+.pf-btn:hover .pf-arrow[data-dir="up-right"] > svg:first-child,
+.pf-btn:focus-visible .pf-arrow[data-dir="up-right"] > svg:first-child {
+  transform: translate(120%, -120%);
+}
+
+/* round magnetic CTA (final CTA, 404) */
+.pf-orb-btn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: clamp(9rem, 14vw, 11.5rem);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+  font-size: var(--step-1);
+  text-align: center;
+  line-height: 1.3;
+  padding: 1rem;
+  isolation: isolate;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 10px rgb(7 8 11 / 0.32),
+    0 0 0 11px rgb(243 241 236 / 0.14),
+    0 30px 80px -30px color-mix(in oklab, var(--primary) 80%, transparent);
+  transition: transform var(--dur-micro, 160ms) var(--ease-out-quart, ease);
+}
+.pf-orb-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--foreground);
+  transform: scale(0);
+  transition: transform 600ms var(--pf-ease);
+}
+.pf-orb-btn:hover::before,
+.pf-orb-btn:focus-visible::before {
+  transform: scale(1.02);
+}
+.pf-orb-btn:hover,
+.pf-orb-btn:focus-visible {
+  color: var(--background);
+}
+.pf-orb-btn:active {
+  transform: scale(0.97);
+}
+
+/* ------------------------------------------------------------------ type helpers */
+.pf-giant {
+  font-family: var(--font-accent);
+  font-weight: 600;
+  line-height: 0.86;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+}
+.pf-sup {
+  font-family: var(--font-accent);
+  font-size: 0.24em;
+  letter-spacing: 0;
+  vertical-align: top;
+  position: relative;
+  top: 0.35em;
+  margin-left: 0.15em;
+  color: var(--primary);
+}
+.pf-outline {
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in oklab, var(--foreground) 55%, transparent);
+}
+
+/* ------------------------------------------------------------------ hero */
+.pf-hero-glow {
+  background:
+    radial-gradient(60% 55% at 70% 45%, color-mix(in oklab, var(--primary) 26%, transparent), transparent 70%),
+    radial-gradient(45% 50% at 88% 70%, color-mix(in oklab, var(--accent) 24%, transparent), transparent 70%);
+}
+.pf-hero-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px);
+  background-size: 96px 96px;
+  mask-image: radial-gradient(70% 60% at 60% 40%, #000 30%, transparent 75%);
+}
+
+/* ------------------------------------------------------------------ marquee words */
+.pf-tool-word[data-alt="true"] {
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in oklab, var(--foreground) 60%, transparent);
+}
+
+/* ------------------------------------------------------------------ devices (CSS 3D) */
+.pf-devices {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  perspective: 1400px;
+  perspective-origin: 50% 40%;
+}
+.pf-devices__rig {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateY(-14deg) rotateX(6deg);
+}
+.pf-laptop {
+  position: absolute;
+  left: 4%;
+  top: 12%;
+  width: 84%;
+  transform-style: preserve-3d;
+}
+.pf-laptop__lid {
+  position: relative;
+  padding: 1.6%;
+  border-radius: 14px 14px 6px 6px;
+  background: linear-gradient(160deg, #2a2d36, #121318);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.08) inset,
+    0 40px 90px -30px color-mix(in oklab, var(--dev-glow, var(--primary)) 65%, transparent),
+    0 60px 120px -40px rgb(0 0 0 / 0.6);
+}
+.pf-laptop__screen {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #0b0c10;
+}
+.pf-laptop__screen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+.pf-laptop__base {
+  position: relative;
+  margin: 0 -7%;
+  height: 0;
+  padding-bottom: 3.2%;
+  border-radius: 0 0 18px 18px;
+  background: linear-gradient(180deg, #3a3d47, #17181d 70%);
+  transform-origin: top;
+  transform: rotateX(62deg);
+  box-shadow: 0 30px 40px -20px rgb(0 0 0 / 0.55);
+}
+.pf-phone {
+  position: absolute;
+  right: 2%;
+  bottom: 6%;
+  width: 24%;
+  aspect-ratio: 390 / 844;
+  padding: 2.2%;
+  border-radius: 13% / 6%;
+  background: linear-gradient(160deg, #2f323b, #111216);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.1) inset,
+    0 40px 80px -24px color-mix(in oklab, var(--dev-glow, var(--primary)) 55%, transparent),
+    0 30px 60px -20px rgb(0 0 0 / 0.6);
+  transform: translateZ(80px);
+}
+.pf-phone__screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 10% / 4.6%;
+  background: #0b0c10;
+}
+.pf-phone__screen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+.pf-phone__notch {
+  position: absolute;
+  top: 2.2%;
+  left: 50%;
+  width: 30%;
+  height: 2.6%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: #050506;
+  z-index: 2;
+}
+.pf-devices__floor {
+  position: absolute;
+  left: 8%;
+  right: 4%;
+  bottom: 2%;
+  height: 22%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--dev-glow, var(--primary)) 40%, transparent), transparent);
+  filter: blur(18px);
+  opacity: 0.8;
+}
+/* long screenshot auto-scroll inside a screen (template detail / grid hover) */
+.pf-autoscroll img {
+  object-fit: cover;
+  object-position: 50% 0%;
+  transition: object-position 6s linear;
+}
+.pf-autoscroll:is(:hover, :focus-within) img,
+.pf-autoscroll[data-autoscroll="on"] img {
+  object-position: 50% 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-autoscroll img {
+    transition: none;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pf-autoscroll[data-autoscroll="loop"] img {
+    animation: pf-scrollshot 22s ease-in-out infinite alternate;
+  }
+}
+@keyframes pf-scrollshot {
+  0%, 8% { object-position: 50% 0%; }
+  92%, 100% { object-position: 50% 100%; }
+}
+
+/* ------------------------------------------------------------------ sticky story (paper) */
+/* the rotated device rig projects past the right edge when the story stacks (mobile / reduced motion); clip (not
+   hidden) keeps position: sticky working */
+.pf-story {
+  overflow-x: clip;
+}
+.pf-story .rw-story [data-story-frame] {
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+.pf-story .rw-story [data-story-media-inline] {
+  background: transparent;
+  aspect-ratio: 16 / 11;
+  overflow: visible;
+}
+.pf-story .rw-story [data-story-counter] {
+  bottom: 0;
+  right: 0;
+}
+
+/* ------------------------------------------------------------------ chat bubbles */
+.pf-bubble {
+  transform-origin: var(--origin, 0% 100%);
+}
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  .pf-chat [data-bubble] {
+    opacity: 0;
+    transform: translateY(18px) scale(0.6);
+  }
+  .pf-chat [data-bubble][data-shown="true"] {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 300ms var(--ease-out-quart),
+      transform 700ms var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+  }
+  .pf-chat [data-typing] {
+    opacity: 0;
+    transform: scale(0.7);
+    transition: opacity 200ms, transform 300ms var(--ease-spring);
+  }
+  .pf-chat [data-typing][data-shown="true"] {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pf-typing span {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.4;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pf-typing span {
+    animation: pf-typing 1s ease-in-out infinite;
+  }
+  .pf-typing span:nth-child(2) { animation-delay: 0.15s; }
+  .pf-typing span:nth-child(3) { animation-delay: 0.3s; }
+}
+@keyframes pf-typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+  30% { transform: translateY(-5px); opacity: 1; }
+}
+
+/* ------------------------------------------------------------------ bento micro-demos */
+.pf-scan {
+  position: absolute;
+  inset-inline: 8%;
+  height: 2px;
+  top: 10%;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  box-shadow: 0 0 18px 4px color-mix(in oklab, var(--primary) 50%, transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pf-scan {
+    animation: pf-scan 2.6s ease-in-out infinite alternate;
+  }
+}
+@keyframes pf-scan {
+  from { top: 10%; }
+  to { top: 88%; }
+}
+.pf-stamp {
+  transform: rotate(-12deg) scale(1);
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-tile]:not([data-seen="true"]) .pf-stamp {
+    transform: rotate(-30deg) scale(2.2);
+    opacity: 0;
+  }
+  [data-tile][data-seen="true"] .pf-stamp {
+    transition: transform 600ms var(--ease-spring, ease) 500ms, opacity 200ms 500ms;
+  }
+  [data-tile]:not([data-seen="true"]) [data-notif] {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+  [data-tile][data-seen="true"] [data-notif] {
+    transition: transform 800ms var(--pf-ease), opacity 300ms;
+    transition-delay: calc(var(--i, 0) * 450ms + 300ms);
+  }
+}
+.pf-caret::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--primary);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pf-caret::after {
+    animation: pf-blink 1s steps(1) infinite;
+  }
+}
+@keyframes pf-blink {
+  50% { opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ FAQ */
+.pf-faq [data-faq-panel] {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 650ms var(--ease-spring, ease);
+}
+.pf-faq [data-open="true"] [data-faq-panel] {
+  grid-template-rows: 1fr;
+}
+.pf-faq [data-faq-panel] > div {
+  overflow: hidden;
+  min-height: 0;
+}
+.pf-faq [data-faq-icon] {
+  transition: transform 500ms var(--pf-ease);
+}
+.pf-faq [data-open="true"] [data-faq-icon] {
+  transform: rotate(45deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-faq [data-faq-panel],
+  .pf-faq [data-faq-icon] {
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------ templates grid */
+.pf-card-media {
+  transition: transform 900ms var(--pf-ease);
+}
+.group:hover .pf-card-media,
+.group:focus-visible .pf-card-media {
+  transform: scale(1.04);
+}
+
+/* scroll cue */
+.pf-cue {
+  display: inline-block;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pf-cue {
+    animation: pf-cue 1.8s var(--pf-ease) infinite;
+  }
+}
+@keyframes pf-cue {
+  0% { transform: translateY(-30%); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translateY(60%); opacity: 0; }
+}
+
+/* noscript / reduced-motion: the 404 glitch digits stay still */
+@media (prefers-reduced-motion: no-preference) {
+  .pf-404-digit {
+    animation: pf-float 6s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * -1.3s);
+  }
+}
+@keyframes pf-float {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50% { transform: translateY(-4%) rotate(calc(var(--r, 0deg) * -1)); }
+}
+
+/* ------------------------------------------------------------------ 404: a shop sign that never quite switches on */
+.pf-neon {
+  color: transparent;
+  -webkit-text-stroke: 2px color-mix(in oklab, var(--primary) 55%, transparent);
+  text-shadow: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pf-neon[data-flicker] {
+    animation: pf-flicker 5.5s steps(1) infinite;
+    animation-delay: var(--d, 0s);
+  }
+}
+@keyframes pf-flicker {
+  0%, 18%, 22%, 25%, 53%, 57%, 100% {
+    color: var(--primary);
+    -webkit-text-stroke-color: var(--primary);
+    text-shadow: 0 0 18px color-mix(in oklab, var(--primary) 70%, transparent), 0 0 60px color-mix(in oklab, var(--primary) 45%, transparent);
+  }
+  20%, 24%, 55% {
+    color: transparent;
+    -webkit-text-stroke-color: color-mix(in oklab, var(--primary) 40%, transparent);
+    text-shadow: none;
+  }
+}
+
+/* LCP: the hero headline starts already 60% risen (painted at first paint → an early LCP candidate) and settles on
+   mount, instead of the kit's fully hidden start state */
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  .pf-hero-title.rw-split[data-split-state="idle"][data-split-from="mask"] [data-split-unit] {
+    transform: translate3d(0, 40%, 0);
+  }
+}

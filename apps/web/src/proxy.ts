@@ -56,6 +56,8 @@ export default async function proxy(req: NextRequest) {
   headers.set("x-tenant-slug", tenant.slug);
   headers.set("x-tenant-status", tenant.status);
   headers.set("x-tenant-host", host);
+  // public path ("/", "/cart" …) for the tenant layout: route kind on <html> + home-only preloader (no inline route script)
+  headers.set("x-tenant-path", url.pathname);
 
   const res = NextResponse.rewrite(rewritten, { request: { headers } });
   res.headers.set("x-tenant-id", tenant.id);
