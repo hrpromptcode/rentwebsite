@@ -2,6 +2,7 @@ import "server-only";
 import * as React from "react";
 import { ArrowUpRight, PencilLine } from "lucide-react";
 import Link from "next/link";
+import { ThaiWrap } from "@rentweb/ui/motion/thai-wrap";
 import { and, eq, pages } from "@rentweb/db";
 import { resolveTheme } from "@rentweb/core/theme";
 import { assetUrl, fmtRelative } from "@/lib/format";
@@ -14,6 +15,7 @@ export interface SitePreviewData {
   tagline: string | null;
   headline: string | null;
   image: string | null;
+  cta: string | null;
   logo: string | null;
   live: boolean;
   statusLabel: string;
@@ -27,13 +29,17 @@ const IMG_HINT = /images\.unsplash\.com|\.(jpe?g|png|webp|avif)(\?|$)|\/uploads\
 const IMG_KEY = /image|photo|media|poster|background|cover|src|picture|bg/i;
 const TEXT_KEYS = ["title", "heading", "headline"];
 
-/** First image-looking URL in a section's props (depth-first, image-ish keys first). */
-function findImage(v: unknown, key = "", depth = 0): string | null {
+/**
+ * First image-looking URL in a section's props (depth-first, image-ish keys first). An image-ish key marks its whole
+ * subtree, so `{ image: { url } }` and `{ media: [{ src }] }` both resolve.
+ */
+function findImage(v: unknown, key = "", depth = 0, inImg = false): string | null {
   if (depth > 5 || v == null) return null;
-  if (typeof v === "string") return IMG_KEY.test(key) && IMG_RE.test(v) && IMG_HINT.test(v) ? v : null;
+  const imgish = inImg || IMG_KEY.test(key);
+  if (typeof v === "string") return imgish && IMG_RE.test(v) && IMG_HINT.test(v) ? v : null;
   if (Array.isArray(v)) {
     for (const x of v) {
-      const r = findImage(x, key, depth + 1);
+      const r = findImage(x, key, depth + 1, imgish);
       if (r) return r;
     }
     return null;
@@ -41,11 +47,22 @@ function findImage(v: unknown, key = "", depth = 0): string | null {
   if (typeof v === "object") {
     const entries = Object.entries(v as Record<string, unknown>).sort(([a], [b]) => Number(IMG_KEY.test(b)) - Number(IMG_KEY.test(a)));
     for (const [k, x] of entries) {
-      const r = findImage(x, k, depth + 1);
+      const r = findImage(x, k, depth + 1, imgish);
       if (r) return r;
     }
   }
   return null;
+}
+
+/** Label of the hero's main button, if the section has one. */
+function findCta(props: Record<string, unknown> | undefined): string | null {
+  if (!props) return null;
+  for (const k of ["primaryCta", "cta", "button"]) {
+    const v = props[k] as { label?: unknown } | undefined;
+    const t = v && typeof v === "object" ? plain(v.label) : null;
+    if (t) return t.slice(0, 28);
+  }
+  return plain(props.ctaLabel)?.slice(0, 28) ?? null;
 }
 
 function plain(s: unknown): string | null {
@@ -58,10 +75,14 @@ function sized(url: string): string {
   const abs = assetUrl(url);
   if (!/images\.unsplash\.com/.test(abs)) return abs;
   const u = new URL(abs);
+  // the window is 16:10 — crop server-side instead of shipping a tall 3:4 hero
+  u.searchParams.delete("ar");
   u.searchParams.set("w", "720");
+  u.searchParams.set("h", "450");
   u.searchParams.set("q", "70");
   u.searchParams.set("auto", "format");
   u.searchParams.set("fit", "crop");
+  u.searchParams.set("crop", "faces,entropy");
   return u.toString();
 }
 
@@ -85,10 +106,12 @@ export async function getSitePreview(ctx: TenantCtx): Promise<SitePreviewData> {
   const sections = (home?.publishedSections ?? home?.sections ?? []).filter((s) => !s.hidden);
   let image: string | null = null;
   let headline: string | null = null;
+  let cta: string | null = null;
   for (const s of sections.slice(0, 4)) {
     image ??= findImage(s.props);
     if (!headline) for (const k of TEXT_KEYS) headline ??= plain(s.props?.[k]);
-    if (image && headline) break;
+    cta ??= findCta(s.props as Record<string, unknown> | undefined);
+    if (image && headline && cta) break;
   }
   const theme = resolveTheme(ctx.tenant.theme);
   const pal = theme.mode === "dark" ? theme.dark : theme.light;
@@ -101,6 +124,7 @@ export async function getSitePreview(ctx: TenantCtx): Promise<SitePreviewData> {
     tagline: plain(settings.tagline) ?? plain(theme.brand.tagline),
     headline,
     image: image ? sized(image) : null,
+    cta,
     logo: theme.brand.logo ? assetUrl(theme.brand.logo) : null,
     live: st.live,
     statusLabel: st.label,
@@ -162,11 +186,11 @@ export function SitePreview({ data, slug }: { data: SitePreviewData; slug: strin
             </span>
           </span>
           <span className="adm-sp-copy">
-            <span className="adm-sp-headline">{data.headline ?? data.name}</span>
-            {data.tagline && <span className="adm-sp-tagline">{data.tagline}</span>}
-            <span className="adm-sp-cta">
-              <i />
+            <span className="adm-sp-headline">
+              <ThaiWrap text={data.headline ?? data.name} />
             </span>
+            {data.tagline && <span className="adm-sp-tagline">{data.tagline}</span>}
+            <span className="adm-sp-cta">{data.cta ?? <i />}</span>
           </span>
         </span>
       </a>
@@ -177,7 +201,7 @@ export function SitePreview({ data, slug }: { data: SitePreviewData; slug: strin
         </span>
         {data.updatedAt && <span className="text-muted-foreground">อัปเดตหน้าแรก {fmtRelative(data.updatedAt)}</span>}
         {data.homeId && (
-          <Link href={`/t/${slug}/pages/${data.homeId}`} className="adm-link ml-auto inline-flex items-center gap-1 font-medium">
+          <Link href={`/t/${slug}/pages/${data.homeId}`} className="adm-link -my-3 ml-auto inline-flex items-center gap-1 py-3 font-medium">
             <PencilLine className="size-3.5" aria-hidden />
             แก้ไขหน้าแรก
           </Link>

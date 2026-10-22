@@ -52,10 +52,14 @@ export function Sparkline({ uid, values, className, height = 36, width = 120 }: 
  * 14-day bar chart (server component): one bar per day, today highlighted; bars grow in with a stagger (CSS
  * `.adm-bars`). The table of values is rendered sr-only for screen readers.
  */
-export function DayBars({ values, labels, format, caption, className }: { values: number[]; labels: string[]; format: (v: number) => string; caption: string; className?: string }) {
+export function DayBars({ values, labels, format, caption, className, emptyText }: { values: number[]; labels: string[]; format: (v: number) => string; caption: string; className?: string; emptyText?: string }) {
   const max = Math.max(1, ...values);
+  const empty = values.every((v) => v <= 0);
   return (
-    <figure className={cn("adm-bars", className)}>
+    <figure className={cn("adm-bars", empty && "is-empty", className)}>
+      {empty && emptyText && <p className="adm-bars-empty">
+          <span>{emptyText}</span>
+        </p>}
       <div className="adm-bars-plot" aria-hidden="true">
         {values.map((v, i) => (
           <div key={i} className="adm-bar-col" style={{ "--i": i } as React.CSSProperties} data-today={i === values.length - 1 ? "" : undefined} title={`${labels[i]} · ${format(v)}`}>

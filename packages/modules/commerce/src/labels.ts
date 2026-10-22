@@ -74,6 +74,8 @@ export const L = {
   description: "รายละเอียดสินค้า",
   reviews: "รีวิว",
   noReviews: "ยังไม่มีรีวิว เป็นคนแรกที่รีวิวสินค้านี้",
+  /** rating exists (e.g. imported / in-store ratings) but no written review is published yet */
+  noWrittenReviews: "ยังไม่มีรีวิวแบบข้อความ เล่าประสบการณ์ของคุณเป็นคนแรก",
   writeReview: "เขียนรีวิว",
   reviewName: "ชื่อของคุณ",
   reviewRating: "ให้คะแนน",

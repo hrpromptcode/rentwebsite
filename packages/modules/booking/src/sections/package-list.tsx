@@ -28,9 +28,10 @@ export async function PackageListSection({ ctx, props: p, id }: { ctx: Storefron
       <div aria-hidden className="bk-soft-bg pointer-events-none absolute inset-0" />
       <div className="container-x relative">
         <SectionHeading eyebrow={p.eyebrow} heading={p.heading} subheading={p.subheading} />
-        <StaggerList className={cn("grid gap-8 sm:grid-cols-2", packages.length >= 3 ? "lg:grid-cols-3" : "lg:mx-auto lg:max-w-4xl")} stagger={0.12}>
+        {/* phones: snap rail (the next ticket peeks in) instead of a ~2 400 px column of tall arch tickets */}
+        <StaggerList className={cn("bk-rail grid auto-cols-[82%] grid-flow-col gap-4 sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-2 sm:gap-8", packages.length >= 3 ? "lg:grid-cols-3" : "lg:mx-auto lg:max-w-4xl")} stagger={0.12}>
           {packages.map((pkg, i) => (
-            <StaggerCell key={pkg.id} className="h-full">
+            <StaggerCell key={pkg.id} className="h-full snap-start">
               <PassTicket p={pkg} look={look} highlight={pkg.id === best} buyLabel={L.buyPackage} index={i} />
             </StaggerCell>
           ))}

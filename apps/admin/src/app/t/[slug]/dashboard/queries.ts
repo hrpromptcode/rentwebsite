@@ -144,23 +144,78 @@ const AUDIT_LABELS: Record<string, string> = {
 };
 
 function describeAudit(action: string, actor: string): string {
-  const label = AUDIT_LABELS[action] ?? action;
+  const label = AUDIT_LABELS[action] ?? "แก้ไขข้อมูลร้าน";
   return actor === "superadmin" ? `${label} (ผู้ดูแลแพลตฟอร์ม)` : label;
 }
 
 const EVENT_LABELS: Record<string, string> = {
   "order.created": "ออเดอร์ใหม่",
+  "order.confirmed": "ยืนยันออเดอร์",
   "order.paid": "ชำระเงินออเดอร์แล้ว",
   "order.shipped": "จัดส่งออเดอร์แล้ว",
+  "order.completed": "ออเดอร์เสร็จสมบูรณ์",
+  "order.cancelled": "ยกเลิกออเดอร์",
+  "order.refunded": "คืนเงินออเดอร์",
   "booking.created": "การจองใหม่",
   "booking.confirmed": "ยืนยันการจอง",
+  "booking.paid": "ชำระค่าจองแล้ว",
+  "booking.rescheduled": "เลื่อนนัดหมาย",
+  "booking.cancelled": "ยกเลิกการจอง",
+  "clinic_visit.opened": "เปิดการตรวจ",
+  "clinic_visit.completed": "ตรวจเสร็จแล้ว",
+  "patient.created": "ผู้ป่วยใหม่",
+  "patient_package.purchased": "ซื้อแพ็กเกจคอร์ส",
+  "patient_package.activated": "เปิดใช้แพ็กเกจคอร์ส",
+  "patient_package.used": "ใช้สิทธิ์คอร์ส",
+  "patient_package.session_released": "คืนสิทธิ์คอร์ส",
+  "patient_package.cancelled": "ยกเลิกแพ็กเกจคอร์ส",
+  "reservation.created": "จองโต๊ะใหม่",
+  "reservation.paid": "ชำระมัดจำจองโต๊ะ",
+  "reservation.cancelled": "ยกเลิกการจองโต๊ะ",
+  "rest_order.created": "ออเดอร์อาหารใหม่",
+  "rest_order.paid": "ชำระค่าอาหารแล้ว",
+  "rest_order.ready": "อาหารพร้อมเสิร์ฟ",
+  "rest_order.status_changed": "อัปเดตสถานะออเดอร์อาหาร",
+  "rest_order.payment_rejected": "ปฏิเสธสลิปค่าอาหาร",
+  "rest_order.cancelled": "ยกเลิกออเดอร์อาหาร",
+  "table.session_opened": "เปิดโต๊ะ",
+  "table.session_closed": "ปิดโต๊ะ",
+  "table.bill_requested": "โต๊ะขอเช็กบิล",
+  "table.call_staff": "โต๊ะเรียกพนักงาน",
+  "stay.created": "การจองห้องพักใหม่",
+  "stay.confirmed": "ยืนยันการจองห้องพัก",
+  "stay.cancelled": "ยกเลิกการจองห้องพัก",
+  "ticket_order.created": "คำสั่งซื้อบัตรใหม่",
+  "ticket_order.paid": "ชำระค่าบัตรแล้ว",
+  "ticket_order.resend": "ส่งบัตรซ้ำ",
+  "ticket_order.cancelled": "ยกเลิกคำสั่งซื้อบัตร",
+  "ticket_order.refunded": "คืนเงินค่าบัตร",
+  "ticket.checked_in": "เช็กอินผู้เข้างาน",
   "topup.created": "รายการเติมใหม่",
+  "topup.paid": "ชำระค่าเติมแล้ว",
+  "topup.processing": "กำลังเติม",
   "topup.fulfilled": "เติมสำเร็จ",
+  "topup.failed": "เติมไม่สำเร็จ",
+  "topup.cancelled": "ยกเลิกรายการเติม",
+  "topup.refunded": "คืนเงินรายการเติม",
+  "topup.stock_imported": "นำเข้าสต็อกโค้ด",
+  "topup.stock_low": "สต็อกโค้ดใกล้หมด",
+  "wallet.topup_created": "เติมเงินเข้ากระเป๋า",
+  "wallet.credited": "เครดิตเข้ากระเป๋าเงิน",
+  "payment.created": "สร้างรายการชำระเงิน",
   "payment.slip_uploaded": "ลูกค้าแนบสลิป",
   "payment.paid": "ได้รับชำระเงิน",
+  "payment.failed": "ชำระเงินไม่สำเร็จ",
+  "payment.expired": "รายการชำระเงินหมดอายุ",
+  "payment.cancelled": "ยกเลิกรายการชำระเงิน",
+  "payment.refund_required": "ต้องคืนเงินลูกค้า",
+  "payment.refunded": "คืนเงินแล้ว",
+  "review.created": "รีวิวใหม่",
+  "review.replied": "ตอบกลับรีวิว",
   "customer.created": "ลูกค้าใหม่สมัคร",
 };
 
 function describeEvent(type: string): string {
-  return EVENT_LABELS[type] ?? type;
+  // unknown types never leak a raw key ("x.y") into the feed
+  return EVENT_LABELS[type] ?? "มีความเคลื่อนไหวในร้าน";
 }

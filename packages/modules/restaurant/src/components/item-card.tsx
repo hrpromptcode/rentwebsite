@@ -7,6 +7,7 @@ import { cn } from "@rentweb/ui/lib/utils";
 import type { MenuItemData } from "../services/menu";
 import { L } from "../labels";
 import { SpicyDots, TagBadges } from "./badges";
+import { DishName } from "./dish-name";
 
 export type ItemCardVariant = "row" | "card";
 
@@ -64,7 +65,9 @@ export function ItemCard({
         </span>
         <span className="flex min-w-0 flex-1 flex-col pt-1">
           <span className="flex items-baseline gap-3">
-            <h3 className="font-heading text-lg leading-snug font-semibold text-balance md:text-xl">{item.name}</h3>
+            <h3 className="font-heading text-lg leading-snug font-semibold text-balance md:text-xl">
+              <DishName name={item.name} />
+            </h3>
             <span aria-hidden className="rr-leader hidden sm:block" />
             <span className="hidden sm:flex">{price}</span>
           </span>
@@ -105,7 +108,9 @@ export function ItemCard({
         {soldOut && <span className="absolute inset-0 flex items-center justify-center bg-black/55 px-2 text-center text-xs font-semibold text-white">{L.soldOut}</span>}
       </span>
       <span className="flex min-w-0 flex-1 flex-col">
-        <h3 className="font-heading text-base leading-snug font-semibold text-balance md:text-lg">{item.name}</h3>
+        <h3 className="font-heading text-base leading-snug font-semibold text-balance md:text-lg">
+          <DishName name={item.name} />
+        </h3>
         {item.nameEn && <span className="truncate text-xs text-muted-foreground">{item.nameEn}</span>}
         {item.description && <span className="mt-1 line-clamp-2 text-sm leading-snug text-muted-foreground">{item.description}</span>}
         <span className="mt-auto flex items-end justify-between gap-2 pt-2">

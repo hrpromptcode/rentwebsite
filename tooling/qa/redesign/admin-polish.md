@@ -35,3 +35,22 @@
 - admin dev server hung on "Compiling /login" (0 CPU) → Turbopack panic "task is missing in memory or persistent storage"
   = corrupted persistent cache (9.2 GB). Fix: kill :3001, delete apps/admin/.next/dev/cache/turbopack, restart
   (Start-Process cmd /c "pnpm dev:admin > %TEMP%\rentweb-admin-dev.log"). Not caused by code.
+- run 2 (successor): 1440 shots → hydration mismatch on every table page: TableEnhancer set data-fit on containers
+  streamed behind loading.tsx before their Suspense boundary hydrated. Fixed: only mark hydrated containers
+  (__reactFiber$ key), retry 200 ms. Probe /console, /pages, /products → 0 errors.
+- run 2 fixes: dashboard activity feed labels (all ~60 event types Thai, no raw "payment.created"; unknown → generic Thai);
+  site preview finds nested `image.url`, crops 16:10 (w720 h450), real CTA label pill, ThaiWrap headline; DayBars empty
+  note + gridlines; activity card sticky at lg; KPI `cta` footer for trendless linked tiles (dashboard only, aria-hidden);
+  checkbox/switch 44px hit halo; dialog title line-height 1.45 (Thai marks); toast shot → LINE copy button. typecheck green.
+- run 2: 390 shots → 0 errors, 0 overflow on 28 targets. Added phone filter-bar rule (from/to date pair side by side,
+  CSS :has, layout only); face-aware preview crop; -my-3 py-3 hit areas on dashboard host/edit links.
+- run 2: journeys launched (tag run2) → _admin-polish-logs/run2-*.log, run2-summary.txt
+- run2 admin-journey 30/31: 4.4 design-preset save toast timed out while admin showed 'Compiling' (my LF re-normalisation of 7 files mid-run triggered recompiles; 4.3 same toast path passed) → rerun at end; NO edits during journey runs
+- run2 commerce 37/43: steps 2–4c hit a Turbopack Build Error page from packages/templates/src/corporate.ts (another agent's transient unterminated string, since fixed) → rerun at end
+- run2 restaurant 10/15: step 1 is the STOREFRONT (apps/web) dine-in submit — button stuck pending under 'Rendering' (dev server load), 2–5 cascade (order undefined) → rerun
+- run2 topup 4/18: step 3 storefront waitForURL 120s timeout → cascade; 12 = wallet 404 (demo-topup data changed mid-run), 15 = save pending under 'Compiling' (shared packages being edited by other agents) → rerun
+- run2 events 23/24 (9: attendees CSV export GET 30s timeout — first compile under load); rental 24/24; booking 19/19
+- run 2 polish after journeys: empty-chart note on a card pill; stronger preview scrim (theme-bg 82→96% behind copy);
+  phone date pair padding + 14px picker icon (no clipping); scrolling tables clipped to card radius. Reduced-motion pass
+  (5 targets × 2 widths) clean: 0 errors/overflow, odometers show final values. Re-running the 5 non-green journeys (tag run3).
+- run3: admin-journey 31/31, commerce 43/43; restaurant 14/15 (4: KDS item tick pending under 'Compiling'). Found: KDS sticky header (top-0) slides under the admin topbar when not fullscreen → fix after run3 (top-[var(--topbar-h)])

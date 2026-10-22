@@ -9,7 +9,7 @@ const ctx = await b.newContext({ viewport: { width: w, height: w >= 1024 ? 900 :
 await isolateHmr(ctx);
 const p = await ctx.newPage();
 const errs: string[] = [];
-p.on("console", (m) => (m.type() === "error" || /hydrat/i.test(m.text())) && errs.push(m.text().slice(0, 1500)));
+p.on("console", (m) => (m.type() === "error" || /hydrat/i.test(m.text())) && errs.push(m.text().slice(0, 9000)));
 await p.goto(`${A}/login`, { waitUntil: "load", timeout: 120_000 });
 await p.fill("#email", "admin@rentweb.local");
 await p.fill("#password", "Admin1234!");

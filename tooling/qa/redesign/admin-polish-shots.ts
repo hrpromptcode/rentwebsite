@@ -85,9 +85,10 @@ const T: Target[] = [
   },
   {
     name: "toast",
-    path: "/t/demo-shop/settings",
+    path: "/t/demo-shop/settings/line",
     act: async (p) => {
-      await p.getByRole("button", { name: "บันทึก", exact: true }).first().click();
+      await p.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: A }).catch(() => {});
+      await p.getByRole("button", { name: /^คัดลอก http/ }).first().click();
       await p.locator("[data-sonner-toast]").first().waitFor({ timeout: 20_000 });
       await p.waitForTimeout(500);
     },

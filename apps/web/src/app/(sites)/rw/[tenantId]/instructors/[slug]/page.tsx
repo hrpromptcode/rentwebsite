@@ -5,7 +5,7 @@ import { ArrowRight, CalendarDays, ChevronRight } from "lucide-react";
 import { cn } from "@rentweb/ui/lib/utils";
 import { CtaButton, Eyebrow, Prose, RevealHeading, Rise, SectionStyles, StaggerCell, StaggerList } from "@rentweb/storefront";
 import { bkkDateString, bookingConfig, getInstructorBySlug, listClasses, listTimetable } from "@rentweb/module-booking/services";
-import { BookingStyles, ClassStudioCard, Portrait, SessionRow, lookOf, titleStep } from "@rentweb/module-booking/ui";
+import { BookingStyles, ClassStudioCard, Portrait, SessionRow, lookOf, titleStep, nameLines } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { decodeSlug } from "@/lib/slug";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -60,7 +60,7 @@ export default async function InstructorPage({ params }: { params: Params }) {
           </div>
           <div className="md:col-span-7 md:pt-6">
             {person.title && <Eyebrow text={person.title} className="mb-5" />}
-            <RevealHeading as="h1" text={person.name} trigger="mount" mode="words" className={cn("font-heading font-semibold", titleStep(person.name))} />
+            <RevealHeading as="h1" text={nameLines(person.name)} trigger="mount" mode="words" className={cn("font-heading font-semibold", titleStep(person.name))} />
             {person.bio && <Prose text={person.bio} className="mt-6 max-w-2xl text-step-1 text-muted-foreground" />}
             <dl className="mt-8 flex flex-wrap gap-x-12 gap-y-4 border-y border-[color-mix(in_oklab,var(--foreground)_12%,transparent)] py-5">
               <div>

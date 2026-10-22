@@ -11,6 +11,7 @@ import type { menuHighlight } from "@rentweb/storefront/definitions";
 import { listFeaturedItems, type MenuItemData } from "../services/menu";
 import { SpicyDots } from "../components/badges";
 import { PlateSpin } from "../components/plate-spin";
+import { DishName } from "../components/dish-name";
 import { RestaurantStyles } from "../components/styles";
 import { L } from "../labels";
 
@@ -58,7 +59,9 @@ function PlateCard({ item, i, n, className }: { item: MenuItemData; i: number; n
       </span>
       <div className="mt-auto">
         <div className="flex items-center gap-2">
-          <h3 className="font-heading text-step-2 leading-snug font-semibold text-balance">{item.name}</h3>
+          <h3 className="font-heading text-step-2 leading-snug font-semibold text-balance">
+            <DishName name={item.name} />
+          </h3>
           <SpicyDots level={item.spicyLevel} className="shrink-0" />
         </div>
         {item.nameEn && <span className="mt-1 block font-mono text-[0.6875rem] tracking-[0.12em] text-muted-foreground uppercase">{item.nameEn}</span>}
@@ -86,7 +89,9 @@ function MenuRow({ item, i }: { item: MenuItemData; i: number }) {
           </span>
         )}
         <span className="min-w-0">
-          <span className="block font-heading text-step-2 leading-snug font-semibold">{item.name}</span>
+          <span className="block font-heading text-step-2 leading-snug font-semibold">
+            <DishName name={item.name} />
+          </span>
           {item.nameEn && <span className="mt-0.5 block font-mono text-[0.6875rem] tracking-[0.12em] text-muted-foreground uppercase">{item.nameEn}</span>}
         </span>
         <span aria-hidden className="rr-leader hidden md:block" />

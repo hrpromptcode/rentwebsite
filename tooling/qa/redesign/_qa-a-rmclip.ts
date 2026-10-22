@@ -1,0 +1,22 @@
+/** qa-a: reduced motion — does a canvas-only region change after pointer moves? tsx qa/redesign/_qa-a-rmclip.ts url x,y,w,h */
+import { chromium } from "@playwright/test";
+import crypto from "node:crypto";
+import { isolateHmr, stableGoto } from "../bughunt/fixes/_dev-stable";
+const [url, clipArg] = process.argv.slice(2);
+const [x, y, width, height] = clipArg!.split(",").map(Number) as [number, number, number, number];
+const b = await chromium.launch({ args: ["--enable-gpu", "--ignore-gpu-blocklist", "--use-angle=d3d11"] });
+const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+await isolateHmr(ctx);
+const p = await ctx.newPage();
+await stableGoto(p, url!, "load");
+await p.mouse.move(5, 890);
+await p.waitForTimeout(5000);
+const h = async () => crypto.createHash("md5").update(await p.screenshot({ clip: { x, y, width, height } })).digest("hex").slice(0, 8);
+const still = [await h(), (await p.waitForTimeout(1200), await h())];
+await p.mouse.move(1150, 300, { steps: 10 }); await p.waitForTimeout(150);
+const during = await h();
+await p.mouse.move(700, 500, { steps: 10 }); await p.waitForTimeout(1500);
+const after = await h();
+await p.screenshot({ path: "screenshots/redesign-qa-a-rm-clip.png", clip: { x, y, width, height } });
+console.log({ still, during, after });
+await b.close();

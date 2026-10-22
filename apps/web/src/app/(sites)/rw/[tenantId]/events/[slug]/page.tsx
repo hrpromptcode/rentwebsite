@@ -6,7 +6,7 @@ import { Button } from "@rentweb/ui/components/button";
 import { cn } from "@rentweb/ui/lib/utils";
 import { LiveClock, ParallaxMedia, Reveal } from "@rentweb/ui/motion";
 import { ScenePoster } from "@rentweb/ui/three";
-import { Eyebrow, Img, Prose, SectionStyles, StaggerCell, StaggerList } from "@rentweb/storefront";
+import { Eyebrow, FloatingChatOptOut, Img, Prose, SectionStyles, StaggerCell, StaggerList } from "@rentweb/storefront";
 import type { PaymentMethodOption } from "@rentweb/storefront/payments";
 import { serializeJsonLd } from "@rentweb/core";
 import { thb } from "@rentweb/core/money";
@@ -189,7 +189,10 @@ export default async function EventPage({ params, searchParams }: { params: Para
                 <span>Box office</span>
                 {multi && <span data-script="thai">{L.sessionsN(openSessions.length)}</span>}
               </div>
-              <TicketPicker event={{ id: event.id, slug: event.slug, title: event.title, status: event.status }} sessions={pickerSessions} config={{ maxPerOrder: config.maxPerOrder, allowGuestCheckout: config.allowGuestCheckout, holdMinutes: config.holdMinutes, ticketTerms: config.ticketTerms }} methods={methods} customer={customer ? { id: customer.id, name: customer.name, phone: customer.phone, email: customer.email } : null} initialSessionId={sp.session ?? null} loginHref={`/account/login?next=${encodeURIComponent(`/events/${event.slug}`)}`} className="shadow-float" />
+              {/* phones: the LINE button would sit on the quantity steppers / prices (the buy bar already lifts it) */}
+              <FloatingChatOptOut query="(width < 64rem)">
+                <TicketPicker event={{ id: event.id, slug: event.slug, title: event.title, status: event.status }} sessions={pickerSessions} config={{ maxPerOrder: config.maxPerOrder, allowGuestCheckout: config.allowGuestCheckout, holdMinutes: config.holdMinutes, ticketTerms: config.ticketTerms }} methods={methods} customer={customer ? { id: customer.id, name: customer.name, phone: customer.phone, email: customer.email } : null} initialSessionId={sp.session ?? null} loginHref={`/account/login?next=${encodeURIComponent(`/events/${event.slug}`)}`} className="shadow-float" />
+              </FloatingChatOptOut>
             </div>
           </div>
 
@@ -209,7 +212,7 @@ export default async function EventPage({ params, searchParams }: { params: Para
                 </div>
                 <div className="p-5 md:p-6">
                   <dt className="ev-mono text-muted-foreground" data-script="thai">{L.venue}</dt>
-                  <dd className="mt-2 font-semibold leading-snug">{event.venueName ?? "—"}</dd>
+                  <dd className="mt-2 font-semibold leading-snug">{event.venueName ? <ThaiWrap text={event.venueName} /> : "—"}</dd>
                 </div>
               </dl>
             </Reveal>
@@ -226,7 +229,8 @@ export default async function EventPage({ params, searchParams }: { params: Para
                 <Reveal>
                   <h2 className="font-heading text-step-3 font-semibold">{L.ticketTypes}</h2>
                 </Reveal>
-                <StaggerList className="mt-6 grid gap-4" stagger={0.07}>
+                <FloatingChatOptOut query="(width < 64rem)">
+                  <StaggerList className="mt-6 grid gap-4" stagger={0.07}>
                   {ticketTypes.map((t) => {
                     const on = t.saleState === "on_sale";
                     const sess = t.sessionId ? sessions.find((s) => s.id === t.sessionId) : null;
@@ -235,8 +239,14 @@ export default async function EventPage({ params, searchParams }: { params: Para
                         <EvTilt max={4} className="rounded-[calc(var(--radius)*1.25)]" data-sale-state={t.saleState}>
                           <div className={cn("ev-ticket-x ev-ticket-bg ev-ticket-edge ev-tier grid grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-[calc(var(--radius)*1.25)]", !on && "opacity-75")} style={{ "--at": "50%" } as React.CSSProperties} data-on={on ? "" : undefined}>
                             <div className="min-w-0 p-5 md:p-6">
-                              <p className="font-heading text-lg leading-snug font-semibold md:text-xl">{t.name}</p>
-                              {t.description && <p className="mt-1 text-sm text-muted-foreground">{t.description}</p>}
+                              <p className="font-heading text-lg leading-snug font-semibold md:text-xl">
+                                <ThaiWrap text={t.name} />
+                              </p>
+                              {t.description && (
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                  <ThaiWrap text={t.description} />
+                                </p>
+                              )}
                               <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                                 {sess && <span>{L.session} {sess.name ?? formatThaiDateRange(sess.startsAt, null)}</span>}
                                 {t.saleState === "not_started" && t.salesStart && <span>{L.salesStartAt(formatThaiDateTime(t.salesStart))}</span>}
@@ -254,7 +264,8 @@ export default async function EventPage({ params, searchParams }: { params: Para
                       </StaggerCell>
                     );
                   })}
-                </StaggerList>
+                  </StaggerList>
+                </FloatingChatOptOut>
               </div>
             )}
 
@@ -319,7 +330,11 @@ export default async function EventPage({ params, searchParams }: { params: Para
                         <MapPin className="size-5" aria-hidden />
                       </span>
                       <div>
-                        {event.venueName && <p className="font-semibold">{event.venueName}</p>}
+                        {event.venueName && (
+                          <p className="font-semibold">
+                            <ThaiWrap text={event.venueName} />
+                          </p>
+                        )}
                         {event.venueAddress && <p className="mt-0.5 text-sm text-muted-foreground">{event.venueAddress}</p>}
                       </div>
                     </div>

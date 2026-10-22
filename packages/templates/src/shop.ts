@@ -3,6 +3,10 @@ import { categories, products, productVariants, shippingMethods, discounts, revi
 import { section, hero, marquee, productGrid, categoryList, imageText, testimonials, features, faq, cta, stats, stickyStory, gallery } from "@rentweb/storefront/definitions";
 import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, defaultHours, u } from "./shared";
 
+/** About CTA: break after the question ("มีคำถาม? ทัก|เรามาได้เลย" split the phrase at desktop widths). Demo sections only. */
+const ABOUT_CTA = "มีคำถาม? ทักเรามาได้เลย";
+const breakAboutCta = (s: TemplatePage["sections"][number]) => (s.type === "cta" && s.props.heading === ABOUT_CTA ? { ...s, props: { ...s.props, heading: ABOUT_CTA.replace(" ", "\n") } } : s);
+
 /** About page: a masonry of the atelier between the statement and the CTA (demo only; new shops keep the neutral page). */
 function withAtelierGallery(page: TemplatePage): TemplatePage {
   const atelier = section(gallery, {
@@ -19,7 +23,7 @@ function withAtelierGallery(page: TemplatePage): TemplatePage {
       { url: u("1788500304966-2c60274a5de7", 1000), alt: "ราวเสื้อในสตูดิโอ", caption: "คอลเลกชันฤดูฝน 2026" },
     ],
   });
-  return { ...page, sections: [page.sections[0]!, atelier, ...page.sections.slice(1)] };
+  return { ...page, sections: [page.sections[0]!, atelier, ...page.sections.slice(1).map(breakAboutCta)] };
 }
 
 export const shop: TemplateDefinition = {
@@ -112,10 +116,10 @@ export const shop: TemplateDefinition = {
           mediaStyle: "card",
           side: "right",
           items: [
-            { kicker: "Fiber", title: "ปลูกฝ้าย", body: "ฝ้ายออร์แกนิกจากไร่ชุมชน เก็บด้วยมือ ไม่ใช้สารเคมี", image: u("1761069183527-a1a1414ee71f", 1200), chips: ["ฝ้ายออร์แกนิก 100%"] },
-            { kicker: "Indigo", title: "ย้อมคราม", body: "ย้อมด้วยครามธรรมชาติที่หมักเองในหม้อดิน ทีละรอบจนได้สีที่ลึก", image: u("1778084355441-2b03f8e9763e", 1200), chips: ["สีธรรมชาติ"] },
-            { kicker: "Loom", title: "ทอมือ", body: "ช่างทอ 14 ครอบครัวทอด้วยกี่ไม้ทีละเส้น ลายจึงไม่ซ้ำกันสักผืน", image: u("1719462193202-7064a0b3fd04", 1200), chips: ["กี่ไม้", "ลายไม่ซ้ำ"] },
-            { kicker: "Atelier", title: "ตัดเย็บ", body: "ตัดเย็บและตรวจทีละชิ้น ก่อนพับห่ออย่างดีส่งถึงตู้เสื้อผ้าของคุณ", image: u("1764298493253-e49696c110e7", 1200), chips: ["ตรวจทุกชิ้น"] },
+            { kicker: "Fiber", title: "ปลูกฝ้าย", body: "ฝ้ายออร์แกนิกจากไร่ชุมชน เก็บด้วยมือ ไม่ใช้สารเคมี", image: u("1761069183527-a1a1414ee71f", 1800), chips: ["ฝ้ายออร์แกนิก 100%"] },
+            { kicker: "Indigo", title: "ย้อมคราม", body: "ย้อมด้วยครามธรรมชาติที่หมักเองในหม้อดิน ทีละรอบจนได้สีที่ลึก", image: u("1778084355441-2b03f8e9763e", 1800), chips: ["สีธรรมชาติ"] },
+            { kicker: "Loom", title: "ทอมือ", body: "ช่างทอ 14 ครอบครัวทอด้วยกี่ไม้ทีละเส้น ลายจึงไม่ซ้ำกันสักผืน", image: u("1719462193202-7064a0b3fd04", 1800), chips: ["กี่ไม้", "ลายไม่ซ้ำ"] },
+            { kicker: "Atelier", title: "ตัดเย็บ", body: "ตัดเย็บและตรวจทีละชิ้น ก่อนพับห่ออย่างดีส่งถึงตู้เสื้อผ้าของคุณ", image: u("1764298493253-e49696c110e7", 1800), chips: ["ตรวจทุกชิ้น"] },
           ],
         }),
         section(imageText, {

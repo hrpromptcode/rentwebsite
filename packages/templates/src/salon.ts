@@ -1,7 +1,25 @@
-import type { TemplateDefinition } from "@rentweb/core/tenant";
+import type { TemplateDefinition, TemplatePage } from "@rentweb/core/tenant";
 import { availabilityRules, serviceCategories, services, staff, staffServices } from "@rentweb/db";
 import { section, hero, serviceList, staffGrid, bookingWidget, imageText, testimonials, faq, cta, gallery, steps, text } from "@rentweb/storefront/definitions";
 import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, u, avatar } from "./shared";
+
+/** About CTA: break after the question ("มีคำถาม? ทัก|เรามาได้เลย" split the phrase at desktop widths). Demo sections only. */
+const ABOUT_CTA = "มีคำถาม? ทักเรามาได้เลย";
+const breakAboutCta = (s: TemplatePage["sections"][number]) => (s.type === "cta" && s.props.heading === ABOUT_CTA ? { ...s, props: { ...s.props, heading: ABOUT_CTA.replace(" ", "\n") } } : s);
+
+/** About page: the welcome ritual (floating-flower foot bath, card style) between the statement and the CTA (demo only; new shops keep the neutral statement page). */
+function withAboutStory(page: TemplatePage): TemplatePage {
+  return { ...page, sections: [page.sections[0]!, section(imageText, {
+        eyebrow: "ก่อนเริ่มทุกครั้ง",
+        heading: "ชาอุ่นหนึ่งแก้ว\nกับน้ำลอยดอกไม้",
+        body: "เทอราพิสต์จะชวนคุณแช่เท้าในน้ำอุ่นลอยดอกไม้ จิบชาตะไคร้ใบเตย แล้วคุยกันสั้น ๆ ถึงจุดที่ปวดเมื่อย เพื่อปรับแรงนวดให้พอดีกับคุณตั้งแต่นาทีแรก",
+        image: { url: u("1543134968-8752069dbf58", 1200), alt: "อ่างน้ำลอยดอกไม้สำหรับแช่เท้าก่อนนวด" },
+        imagePosition: "right",
+        bullets: ["ชาสมุนไพรต้อนรับ", "ถามจุดที่ปวดก่อนเริ่ม", "ห้องอาบน้ำส่วนตัวทุกห้อง"],
+        cta: { label: "ดูบริการทั้งหมด", href: "/services" },
+        style: "card",
+      }), ...page.sections.slice(1).map(breakAboutCta)] };
+}
 
 /** portrait crop (4:5) for therapist photos */
 const portrait = (id: string) => u(id, 800, "&h=1000&crop=faces");
@@ -19,7 +37,7 @@ export const salon: TemplateDefinition = {
   // AC-02: the sample business's location / opening-hours copy; new (non-demo) shops get a placeholder or neutral copy
   neutralText: [
     ["สปาและนวดไทย · สุขุมวิท 31", "สปาและนวดไทย · [ย่านของร้าน]"],
-    ["บ้านเก่าในซอยสวัสดี ที่เงียบจนได้ยินเสียงใบไม้", "มุมสงบ ให้คุณได้พักอย่างเต็มที่"],
+    ["บ้านเก่าในซอย\u2060สวัสดี เงียบจนได้ยินเสียงใบไม้", "มุมสงบ ให้คุณได้พักอย่างเต็มที่"],
     ["เราปรับบ้านไม้สองชั้นให้เป็นห้องนวดส่วนตัว 6 ห้อง ล้อมด้วยสวนเล็ก ๆ ทุกห้องมีห้องอาบน้ำในตัว ใช้น้ำมันหอมระเหยออร์แกนิกจากเชียงใหม่", "ห้องนวดส่วนตัว บรรยากาศเงียบสงบ ใช้น้ำมันหอมระเหยคุณภาพ ให้ทุกการมาใช้บริการเป็นเวลาพักผ่อนของคุณ"],
   ],
   recommendedPresets: ["zen", "porcelain", "candy", "midnight"],
@@ -68,7 +86,8 @@ export const salon: TemplateDefinition = {
           variant: "cinematic",
           eyebrow: "สปาและนวดไทย · สุขุมวิท 31",
           heading: "หายใจเข้าช้า ๆ\nแล้วปล่อย\nให้เราดูแล",
-          subheading: "นวดไทยโบราณ อโรมา และทรีตเมนต์ผิว โดยเทอราพิสต์ที่ผ่านการรับรองจากกระทรวงสาธารณสุข",
+          // U+2060 word joiners below: Chromium's ICU dictionary splits the loanwords (ทรีต|เมน|ต์, เท|อราพิสต์) in this raw paragraph
+          subheading: "นวดไทยโบราณ อโรมา และทรีต\u2060เมน\u2060ต์ผิว โดยเท\u2060อราพิสต์ที่ผ่านการรับรองจากกระทรวงสาธารณสุข",
           primaryCta: { label: "จองคิวตอนนี้", href: "/book" },
           secondaryCta: { label: "ดูบริการ", href: "/services" },
           image: { url: u("1600334129128-685c5582fd35", 1800), alt: "หินร้อนและน้ำมันนวดบนผ้าลินิน" },
@@ -77,7 +96,7 @@ export const salon: TemplateDefinition = {
         }),
         section(serviceList, { eyebrow: "บริการ", heading: "ทรีตเมนต์ของเรา", subheading: "ทุกคอร์สรวมชาสมุนไพรและห้องอาบน้ำส่วนตัว", variant: "menu", limit: 8 }),
         // §5.5: the house as a quiet statement (ScrubText)
-        section(text, { eyebrow: "พื้นที่ของเรา", body: "บ้านเก่าในซอยสวัสดี ที่เงียบจนได้ยินเสียงใบไม้", size: "large", align: "left" }),
+        section(text, { eyebrow: "พื้นที่ของเรา", body: "บ้านเก่าในซอย\u2060สวัสดี เงียบจนได้ยินเสียงใบไม้", size: "large", align: "left" }),
         section(imageText, {
           eyebrow: "ห้องส่วนตัว",
           heading: "พักในบ้าน ไม่ใช่ในห้าง",
@@ -96,7 +115,7 @@ export const salon: TemplateDefinition = {
           ],
         }),
         section(staffGrid, { eyebrow: "ทีม", heading: "เทอราพิสต์ของเรา", subheading: "ผ่านการรับรองหลักสูตรนวดไทย 150 ชั่วโมงขึ้นไปทุกคน" }),
-        section(gallery, { heading: "บรรยากาศ", layout: "filmstrip", images: [{ url: u("1560750588-73207b1ef5b8", 1000), alt: "สระน้ำในสวนหลังบ้าน" }, { url: u("1620733723572-11c53f73a416", 1000), alt: "เทียนหอมและก้านไม้หอมในห้องนวด" }, { url: u("1583416750470-965b2707b355", 1000), alt: "ห้องอบสมุนไพรบุไม้" }, { url: u("1556760544-74068565f05c", 1000), alt: "น้ำมันหอมระเหยและเทียนบนโต๊ะไม้" }, { url: u("1600334129128-685c5582fd35", 1000), alt: "นวดหินร้อน" }] }),
+        section(gallery, { heading: "บรรยากาศ", layout: "filmstrip", images: [{ url: u("1560750588-73207b1ef5b8", 1000), alt: "สระน้ำในสวนหลังบ้าน" }, { url: u("1620733723572-11c53f73a416", 1000), alt: "เทียนหอมและก้านไม้หอมในห้องนวด" }, { url: u("1583416750470-965b2707b355", 1000), alt: "ห้องอบสมุนไพรบุไม้" }, { url: u("1556760544-74068565f05c", 1000), alt: "น้ำมันหอมระเหยและเทียนบนโต๊ะไม้" }, { url: u("1543134968-8752069dbf58", 1000), alt: "อ่างน้ำลอยดอกไม้หน้าห้องนวด" }] }),
         section(testimonials, {
           heading: "รีวิวจากลูกค้า",
           variant: "cards",
@@ -123,11 +142,11 @@ export const salon: TemplateDefinition = {
       title: "บรรยากาศ",
       sections: [
         section(text, { eyebrow: "บรรยากาศ", heading: "ความเงียบที่จับต้องได้", body: "แสงจากสวน ผ้าลินินที่ซักด้วยมือ กลิ่นตะไคร้หอมจาง ๆ ทุกมุมของบ้านตั้งใจให้คุณได้ช้าลง ก่อนจะเริ่มนวดเสียอีก", size: "normal" }),
-        section(gallery, { heading: "", layout: "masonry", images: [{ url: u("1560750588-73207b1ef5b8", 1000), alt: "สระน้ำในสวนหลังบ้าน" }, { url: u("1507652313519-d4e9174996dd", 1000), alt: "ห้องอาบน้ำส่วนตัว" }, { url: u("1775133262667-316bd4d9e5b5", 1000), alt: "นวดประคบสมุนไพร" }, { url: u("1620733723572-11c53f73a416", 1000), alt: "เทียนหอมในห้องนวด" }, { url: u("1583416750470-965b2707b355", 1000), alt: "ห้องอบสมุนไพร" }, { url: u("1590439471364-192aa70c0b53", 1000), alt: "ผ้าขนหนูและสบู่สมุนไพร" }, { url: u("1600334129128-685c5582fd35", 1000), alt: "นวดหินร้อน" }, { url: u("1556760544-74068565f05c", 1000), alt: "น้ำมันหอมระเหย" }] }),
+        section(gallery, { heading: "", layout: "masonry", images: [{ url: u("1560750588-73207b1ef5b8", 1000), alt: "สระน้ำในสวนหลังบ้าน" }, { url: u("1507652313519-d4e9174996dd", 1000), alt: "ห้องอาบน้ำส่วนตัว" }, { url: u("1775133262667-316bd4d9e5b5", 1000), alt: "นวดประคบสมุนไพร" }, { url: u("1620733723572-11c53f73a416", 1000), alt: "เทียนหอมในห้องนวด" }, { url: u("1583416750470-965b2707b355", 1000), alt: "ห้องอบสมุนไพร" }, { url: u("1758614256591-91deecdff2e7", 1000), alt: "ดอกลีลาวดีในสวน" }, { url: u("1543134968-8752069dbf58", 1000), alt: "อ่างน้ำลอยดอกไม้" }, { url: u("1556760544-74068565f05c", 1000), alt: "น้ำมันหอมระเหย" }] }),
         section(cta, { variant: "banner", heading: "มาพักด้วยกันสักครั้ง", body: "เลือกทรีตเมนต์และเทอราพิสต์ที่ชอบ ยืนยันคิวได้ทันที", primaryCta: { label: "จองคิว", href: "/book" } }),
       ],
     },
-    aboutPage({ neutral: NEUTRAL_ABOUT.salon, heading: "สบาย สบาย — เริ่มจากความเชื่อว่าการพักผ่อนคือสิ่งจำเป็น", body: "เราเปิดในปี 2016 โดยอดีตพยาบาลที่เห็นว่าคนเมืองพักผ่อนน้อยเกินไป ทีมเทอราพิสต์ทุกคนผ่านการอบรมและมีใบประกอบวิชาชีพ เราจ่ายค่าตอบแทนที่เป็นธรรม เพราะเชื่อว่ามือที่มีความสุขจึงจะส่งต่อความสบายได้" }),
+    withAboutStory(aboutPage({ neutral: NEUTRAL_ABOUT.salon, heading: "สบาย สบาย — เริ่มจากความเชื่อว่าการพักผ่อนคือสิ่งจำเป็น", body: "เราเปิดในปี 2016 โดยอดีตพยาบาลที่เห็นว่าคนเมืองพักผ่อนน้อยเกินไป ทีมเทอราพิสต์ทุกคนผ่านการอบรมและมีใบประกอบวิชาชีพ เราจ่ายค่าตอบแทนที่เป็นธรรม เพราะเชื่อว่ามือที่มีความสุขจึงจะส่งต่อความสบายได้" })),
     contactPage(),
     ...legalPages("สบาย สบาย"),
   ],

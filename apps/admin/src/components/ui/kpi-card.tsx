@@ -1,6 +1,6 @@
 import * as React from "react";
 import Link from "next/link";
-import { ArrowUpRight, type LucideIcon } from "lucide-react";
+import { ArrowRight, ArrowUpRight, type LucideIcon } from "lucide-react";
 import { Odometer } from "@rentweb/ui/motion/odometer";
 import { cn } from "@rentweb/ui/lib/utils";
 import { Sparkline } from "./sparkline";
@@ -21,6 +21,7 @@ export function KpiCard({
   countTo,
   trend,
   trendLabel,
+  cta,
 }: {
   label: string;
   value: React.ReactNode;
@@ -36,6 +37,8 @@ export function KpiCard({
   trend?: number[] | null;
   /** caption under the sparkline, e.g. "14 วันล่าสุด" */
   trendLabel?: string;
+  /** dashboard: footer action label for linked tiles without a trend (keeps the row of tiles visually even) */
+  cta?: string;
 }) {
   const body = (
     <>
@@ -58,6 +61,11 @@ export function KpiCard({
           <Sparkline uid={`k${hash(label)}`} values={trend} className="h-9 w-full" />
           {trendLabel && <span className="mt-0.5 block text-[11px] text-muted-foreground">{trendLabel}</span>}
         </div>
+      ) : href && cta ? (
+        <span className="adm-kpi-cta mt-auto" aria-hidden>
+          {cta}
+          <ArrowRight className="size-3.5" />
+        </span>
       ) : null}
     </>
   );

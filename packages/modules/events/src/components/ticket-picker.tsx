@@ -12,6 +12,7 @@ import { PaymentMethodPicker, type PaymentMethodOption } from "@rentweb/storefro
 import { thb } from "@rentweb/core/money";
 import { createTicketOrderAction, type CreateTicketOrderPayload } from "../actions";
 import { OrderLines, type OrderLinesData } from "./order-summary";
+import { GlueWords } from "./thai-wrap";
 import { L } from "../labels";
 import type { SaleState } from "../services/catalog";
 import { formatThaiDate, formatThaiDateTime, formatThaiSession, formatThaiTime } from "../services/time";
@@ -298,9 +299,15 @@ export function TicketPicker({ event, sessions, config, methods, customer, initi
               return (
                 <li key={t.id} className={cn("flex items-start justify-between gap-3 py-3.5", !onSale && "opacity-70")} data-testid={`ticket-type-${t.id}`} data-sale-state={t.saleState}>
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium leading-snug">{t.name}</p>
+                    <p className="font-medium leading-snug">
+                      <GlueWords text={t.name} />
+                    </p>
                     <p className="mt-0.5 font-heading text-lg font-semibold tabular-nums text-primary">{t.price > 0 ? thb(t.price) : L.free}</p>
-                    {t.description && <p className="mt-0.5 text-xs text-muted-foreground">{t.description}</p>}
+                    {t.description && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        <GlueWords text={t.description} />
+                      </p>
+                    )}
                     <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
                       {t.saleState === "not_started" && t.salesStart && <span className="text-muted-foreground">{L.salesStartAt(formatThaiDateTime(new Date(t.salesStart)))}</span>}
                       {t.saleState === "closed" && <span className="text-muted-foreground">{L.salesClosed}</span>}

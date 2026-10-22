@@ -182,6 +182,7 @@ async function auditViewport(page: Page) {
       if (!r) continue;
       const cs = getComputedStyle(el);
       if (Number(cs.opacity) < 0.95) continue;
+      if (el.closest("[data-active]")) continue; // active chip: bg is an absolutely positioned sibling pill
       const fg = parse(cs.color);
       if (!fg || fg.a < 0.5) continue;
       let bg: number[] | null = null;
@@ -306,8 +307,20 @@ async function measureFps(page: Page) {
 
 fs.mkdirSync(path.join(OUT, "_frames"), { recursive: true });
 const gpu = ["--enable-gpu", "--ignore-gpu-blocklist", "--use-angle=d3d11"];
-const browser = await chromium.launch({ args: MODE === "nogl" ? ["--disable-3d-apis", "--disable-webgl"] : gpu });
-const reportFile = path.join(OUT, `redesign-qa-a-report-${MODE}.txt`);
+// Windows: a launch right after a close sometimes dies with 0xC0000142 (DLL init) → retry with a pause
+const launch = async (): Promise<Browser> => {
+  for (let i = 0; ; i++) {
+    try {
+      return await chromium.launch({ args: MODE === "nogl" ? ["--disable-3d-apis", "--disable-webgl"] : gpu });
+    } catch (e) {
+      if (i >= 4) throw e;
+      await new Promise((r) => setTimeout(r, 4000 * (i + 1)));
+    }
+  }
+};
+let sitesDone = 0;
+let browser = await launch();
+const reportFile = path.join(OUT, `redesign-qa-a-report-${MODE}-${ONLY.join("_")}-${WIDTHS.join("_")}${PAGES.size ? "-partial" : ""}.txt`);
 const report: string[] = [];
 const flush = () => fs.writeFileSync(reportFile, report.join("\n") + "\n");
 
@@ -315,15 +328,37 @@ for (const w of WIDTHS) {
   for (const key of ONLY) {
     const site = SITES[key]!;
     const base = `http://${site.host}.localhost:3000`;
-    const ctx: BrowserContext = await browser.newContext({ viewport: { width: w, height: w >= 768 ? 900 : 844 }, deviceScaleFactor: 1, isMobile: w < 768, hasTouch: w < 768, reducedMotion: MODE === "reduce" ? "reduce" : "no-preference", locale: "th-TH" });
-    await isolateHmr(ctx);
-    await ctx.addInitScript({ content: "window.__name = (f) => f;" });
+    const newCtx = async () => {
+      const c: BrowserContext = await browser.newContext({ viewport: { width: w, height: w >= 768 ? 900 : 844 }, deviceScaleFactor: 1, isMobile: w < 768, hasTouch: w < 768, reducedMotion: MODE === "reduce" ? "reduce" : "no-preference", locale: "th-TH" });
+      await isolateHmr(c);
+      await c.addInitScript({ content: "window.__name = (f) => f;" });
+      return c;
+    };
+    // fresh browser per site: GPU memory from many WebGL pages crashed the renderer once (corp-services-390)
+    if (sitesDone++ > 0) {
+      await browser.close().catch(() => {});
+      await new Promise((r) => setTimeout(r, 3000));
+      browser = await launch();
+    }
+    let ctx = await newCtx();
     let orderUrl = "";
     let carted = false;
     let authed = false;
-    for (const t of site.targets) {
+    const retried = new Set<string>();
+    for (let ti = 0; ti < site.targets.length; ti++) {
+      const t = site.targets[ti]!;
       if (PAGES.size && !PAGES.has(t.name) && !(PAGES.has("p-*") && t.name.startsWith("p-")) && !(PAGES.has("col-*") && t.name.startsWith("col-"))) continue;
-      const page = await ctx.newPage();
+      let page: Page;
+      try {
+        page = await ctx.newPage();
+      } catch {
+        await browser.close().catch(() => {});
+        browser = await launch();
+        ctx = await newCtx();
+        authed = false;
+        carted = false;
+        page = await ctx.newPage();
+      }
       const errors: string[] = [];
       page.on("console", (m) => {
         if (m.type() === "error" || /hydrat|did not match/i.test(m.text())) errors.push(`${m.text().slice(0, 220)} @ ${(m.location().url ?? "").replace(/^https?:\/\/[^/]+/, "").slice(0, 50)}`);
@@ -363,14 +398,28 @@ for (const w of WIDTHS) {
         report.push(...lines);
         console.log(lines.join("\n"));
       } catch (e) {
-        const line = `FAIL ${tag} ${(e as Error).message.slice(0, 220)}`;
+        const msg = (e as Error).message;
+        // GPU / renderer crash (other agents crawl in parallel): fresh browser, retry the page once
+        if (/crash|closed|disconnected/i.test(msg) && !retried.has(t.name)) {
+          retried.add(t.name);
+          console.log(`RETRY ${tag} after: ${msg.slice(0, 80)}`);
+          await browser.close().catch(() => {});
+          await new Promise((r) => setTimeout(r, 5000));
+          browser = await launch();
+          ctx = await newCtx();
+          authed = false;
+          carted = false;
+          ti--;
+          continue;
+        }
+        const line = `FAIL ${tag} ${msg.slice(0, 220)}`;
         report.push(line);
         console.log(line);
       }
       flush();
-      await page.close();
+      await page.close().catch(() => {});
     }
-    await ctx.close();
+    await ctx.close().catch(() => {});
   }
 }
 await browser.close();

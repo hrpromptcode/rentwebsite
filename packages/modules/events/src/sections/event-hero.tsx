@@ -227,7 +227,8 @@ export async function EventHeroSection({ ctx, props: p, id, index }: { ctx: Stor
         </div>
 
         {/* copy */}
-        <div className="pointer-events-none relative z-10 pb-10 md:pb-14">
+        {/* phones: the CTA row ends above the floating LINE button zone (it never covers "ซื้อบัตร") */}
+        <div className="pointer-events-none relative z-10 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-14">
           <div className="container-x">
             <div className="pointer-events-auto max-w-[44rem] lg:max-w-[min(50rem,54%)]">
               {eyebrow && <Eyebrow text={eyebrow} tone="inherit" className="ev-in mb-5 text-white/80 max-md:hidden md:mb-6" />}

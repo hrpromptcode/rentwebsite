@@ -129,7 +129,9 @@ export function TicketCard({ ticket, qrDataUrl, event, session, index, href, fir
                     <dt className="ev-mono text-muted-foreground" data-script="thai">
                       {L.venue}
                     </dt>
-                    <dd className="mt-1.5 text-sm leading-snug font-medium">{event.venueName}</dd>
+                    <dd className="mt-1.5 text-sm leading-snug font-medium">
+                      <ThaiWrap text={event.venueName} />
+                    </dd>
                   </div>
                 )}
                 {ticket.checkedInAt && (

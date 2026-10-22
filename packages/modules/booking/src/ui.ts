@@ -8,7 +8,7 @@ export { L, BOOKING_STATUS, PAYMENT_STATUS, PACKAGE_STATUS, METHOD_LABELS } from
 /* hi-end redesign building blocks (motif per business, theme colours) */
 export { lookOf, frameClass, pad2, INDEX_LABEL, type Look } from "./components/hi/look";
 export { BookingStyles } from "./components/hi/styles";
-export { ModuleIntro, CompactIntro, titleStep } from "./components/hi/intro";
+export { ModuleIntro, CompactIntro, titleStep, nameLines } from "./components/hi/intro";
 export { FilterPills, type PillItem } from "./components/hi/filter-pills";
 export { Portrait, portraitSrc } from "./components/hi/portrait";
 export { ServiceMotifCard, ServiceIndex, ServicesAside, type ServiceViewData } from "./components/hi/service-views";

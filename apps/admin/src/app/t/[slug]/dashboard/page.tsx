@@ -61,7 +61,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
             <StatusBadge status={ctx.tenant.status} />
             {ctx.tenant.status === "trialing" && trialDaysLeft !== null && <span>ทดลองใช้เหลืออีก {trialDaysLeft} วัน</span>}
             <span aria-hidden>·</span>
-            <a href={ctx.storefrontUrl} target="_blank" rel="noreferrer" className="adm-link adm-mono inline-flex items-center gap-1 text-[13px]">
+            <a href={ctx.storefrontUrl} target="_blank" rel="noreferrer" className="adm-link adm-mono -my-3 inline-flex items-center gap-1 py-3 text-[13px]">
               {ctx.hostname} <ExternalLink className="size-3.5" aria-hidden />
             </a>
           </div>
@@ -100,7 +100,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
           />
         )}
         {kpis.revenueToday !== null && <KpiCard label="ยอดขายวันนี้" value={thb(kpis.revenueToday)} countTo={thb(kpis.revenueToday)} trend={trends.revenue} trendLabel={TREND_CAPTION} hint="เฉพาะที่ชำระแล้ว" icon={Wallet} tone="success" />}
-        {kpis.reservationsToday !== null && <KpiCard label="จองโต๊ะวันนี้" value={fmtNumber(kpis.reservationsToday)} countTo={fmtNumber(kpis.reservationsToday)} icon={CalendarCheck} tone="accent" href={`${base}/restaurant/reservations`} />}
+        {kpis.reservationsToday !== null && <KpiCard label="จองโต๊ะวันนี้" value={fmtNumber(kpis.reservationsToday)} countTo={fmtNumber(kpis.reservationsToday)} icon={CalendarCheck} tone="accent" href={`${base}/restaurant/reservations`} cta="ดูตารางจองโต๊ะ" />}
         {kpis.bookingsToday !== null && <KpiCard label="นัดหมายวันนี้" value={fmtNumber(kpis.bookingsToday)} countTo={fmtNumber(kpis.bookingsToday)} trend={trends.bookings} trendLabel={TREND_CAPTION} icon={CalendarDays} tone="accent" href={`${base}/bookings`} />}
         {kpis.topupsToday !== null && <KpiCard label="รายการเติมวันนี้" value={fmtNumber(kpis.topupsToday)} countTo={fmtNumber(kpis.topupsToday)} trend={trends.topups} trendLabel={TREND_CAPTION} hint={kpis.topupQueue ? `${kpis.topupQueue} รายการรอเติม` : "คิวว่าง"} icon={Zap} tone="accent" />}
         {kpis.pendingSlips !== null && (
@@ -112,6 +112,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
             icon={BadgeCheck}
             tone={kpis.pendingSlips ? "accent" : "default"}
             href={`${base}/payments`}
+            cta="ไปหน้าตรวจสลิป"
           />
         )}
         <KpiCard label="ลูกค้าใหม่ 7 วัน" value={fmtNumber(kpis.newCustomers7d)} countTo={fmtNumber(kpis.newCustomers7d)} trend={trends.newCustomers} trendLabel={TREND_CAPTION} icon={UserPlus} href={`${base}/customers`} />
@@ -132,7 +133,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
                 </div>
               </CardHeader>
               <CardContent>
-                <DayBars values={trends.revenue} labels={trends.labels} format={(v) => thb(v)} caption="ยอดขายรายวัน 14 วันล่าสุด" />
+                <DayBars values={trends.revenue} labels={trends.labels} format={(v) => thb(v)} caption="ยอดขายรายวัน 14 วันล่าสุด" emptyText="ยังไม่มียอดที่ชำระแล้วใน 14 วันนี้ — กราฟจะขึ้นเองเมื่อมีรายการแรก" />
               </CardContent>
             </Card>
           )}
@@ -176,7 +177,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
           </Card>
         </div>
 
-        <Card className="adm-panel min-w-0 self-start">
+        <Card className="adm-panel min-w-0 self-start lg:sticky lg:top-[calc(var(--topbar-h)+1.5rem)]">
           <CardHeader>
             <CardTitle>กิจกรรมล่าสุด</CardTitle>
             <CardDescription>การเปลี่ยนแปลงและเหตุการณ์ในร้านของคุณ</CardDescription>

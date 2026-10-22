@@ -78,6 +78,8 @@ export default async function GamePage({ params, searchParams }: { params: Param
 
   const overlay = runtime.theme.layout.header === "floating" || (runtime.theme.layout.headerTransparent && runtime.theme.layout.headerSticky);
   const fromPrice = packages.length ? Math.min(...packages.map((p) => priceFor(p, customer?.tier))) : null;
+  const sub = game.name.match(/^(.{2,24}?)\s+(\([^)]{3,}\))$/);
+  const nameSub: [string, string] | null = sub ? [sub[1]!, sub[2]!] : null;
   const hudTag = { mobile: "MOBILE", app: "APP", pc: "PC", console: "CONSOLE", voucher: "CODE" }[game.category] ?? game.category.toUpperCase();
 
   return (
@@ -118,7 +120,15 @@ export default async function GamePage({ params, searchParams }: { params: Param
                   </span>
                 )}
               </div>
-              <RevealHeading as="h1" text={game.name} trigger="mount" mode="words" className="mt-2 font-heading text-step-4 leading-[1.05] font-semibold text-balance md:text-step-5" />
+              {nameSub ? (
+                // "RoV (Arena of Valor)": the short name is the poster title, the bracketed long name a quieter second line
+                <h1 aria-label={game.name} className="mt-2 font-heading font-semibold">
+                  <RevealHeading as="span" text={nameSub[0]} trigger="mount" mode="words" className="block text-step-4 leading-[1.05] text-balance md:text-step-5" />{" "}
+                  <span className="mt-1 block text-step-1 leading-snug font-medium text-muted-foreground md:text-step-2">{nameSub[1]}</span>
+                </h1>
+              ) : (
+                <RevealHeading as="h1" text={game.name} trigger="mount" mode="words" className="mt-2 font-heading text-step-4 leading-[1.05] font-semibold text-balance md:text-step-5" />
+              )}
               <Reveal delay={0.15} className="mt-4 hidden flex-wrap gap-2 text-xs text-muted-foreground sm:flex md:text-sm">
                 {autoCount > 0 && (
                   <span className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border/60 bg-background/40 px-3 backdrop-blur">

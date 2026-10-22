@@ -9,6 +9,7 @@ import { TicketTools } from "@rentweb/module-events/client";
 import { decodeSlug } from "@/lib/slug";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
+import { FloatingChatOptOut } from "@rentweb/storefront";
 
 type Params = Promise<{ tenantId: string; code: string }>;
 
@@ -69,6 +70,8 @@ export default async function PublicTicketPage({ params }: { params: Params }) {
           <p className={`ev-fade mt-6 flex items-start gap-2.5 rounded-[var(--radius-lg)] border px-4 py-3 text-sm leading-relaxed ${note.tone}`} style={{ "--d": ".06s" } as React.CSSProperties} role="status" data-testid="public-ticket-note">
             <note.icon className="mt-0.5 size-4 shrink-0" aria-hidden /> <span>{note.text}</span>
           </p>
+          {/* phones: the floating LINE button must never sit on the QR the door staff scan */}
+          <FloatingChatOptOut>
           <div className="ev-fade mt-6" style={{ "--d": ".12s" } as React.CSSProperties}>
             <TicketCard
               ticket={{ id: detail.ticket.id, code: detail.ticket.code, holderName: detail.ticket.holderName, status: detail.ticket.status, typeName: detail.typeName, seatLabel: detail.ticket.seatLabel, checkedInAt: detail.ticket.checkedInAt }}
@@ -78,6 +81,7 @@ export default async function PublicTicketPage({ params }: { params: Params }) {
               firstNameOnly
             />
           </div>
+          </FloatingChatOptOut>
           <div className="ev-fade mt-6 flex flex-wrap items-center justify-between gap-3 print:hidden" style={{ "--d": ".18s" } as React.CSSProperties}>
             {live ? <TicketTools shareUrl={selfHref} shareTitle={`${detail.event.title} – ${detail.ticket.code}`} /> : <span />}
             <Button asChild variant="ghost" size="lg" className="group h-11 rounded-full">

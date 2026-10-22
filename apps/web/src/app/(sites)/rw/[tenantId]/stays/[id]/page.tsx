@@ -185,22 +185,23 @@ export default async function StayPage({ params, searchParams }: { params: Param
 
             <div className="rw-pass-perf" aria-hidden />
 
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-5 py-7 md:px-8">
+            {/* phones: the two dates get a column each (the nights pill moves under them) so "พฤ. 22 ต.ค. 69" never wraps */}
+            <div className="grid grid-cols-2 items-center gap-x-3 gap-y-4 px-5 py-7 sm:grid-cols-[1fr_auto_1fr] md:px-8">
               <div>
                 <p className="text-xs text-muted-foreground">{L.checkIn}</p>
-                <p className="mt-1 font-heading text-step-2 leading-tight font-semibold">{formatThaiYmd(stay.checkIn, { short: true, weekday: true })}</p>
+                <p className="mt-1 font-heading text-[1.2rem] leading-tight font-semibold whitespace-nowrap sm:text-step-2">{formatThaiYmd(stay.checkIn, { short: true, weekday: true })}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{L.checkInTime(config.checkInTime)}</p>
               </div>
-              <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                <span aria-hidden className="h-px w-10 bg-border md:w-24" />
+              <div className="col-span-2 row-start-2 flex items-center justify-center gap-2 text-muted-foreground sm:col-span-1 sm:row-start-auto sm:flex-col">
+                <span aria-hidden className="h-px flex-1 bg-border sm:w-10 sm:flex-none md:w-24" />
                 <span className="rw-nights-pill">
                   <Moon className="size-3" aria-hidden /> {L.nights(stay.nights)}
                 </span>
-                <span aria-hidden className="h-px w-10 bg-border md:w-24" />
+                <span aria-hidden className="h-px flex-1 bg-border sm:w-10 sm:flex-none md:w-24" />
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">{L.checkOut}</p>
-                <p className="mt-1 font-heading text-step-2 leading-tight font-semibold">{formatThaiYmd(stay.checkOut, { short: true, weekday: true })}</p>
+                <p className="mt-1 font-heading text-[1.2rem] leading-tight font-semibold whitespace-nowrap sm:text-step-2">{formatThaiYmd(stay.checkOut, { short: true, weekday: true })}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{L.checkOutTime(config.checkOutTime)}</p>
               </div>
             </div>

@@ -18,6 +18,7 @@ import { getCurrentCustomer } from "@/lib/customer";
 import { PageBody } from "@/components/page-body";
 import { cancelWalletTopupAction, createWalletTopupAction } from "./actions";
 import { cmsFallback } from "@/lib/cms-fallback";
+import { FloatingChatOptOut } from "@rentweb/storefront";
 
 export const metadata: Metadata = { title: "กระเป๋าเงิน" };
 
@@ -224,7 +225,10 @@ export default async function WalletPage({ params, searchParams }: { params: Pro
                   </span>
                 </div>
                 <p className="mt-1 mb-6 text-sm text-muted-foreground">ใช้เติมเกมในเว็บนี้เท่านั้น ไม่สามารถถอนเป็นเงินสดได้ · ขั้นต่ำ {thb(cfg.minWalletTopup)}</p>
-                <WalletTopupForm presets={PRESETS} minAmount={cfg.minWalletTopup} bonusPercent={cfg.walletBonusPercent} methods={methods} action={createWalletTopupAction.bind(null, tenantId)} />
+                {/* phones: the floating LINE button would sit on the amount tiles / submit button */}
+                <FloatingChatOptOut>
+                  <WalletTopupForm presets={PRESETS} minAmount={cfg.minWalletTopup} bonusPercent={cfg.walletBonusPercent} methods={methods} action={createWalletTopupAction.bind(null, tenantId)} />
+                </FloatingChatOptOut>
               </Reveal>
             )}
           </div>

@@ -1,7 +1,25 @@
-import type { TemplateDefinition } from "@rentweb/core/tenant";
+import type { TemplateDefinition, TemplatePage } from "@rentweb/core/tenant";
 import { diningTables, menuCategories, menuItemModifierGroups, menuItems, menus, modifierGroups, modifiers } from "@rentweb/db";
-import { section, hero, marquee, menuHighlight, stickyStory, gallery, testimonials, reservationCta, faq, features, stats } from "@rentweb/storefront/definitions";
+import { section, hero, marquee, menuHighlight, stickyStory, gallery, testimonials, reservationCta, faq, features, stats, imageText } from "@rentweb/storefront/definitions";
 import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, u, avatar } from "./shared";
+
+/** About CTA: break after the question ("มีคำถาม? ทัก|เรามาได้เลย" split the phrase at desktop widths). Demo sections only. */
+const ABOUT_CTA = "มีคำถาม? ทักเรามาได้เลย";
+const breakAboutCta = (s: TemplatePage["sections"][number]) => (s.type === "cta" && s.props.heading === ABOUT_CTA ? { ...s, props: { ...s.props, heading: ABOUT_CTA.replace(" ", "\n") } } : s);
+
+/** About page: grandma's kitchen (wok flame, overlap) between the statement and the CTA (demo only; new shops keep the neutral statement page). */
+function withAboutStory(page: TemplatePage): TemplatePage {
+  return { ...page, sections: [page.sections[0]!, section(imageText, {
+        eyebrow: "ครัวของคุณยาย",
+        heading: "เครื่องแกงตำมือ\nไฟแรงแบบครัวบ้าน",
+        body: "พริกแกงทุกถ้วยตำด้วยครกหินทุกเช้า ผัดด้วยกระทะเหล็กบนไฟแรง และชิมก่อนเสิร์ฟทุกจาน เมนูพิเศษเปลี่ยนตามวัตถุดิบที่ได้จากตลาดในเช้าวันนั้น",
+        image: { url: u("1696785129061-6939a4c2a1fe", 1200), alt: "ไฟแรงจากเตาในครัวบ้านริม" },
+        imagePosition: "right",
+        bullets: ["เครื่องแกงตำมือทุกเช้า", "ไม่ใช้ผงชูรส", "วัตถุดิบตามฤดูกาล"],
+        cta: { label: "ดูเมนู", href: "/menu" },
+        style: "overlap",
+      }), ...page.sections.slice(1).map(breakAboutCta)] };
+}
 
 export const restaurant: TemplateDefinition = {
   key: "restaurant",
@@ -99,15 +117,15 @@ export const restaurant: TemplateDefinition = {
             { kicker: "11:00", title: "โต๊ะของคุณ", body: "เสิร์ฟร้อน ๆ ถึงโต๊ะ สั่งเพิ่มผ่าน QR ได้ตลอดมื้อ แล้วขอบิลจากมือถือได้เลย", image: u("1679541946014-a47f1ec0dc1a", 1400), chips: ["มีเมนูมังสวิรัติ", "แจ้งไม่ใส่ถั่วได้"], href: "/menu" },
           ],
         }),
-        // bento: the dine-in QR story gets the big photo tile (lamp-lit dining room); pickup / booking tiles carry a faint photo texture
+        // bento: the dine-in QR story gets the big photo tile (lamp-lit dining room); pickup / booking tiles stay clean (a 14 % photo wash read as smudges)
         section(features, {
           variant: "bento",
           heading: "สั่งง่าย กินสบาย",
           columns: 3,
           items: [
             { icon: "QrCode", title: "สแกนสั่งที่โต๊ะ", description: "ไม่ต้องรอพนักงาน สั่งเพิ่มได้ตลอด เรียกพนักงานหรือขอบิลผ่านมือถือ", image: u("1526234362653-3b75a0c07438", 1600) },
-            { icon: "ShoppingBag", title: "สั่งกลับบ้านล่วงหน้า", description: "เลือกเวลารับ จ่ายผ่าน PromptPay มาถึงรับได้เลย ไม่ต้องรอ", image: u("1652862729869-2f4e80c1849d", 900) },
-            { icon: "CalendarCheck", title: "จองโต๊ะออนไลน์", description: "เลือกโซนในบ้านหรือสวน ยืนยันทันที เตือนก่อนถึงเวลา", image: u("1719026902949-eb848178c349", 900) },
+            { icon: "ShoppingBag", title: "สั่งกลับบ้านล่วงหน้า", description: "เลือกเวลารับ จ่ายผ่าน PromptPay มาถึงรับได้เลย ไม่ต้องรอ" },
+            { icon: "CalendarCheck", title: "จองโต๊ะออนไลน์", description: "เลือกโซนในบ้านหรือสวน ยืนยันทันที เตือนก่อนถึงเวลา" },
           ],
         }),
         section(gallery, {
@@ -136,7 +154,8 @@ export const restaurant: TemplateDefinition = {
           ],
         }),
         section(reservationCta, { heading: "จองโต๊ะ\nสำหรับวันพิเศษ", body: "โซนสวนรับได้ 6–12 ที่นั่ง เหมาะกับงานเลี้ยงครอบครัว แจ้งโอกาสพิเศษได้ตอนจอง", image: { url: u("1738958047430-c27550e3af79", 1400), alt: "โต๊ะยาวในสวนจุดเทียนยามค่ำ" } }),
-        section(stats, { variant: "row", items: [{ value: 70, suffix: " ปี", label: "บ้านไม้หลังเดิม" }, { value: 32, label: "เมนูประจำบ้าน" }, { value: 48000, suffix: "+", label: "จานที่เสิร์ฟปีที่แล้ว" }, { value: 12, label: "โต๊ะในบ้านและในสวน" }] }),
+        // different numbers from the hero strip (70 ปี / 4.8 / 32 already sit right under the hero)
+        section(stats, { variant: "row", items: [{ value: 48000, suffix: "+", label: "จานที่เสิร์ฟปีที่แล้ว" }, { value: 3, suffix: " รุ่น", label: "สูตรแกงที่ส่งต่อในครอบครัว" }, { value: 12, label: "โต๊ะในบ้านและในสวน" }, { value: 5, prefix: "0", suffix: ":00", label: "ออกตลาดทุกเช้า" }] }),
         section(faq, {
           heading: "คำถามที่พบบ่อย",
           items: [
@@ -147,7 +166,7 @@ export const restaurant: TemplateDefinition = {
         }),
       ],
     },
-    aboutPage({ neutral: NEUTRAL_ABOUT.restaurant, heading: "บ้านริม — ครัวคุณยายในบ้านไม้อายุ 70 ปี", body: "บ้านหลังนี้เป็นของคุณยายสมศรี ที่ทำอาหารเลี้ยงลูกหลานมาตลอดชีวิต เมื่อปี 2018 หลานสาวตัดสินใจเปิดบ้านเป็นร้านอาหาร เพื่อแบ่งปันสูตรของคุณยายและรักษาบ้านไม้หลังนี้ไว้\n\nเราทำทุกอย่างเหมือนที่คุณยายทำ ตำเครื่องแกงเองทุกเช้า ใช้วัตถุดิบตามฤดูกาล และเสิร์ฟด้วยความใส่ใจ" }),
+    withAboutStory(aboutPage({ neutral: NEUTRAL_ABOUT.restaurant, heading: "บ้านริม — ครัวคุณยายในบ้านไม้อายุ 70 ปี", body: "บ้านหลังนี้เป็นของคุณยายสมศรี ที่ทำอาหารเลี้ยงลูกหลานมาตลอดชีวิต เมื่อปี 2018 หลานสาวตัดสินใจเปิดบ้านเป็นร้านอาหาร เพื่อแบ่งปันสูตรของคุณยายและรักษาบ้านไม้หลังนี้ไว้\n\nเราทำทุกอย่างเหมือนที่คุณยายทำ ตำเครื่องแกงเองทุกเช้า ใช้วัตถุดิบตามฤดูกาล และเสิร์ฟด้วยความใส่ใจ" })),
     contactPage({ heading: "ติดต่อ / เดินทาง", body: "BTS อารีย์ ทางออก 3 เดิน 5 นาที มีที่จอดรถหน้าร้าน" }),
     ...legalPages("บ้านริม"),
   ],

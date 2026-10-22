@@ -16,6 +16,7 @@ import {
   projectList,
   tunnel,
   giantWordmark,
+  imageText,
 } from "@rentweb/storefront/definitions";
 import { aboutPage, NEUTRAL_ABOUT, legalPages, u } from "./shared";
 
@@ -93,13 +94,17 @@ const TEAM = [
 ];
 
 const SERVICES = [
-  { icon: "Compass", title: "Discovery & UX Research", description: "สัมภาษณ์ผู้ใช้ ทำ journey map กำหนดขอบเขตและ KPI ก่อนเขียนโค้ดสักบรรทัด", image: u("1581291518857-4e27b48ff24e", 1200) },
-  { icon: "PenTool", title: "Product Design", description: "Design system และ prototype ที่ทดสอบกับผู้ใช้จริง ก่อนส่งต่อให้ทีมพัฒนา", image: u("1561070791-2526d30994b5", 1200) },
-  { icon: "Code2", title: "Web Application", description: "Next.js / TypeScript / PostgreSQL พร้อม CI/CD ทดสอบอัตโนมัติทุกการเปลี่ยนแปลง", image: u("1461749280684-dccba630e2f6", 1200) },
-  { icon: "Smartphone", title: "Mobile Application", description: "React Native แอปเดียวขึ้นได้ทั้ง App Store และ Google Play", image: u("1512941937669-90a1b58e7e9c", 1200) },
-  { icon: "Cloud", title: "Cloud & DevOps", description: "AWS / GCP, Terraform, monitoring และการลดค่าใช้จ่าย cloud ที่วัดผลได้", image: u("1558494949-ef010cbdcc31", 1200) },
-  { icon: "LifeBuoy", title: "Support & Growth", description: "SLA, on-call และทีมพัฒนาต่อยอดรายเดือน หลังระบบขึ้นใช้งานจริง", image: u("1551434678-e076c223a692", 1200) },
+  { icon: "Compass", title: "Discovery & UX Research", description: "สัมภาษณ์ผู้ใช้ ทำ journey map กำหนดขอบเขตและ KPI ก่อนเขียนโค้ดสักบรรทัด", image: u("1581291518857-4e27b48ff24e", 1800) },
+  { icon: "PenTool", title: "Product Design", description: "Design system และ prototype ที่ทดสอบกับผู้ใช้จริง ก่อนส่งต่อให้ทีมพัฒนา", image: u("1561070791-2526d30994b5", 1800) },
+  { icon: "Code2", title: "Web Application", description: "Next.js / TypeScript / PostgreSQL พร้อม CI/CD ทดสอบอัตโนมัติทุกการเปลี่ยนแปลง", image: u("1461749280684-dccba630e2f6", 1800) },
+  { icon: "Smartphone", title: "Mobile Application", description: "React Native แอปเดียวขึ้นได้ทั้ง App Store และ Google Play", image: u("1512941937669-90a1b58e7e9c", 1800) },
+  { icon: "Cloud", title: "Cloud & DevOps", description: "AWS / GCP, Terraform, monitoring และการลดค่าใช้จ่าย cloud ที่วัดผลได้", image: u("1558494949-ef010cbdcc31", 1800) },
+  { icon: "LifeBuoy", title: "Support & Growth", description: "SLA, on-call และทีมพัฒนาต่อยอดรายเดือน หลังระบบขึ้นใช้งานจริง", image: u("1551434678-e076c223a692", 1800) },
 ];
+
+/** About CTA: break after the question ("มีคำถาม? ทัก|เรามาได้เลย" split the phrase at desktop widths). Demo sections only. */
+const ABOUT_CTA = "มีคำถาม? ทักเรามาได้เลย";
+const breakAboutCta = (s: TemplatePage["sections"][number]) => (s.type === "cta" && s.props.heading === ABOUT_CTA ? { ...s, props: { ...s.props, heading: ABOUT_CTA.replace(" ", "\n") } } : s);
 
 /** About = the shared statement page + the studio in numbers + the people (the closing CTA card stays last). */
 function withAboutExtras(page: TemplatePage): TemplatePage {
@@ -108,7 +113,7 @@ function withAboutExtras(page: TemplatePage): TemplatePage {
     section(team, { eyebrow: "ทีมผู้บริหาร", heading: "คนที่จะดูแล\nโปรเจกต์ของคุณ", variant: "list", members: TEAM }),
   ];
   const insert = (list: TemplatePage["sections"]) => [list[0]!, ...extras, ...list.slice(1)];
-  return { ...page, sections: insert(page.sections), neutralSections: page.neutralSections ? insert(page.neutralSections) : undefined };
+  return { ...page, sections: insert(page.sections).map(breakAboutCta), neutralSections: page.neutralSections ? insert(page.neutralSections) : undefined };
 }
 
 export const corporate: TemplateDefinition = {
@@ -260,7 +265,28 @@ export const corporate: TemplateDefinition = {
         section(cta, { variant: "wordmark", heading: "อยากเห็นผลงานที่ใกล้เคียงธุรกิจของคุณ?", primaryCta: { label: "ขอดูเคสเพิ่มเติม", href: "/contact" } }),
       ],
     },
-    { slug: "careers", title: "ร่วมงานกับเรา", sections: [section(features, { variant: "icons", heading: "ทำไมต้องร่วมงานกับ Northstar", columns: 4, items: [{ icon: "Laptop", title: "Hybrid 3 วัน", description: "เข้าออฟฟิศ 2 วัน/สัปดาห์" }, { icon: "GraduationCap", title: "งบเรียนรู้ ฿30,000/ปี", description: "คอร์ส หนังสือ คอนเฟอเรนซ์" }, { icon: "HeartPulse", title: "ประกันสุขภาพกลุ่ม", description: "รวมทันตกรรมและสายตา" }, { icon: "Sun", title: "ลาพักร้อน 15 วัน", description: "เพิ่มตามอายุงาน" }] }), section(cta, { variant: "card", heading: "ส่งเรซูเม่มาคุยกัน", body: "เปิดรับ Frontend, Backend และ Product Designer", primaryCta: { label: "ส่งเรซูเม่", href: "mailto:jobs@northstar.co.th" } })] },
+    { slug: "careers", title: "ร่วมงานกับเรา", sections: [section(features, { variant: "icons", heading: "ทำไมต้องร่วมงานกับ Northstar", columns: 4, items: [{ icon: "Laptop", title: "Hybrid 3 วัน", description: "เข้าออฟฟิศ 2 วัน/สัปดาห์" }, { icon: "GraduationCap", title: "งบเรียนรู้ ฿30,000/ปี", description: "คอร์ส หนังสือ คอนเฟอเรนซ์" }, { icon: "HeartPulse", title: "ประกันสุขภาพกลุ่ม", description: "รวมทันตกรรมและสายตา" }, { icon: "Sun", title: "ลาพักร้อน 15 วัน", description: "เพิ่มตามอายุงาน" }] }),
+      // careers read thin (benefits + CTA only): the studio's working life + the open roles the CTA already names
+      section(imageText, {
+        eyebrow: "ชีวิตที่ Northstar",
+        heading: "ทีมเล็ก งานจริง\nเดโมทุกวันศุกร์",
+        body: "เราทำงานเป็นทีมย่อย 4–5 คนต่อโปรเจกต์ ดีไซเนอร์และวิศวกรคุยกับลูกค้าตั้งแต่วันแรก ทุกวันศุกร์ทีมเดโมงานที่ใช้ได้จริงให้ลูกค้าดู และทุกไตรมาสมีวันเรียนรู้ให้ลองเครื่องมือใหม่ทั้งวัน",
+        image: { url: u("1552664730-d307ca884978", 1400), alt: "ทีมกำลังทำเวิร์กช็อปกับโพสต์อิทบนผนัง" },
+        imagePosition: "left",
+        bullets: ["ทีมละ 4–5 คน ดูแลตั้งแต่ต้นจนจบ", "เดโมงานจริงทุกวันศุกร์", "Learning day ทุกไตรมาส"],
+        style: "overlap",
+      }),
+      section(features, {
+        variant: "list",
+        eyebrow: "เปิดรับ 3 ตำแหน่ง",
+        heading: "ตำแหน่งที่เปิดรับ",
+        items: [
+          { icon: "Code", title: "Senior Frontend Engineer", description: "Next.js · React · TypeScript — Hybrid กรุงเทพฯ ประสบการณ์ 4 ปีขึ้นไป" },
+          { icon: "Server", title: "Backend Engineer", description: "Node.js · PostgreSQL · AWS — Hybrid กรุงเทพฯ ประสบการณ์ 2 ปีขึ้นไป" },
+          { icon: "PenTool", title: "Product Designer", description: "UX research · Figma · Design system — Hybrid กรุงเทพฯ" },
+        ],
+      }),
+      section(cta, { variant: "card", heading: "ส่งเรซูเม่มาคุยกัน", body: "เปิดรับ Frontend, Backend และ Product Designer", primaryCta: { label: "ส่งเรซูเม่", href: "mailto:jobs@northstar.co.th" } })] },
     withAboutExtras(aboutPage({ neutral: NEUTRAL_ABOUT.corporate, eyebrow: "เกี่ยวกับเรา", heading: "Northstar — สตูดิโอซอฟต์แวร์ที่เชื่อในงานที่ใช้ได้จริง", body: "ก่อตั้งปี 2017 โดยวิศวกร 3 คนที่เบื่อระบบองค์กรที่ไม่มีใครอยากใช้ เราเติบโตเป็นทีม 35 คน ส่งมอบมากกว่า 120 โปรเจกต์ให้ธุรกิจค้าปลีก การเงิน และสุขภาพ\n\nเราวัดความสำเร็จจากตัวเลขของลูกค้า ไม่ใช่จำนวนฟีเจอร์" })),
     {
       slug: "contact",

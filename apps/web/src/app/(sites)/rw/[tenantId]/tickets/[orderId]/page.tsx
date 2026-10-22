@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowUpRight, Check, CheckCircle2, Clock, History, Lock, Receipt, Sparkles, Ticket, X, XCircle } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
 import { cn } from "@rentweb/ui/lib/utils";
-import { Img } from "@rentweb/storefront";
+import { FloatingChatOptOut, Img } from "@rentweb/storefront";
 import { PaymentPanel, type PaymentMethodOption } from "@rentweb/storefront/payments";
 import { paymentSettings, promptpayQrDataUrl } from "@rentweb/core/payments";
 import { thb } from "@rentweb/core/money";
@@ -164,7 +164,11 @@ export default async function TicketOrderPage({ params, searchParams }: { params
                         {formatThaiSession(session.startsAt, session.endsAt)}
                       </p>
                     )}
-                    {event.venueName && <p className="text-sm text-muted-foreground">{event.venueName}</p>}
+                    {event.venueName && (
+                      <p className="text-sm text-muted-foreground">
+                        <ThaiWrap text={event.venueName} />
+                      </p>
+                    )}
                     <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                       <span className="inline-flex items-center gap-1.5 font-medium">
                         <Ticket className="size-4 text-primary" aria-hidden /> {L.ticketsN(order.quantity)}
@@ -219,6 +223,8 @@ export default async function TicketOrderPage({ params, searchParams }: { params
                     </div>
                     {done && <TicketTools shareUrl={selfHref} shareTitle={`${event.title} – ${order.number}`} icsHref={`/tickets/${order.id}/ics${keyQs}`} icsFilename={`${order.number}.ics`} />}
                   </div>
+                  {/* phones: the floating LINE button must never sit on a QR */}
+                  <FloatingChatOptOut>
                   <div className="mt-5 grid gap-5 md:gap-6" data-testid="ticket-list">
                     {tickets.map((t: TicketDetail, i) => (
                       <TicketCard
@@ -233,6 +239,7 @@ export default async function TicketOrderPage({ params, searchParams }: { params
                       />
                     ))}
                   </div>
+                  </FloatingChatOptOut>
                 </div>
               )}
             </div>

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import type { z } from "zod";
 import { getDb, withTenant } from "@rentweb/db";
-import { HoverPreview, Stagger, StaggerItem, ThaiWrap } from "@rentweb/ui/motion";
+import { HoverPreview, Stagger, StaggerItem } from "@rentweb/ui/motion";
+import { ThaiName } from "../components/thai-name";
 import { Img, Section, SectionHeading, presetKey, sized, type StorefrontCtx } from "@rentweb/storefront";
 import type { categoryList } from "@rentweb/storefront/definitions";
 import { cn } from "@rentweb/ui/lib/utils";
@@ -53,7 +54,7 @@ export function CategoryIndex({ categories, className, cursorLabel = "ดูห�
             <span className="min-w-0">
               {/* phones: one step smaller so two-word names ("ของแต่งบ้าน") stay on one line; ThaiWrap = breaks only between words */}
               <span className="rwc-index-name heading-display text-step-3 leading-[1.25] font-semibold sm:text-step-4 md:text-step-5 lg:text-step-6" data-script="thai">
-                <ThaiWrap text={c.name} />
+                <ThaiName text={c.name} />
               </span>
             </span>
             <span className="flex items-center gap-3 md:gap-6">

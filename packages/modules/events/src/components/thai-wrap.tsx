@@ -5,13 +5,17 @@ import * as React from "react";
  * ICU builds may differ → hydration mismatch). Chromium breaks Thai with the ICU dictionary, which does not know many
  * transliterated loanwords common in event names: "โฟล์กกลางแจ้ง" breaks as โฟล์|กก|ลาง, "เวิร์กช็อปงานไม้" as
  * เวิร์|กช็อ|ปงาน. We keep a small glue list of such words, segment the rest with Intl.Segmenter, wrap every Thai word in
- * a nowrap span and put a <wbr> between neighbouring Thai words — lines can then only break between real words. The
+ * a nowrap span and put a <wbr> between neighbouring Thai words — lines can then only break between real words (compounds
+ * such as เครื่องหนัง / การกุศล and place names are glued too). The
  * text content (and therefore accessible names / Playwright text matching) is unchanged. "ๆ" stays glued to its word.
  */
 const GLUE = [
   "เวิร์กช็อป", "เวิร์กชอป", "เวิร์ก", "โฟล์ก", "ทำมือ", "ทอล์ก", "อาร์ต", "มาร์เก็ต", "มาร์เกต", "ช็อป", "คราฟต์", "สตรีท", "ฟู้ด", "เฟสติวัล",
   "เฟสทิวัล", "ไลฟ์", "ดีไซน์", "ปาร์ตี้", "คอนเสิร์ต", "แจ๊ส", "ร็อก", "ป๊อป", "อินดี้", "ไวน์", "คาเฟ่", "สตูดิโอ", "ฟอรั่ม", "ซัมมิต",
   "อีเวนต์", "แฟร์", "มาราธอน", "ฮาล์ฟ", "เทรล", "ไนท์", "ดีเจ", "ซาวด์", "แกลเลอรี", "เมกเกอร์", "สปีกเกอร์", "เน็ตเวิร์ก",
+  // compounds / place names ICU splits into two dictionary words ("เครื่อง|หนัง" broke the leather-workshop h1)
+  "เครื่องหนัง", "เครื่องดื่ม", "เครื่องประดับ", "การกุศล", "เจ้าพระยา", "คลองสาน", "กรุงเทพฯ", "กลางแจ้ง", "ริมน้ำ", "ตลาดนัด", "ครั้งที่", "ใบแรก",
+  "นักวิ่ง", "ที่จอดรถ", "เสื้อรุ่น", "ที่นั่ง", "แถวหน้า",
 ].sort((a, b) => b.length - a.length);
 const GLUE_SET = new Set(GLUE);
 const GLUE_RE = new RegExp(`(${GLUE.join("|")})`, "g");
@@ -46,7 +50,21 @@ export function thaiTokens(text: string): string[] {
 /** Renders `text` with breaks allowed only between words (see above). Latin-only strings pass through untouched. */
 export function ThaiWrap({ text }: { text: string }) {
   if (!text || !TH.test(text)) return <>{text}</>;
-  const toks = thaiTokens(text);
+  const raw = thaiTokens(text);
+  // a Thai word + one space + a number stays on one line ("ครั้งที่ 7", "รุ่นที่ 2"): grouped in one nowrap span, the
+  // space itself is kept (text content unchanged)
+  const toks: string[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const t = raw[i]!;
+    if (TH.test(t) && raw[i + 1] === " " && /^\d/.test(raw[i + 2] ?? "")) {
+      toks.push(`${t} ${raw[i + 2]}`);
+      i += 2;
+    } else if (/^[+&]$/.test(t) && raw[i + 1] === " " && TH.test(raw[i + 2] ?? "")) {
+      // "VIP Runner (เสื้อรุ่นพิเศษ + ที่จอดรถ)": a lone "+" never starts a line
+      toks.push(`${t} ${raw[i + 2]}`);
+      i += 2;
+    } else toks.push(t);
+  }
   return (
     <>
       {toks.map((t, i) => {
@@ -61,4 +79,34 @@ export function ThaiWrap({ text }: { text: string }) {
       })}
     </>
   );
+}
+
+/**
+ * Client-safe variant (no Intl segmentation, so server and browser render the same markup): only the GLUE words are
+ * kept whole (nowrap). For short data strings inside client components, e.g. ticket-type names in the picker
+ * ("VIP (ที่นั่งแถวหน้า + เครื่อง⏎ดื่ม 2 แก้ว)").
+ */
+export function GlueWords({ text }: { text: string }) {
+  if (!text || !TH.test(text)) return <>{text}</>;
+  // glue words stay whole; a lone "+" / "&" sticks to the word after it ("แถวหน้า + เครื่องดื่ม", "+ ที่จอดรถ)")
+  const parts = text.split(GLUE_RE).filter(Boolean);
+  const out: React.ReactNode[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    let part = parts[i]!;
+    const next = parts[i + 1];
+    const lead = part.match(/[+&] $/);
+    if (lead && next && GLUE_SET.has(next)) {
+      part = part.slice(0, -2);
+      if (part) out.push(<React.Fragment key={`${i}t`}>{part}</React.Fragment>);
+      out.push(<span key={i} className="whitespace-nowrap">{`${lead[0]}${next}`}</span>);
+      i++;
+      continue;
+    }
+    if (GLUE_SET.has(part)) {
+      out.push(<span key={i} className="whitespace-nowrap">{part}</span>);
+      continue;
+    }
+    for (const [j, q] of part.split(/([+&] \S{1,12})/).entries()) if (q) out.push(/^[+&] /.test(q) ? <span key={`${i}.${j}`} className="whitespace-nowrap">{q}</span> : <React.Fragment key={`${i}.${j}`}>{q}</React.Fragment>);
+  }
+  return <>{out}</>;
 }

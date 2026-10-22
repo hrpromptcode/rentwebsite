@@ -52,9 +52,10 @@ const IMG = {
   suitePool: u("1571003123894-1f0594d2b5d9", 1200),
   garden: u("1582719478250-c89cae4dc85b", 1200),
   seaview: u("1611892440504-42a792e24d32", 1200),
-  suite: u("1590490360182-c33d57733427", 1200),
-  family: u("1618773928121-c32242e63f39", 1200),
-  bedroom: u("1631049307264-da0ec9d70304", 1200),
+  // qa-c: suite / family / bedroom were city-hotel rooms (tufted headboards, TV fireplace) → Andaman villa interiors
+  suite: u("1584132967334-10e028bd69f7", 1200),
+  family: u("1578683010236-d716f9a3f461", 1200),
+  bedroom: u("1602002418082-a4443e081dd1", 1200),
   bathroom: u("1615460549969-36fa19521a4f", 1200),
   // qa-c: was 1544148103-0773bf10d330 (a dim city cafe with diners) → an open seaside dining terrace at golden hour (200 + viewed)
   breakfast: u("1559339352-11d035aa65de", 1400),
@@ -239,7 +240,7 @@ export const hotel: TemplateDefinition = {
             { url: IMG.villaPool, alt: "พูลวิลล่าหน้าหาด" },
             { url: IMG.palms, alt: "ชายหาดขาวใต้ต้นมะพร้าว" },
             { url: IMG.pool, alt: "สระว่ายน้ำยามค่ำ" },
-            { url: IMG.bedroom, alt: "ห้องนอนดีลักซ์" },
+            { url: IMG.bedroom, alt: "ห้องพักหลังคามุงจากมองเห็นทะเล" },
             { url: IMG.spa, alt: "ห้องสปา" },
           ],
         }),

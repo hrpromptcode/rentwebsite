@@ -62,7 +62,7 @@ export function StaffPortraitCard({
       <div className="flex flex-1 flex-col px-1 pt-5">
         {typeof index === "number" && <span className="font-mono text-[0.6875rem] tracking-[0.1em] text-muted-foreground">{pad2(index + 1)}</span>}
         <h3 className="mt-1 font-heading text-lg font-semibold leading-snug sm:text-step-2">
-          <Link href={profile} className="inline-flex min-h-11 items-center">
+          <Link href={profile} className="inline-flex min-h-11 min-w-11 items-center">
             <RollText>{s.name}</RollText>
           </Link>
         </h3>
@@ -121,7 +121,7 @@ export function InstructorPillCard({
       <div className="flex flex-1 flex-col items-center px-1 pt-5 text-center">
         {typeof index === "number" && <span className="font-mono text-[0.6875rem] tracking-[0.1em] text-muted-foreground">{pad2(index + 1)}</span>}
         <h3 className="font-heading text-lg font-semibold leading-snug sm:text-step-2">
-          <Link href={profile} className="inline-flex min-h-11 items-center">
+          <Link href={profile} className="inline-flex min-h-11 min-w-11 items-center">
             <RollText>{i.name}</RollText>
           </Link>
         </h3>

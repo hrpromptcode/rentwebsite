@@ -3,11 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight, BadgeCheck, CalendarDays, ChevronRight, Clock, Coins, Sparkles, Ticket, Users } from "lucide-react";
 import { cn } from "@rentweb/ui/lib/utils";
-import { ImageReveal } from "@rentweb/ui/motion";
+import { ImageReveal, ThaiWrap } from "@rentweb/ui/motion";
 import { CtaButton, Eyebrow, RevealHeading, Rise, SectionStyles, StaggerCell, StaggerList } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
 import { bookingConfig, getClassBySlug, listClasses, listClinicPackages, packagesEnabled, upcomingSessions, type ClassItem } from "@rentweb/module-booking/services";
-import { BookingStyles, ClassStudioCard, InstructorAvatar, LevelBadge, SessionRow, enrolHref, frameClass, lookOf, titleStep, weeklyRhythm } from "@rentweb/module-booking/ui";
+import { BookingStyles, ClassStudioCard, InstructorAvatar, LevelBadge, SessionRow, enrolHref, frameClass, lookOf, titleStep, nameLines, weeklyRhythm } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { decodeSlug } from "@/lib/slug";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -143,7 +143,7 @@ export default async function ClassPage({ params }: { params: Params }) {
           <div className="lg:col-span-5">
             <div className="lg:sticky lg:top-[calc(var(--header-h,72px)+2rem)]">
               {cls.categoryName && <Eyebrow text={cls.categoryName} className="mb-5" />}
-              <RevealHeading as="h1" text={cls.name} trigger="mount" mode="words" className={cn("font-heading font-semibold text-pretty", titleStep(cls.name) === "text-step-6" ? "text-step-5" : "text-step-4")} />
+              <RevealHeading as="h1" text={nameLines(cls.name)} trigger="mount" mode="words" className={cn("font-heading font-semibold text-pretty", titleStep(cls.name) === "text-step-6" ? "text-step-5" : "text-step-4")} />
               {instructors.length > 0 && (
                 <ul className="mt-6 flex flex-wrap gap-2" aria-label={L.instructors}>
                   {instructors.map((i) => (
@@ -162,7 +162,9 @@ export default async function ClassPage({ params }: { params: Params }) {
                     <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <f.icon className="size-3.5" /> {f.label}
                     </dt>
-                    <dd className="mt-1 font-heading text-lg font-semibold">{f.value}</dd>
+                    <dd className="mt-1 font-heading text-lg font-semibold">
+                      <ThaiWrap text={f.value} />
+                    </dd>
                   </div>
                 ))}
               </dl>

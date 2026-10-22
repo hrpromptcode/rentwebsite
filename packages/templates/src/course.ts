@@ -1,7 +1,26 @@
-import type { TemplateDefinition } from "@rentweb/core/tenant";
+import type { TemplateDefinition, TemplatePage } from "@rentweb/core/tenant";
 import { availabilityRules, bookings, clinicPackages, customers, nextCounter, serviceCategories, services, staff, staffServices } from "@rentweb/db";
 import { section, hero, marquee, features, imageText, testimonials, faq, cta, stats, steps, gallery, classHighlights, weeklySchedule, instructorGrid, passPricing } from "@rentweb/storefront/definitions";
 import { aboutPage, contactPage, legalPages, u, avatar } from "./shared";
+
+/** About CTA: break after the question ("มีคำถาม? ทัก|เรามาได้เลย" split the phrase at desktop widths). Demo sections only. */
+const ABOUT_CTA = "มีคำถาม? ทักเรามาได้เลย";
+const breakAboutCta = (s: TemplatePage["sections"][number]) => (s.type === "cta" && s.props.heading === ABOUT_CTA ? { ...s, props: { ...s.props, heading: ABOUT_CTA.replace(" ", "\n") } } : s);
+
+/** About page: how a class is taught (photo left) and the teachers between the statement and the CTA (demo only; new shops keep the neutral statement page). */
+function withAboutStory(page: TemplatePage): TemplatePage {
+  return { ...page, sections: [page.sections[0]!, section(imageText, {
+        eyebrow: "วิธีสอนของเรา",
+        heading: "คลาสเล็ก\nครูเห็นทุกคน",
+        body: "โยคะรับไม่เกิน 16 คน รีฟอร์เมอร์ไม่เกิน 6 เตียง ครูเดินปรับท่าให้ทีละคน และมีท่าทดแทนเสมอสำหรับคนที่เพิ่งเริ่มหรือมีอาการบาดเจ็บ",
+        image: { url: u("1683056255281-e52a141924f0", 1200), alt: "นักเรียนฝึกท่าก้มตัวในคลาสเช้า" },
+        imagePosition: "left",
+        bullets: ["ครูมีใบรับรอง RYT-200/500 และ STOTT", "ท่าทดแทนสำหรับมือใหม่", "ชาสมุนไพรหลังคลาสทุกรอบ"],
+        cta: { label: "ดูตารางเรียน", href: "/schedule" },
+        style: "plain",
+      }),
+      section(instructorGrid, { eyebrow: "ทีมครู", heading: "ครูที่จะดูแลคุณ", subheading: "" }), ...page.sections.slice(1).map(breakAboutCta)] };
+}
 
 /** portrait crop for instructor photos (tall pill frames) */
 const portrait = (id: string) => u(id, 800, "&h=1100&crop=faces");
@@ -76,7 +95,7 @@ export const course: TemplateDefinition = {
     ["สตูดิโออยู่ซอยอารีย์ 1 เดิน 4 นาทีจาก BTS อารีย์ ทางออก 3 มีที่จอดรถ 6 คันหน้าสตูดิโอ (จักรยานจอดฟรี)", "[ที่ตั้งสตูดิโอ · การเดินทาง · ที่จอดรถ]"],
     ["ชั้น 2 ซอยอารีย์ 1 ถนนพหลโยธิน กรุงเทพฯ 10400", "[ที่อยู่สตูดิโอ]"],
     ["โยคะ & พิลาทิส สตูดิโอ · อารีย์ กรุงเทพฯ", "โยคะ & พิลาทิส สตูดิโอ"],
-    ["ห้องไม้โอ๊ก แสงธรรมชาติ\nและความเงียบกลางอารีย์", "ห้องไม้โอ๊ก แสงธรรมชาติ\nและความเงียบกลางเมือง"],
+    ["ห้องไม้โอ๊ก แสงธรรมชาติ\nและความเงียบ\nกลางอารีย์", "ห้องไม้โอ๊ก แสงธรรมชาติ\nและความเงียบ\nกลางเมือง"],
     ["Sala Flow เริ่มจากห้องฝึกเล็ก ๆ ของครูแนนในปี 2019 วันนี้เรามีสตูดิโอโยคะ 2 ห้องและห้องรีฟอร์เมอร์ 6 เตียง", "เรามีสตูดิโอโยคะและห้องรีฟอร์เมอร์"],
     ["เปิดสอนที่อารีย์", "เปิดสอน"],
     ["ทัก LINE @salaflow เพื่อขอใบเสนอราคา", "ติดต่อเราเพื่อขอใบเสนอราคา"],
@@ -170,7 +189,7 @@ export const course: TemplateDefinition = {
         section(passPricing, { eyebrow: "คลาสพาส", heading: "เรียนบ่อยแค่ไหน ก็มีพาสที่พอดี", subheading: "ซื้อครั้งเดียว ใช้ได้ทุกคลาส ยิ่งเรียนบ่อยยิ่งคุ้ม เช็กครั้งคงเหลือได้ในบัญชีนักเรียน", limit: 3, showDropIn: true }),
         section(imageText, {
           eyebrow: "สตูดิโอของเรา",
-          heading: "ห้องไม้โอ๊ก แสงธรรมชาติ\nและความเงียบกลางอารีย์",
+          heading: "ห้องไม้โอ๊ก แสงธรรมชาติ\nและความเงียบ\nกลางอารีย์",
           body: "Sala Flow เริ่มจากห้องฝึกเล็ก ๆ ของครูแนนในปี 2019 วันนี้เรามีสตูดิโอโยคะ 2 ห้องและห้องรีฟอร์เมอร์ 6 เตียง พร้อมอุปกรณ์ครบ ไม่ต้องหอบเสื่อมาเอง มีห้องอาบน้ำ ล็อกเกอร์ และมุมชาสมุนไพรหลังเรียน",
           image: { url: IMG.studio, alt: "สตูดิโอโยคะไม้โอ๊กแสงธรรมชาติ" },
           imagePosition: "left",
@@ -184,7 +203,7 @@ export const course: TemplateDefinition = {
           variant: "spotlight",
           items: [
             { quote: "เริ่มจากศูนย์ ก้มไม่ถึงพื้น ครูแนนปรับท่าให้ทีละนิด สามเดือนผ่านไปปวดหลังจากการนั่งทำงานหายไปเลย", name: "คุณเมย์", role: "Hatha Yoga · เรียนมา 1 ปี", avatar: avatar("may-flow"), rating: 5 },
-            { quote: "ตารางเรียนดูง่ายมาก เห็นที่นั่งเหลือกี่ที่ กดสมัครจากมือถือก่อนเลิกงานได้เลย ใช้พาส 10 ครั้งคุ้มสุด", name: "คุณต้น", role: "Vinyasa Flow · คลาสพาส 10 ครั้ง", avatar: avatar("ton-flow"), rating: 5 },
+            { quote: "ตารางเรียนดูง่ายมาก เห็นที่นั่งเหลือกี่\u2060ที่ กดสมัครจากมือถือก่อนเลิกงานได้เลย ใช้พาส 10 ครั้งคุ้มสุด", name: "คุณต้น", role: "Vinyasa Flow · คลาสพาส 10 ครั้ง", avatar: avatar("ton-flow"), rating: 5 },
             { quote: "รีฟอร์เมอร์กลุ่มเล็กแค่ 6 คน ครูบีมดูทุกคนจริง ๆ ท้องหลังคลอดกระชับขึ้นชัดเจน", name: "คุณปุ๊ก", role: "Reformer Pilates Basic", avatar: avatar("pook-flow"), rating: 5 },
           ],
         }),
@@ -234,11 +253,11 @@ export const course: TemplateDefinition = {
         section(cta, { variant: "card", heading: "มาลองคลาสแรกกับเรา", body: "เลือกรอบจากตารางเรียน เสื่อและอุปกรณ์มีให้ครบ แค่มาพร้อมชุดที่ยืดหยุ่น", primaryCta: { label: "ดูตารางเรียน", href: "/schedule" }, secondaryCta: { label: "คลาสสำหรับผู้เริ่มต้น", href: "/classes?level=beginner" } }),
       ],
     },
-    aboutPage({
+    withAboutStory(aboutPage({
       neutral: { heading: "เกี่ยวกับ {{name}}", body: "{{name}} ตั้งใจให้ทุกคลาสปลอดภัยและเห็นผลจริง ครูดูแลผู้เรียนทีละคนในกลุ่มเล็ก เลือกรอบจากตารางเรียน สมัครและชำระออนไลน์ได้ตลอด 24 ชั่วโมง" },
       heading: "Sala Flow — ศาลาเล็ก ๆ ที่อยากให้คุณกลับมาหายใจ",
       body: "ครูแนนเปิด Sala Flow ในปี 2019 หลังกลับจากฝึกครูที่ฤๅษีเกศ ด้วยความเชื่อว่าโยคะไม่ใช่การแข่งความอ่อนตัว แต่คือการกลับมาอยู่กับลมหายใจของตัวเอง เราจึงจำกัดคลาสให้เล็ก เลือกครูที่ใส่ใจคนมากกว่าท่า และเพิ่มพิลาทิสเข้ามาในปี 2022 เพื่อดูแลหลัง ไหล่ และแกนกลางของคนทำงานออฟฟิศ\n\nวันนี้มีนักเรียนกว่า 1,200 คนที่เคยนั่งจิบชาที่ศาลาหลังนี้ บางคนมาทุกเช้าก่อนไปทำงาน บางคนมาเดือนละครั้ง เราดีใจกับทุกครั้งที่คุณเลือกมา",
-    }),
+    })),
     contactPage({
       heading: "ติดต่อและเดินทาง",
       body: "สตูดิโออยู่ซอยอารีย์ 1 เดิน 4 นาทีจาก BTS อารีย์ ทางออก 3 มีที่จอดรถ 6 คันหน้าสตูดิโอ (จักรยานจอดฟรี)",

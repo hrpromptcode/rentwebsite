@@ -61,7 +61,9 @@ export default async function EventsPage({ params, searchParams }: { params: Par
     return `/events${str ? `?${str}` : ""}`;
   };
   const filtered = !!(q || category);
-  const offset = (i: number) => (events.length >= 3 && i % 3 === 1 ? "lg:translate-y-[9%]" : "");
+  // poster wall: 4 columns when 3 would leave a lone poster on the last row (4, 7, 8, 10 …), offset every other column
+  const cols4 = events.length > 1 && (events.length % 4 === 0 || events.length % 3 === 1);
+  const offset = (i: number) => (events.length >= 3 && (cols4 ? i % 2 === 1 : i % 3 === 1) ? "lg:translate-y-[9%]" : "");
   // the stage glow paints under an overlaying header → the page pads itself (same rule as PageBody)
   const lay = runtime.theme.layout;
   const overlay = lay.header === "floating" || (lay.headerTransparent && lay.headerSticky);
@@ -163,7 +165,7 @@ export default async function EventsPage({ params, searchParams }: { params: Par
             </div>
           ) : (
             <div data-testid="events-grid">
-              <StaggerList className={cn("mt-6 grid gap-5 sm:grid-cols-2 md:gap-6 lg:grid-cols-3", events.length >= 3 && "lg:pb-[4%]")} stagger={0.08}>
+              <StaggerList className={cn("mt-6 grid gap-5 sm:grid-cols-2 md:gap-6", cols4 ? "lg:grid-cols-4" : "lg:grid-cols-3", events.length >= 3 && "lg:pb-[4%]")} stagger={0.08}>
                 {events.map((e, i) => (
                   <StaggerCell key={e.id} className="h-full">
                     <div className={cn("h-full", offset(i))}>

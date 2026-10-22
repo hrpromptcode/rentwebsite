@@ -4,7 +4,8 @@ import { serializeJsonLd } from "@rentweb/core";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MessageSquareText, Scale } from "lucide-react";
-import { Reveal, VelocityMarquee } from "@rentweb/ui/motion";
+import { Reveal, SplitReveal, VelocityMarquee } from "@rentweb/ui/motion";
+import { estimateEm } from "@rentweb/ui/motion/split";
 import { Eyebrow, Prose, RevealHeading, SectionHeading } from "@rentweb/storefront";
 import { getProductBySlug, getRelatedProducts, variantAvailable } from "@rentweb/module-commerce/services";
 import {
@@ -46,6 +47,22 @@ const htmlClass =
   "text-step-0 leading-[1.8] text-foreground/90 [&_p]:mb-4 [&_ul]:mb-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mb-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_h2]:font-heading [&_h2]:mt-6 [&_h2]:mb-2 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:font-heading [&_h3]:mt-5 [&_h3]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground [&_table]:w-full [&_td]:border-b [&_td]:py-2 [&_th]:border-b [&_th]:py-2 [&_th]:text-left [&_hr]:my-6";
 
 const glen = (s: string) => [...new Intl.Segmenter("th", { granularity: "grapheme" }).segment(s.replace(/\s+/g, ""))].length;
+
+/**
+ * Product title size + line breaking. Thai product names put their phrase breaks at spaces ("เดรสฝ้ายทอมือ ย้อมคราม");
+ * text-balance on dictionary words picks a break inside a phrase or compound ("เดรสฝ้ายทอ|มือ", "สั่ง|ทำ"). A name with
+ * several phrases therefore splits on spaces only, and its size is capped in container units so the widest phrase
+ * always fits the buy-box column (any breakpoint, any heading font): font-size = min(step, 100cqi / widest-em).
+ */
+const SIZES = ["text-step-5", "text-step-4", "text-step-3"] as const;
+/** advance (em) of a phrase: Thai bases 0.62, following vowels ะ า ำ 0.5, marks 0 (Fahkwang measured ~3 % wider → ×1.1 margin below) */
+const phraseEm = (s: string) =>
+  [...s].reduce((em, ch) => em + (/[ัิ-ฺ็-๎]/.test(ch) ? 0 : /[ะาำๅ]/.test(ch) ? 0.5 : /[ก-๛]/.test(ch) ? 0.62 : estimateEm(ch)), 0);
+function productTitle(name: string, n: number): { size: (typeof SIZES)[number]; capEm: number | null } {
+  const size = SIZES[n <= 14 ? 0 : n <= 26 ? 1 : 2]!;
+  const phrases = name.trim().split(/\s+/);
+  return { size, capEm: phrases.length > 1 ? Math.max(...phrases.map(phraseEm)) * 1.1 : null };
+}
 
 export default async function ProductPage({ params }: { params: Params }) {
   const { tenantId, slug: rawSlug } = await params;
@@ -101,7 +118,7 @@ export default async function ProductPage({ params }: { params: Params }) {
   };
   const reviewAction = createReviewAction.bind(null, tenantId, product.id, product.slug);
   const n = glen(product.name);
-  const titleSize = n <= 14 ? "text-step-5" : n <= 26 ? "text-step-4" : "text-step-3";
+  const { size: titleSize, capEm: titleCapEm } = productTitle(product.name, n);
   const rating = product.ratingAvg / 100;
 
   return (
@@ -122,7 +139,22 @@ export default async function ProductPage({ params }: { params: Params }) {
                   <Eyebrow text={category.name} index="—" rule={false} />
                 </Link>
               )}
-              <RevealHeading as="h1" text={product.name} trigger="mount" mode="lines" className={`heading-display mt-2 font-semibold text-balance ${titleSize}`} />
+              {titleCapEm ? (
+                <div className="@container">
+                  <SplitReveal
+                    as="h1"
+                    text={product.name}
+                    segment="spaces"
+                    trigger="mount"
+                    mode="lines"
+                    from="mask"
+                    className={`rw-h heading-display mt-2 font-semibold whitespace-pre-line ${titleSize}`}
+                    style={{ fontSize: `min(var(--${titleSize.slice(5)}), ${(100 / titleCapEm).toFixed(2)}cqi)` }}
+                  />
+                </div>
+              ) : (
+                <RevealHeading as="h1" text={product.name} trigger="mount" mode="lines" className={`heading-display mt-2 font-semibold text-balance ${titleSize}`} />
+              )}
               {product.shortDescription && <p className="mt-4 max-w-prose text-step-1 leading-relaxed text-muted-foreground">{product.shortDescription}</p>}
               <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                 <Stars value={product.ratingAvg} count={product.ratingCount} size="md" />
@@ -212,7 +244,7 @@ export default async function ProductPage({ params }: { params: Params }) {
             {reviews.length === 0 ? (
               <Reveal className="flex items-center gap-3 border-y border-foreground/15 py-6 text-muted-foreground">
                 <MessageSquareText className="size-5 shrink-0" />
-                <p>{L.noReviews}</p>
+                <p>{product.ratingCount > 0 ? L.noWrittenReviews : L.noReviews}</p>
               </Reveal>
             ) : (
               <ul className="grid border-t border-foreground/15">

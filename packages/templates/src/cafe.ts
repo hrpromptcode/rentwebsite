@@ -3,6 +3,10 @@ import { categories, products, reviews, shippingMethods } from "@rentweb/db";
 import { section, hero, marquee, productGrid, imageText, gallery, testimonials, features, faq, cta } from "@rentweb/storefront/definitions";
 import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, u } from "./shared";
 
+/** About CTA: break after the question ("มีคำถาม? ทัก|เรามาได้เลย" split the phrase at desktop widths). Demo sections only. */
+const ABOUT_CTA = "มีคำถาม? ทักเรามาได้เลย";
+const breakAboutCta = (s: TemplatePage["sections"][number]) => (s.type === "cta" && s.props.heading === ABOUT_CTA ? { ...s, props: { ...s.props, heading: ABOUT_CTA.replace(" ", "\n") } } : s);
+
 /** About page: a masonry of the kitchen between the statement and the CTA (demo only; new shops keep the neutral page). */
 function withKitchenGallery(page: TemplatePage): TemplatePage {
   const kitchen = section(gallery, {
@@ -19,7 +23,7 @@ function withKitchenGallery(page: TemplatePage): TemplatePage {
       { url: u("1551024601-bec78aea704b", 1000), alt: "โดนัทโรยสี", caption: "โดนัทโรยสีของเด็ก ๆ" },
     ],
   });
-  return { ...page, sections: [page.sections[0]!, kitchen, ...page.sections.slice(1)] };
+  return { ...page, sections: [page.sections[0]!, kitchen, ...page.sections.slice(1).map(breakAboutCta)] };
 }
 
 export const cafe: TemplateDefinition = {
@@ -80,11 +84,11 @@ export const cafe: TemplateDefinition = {
           heading: "ขนมอบที่ทำให้วันธรรมดา\nหวานขึ้นนิดนึง",
           scene: "auto",
           cards: [
-            { image: u("1555507036-ab1f4038808a", 700), alt: "ครัวซองต์เนยฝรั่งเศส", title: "ครัวซองต์เนยฝรั่งเศส", tag: "ขายดี", href: "/products/croissant" },
-            { image: u("1558961363-fa8fdf82db35", 700), alt: "คุกกี้ในตะกร้า", title: "คุกกี้ช็อกโกแลตชิป", tag: "ใหม่", href: "/products/cookies" },
-            { image: u("1578985545062-69928b1d9587", 700), alt: "เค้กช็อกโกแลต", title: "เค้กวันเกิดสั่งทำ", tag: "สั่งล่วงหน้า", href: "/collections/cakes" },
+            { image: u("1555507036-ab1f4038808a", 700), alt: "ครัวซองต์เนยฝรั่งเศส", title: "ครัวซองต์", tag: "ขายดี", href: "/products/croissant" },
+            { image: u("1558961363-fa8fdf82db35", 700), alt: "คุกกี้ในตะกร้า", title: "คุกกี้", tag: "ใหม่", href: "/products/cookies" },
+            { image: u("1578985545062-69928b1d9587", 700), alt: "เค้กช็อกโกแลต", title: "เค้กวันเกิด", tag: "สั่งทำ", href: "/collections/cakes" },
             { image: u("1509042239860-f550ce710b93", 700), alt: "ลาเต้", title: "ลาเต้คั่วเอง", tag: "", href: "/products/latte" },
-            { image: u("1551024601-bec78aea704b", 700), alt: "โดนัทโรยสี", title: "โดนัทโรยสี", tag: "ใหม่" },
+            { image: u("1551024601-bec78aea704b", 700), alt: "โดนัทโรยสี", title: "โดนัท", tag: "ใหม่" },
           ],
           subheading: "ครัวซองต์เนยฝรั่งเศส เค้กโฮมเมดสูตรลดหวาน และกาแฟคั่วเอง สั่งล่วงหน้าแล้วมารับได้เลยไม่ต้องรอ",
           primaryCta: { label: "สั่งล่วงหน้า", href: "/products" },

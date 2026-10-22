@@ -1,10 +1,29 @@
-import type { TemplateDefinition } from "@rentweb/core/tenant";
+import type { TemplateDefinition, TemplatePage } from "@rentweb/core/tenant";
 import { availabilityRules, clinicPackages, serviceCategories, services, staff, staffServices } from "@rentweb/db";
-import { section, hero, serviceList, staffGrid, packageList, stickyStory, testimonials, features, faq, cta, bookingWidget, stats, gallery } from "@rentweb/storefront/definitions";
+import { section, hero, serviceList, staffGrid, packageList, stickyStory, testimonials, features, faq, cta, bookingWidget, stats, gallery, imageText } from "@rentweb/storefront/definitions";
 import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, u, avatar } from "./shared";
 
 /** portrait crop (4:5) for staff photos */
 const portrait = (id: string) => u(id, 800, "&h=1000&crop=faces");
+
+/** About CTA: break after the question ("มีคำถาม? ทัก|เรามาได้เลย" split the phrase at desktop widths). Demo sections only. */
+const ABOUT_CTA = "มีคำถาม? ทักเรามาได้เลย";
+const breakAboutCta = (s: TemplatePage["sections"][number]) => (s.type === "cta" && s.props.heading === ABOUT_CTA ? { ...s, props: { ...s.props, heading: ABOUT_CTA.replace(" ", "\n") } } : s);
+
+/** About page: the clinic itself (arched hallway, overlap) and the doctors between the statement and the CTA (demo only; new shops keep the neutral statement page). */
+function withAboutStory(page: TemplatePage): TemplatePage {
+  return { ...page, sections: [page.sections[0]!, section(imageText, {
+        eyebrow: "คลินิกของเรา",
+        heading: "มาตรฐานโรงพยาบาล\nในบรรยากาศที่ผ่อนคลาย",
+        body: "ทุกห้องทรีตเมนต์เป็นห้องส่วนตัว เครื่องมือทุกชิ้นผ่าน อย. และ FDA ฆ่าเชื้อตามมาตรฐานโรงพยาบาล และมีแพทย์ประจำคลินิกทุกวันที่เปิดทำการ",
+        image: { url: u("1786937680099-779e1da6f7f7", 1200), alt: "ทางเดินโค้งและชั้นผลิตภัณฑ์ดูแลผิวในคลินิก" },
+        imagePosition: "left",
+        bullets: ["แพทย์ประจำทุกวันที่เปิด", "เครื่องมือผ่าน อย. และ FDA", "ห้องทรีตเมนต์ส่วนตัวทุกห้อง"],
+        cta: { label: "ดูบริการทั้งหมด", href: "/services" },
+        style: "overlap",
+      }),
+      section(staffGrid, { eyebrow: "ทีมแพทย์", heading: "แพทย์ที่ดูแลคุณ", subheading: "เลือกแพทย์ที่ต้องการได้ตอนจอง" }), ...page.sections.slice(1).map(breakAboutCta)] };
+}
 
 export const clinic: TemplateDefinition = {
   key: "clinic",
@@ -110,7 +129,7 @@ export const clinic: TemplateDefinition = {
         }),
         section(staffGrid, { eyebrow: "ทีมแพทย์", heading: "แพทย์ผู้เชี่ยวชาญของเรา", subheading: "เลือกแพทย์ที่ต้องการได้ตอนจอง" }),
         section(stats, { variant: "row", items: [{ value: 15000, suffix: "+", label: "เคสที่ดูแล" }, { value: 12, suffix: " ปี", label: "ประสบการณ์" }, { value: 4.9, label: "คะแนนรีวิว Google" }, { value: 98, suffix: "%", label: "กลับมาใช้บริการซ้ำ" }] }),
-        section(gallery, { heading: "บรรยากาศคลินิก", layout: "filmstrip", images: [{ url: u("1631248055158-edec7a3c072b", 1000), alt: "ล็อบบี้ต้อนรับ แสงธรรมชาติ" }, { url: u("1595871151608-bc7abd1caca3", 1000), alt: "ห้องทรีตเมนต์ส่วนตัว" }, { url: u("1629909615184-74f495363b67", 1000), alt: "ห้องทันตกรรม" }, { url: u("1666214277730-e9c7e755e5a3", 1000), alt: "ห้องปรึกษาแพทย์" }, { url: u("1612817288484-6f916006741a", 1000), alt: "ผลิตภัณฑ์ดูแลผิวหลังทำ" }] }),
+        section(gallery, { heading: "บรรยากาศคลินิก", layout: "filmstrip", images: [{ url: u("1631248055158-edec7a3c072b", 1000), alt: "ล็อบบี้ต้อนรับ แสงธรรมชาติ" }, { url: u("1595871151608-bc7abd1caca3", 1000), alt: "ห้องทรีตเมนต์ส่วนตัว" }, { url: u("1629909615184-74f495363b67", 1000), alt: "ห้องทันตกรรม" }, { url: u("1786937680099-779e1da6f7f7", 1000), alt: "ทางเดินโค้งและชั้นผลิตภัณฑ์ดูแลผิว" }, { url: u("1762625570087-6d98fca29531", 1000), alt: "มุมนั่งรอแสงธรรมชาติ" }] }),
         section(testimonials, {
           heading: "ความประทับใจจากลูกค้า",
           variant: "spotlight",
@@ -136,11 +155,11 @@ export const clinic: TemplateDefinition = {
       slug: "gallery",
       title: "ผลงาน",
       sections: [
-        section(gallery, { heading: "บรรยากาศและผลงาน", subheading: "ภาพผลการรักษาได้รับความยินยอมจากผู้รับบริการแล้ว", layout: "masonry", images: [{ url: u("1631248055158-edec7a3c072b", 1000), alt: "ล็อบบี้ต้อนรับของคลินิก" }, { url: u("1512290923902-8a9f81dc236c", 1000), alt: "แพทย์ฉีดโบท็อกซ์ปรับรูปหน้า" }, { url: u("1595871151608-bc7abd1caca3", 1000), alt: "ห้องทรีตเมนต์ส่วนตัว" }, { url: u("1552693673-1bf958298935", 1000), alt: "ทรีตเมนต์ผิวหน้าด้วยเครื่องมือแพทย์" }, { url: u("1616394584738-fc6e612e71b9", 1000), alt: "มาสก์บำรุงหลังทำเลเซอร์" }, { url: u("1606811841689-23dfddce3e95", 1000), alt: "ทันตแพทย์อธิบายผลเอกซเรย์ฟัน" }, { url: u("1570172619644-dfd03ed5d881", 1000), alt: "ทรีตเมนต์มาสก์โคลนบำรุงผิว" }, { url: u("1600428853876-fb5a850b444f", 1000), alt: "ลูกกลิ้งหยกและกัวซาสำหรับดูแลผิว" }] }),
+        section(gallery, { heading: "บรรยากาศและผลงาน", subheading: "ภาพผลการรักษาได้รับความยินยอมจากผู้รับบริการแล้ว", layout: "masonry", images: [{ url: u("1631248055158-edec7a3c072b", 1000), alt: "ล็อบบี้ต้อนรับของคลินิก" }, { url: u("1512290923902-8a9f81dc236c", 1000), alt: "แพทย์ฉีดโบท็อกซ์ปรับรูปหน้า" }, { url: u("1595871151608-bc7abd1caca3", 1000), alt: "ห้องทรีตเมนต์ส่วนตัว" }, { url: u("1552693673-1bf958298935", 1000), alt: "ทรีตเมนต์ผิวหน้าด้วยเครื่องมือแพทย์" }, { url: u("1616394584738-fc6e612e71b9", 1000), alt: "มาสก์บำรุงหลังทำเลเซอร์" }, { url: u("1606811841689-23dfddce3e95", 1000), alt: "ทันตแพทย์อธิบายผลเอกซเรย์ฟัน" }, { url: u("1786937680099-779e1da6f7f7", 1000), alt: "ทางเดินโค้งและชั้นผลิตภัณฑ์ดูแลผิว" }, { url: u("1762625570087-6d98fca29531", 1000), alt: "มุมนั่งรอแสงธรรมชาติ" }, { url: u("1629909615184-74f495363b67", 1000), alt: "ห้องทันตกรรม" }] }),
         section(cta, { variant: "card", heading: "อยากได้ผลลัพธ์ที่เป็นธรรมชาติแบบนี้", body: "เริ่มจากการปรึกษาแพทย์ฟรี วิเคราะห์ผิวด้วยเครื่อง 3D ไม่มีข้อผูกมัด", primaryCta: { label: "นัดปรึกษาฟรี", href: "/book" }, secondaryCta: { label: "ดูบริการทั้งหมด", href: "/services" } }),
       ],
     },
-    aboutPage({ neutral: NEUTRAL_ABOUT.clinic, heading: "Lumière Clinic — ความงามที่เริ่มจากสุขภาพผิวที่ดี", body: "ก่อตั้งในปี 2014 โดย พญ.ณิชา วรรณกุล แพทย์ผิวหนังที่เชื่อว่าความสวยต้องปลอดภัยและเป็นธรรมชาติ เราไม่ขายคอร์สเกินความจำเป็น และตั้งใจให้ทุกคนที่เดินออกจากคลินิกรู้สึกมั่นใจในตัวเองมากขึ้น" }),
+    withAboutStory(aboutPage({ neutral: NEUTRAL_ABOUT.clinic, heading: "Lumière Clinic — ความงามที่เริ่มจากสุขภาพผิวที่ดี", body: "ก่อตั้งในปี 2014 โดย พญ.ณิชา วรรณกุล แพทย์ผิวหนังที่เชื่อว่าความสวยต้องปลอดภัยและเป็นธรรมชาติ เราไม่ขายคอร์สเกินความจำเป็น และตั้งใจให้ทุกคนที่เดินออกจากคลินิกรู้สึกมั่นใจในตัวเองมากขึ้น" })),
     contactPage({ heading: "ติดต่อและเดินทาง", body: "คลินิกอยู่ชั้น 3 เอ็มควอเทียร์ ติด BTS พร้อมพงษ์ ทางออก 1 มีที่จอดรถในห้าง", variant: "chips", interests: ["ปรึกษาปัญหาผิว", "Botox / Filler", "เลเซอร์และ HIFU", "ทันตกรรมความงาม", "คอร์สและแพ็กเกจ"] }),
     ...legalPages("Lumière Clinic"),
   ],

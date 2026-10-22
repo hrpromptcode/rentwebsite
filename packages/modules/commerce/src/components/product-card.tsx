@@ -1,6 +1,7 @@
 import * as React from "react";
 import Link from "next/link";
-import { ThaiWrap, TiltCard } from "@rentweb/ui/motion";
+import { TiltCard } from "@rentweb/ui/motion";
+import { ThaiName } from "./thai-name";
 import { Img } from "@rentweb/storefront";
 import { cn } from "@rentweb/ui/lib/utils";
 import { productBadge, type ProductCard as ProductCardData } from "../services/products";
@@ -69,7 +70,8 @@ function Media({ p, priority, className, children }: { p: ProductCardData; prior
  * - hover-swap: framed card with ≤5° 3D tilt + glare and the image wipe-swap
  * - standard: framed card (sticker card with spring wobble when the theme card shape is "brutal")
  * - minimal: square photo, name + price
- * Server component (titles go through ThaiWrap: Thai breaks only between words, segmentation must not rerun on the client).
+ * Server component. Titles go through ThaiName (ThaiWrap + module glue + phrase units; greedy wrap so lines break
+ * between phrases, not mid-phrase as text-balance chose); segmentation must not rerun on the client.
  */
 export function ProductCardView({
   product: p,
@@ -105,8 +107,8 @@ export function ProductCardView({
             <span aria-hidden className="rwc-no text-muted-foreground">
               {pad2(index + 1)}
             </span>
-            <h3 className="rwc-title font-heading text-base leading-snug font-medium text-pretty md:text-[1.05rem] @max-[17rem]:col-span-2">
-              <ThaiWrap text={p.name} />
+            <h3 className="rwc-title font-heading text-base leading-snug font-medium [text-wrap:wrap] md:text-[1.05rem] @max-[17rem]:col-span-2">
+              <ThaiName text={p.name} phrases />
             </h3>
             <Price amount={p.price} compareAt={p.compareAtPrice} size="sm" className="shrink-0 justify-end text-right @max-[17rem]:col-start-2 @max-[17rem]:mt-1 @max-[17rem]:justify-start @max-[17rem]:text-left" />
           </div>
@@ -125,8 +127,8 @@ export function ProductCardView({
         <Link href={href} className="block">
           <Media p={p} priority={priority} className="rounded-[var(--radius-lg)]" />
           <div className="mt-3 flex items-start justify-between gap-3">
-            <h3 className="rwc-title line-clamp-2 text-sm leading-snug font-medium">
-              <ThaiWrap text={p.name} />
+            <h3 className="rwc-title line-clamp-2 text-sm leading-snug font-medium [text-wrap:wrap]">
+              <ThaiName text={p.name} phrases />
             </h3>
             <Price amount={p.price} compareAt={p.compareAtPrice} size="sm" className="shrink-0 justify-end" />
           </div>
@@ -142,8 +144,8 @@ export function ProductCardView({
         <Media p={p} priority={priority} />
         <div className="flex flex-1 flex-col p-4">
           {/* 2 lines + the Thai clamp padding (apps/web globals.css) so 1- and 2-line titles keep equal card heights */}
-          <h3 className="rwc-title line-clamp-2 min-h-[calc(2.75rem+0.2em)] leading-snug font-medium">
-            <ThaiWrap text={p.name} />
+          <h3 className="rwc-title line-clamp-2 min-h-[calc(2.75rem+0.2em)] leading-snug font-medium [text-wrap:wrap]">
+            <ThaiName text={p.name} phrases />
           </h3>
           <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pt-2">
             <Price amount={p.price} compareAt={p.compareAtPrice} className="rwc-price-accent" />

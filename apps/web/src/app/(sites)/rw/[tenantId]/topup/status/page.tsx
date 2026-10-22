@@ -53,8 +53,12 @@ export default async function TopupStatusPage({ params, searchParams }: { params
           </Reveal>
 
           {q && !order && (
-            <Reveal delay={0.1} className="mt-5 flex items-center gap-3 rounded-[var(--radius-xl)] border border-dashed border-border/80 bg-card/50 p-5 text-sm text-muted-foreground">
-              <SearchX className="size-5 shrink-0" /> ไม่พบรายการ <span className="font-mono text-foreground">{q.toUpperCase()}</span> ตรวจสอบเลขที่อีกครั้ง หรือติดต่อแอดมิน
+            <Reveal delay={0.1} className="mt-5 flex items-start gap-3 rounded-[var(--radius-xl)] border border-dashed border-border/80 bg-card/50 p-5 text-sm leading-relaxed text-muted-foreground">
+              <SearchX className="mt-0.5 size-5 shrink-0" />
+              {/* one text flow (the flex row made three columns on phones and broke "TP-⏎999999") */}
+              <p className="min-w-0">
+                ไม่พบรายการ <span className="font-mono whitespace-nowrap text-foreground">{q.toUpperCase()}</span> ตรวจสอบเลขที่อีกครั้ง หรือติดต่อแอดมิน
+              </p>
             </Reveal>
           )}
 

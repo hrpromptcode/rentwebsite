@@ -11,6 +11,39 @@ export function titleStep(text: string): string {
 }
 
 /**
+ * Display break for a tenant-entered name in a giant word-split <h1> (detail pages). The word splitter breaks between
+ * dictionary words, so a loanword it does not know ("อโรมาเทอรา | พี 90 นาที") can split mid-word. For names of 12+ visible
+ * characters that contain spaces, the break goes at the space nearest the middle instead (never between a number and its
+ * unit, never before "/" or "(" fragments; a Latin/Thai switch is preferred; Latin-only names are left alone). Accessible
+ * name unchanged (whitespace-normalised; aria-label keeps the text).
+ */
+const THAI_CHAR = /[฀-๿]/;
+export function nameLines(name: string): string {
+  const t = name.trim();
+  if (!THAI_CHAR.test(t) || t.includes("\n") || graphemeCount(t.replace(/\s+/g, "")) < 12) return t;
+  const words = t.split(/ +/);
+  if (words.length < 2) return t;
+  const total = t.length;
+  let best = -1;
+  let bestDist = Infinity;
+  let pos = 0;
+  for (let i = 0; i < words.length - 1; i++) {
+    pos += words[i]!.length + 1;
+    const before = words[i]!;
+    const after = words[i + 1]!;
+    if (/\d$/.test(before) || /^[/(\-–·&+]/.test(after)) continue;
+    // a Latin ↔ Thai switch is the most natural place to break ("Prenatal Yoga | คุณแม่")
+    const d = Math.abs(pos - total / 2) - (THAI_CHAR.test(before.slice(-1)) !== THAI_CHAR.test(after.charAt(0)) ? 4 : 0);
+    if (d < bestDist) {
+      bestDist = d;
+      best = i;
+    }
+  }
+  if (best < 0) return t;
+  return `${words.slice(0, best + 1).join(" ")}\n${words.slice(best + 1).join(" ")}`;
+}
+
+/**
  * Module-page intro (marketing-light listing pages, §5.0): eyebrow + mono index, a giant mask-revealed <h1>, lead,
  * optional controls (filter pills) and an optional visual column (signature scene / photo stack). The <h1> keeps its
  * plain accessible name (SplitReveal aria-label). Server component.

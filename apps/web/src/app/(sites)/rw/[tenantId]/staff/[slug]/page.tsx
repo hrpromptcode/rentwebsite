@@ -8,7 +8,7 @@ import { cn } from "@rentweb/ui/lib/utils";
 import { CtaButton, Eyebrow, Prose, RevealHeading, Rise, SectionStyles } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
 import { getStaffBySlug } from "@rentweb/module-booking/services";
-import { BookingStyles, Portrait, lookOf, pad2, titleStep } from "@rentweb/module-booking/ui";
+import { BookingStyles, Portrait, lookOf, pad2, titleStep, nameLines } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
@@ -56,7 +56,7 @@ export default async function StaffProfilePage({ params }: { params: Params }) {
           </div>
           <div className="md:col-span-7 md:pt-6">
             {person.title && <Eyebrow text={person.title} className="mb-5" />}
-            <RevealHeading as="h1" text={person.name} trigger="mount" mode="words" className={cn("font-heading font-semibold text-balance", titleStep(person.name))} />
+            <RevealHeading as="h1" text={nameLines(person.name)} trigger="mount" mode="words" className={cn("font-heading font-semibold text-balance", titleStep(person.name))} />
             {person.bio && <Prose text={person.bio} className="mt-6 max-w-2xl text-step-1 text-muted-foreground" />}
             {person.acceptsOnlineBooking ? (
               <div className="mt-9 flex flex-wrap gap-3">

@@ -83,7 +83,10 @@ export function PassTicket({
           <li className="rounded-full border bk-hairline px-2.5 py-1 font-medium">{L.validity(p.validityDays)}</li>
           {p.serviceName && <li className="rounded-full border bk-hairline px-2.5 py-1 font-medium">{p.serviceName}</li>}
         </ul>
-        <div aria-hidden className="bk-perf bk-notched -mx-6 mt-6" />
+        {/* perforation + price pinned to the ticket bottom so prices line up across a row */}
+        <div className="mt-auto pt-6">
+          <div aria-hidden className="bk-perf bk-notched -mx-6" />
+        </div>
         <div className="mt-5 flex flex-wrap items-end justify-between gap-x-3 gap-y-4">
           <div>
             <p className="font-heading text-step-3 font-semibold leading-none tabular-nums">{thb(p.price)}</p>

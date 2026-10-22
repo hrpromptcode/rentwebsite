@@ -1,4 +1,4 @@
-import type { TemplateDefinition } from "@rentweb/core/tenant";
+import type { TemplateDefinition, TemplatePage } from "@rentweb/core/tenant";
 import { codeStock, games, gamePackages, topupBlacklist, topupSuppliers } from "@rentweb/db";
 import { encryptToString } from "@rentweb/core/crypto";
 import { section, hero, marquee, gameGrid, topupFeed, steps, features, faq, cta, stats, testimonials } from "@rentweb/storefront/definitions";
@@ -44,6 +44,20 @@ const FAQ = [
  * Home page sections (GameHub, docs/design/hi-end-direction.md §5.2); `neutral` = the variant for a new (non-demo) shop
  * (ADMIN-17: no "40+ เกม", volumes, ratings or sample games it does not have — its hero falls back to the preset scene).
  */
+/**
+ * qa-c: the shared About page is a scroll-lit statement + a contact card (text only) → the demo copy gets the arcade
+ * signature between the two: a giant outline marquee of the games it serves and the HUD odometers (new shops keep the
+ * neutral text-only page).
+ */
+function withHud(page: TemplatePage): TemplatePage {
+  const hud = [
+    section(marquee, { items: ["RoV", "FREE FIRE", "GENSHIN IMPACT", "VALORANT", "PUBG MOBILE", "ROBLOX", "MOBILE LEGENDS", "STEAM WALLET"], style: "outline", speed: 26, separator: "◆" }),
+    section(stats, { variant: "cards", items: [{ value: 1, suffix: ".2M+", label: "รายการสำเร็จ" }, { value: 48, suffix: " เกม", label: "รองรับ" }, { value: 99, suffix: ".8%", label: "อัตราสำเร็จ" }, { value: 24, suffix: " ชม.", label: "เปิดบริการ" }] }),
+  ];
+  const sections = page.sections ?? [];
+  return { ...page, sections: [...sections.slice(0, -1), ...hud, ...sections.slice(-1)] };
+}
+
 function homeSections(neutral: boolean) {
   return [
     section(hero, {
@@ -181,7 +195,7 @@ export const topup: TemplateDefinition = {
         section(cta, { variant: "glow", heading: "เลือกเกม\nแล้วเติมได้เลย", body: "เติมครั้งแรกวันนี้ รับโบนัสกระเป๋าเงิน 2%", primaryCta: { label: "เลือกเกมที่จะเติม", href: "/games" }, secondaryCta: { label: "ตรวจสอบสถานะ", href: "/topup/status" } }),
       ],
     },
-    aboutPage({ heading: "GameHub — ร้านเติมเกมที่ผู้เล่นสร้างให้ผู้เล่น", body: "เราเริ่มจากกลุ่มเพื่อนที่เบื่อการเติมเกมช้าและราคาแพง จึงสร้างระบบเติมอัตโนมัติที่เชื่อมกับผู้ให้บริการโดยตรง ปัจจุบันให้บริการมากกว่า 1.2 ล้านรายการ โดยยึดหลัก ไม่ขอรหัสผ่าน คืนเงินทันทีเมื่อไม่สำเร็จ และโปร่งใสทุกรายการ" }),
+    withHud(aboutPage({ heading: "GameHub — ร้านเติมเกมที่ผู้เล่นสร้างให้ผู้เล่น", body: "เราเริ่มจากกลุ่มเพื่อนที่เบื่อการเติมเกมช้าและราคาแพง จึงสร้างระบบเติมอัตโนมัติที่เชื่อมกับผู้ให้บริการโดยตรง ปัจจุบันให้บริการมากกว่า 1.2 ล้านรายการ โดยยึดหลัก ไม่ขอรหัสผ่าน คืนเงินทันทีเมื่อไม่สำเร็จ และโปร่งใสทุกรายการ" })),
     contactPage({ heading: "ติดต่อแอดมิน", body: "ปัญหาการเติม ส่งเลขที่รายการมาทาง LINE แอดมินตอบภายใน 5 นาที (09:00–02:00)" }),
     ...legalPages("GameHub"),
   ],

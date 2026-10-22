@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AlertCircle, Check, ChevronLeft } from "lucide-react";
-import { PageIntro } from "@rentweb/storefront";
+import { FloatingChatOptOut, PageIntro } from "@rentweb/storefront";
 import type { PaymentMethodOption } from "@rentweb/storefront/payments";
 import { bkkDateString, getUnitTypeBySlug, isValidYmd, listExtras, listRateRules, parseExtrasParam, payOptionsFor, quoteStay, rentalConfig, stayPaymentMethods, unitsAvailable } from "@rentweb/module-rental/services";
 import { L, METHOD_LABELS, RentalStyles } from "@rentweb/module-rental/ui";
@@ -106,6 +106,8 @@ export default async function StayBookPage({ params, searchParams }: { params: P
           </Link>
         </PageIntro>
         <Stepper />
+        {/* phones: the floating LINE button would sit on the summary dates / prices and form fields */}
+        <FloatingChatOptOut>
         <StayBookForm
           type={{ id: type.id, slug: type.slug, name: type.name, cover: type.gallery[0] ?? null }}
           checkIn={from}
@@ -120,6 +122,7 @@ export default async function StayBookPage({ params, searchParams }: { params: P
           customer={customer ? { name: customer.name, phone: customer.phone, email: customer.email } : null}
           roomHref={roomHref}
         />
+        </FloatingChatOptOut>
       </section>
     </PageBody>
   );

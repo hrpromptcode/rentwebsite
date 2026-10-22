@@ -1,0 +1,8 @@
+admin-journey exit=1 pass=30 fail=1 warn=0 586s
+commerce-admin-journey exit=1 pass=37 fail=6 warn=0 520s
+booking-admin-journey exit=0 pass=19 fail=0 warn=0 488s
+restaurant-admin-journey exit=1 pass=10 fail=5 warn=0 321s
+topup-admin-journey exit=1 pass=4 fail=14 warn=0 790s
+events-admin-journey exit=1 pass=22 fail=2 warn=0 392s
+rental-admin-journey exit=0 pass=24 fail=0 warn=0 295s
+DONE run2

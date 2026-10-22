@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cn } from "@rentweb/ui/lib/utils";
 import { thb } from "@rentweb/core/money";
+import { GlueWords } from "./thai-wrap";
 import { L } from "../labels";
 
 export interface OrderLinesData {
@@ -20,7 +21,9 @@ export function OrderLines({ data, className, compact }: { data: OrderLinesData;
         {data.lines.map((l) => (
           <li key={l.ticketTypeId} className={cn("flex items-start justify-between gap-3", compact ? "py-1.5" : "py-2.5")}>
             <div className="min-w-0">
-              <p className="font-medium">{l.name}</p>
+              <p className="font-medium">
+                <GlueWords text={l.name} />
+              </p>
               <p className="text-xs text-muted-foreground">
                 {l.unitPrice > 0 ? thb(l.unitPrice) : L.free} × {L.ticketsN(l.qty)}
               </p>
