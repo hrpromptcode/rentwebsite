@@ -4,7 +4,7 @@ import { Odometer, Reveal, ScrubText, SplitReveal, StickyStory, TiltCard, Veloci
 import { DevicePair } from "./devices";
 import { LaunchJourney } from "./launch-journey";
 import { MODULE_LABEL, type TemplateView } from "./platform-data";
-import { ScrollScale } from "./scroll-scale";
+import { TemplatesWordmark } from "./templates-title";
 import { Cta, Mono, SectionIndex, tg } from "./ui";
 
 /* ------------------------------------------------------------------------------------------------ #3 tools strip */
@@ -48,23 +48,25 @@ export function ToolsStrip() {
 
 /* ------------------------------------------------------------------------------------------------ #4 template cylinder */
 
-export function TemplateCylinder({ templates }: { templates: TemplateView[] }) {
+/**
+ * Editorial title of the gallery chapter: index, the thin "Templates(10)" wordmark with its screenshot capsule and drag
+ * seal (templates-title.tsx), a hairline that draws in and a two-tone Thai sub-headline + helper copy + CTA.
+ */
+function TemplatesTitle({ templates }: { templates: TemplateView[] }) {
+  const n = templates.length;
   return (
-    <section id="templates" data-hue="sky" className="relative isolate scroll-mt-[var(--header-h)] overflow-hidden pt-[var(--section-y)]" aria-labelledby="templates-title">
-      <div className="pf-gallery-stage pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[78%]" aria-hidden="true" />
-      <div className="pointer-events-none relative z-10 px-[var(--gutter)]">
-        <SectionIndex n="02" label="Templates — 10 ธุรกิจ 10 บุคลิก" />
-        <ScrollScale className="mt-6" origin="0% 100%">
-          <h2 id="templates-title" className="pf-giant pf-grad-text pf-grad-ocean pf-shimmer w-fit text-[clamp(2.6rem,11.2vw,14.5rem)]">
-            <span aria-hidden="true">
-              Templates<span className="pf-sup">©{templates.length}</span>
-            </span>
-            <span className="sr-only">เทมเพลต {templates.length} แบบ</span>
-          </h2>
-        </ScrollScale>
-        <div className="mt-8 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <p className="max-w-xl text-step-1 leading-[1.7] text-muted-foreground">
-            {tg(`${templates.length} ธุรกิจ ${templates.length} {บุคลิก} ลากเพื่อหมุนดู แล้วคลิก{การ์ด}ที่ชอบ เพื่อเปิดดู{เทมเพลต}และ{เดโม}สด`)}
+    <div className="pf-tpl">
+      <SectionIndex n="02" label="Template library" />
+      <TemplatesWordmark templates={templates} id="templates-title" srText={`เทมเพลตเว็บสำเร็จรูป ${n} แบบ`} seal="DRAG TO EXPLORE · SPIN · OPEN A DEMO ·" />
+      <div className="pf-tpl__rule" aria-hidden="true" />
+      <div className="mt-7 grid gap-7 md:mt-9 md:grid-cols-12 md:items-end">
+        <p className="pf-tpl__lead display-thai md:col-span-7">
+          <SplitReveal as="span" text={tg(`เว็บสำเร็จรูป ${n} แบบ`)} from="mask" delay={0.25} className="block" />
+          <SplitReveal as="span" text={tg("ที่ออกแบบมาเพื่อ{ธุรกิจไทย}")} from="mask" delay={0.4} className="block text-muted-foreground" />
+        </p>
+        <div className="flex max-w-md flex-col items-start gap-6 md:col-span-5 md:justify-self-end">
+          <p className="text-step-0 leading-[1.75] text-muted-foreground">
+            {tg(`${n} ธุรกิจ ${n} {บุคลิก} ลากเพื่อหมุนดู แล้วคลิก{การ์ด}ที่ชอบ เพื่อเปิดดู{เทมเพลต}และ{เดโม}สด`)}
           </p>
           <div className="pointer-events-auto">
             <Cta href="/templates" internal variant="ghost" arrow="up-right">
@@ -72,6 +74,17 @@ export function TemplateCylinder({ templates }: { templates: TemplateView[] }) {
             </Cta>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+export function TemplateCylinder({ templates }: { templates: TemplateView[] }) {
+  return (
+    <section id="templates" data-hue="sky" className="relative isolate scroll-mt-[var(--header-h)] overflow-hidden pt-[var(--section-y)]" aria-labelledby="templates-title">
+      <div className="pf-gallery-stage pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[78%]" aria-hidden="true" />
+      <div className="pointer-events-none relative z-10 px-[var(--gutter)]">
+        <TemplatesTitle templates={templates} />
       </div>
       {/* scoped tokens tint the WebGL stage: violet grid lines, pink pool, white fog */}
       <div className="pf-gallery" style={{ ["--foreground" as string]: "#1e8fd8", ["--primary" as string]: "#ff9fb8", ["--accent" as string]: "#fb8464", ["--background" as string]: "#f6f8fc", ["--surface" as string]: "#e6eef9" }}>

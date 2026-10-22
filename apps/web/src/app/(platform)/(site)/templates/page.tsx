@@ -3,6 +3,7 @@ import { SplitReveal } from "@rentweb/ui/motion";
 import { FinalCta } from "@/components/platform/final-cta";
 import { FILTERS, MODULE_LABEL, getTemplates, platformLinks } from "@/components/platform/platform-data";
 import { TemplateGrid, type GridCard } from "@/components/platform/template-grid";
+import { TemplatesWordmark } from "@/components/platform/templates-title";
 import { Mono, SectionIndex, tg } from "@/components/platform/ui";
 
 export const metadata: Metadata = {
@@ -37,13 +38,11 @@ export default function TemplatesPage() {
           <SectionIndex n="01" label="Templates — ทุกธุรกิจ ทุกบุคลิก" />
           <Mono className="hidden text-muted-foreground md:inline">{`${templates.length} LIVE DEMOS`}</Mono>
         </div>
-        <h1 id="templates-h1" className="pf-giant pf-grad-text pf-grad-ocean pf-shimmer mt-8 w-fit text-[clamp(2.6rem,11.2vw,14.5rem)]">
-          <span aria-hidden="true">
-            Templates<span className="pf-sup">©{templates.length}</span>
-          </span>
-          <span className="sr-only">เทมเพลตเว็บไซต์ {templates.length} ธุรกิจ</span>
-        </h1>
-        <div className="mt-10 grid gap-8 md:grid-cols-12 md:items-end">
+        <div className="pf-tpl">
+          <TemplatesWordmark as="h1" id="templates-h1" templates={templates} srText={`เทมเพลตเว็บไซต์ ${templates.length} ธุรกิจ`} seal={`SCROLL TO BROWSE · ${templates.length} LIVE DEMOS ·`} />
+          <div className="pf-tpl__rule" aria-hidden="true" />
+        </div>
+        <div className="mt-9 grid gap-8 md:grid-cols-12 md:items-end">
           <SplitReveal
             as="p"
             text={tg("เลือก{หน้าร้าน}ที่ใกล้ธุรกิจคุณที่สุด แล้วปรับให้เป็นแบรนด์คุณเอง")}

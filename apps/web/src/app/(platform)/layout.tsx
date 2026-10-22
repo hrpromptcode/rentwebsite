@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { fonts } from "@/fonts";
-import { jetbrainsMono, manrope } from "@/components/platform/fonts";
+import { instrumentSerif, jetbrainsMono, manrope } from "@/components/platform/fonts";
 import { platformLinks } from "@/components/platform/platform-data";
 import "../globals.css";
 import "@/components/platform/platform.css";
@@ -36,7 +36,7 @@ export const viewport: Viewport = { themeColor: "#F6F8FC", colorScheme: "light" 
  * html:has(.pf-root) in platform.css so the kit labs keep their own themes; chrome lives in (site)/layout.tsx.
  */
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
-  const fontVars = [fonts.prompt, fonts.anuphan, fonts["ibm-plex-sans-thai"], manrope, jetbrainsMono].map((f) => f.variable).join(" ");
+  const fontVars = [fonts.prompt, fonts.anuphan, fonts["ibm-plex-sans-thai"], manrope, jetbrainsMono, instrumentSerif].map((f) => f.variable).join(" ");
   return (
     <html lang="th" className={fontVars} data-motion="expressive" data-button="rounded" data-card="elevated" data-container="normal" data-scroll-behavior="smooth">
       <body className="min-h-dvh antialiased">{children}</body>

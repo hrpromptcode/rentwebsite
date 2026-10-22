@@ -13,7 +13,7 @@ presented as "a PromptCode product". Everything else (light theme, device-stack 
 - --pf-sunrise #FF9F5A → #FB8464 → #FF5470 → #FF2E7E (doodles, sparkles, chips, recommended border, badge/pill tag)
 - --pf-brand ocean → sunrise in sRGB with a short bridge (no purple midpoint): cycler underline, FAQ accent bar
 - text gradients: --pf-sunrise-ink #E8632E → #EF4F52 → #E0246C ("5 นาที", ≥3:1 large) · ocean-ink #0A7FB0 → #1670C4 → #194FA9
-  (TEMPLATES titles via .pf-grad-ocean, odometers)
+  (odometers; the .pf-grad-ocean TEMPLATES title was replaced in round 3)
 - fills with white text: --pf-ocean-deep #0B78B4 → #1670C4 → #1561B7 → #194FA9 (≥4.4:1) · --pf-sunrise-deep #E0246C → #D11A63
 - mesh washes #CDEFF7 cyan, #D6E4FA blue, #FFE2D3 peach, #FFD6E5 pink (+ white); chapter hue via [data-hue]
   (names historical: lilac = brand default, sky, peach, blush, violet = ocean, mint = aqua, dawn)
@@ -56,3 +56,41 @@ presented as "a PromptCode product". Everything else (light theme, device-stack 
 - kit WormholeTunnel replaced by a CSS-3D light journey (full control of the light look, no WebGL needed, reduced-motion list built in)
 - full-page Playwright captures > 16384 px wrap around → platform-light-shots.ts stitches 8000 px clips (fixed layers look stretched in full-page shots; judge with frames)
 - device mockups keep dark (slate) bezels but get light rims/bases and coloured floor glows
+
+## round 3 (owner 2026-10-23): "Templates" title + footer redesign, dev "1 Issue"
+- "1 Issue" root cause: React 19 logs `console.error("Encountered a script tag while rendering React component…")` whenever it has to
+  CREATE a `<script>` on the client. The kit Preloader (inline before-paint script) was rendered by (site)/page.tsx, so every soft
+  navigation back to "/" (e.g. /templates/shop → / via header logo) made React create it → Next dev indicator "1 Issue". Fix (no kit
+  change): components/platform/first-load-only.tsx `FirstLoadOnly` wraps the Preloader — renders children only when they come with the
+  server HTML (useSyncExternalStore server snapshot during hydration, latched in state), never on a client mount. Hard-load preloader
+  unchanged (checked with a desktop UA: overlay shows, `rw:preloaded` fires). Verified: tooling/qa/redesign/_pf-issue-walk.ts (wheel
+  scroll, pointer sweeps, gallery drag, footer hover, back-to-top, client nav / → /pricing → /templates → /features → /) and the
+  Browser pane: indicator empty, 0 console errors. Remaining console noise = kit three.js `THREE.Clock` deprecation WARNING (not an issue).
+- fonts.ts: Manrope now `weight: "variable"` (200–800, the thin cut for the title) + Instrument Serif (400 normal/italic,
+  `--font-pf-serif`, preload false) for small editorial accents; both wired in (platform)/layout.tsx.
+- Templates title (components/platform/templates-title.tsx `TemplatesWordmark`, used by the home gallery chapter h2 and the /templates
+  hero h1; CSS block ".pf-tpl" in platform.css): huge Manrope 200 "Templates" (−0.06em, ink) rising per letter (SplitReveal chars/mask),
+  serif-italic "(10)" count in ocean ink, an inline capsule = window onto the 10 showcase screenshots drifting (60 s loop, same URLs as the
+  gallery textures), opening from the left after the letters, a rotating glass seal ("DRAG TO EXPLORE · SPIN · OPEN A DEMO ·", Latin only:
+  Thai marks break on textPath) with a nudging ↓, a gradient hairline that draws in, two-tone Thai lead (ink "เว็บสำเร็จรูป 10 แบบ" /
+  muted "ที่ออกแบบมาเพื่อธุรกิจไทย") + the existing helper copy + "ดูเทมเพลตทั้งหมด". Hover (fine pointer): letters thicken 200→340 in a
+  wave, the capsule widens, screenshots lean in. Phones: "Templates(10)" on one line, capsule fills row 2 beside the seal.
+  Entrance keyed on `.pf-tpl:has(.pf-tpl__word[data-split-state="idle"])` under motion + scripting. ScrollScale (scroll-scale.tsx) and
+  the dead .pf-giant / .pf-sup / .pf-grad-ocean CSS removed.
+- Footer (site-footer.tsx + footer-wordmark.tsx, CSS "footer: a calm closing scene"): hairline top rule; brand block (mark + RentWeb /
+  "a PromptCode product", two-tone statement, start CTA + "เริ่มต้น ฿999/เดือน"); link grid (01) เมนู · (02) เทมเพลต (10 business labels →
+  /templates/<key>, two sub-columns) · (03) บริษัท (PromptCode logo, "RentWeb — a PromptCode product", เว็บไซต์ PromptCode ↗) · (04) ติดต่อ
+  (Facebook ↗); externals new tab + rel=noopener; RollText links (44 px targets, 38 px ≥ lg); bottom bar © · "ออกแบบและพัฒนาในประเทศไทย" ·
+  Bangkok LiveClock (centred ≥ md) · BackToTop in Magnetic, restyled as a 58 px glass circle that fills ocean-deep on hover. Footer muted
+  is #4f586b (≥ 5:1 on the aurora, sampled). Giant "RentWeb": porcelain letters (opaque white→#e7eff9 fill over a 2 px ink stroke, so
+  only a clean 1 px outer hairline shows — the variable font's overlapping contours showed through a plain text-stroke), soft lift
+  shadow, "Rent" ocean / "Web" sunrise colour revealed only under a radial spotlight (registered --pf-fx/--pf-fy): follows the pointer over
+  the whole footer (eased rAF), drifts by itself on touch, rests on the t|W seam under reduced motion; glint sweep; sliced ~16 % by the page
+  edge; fit-to-width via container units (--pf-fwm-k 4.06 measured; phones stack "Rent"/"Web", k 2.09). Soft ocean + sunrise aurora
+  behind it (CSS radials, slow drift). Same footer on /, /templates, /templates/[key], /features, /pricing and the 404.
+- verification: _pf-tpl-interact.ts (entrance / settled / hover 1440, reduced motion 1440 + 390: no running animations, 0 overflow),
+  _pf-footer-shots.ts (all six pages at 1440 + 390: identical footer, 0 overflow, 0 errors except the 404's own status line),
+  _pf-issue-walk.ts, _pf-preloader-check.ts; `pnpm --filter @rentweb/web typecheck` green.
+  Best frames: screenshots/pf-tpl-title-1440.png · pf-tpl-title-390.png · pf-tpl-hover-1440.png · pf-tpl-page-1440/390.png ·
+  pf-footer-final-home-1440.png · pf-footer-final-home-390.png · pf-footer-final-pricing-1440/390.png · pf-footer-final-home-top-1440.png ·
+  pf-tpl-reduce-*.png · pf-footer-reduce-*.png

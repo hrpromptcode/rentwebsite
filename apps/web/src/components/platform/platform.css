@@ -119,10 +119,6 @@ html:has(.pf-root) ::selection {
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
-/* cool variant (giant Latin titles) */
-.pf-grad-text.pf-grad-ocean {
-  background-image: linear-gradient(100deg, #0a7fb0 0%, #1670c4 40%, #194fa9 70%, #0a7fb0 100%);
-}
 @media (prefers-reduced-motion: no-preference) {
   .pf-shimmer {
     animation: pf-shimmer 6s ease-in-out infinite alternate;
@@ -502,27 +498,6 @@ html:has(.pf-root) ::selection {
 }
 
 /* ------------------------------------------------------------------ type helpers */
-.pf-giant {
-  font-family: var(--font-accent);
-  font-weight: 800;
-  line-height: 0.9;
-  letter-spacing: -0.045em;
-  text-transform: uppercase;
-}
-.pf-giant.pf-grad-text {
-  padding-block: 0.06em 0.1em;
-}
-.pf-sup {
-  font-family: var(--font-accent);
-  font-size: 0.24em;
-  letter-spacing: 0;
-  vertical-align: top;
-  position: relative;
-  top: 0.35em;
-  margin-left: 0.15em;
-  color: var(--pf-pink-ink);
-  -webkit-text-fill-color: var(--pf-pink-ink);
-}
 .pf-outline {
   color: transparent;
   -webkit-text-stroke: 1px color-mix(in oklab, var(--foreground) 40%, transparent);
@@ -940,6 +915,243 @@ html:has(.pf-root) ::selection {
   vertical-align: middle;
   background: var(--pf-sunrise);
   clip-path: polygon(50% 0%, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0% 50%, 39% 39%);
+}
+
+/* ------------------------------------------------------------------ "Templates" editorial title (owner 2026-10-23) */
+/* thin Manrope 200 word + serif-italic count + capsule window onto the drifting screenshots + rotating drag seal */
+.pf-tpl {
+  position: relative;
+}
+.pf-tpl__title {
+  position: relative;
+  margin-top: clamp(1.25rem, 2.4vw, 2.25rem);
+}
+.pf-tpl__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.16em;
+  row-gap: 0.16em;
+  font-family: var(--font-accent);
+  font-size: clamp(3.4rem, 18.5vw, 5.4rem);
+  font-weight: 200;
+  line-height: 0.98;
+  letter-spacing: -0.06em;
+  color: var(--foreground);
+  font-kerning: normal;
+}
+@media (min-width: 768px) {
+  .pf-tpl__line {
+    flex-wrap: nowrap;
+    font-size: clamp(5rem, 12.4vw, 15rem);
+  }
+}
+.pf-tpl__lockup {
+  white-space: nowrap;
+}
+.pf-tpl .pf-tpl__word [data-split-unit] {
+  transition:
+    transform var(--split-dur, 900ms) var(--split-ease) calc(var(--split-delay, 0ms) + var(--i, 0) * var(--split-stagger, 60ms)),
+    opacity calc(var(--split-dur, 900ms) * 0.7) var(--ease-out-quart) calc(var(--split-delay, 0ms) + var(--i, 0) * var(--split-stagger, 60ms)),
+    font-weight 900ms var(--pf-ease) calc(var(--i, 0) * 45ms);
+}
+.pf-tpl__count {
+  display: inline-block;
+  margin-left: 0.06em;
+  vertical-align: top;
+  font-family: var(--font-pf-serif), Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 0.24em;
+  line-height: 1;
+  letter-spacing: 0;
+  translate: 0 0.42em;
+  color: #1670c4; /* ocean ink, 4.9:1 on the page */
+}
+/* the capsule: a window onto the template screenshots, sitting on the baseline at cap height */
+.pf-tpl__capsule {
+  position: relative;
+  display: inline-block;
+  vertical-align: baseline;
+  flex: 1 1 2.5em;
+  align-self: center;
+  min-width: 1.4em;
+  height: 0.7em;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e6eef9;
+  box-shadow:
+    0 0.09em 0.2em -0.1em rgb(21 97 183 / 0.45),
+    0 0 0 1px rgb(21 97 183 / 0.1),
+    inset 0 0 0 1px rgb(255 255 255 / 0.6);
+  translate: 0 0.02em;
+  transition: flex-basis 900ms var(--pf-ease), clip-path 1100ms var(--pf-ease);
+  isolation: isolate;
+}
+/* glass sheen + a soft inner vignette over the strip */
+.pf-tpl__capsule::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.5) 0%, rgb(255 255 255 / 0) 38%),
+    radial-gradient(120% 100% at 50% 50%, transparent 62%, rgb(21 50 110 / 0.18) 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9);
+  pointer-events: none;
+}
+.pf-tpl__strip {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.05em;
+  padding-inline: 0.05em;
+  width: max-content;
+}
+.pf-tpl__strip img {
+  display: block;
+  height: 0.56em;
+  width: auto;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 0.045em;
+  box-shadow: 0 0.02em 0.06em rgb(27 34 51 / 0.18);
+  transition: scale 900ms var(--pf-ease);
+  user-select: none;
+}
+@media (min-width: 768px) {
+  .pf-tpl__capsule {
+    flex: 0 1 1.84em;
+    align-self: baseline;
+  }
+}
+/* the rotating seal, right of the word, pointing down at the gallery */
+.pf-tpl__seal {
+  position: relative;
+  flex: none;
+  align-self: center;
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: clamp(76px, 22vw, 96px);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  color: var(--foreground);
+  background: rgb(255 255 255 / 0.72);
+  border: 1px solid rgb(255 255 255 / 0.95);
+  box-shadow: 0 18px 40px -22px rgb(21 97 183 / 0.55), 0 0 0 1px rgb(21 97 183 / 0.08);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+}
+@media (min-width: 768px) {
+  .pf-tpl__seal {
+    width: clamp(84px, 9vw, 132px);
+    translate: 0 -0.06em;
+  }
+}
+.pf-tpl__seal svg[data-ring] {
+  position: absolute;
+  inset: 7%;
+  width: 86%;
+  height: 86%;
+  overflow: visible;
+}
+.pf-tpl__seal text {
+  font-family: var(--font-mono);
+  font-size: 9.6px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  fill: #3d4659; /* 9.6px mono → keep ≥ 7:1 */
+}
+.pf-tpl__seal svg[data-arrow] {
+  width: 24%;
+  height: 24%;
+  color: var(--primary);
+}
+/* hairline that draws in under the word */
+.pf-tpl__rule {
+  height: 1px;
+  margin-top: clamp(1.4rem, 2.6vw, 2.4rem);
+  background: linear-gradient(90deg, rgb(27 34 51 / 0.22), rgb(21 97 183 / 0.28) 40%, rgb(255 84 112 / 0.22) 75%, rgb(27 34 51 / 0) 100%);
+  transform-origin: 0 50%;
+  transition: transform 1400ms var(--pf-ease) 250ms;
+}
+.pf-tpl__lead {
+  font-size: clamp(1.75rem, 1.1rem + 2.4vw, 3.25rem);
+  font-weight: 600;
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pf-tpl__strip {
+    animation: pf-tpl-drift 60s linear infinite;
+  }
+  .pf-tpl__seal svg[data-ring] {
+    animation: pf-spin 22s linear infinite;
+  }
+  .pf-tpl__seal svg[data-arrow] {
+    animation: pf-tpl-nudge 2.4s var(--pf-ease) infinite;
+  }
+  /* hover: the letters gain weight in a wave, the window widens, the screenshots lean in */
+  @media (hover: hover) and (pointer: fine) {
+    .pf-tpl__title:hover .pf-tpl__word [data-split-unit] {
+      font-weight: 340;
+    }
+    .pf-tpl__title:hover .pf-tpl__capsule {
+      flex-basis: 2.2em;
+    }
+    .pf-tpl__title:hover .pf-tpl__strip img {
+      scale: 1.06;
+    }
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  /* entrance: letters rise (SplitReveal), then the count, the capsule opens from the left, the seal and hairline follow */
+  .pf-tpl:has(.pf-tpl__word[data-split-state="idle"]) .pf-tpl__count {
+    opacity: 0;
+    translate: 0 0.9em;
+  }
+  .pf-tpl:has(.pf-tpl__word[data-split-state="idle"]) .pf-tpl__capsule {
+    clip-path: inset(0 100% 0 0 round 999px);
+  }
+  .pf-tpl:has(.pf-tpl__word[data-split-state="idle"]) .pf-tpl__strip img {
+    scale: 1.25;
+  }
+  .pf-tpl:has(.pf-tpl__word[data-split-state="idle"]) .pf-tpl__seal {
+    opacity: 0;
+    scale: 0.6;
+    rotate: -40deg;
+  }
+  .pf-tpl:has(.pf-tpl__word[data-split-state="idle"]) .pf-tpl__rule {
+    transform: scaleX(0);
+  }
+  .pf-tpl__count {
+    transition: opacity 700ms var(--pf-ease) 520ms, translate 900ms var(--pf-ease) 520ms;
+  }
+  .pf-tpl__capsule {
+    clip-path: inset(0 0 0 0 round 999px);
+    transition: flex-basis 900ms var(--pf-ease), clip-path 1200ms var(--pf-ease) 620ms;
+  }
+  .pf-tpl__strip img {
+    transition: scale 1600ms var(--pf-ease) 620ms;
+  }
+  .pf-tpl__seal {
+    transition: opacity 700ms var(--pf-ease) 900ms, scale 1100ms var(--pf-spring) 900ms, rotate 1300ms var(--pf-ease) 900ms;
+  }
+}
+@keyframes pf-tpl-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+@keyframes pf-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pf-tpl-nudge {
+  0%, 100% { translate: 0 -8%; }
+  50% { translate: 0 10%; }
 }
 
 /* ------------------------------------------------------------------ template gallery on a light stage */
@@ -1652,16 +1864,311 @@ html:has(.pf-root) ::selection {
   to { transform: translate3d(var(--fx, 12px), var(--fy, -26px), 0) rotate(calc(var(--rot, 0deg) + 14deg)); }
 }
 
-/* ------------------------------------------------------------------ footer: giant gradient wordmark */
-.pf-footer .rw-wordmark[data-wordmark="spotlight"] [data-gw-text] {
-  background-image:
-    radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgb(255 255 255 / 0.75) 0, rgb(255 255 255 / 0) 22%),
-    /* "Rent" in the cool ocean family, "Web" in the warm sunrise family — like the two halves of the mark */
-    linear-gradient(90deg, #0ec0dc 0%, #1e8fd8 24%, #1561b7 50.5%, #fb8464 52%, #ff5470 76%, #ff2e7e 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
+/* ------------------------------------------------------------------ footer: a calm closing scene (owner 2026-10-23) */
+@property --pf-fx {
+  syntax: "<length-percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
+@property --pf-fy {
+  syntax: "<length-percentage>";
+  inherits: true;
+  initial-value: 52%;
+}
+.pf-footer {
+  /* a touch deeper than the page muted: footer copy sits on the pastel aurora (≥ 5:1 on its darkest wash) */
+  --muted-foreground: #4f586b;
+  /* "RentWeb" advance in em (Manrope 560, −0.05em tracking), measured in Chromium → the wordmark fills the gutter box */
+  --pf-fwm-k: 4.06;
+}
+.pf-footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--gutter);
+  right: var(--gutter);
+  height: 1px;
+  background: linear-gradient(90deg, rgb(27 34 51 / 0), rgb(21 97 183 / 0.26) 18%, rgb(27 34 51 / 0.14) 50%, rgb(255 84 112 / 0.24) 82%, rgb(27 34 51 / 0));
+}
+/* soft ocean + sunrise aurora under the wordmark */
+.pf-footer__aurora {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: min(64%, 44rem);
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 55%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 55%);
+}
+.pf-footer__aurora i {
+  position: absolute;
+  border-radius: 50%;
+}
+.pf-footer__aurora [data-a="ocean"] {
+  left: -14%;
+  bottom: -38%;
+  width: 70%;
+  aspect-ratio: 1.5;
+  background: radial-gradient(closest-side, rgb(14 192 220 / 0.42), rgb(30 143 216 / 0.2) 55%, rgb(30 143 216 / 0));
+}
+.pf-footer__aurora [data-a="sunrise"] {
+  right: -12%;
+  bottom: -42%;
+  width: 66%;
+  aspect-ratio: 1.45;
+  background: radial-gradient(closest-side, rgb(255 159 90 / 0.4), rgb(255 84 112 / 0.2) 58%, rgb(255 46 126 / 0));
+}
+.pf-footer__aurora [data-a="mist"] {
+  left: 28%;
+  bottom: -18%;
+  width: 44%;
+  aspect-ratio: 2.2;
+  background: radial-gradient(closest-side, rgb(255 255 255 / 0.85), rgb(255 255 255 / 0));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pf-footer__aurora [data-a="ocean"] {
+    animation: pf-aurora-a 22s ease-in-out infinite alternate;
+  }
+  .pf-footer__aurora [data-a="sunrise"] {
+    animation: pf-aurora-b 26s ease-in-out infinite alternate;
+  }
+}
+@keyframes pf-aurora-a {
+  to { transform: translate3d(12%, -6%, 0) scale(1.08); }
+}
+@keyframes pf-aurora-b {
+  to { transform: translate3d(-10%, -8%, 0) scale(1.1); }
+}
+
+.pf-footer__lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: 44px;
+  border-radius: 14px;
+}
+.pf-footer__statement {
+  font-size: clamp(1.7rem, 1.15rem + 1.5vw, 2.55rem);
+  font-weight: 600;
+  line-height: 1.24;
+  letter-spacing: -0.01em;
+}
+.pf-fcol__title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid rgb(27 34 51 / 0.08);
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.pf-flist {
+  display: grid;
+  margin-top: 0.7rem;
+}
+.pf-flist--two {
+  grid-template-columns: 1fr 1fr;
+  column-gap: 1.5rem;
+}
+.pf-flink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  font-size: 1rem;
+  color: var(--foreground);
+}
+@media (min-width: 1024px) {
+  .pf-flink {
+    min-height: 38px;
+  }
+}
+.pf-flink__arrow {
+  font-size: 0.82em;
+  color: var(--muted-foreground);
+  transition: transform 400ms var(--pf-ease), color 400ms;
+}
+.pf-flink:hover .pf-flink__arrow,
+.pf-flink:focus-visible .pf-flink__arrow {
+  transform: translate(2px, -2px);
+  color: var(--primary);
+}
+.pf-footer__pc {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-top: 1.1rem;
+}
+@media (min-width: 768px) {
+  .pf-footer__pc {
+    flex-direction: column;
+  }
+}
+.pf-footer__pc img {
+  mix-blend-mode: multiply;
+}
+.pf-footer__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  padding-block: 1.1rem;
+  border-top: 1px solid rgb(27 34 51 / 0.08);
+}
+.pf-footer__dot {
+  width: 3px;
+  height: 3px;
+  margin: 0 0.55em 0.2em;
+  border-radius: 999px;
+  background: currentColor;
+  vertical-align: middle;
+}
+@media (min-width: 768px) {
+  .pf-footer__bar {
+    position: relative;
+  }
+  .pf-footer__clock {
+    position: absolute;
+    left: 50%;
+    translate: -50% 0;
+  }
+}
+/* back to top: a glass circle that fills with the ocean on hover (magnetic wrapper) */
+.pf-footer .rw-btt {
+  font-size: 0.86rem;
+  color: var(--foreground);
+}
+.pf-footer .rw-btt [data-btt-icon] {
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  color: var(--primary);
+  background: rgb(255 255 255 / 0.78);
+  box-shadow: 0 16px 34px -18px rgb(21 97 183 / 0.6), inset 0 0 0 1px rgb(255 255 255 / 0.95);
+  transition: background 500ms var(--pf-ease), color 500ms var(--pf-ease), box-shadow 500ms var(--pf-ease);
+}
+.pf-footer .rw-btt:hover [data-btt-icon],
+.pf-footer .rw-btt:focus-visible [data-btt-icon] {
+  color: #ffffff;
+  background: linear-gradient(135deg, #0b78b4, #1561b7 60%, #194fa9);
+  box-shadow: 0 20px 40px -16px rgb(21 97 183 / 0.75), inset 0 0 0 1px rgb(255 255 255 / 0.3);
+}
+.pf-footer .rw-btt [data-track] {
+  stroke: rgb(21 97 183 / 0.12);
+}
+.pf-footer .rw-btt:hover [data-bar],
+.pf-footer .rw-btt:focus-visible [data-bar] {
+  stroke: rgb(255 255 255 / 0.85);
+}
+
+/* the giant frosted-glass wordmark, sliced by the page edge; colour lives only under the light */
+.pf-fwm {
+  position: relative;
+  container-type: inline-size;
+  padding-inline: var(--gutter);
+  margin-top: clamp(1.5rem, 4vw, 3.5rem);
+  user-select: none;
+  pointer-events: none;
+}
+.pf-fwm__word {
+  position: relative;
+  font-family: var(--font-accent);
+  font-weight: 560;
+  font-size: calc(100cqi / var(--pf-fwm-k));
+  line-height: 0.74;
+  letter-spacing: -0.05em;
+  white-space: nowrap;
+  /* slice: the lower ~16% of the letters falls past the footer's bottom edge (overflow hidden) */
+  margin-bottom: -0.12em;
+  --pf-fr: clamp(150px, 24cqi, 440px);
+  /* resting light on the seam between the two halves ("t|W"), until the pointer takes it */
+  --pf-fx: 50%;
+  --pf-fy: 52%;
+}
+.pf-fwm__word > span {
+  display: block;
   color: transparent;
   -webkit-text-fill-color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.pf-fwm__word > span + span {
+  position: absolute;
+  inset: 0;
+}
+/* hairline edge: a 2px stroke whose inner half (and every overlapping contour of the variable font) is covered by the
+   opaque porcelain fill above → a clean 1px outline */
+.pf-fwm__edge {
+  -webkit-text-stroke: 2px rgb(27 34 51 / 0.24);
+  filter: drop-shadow(0 26px 34px rgb(21 97 183 / 0.14));
+}
+.pf-fwm__glass {
+  background-image: linear-gradient(180deg, #ffffff 0%, #f6f9fe 42%, #e7eff9 100%);
+}
+.pf-fwm__light > span {
+  /* paint past the advance box: with the tight tracking the "t" bar and the "b" bowl overhang their boxes */
+  padding-inline: 0.1em;
+  margin-inline: -0.1em;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.pf-fwm__light > [data-half="ocean"] {
+  background-image: linear-gradient(90deg, #0ec0dc 0%, #1e8fd8 55%, #1561b7 100%);
+}
+.pf-fwm__light > [data-half="sunrise"] {
+  background-image: linear-gradient(90deg, #ff9f5a 0%, #ff5470 55%, #ff2e7e 100%);
+}
+.pf-fwm__light {
+  -webkit-mask-image: radial-gradient(circle var(--pf-fr) at var(--pf-fx) var(--pf-fy), #000 0%, rgb(0 0 0 / 0.78) 30%, rgb(0 0 0 / 0) 72%);
+  mask-image: radial-gradient(circle var(--pf-fr) at var(--pf-fx) var(--pf-fy), #000 0%, rgb(0 0 0 / 0.78) 30%, rgb(0 0 0 / 0) 72%);
+  opacity: 0.55;
+  transition: opacity 900ms var(--pf-ease);
+}
+.pf-fwm__word[data-lit] .pf-fwm__light,
+.pf-fwm__word[data-drift] .pf-fwm__light {
+  opacity: 1;
+}
+.pf-fwm__sheen {
+  background-image: linear-gradient(105deg, rgb(255 255 255 / 0) 40%, rgb(255 255 255 / 0.9) 47%, rgb(255 255 255 / 0) 54%);
+  background-size: 260% 100%;
+  background-position: 115% 0;
+  background-repeat: no-repeat;
+}
+/* phones: stack "Rent" over "Web" so the closing word stays big */
+@media (max-width: 639px) {
+  .pf-footer {
+    --pf-fwm-k: 2.09;
+  }
+  .pf-fwm__word {
+    line-height: 0.84;
+    --pf-fr: 46cqi;
+  }
+  .pf-fwm__word [data-half] {
+    display: block;
+    width: fit-content;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pf-fwm__sheen {
+    animation: pf-fwm-sheen 9s var(--pf-ease) infinite;
+  }
+  .pf-fwm__word[data-drift] {
+    animation: pf-fwm-drift 16s ease-in-out infinite alternate;
+  }
+}
+@keyframes pf-fwm-sheen {
+  0%, 52% { background-position: 115% 0; }
+  100% { background-position: -15% 0; }
+}
+@keyframes pf-fwm-drift {
+  0% { --pf-fx: 6%; --pf-fy: 30%; }
+  35% { --pf-fx: 38%; --pf-fy: 75%; }
+  70% { --pf-fx: 70%; --pf-fy: 25%; }
+  100% { --pf-fx: 96%; --pf-fy: 60%; }
 }
 
 /* ------------------------------------------------------------------ templates grid */

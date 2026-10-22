@@ -4,6 +4,7 @@ import { ChatBubbles } from "@/components/platform/chat-bubbles";
 import { FaqList } from "@/components/platform/faq-list";
 import { FeatureBento } from "@/components/platform/feature-bento";
 import { FinalCta } from "@/components/platform/final-cta";
+import { FirstLoadOnly } from "@/components/platform/first-load-only";
 import { HERO_KEYS } from "@/components/platform/hero-data";
 import { HomeHero } from "@/components/platform/home-hero";
 import { BusinessStory, LaunchTunnel, RealNumbers, TemplateCylinder, ToolsStrip } from "@/components/platform/home-sections";
@@ -29,7 +30,10 @@ export default async function PlatformHome() {
     .map((t) => ({ key: t.key, desktop: t.shot.desktop, mobile: t.shot.mobile, brand: t.business.brand }));
   return (
     <>
-      <Preloader brand="RentWeb" variant="counter" paths={["/"]} />
+      {/* hard loads only: a soft navigation back to "/" would make React create the inline <script> on the client (dev "1 Issue") */}
+      <FirstLoadOnly>
+        <Preloader brand="RentWeb" variant="counter" paths={["/"]} />
+      </FirstLoadOnly>
       <HomeHero signup={links.signup} templates={stats.templates} systems={stats.systems} shots={shots} />
       <ToolsStrip />
       <TemplateCylinder templates={templates} />

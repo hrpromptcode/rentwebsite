@@ -1,57 +1,105 @@
 import Link from "next/link";
-import { BackToTop, GiantWordmark, LiveClock, RollText } from "@rentweb/ui/motion";
+import { BackToTop, LiveClock, Magnetic, RollText } from "@rentweb/ui/motion";
+import { cn } from "@rentweb/ui/lib/utils";
+import { FooterWordmark } from "./footer-wordmark";
 import { getTemplates, platformLinks } from "./platform-data";
-import { Mono, tg } from "./ui";
+import { Cta, Mono, PromptCodeMark, tg } from "./ui";
 
 /** the owner's own channels (PromptCode) */
 const PROMPTCODE = { site: "https://promptcode-portfolio.netlify.app/", facebook: "https://www.facebook.com/promptcode.mb" };
 
-/** Platform footer (§4.3 #13): light, PromptCode brand card (logo, "a PromptCode product", website + Facebook), link columns, live clock, BackToTop and a full-width ocean→sunrise wordmark with a pointer spotlight. */
+function Column({ n, title, className, children }: { n: string; title: string; className?: string; children: React.ReactNode }) {
+  return (
+    <div className={cn("pf-fcol", className)}>
+      <p className="pf-fcol__title">
+        <Mono className="text-primary">{`(${n})`}</Mono>
+        <span>{title}</span>
+      </p>
+      {children}
+    </div>
+  );
+}
+
+/** roll-over footer link; external ones open a new tab (rel noopener) and carry a ↗ that lifts on hover */
+function FLink({ href, children, external, internal, className }: { href: string; children: string; external?: boolean; internal?: boolean; className?: string }) {
+  const cls = cn("pf-flink group", className);
+  const body = (
+    <>
+      <RollText underline>{children}</RollText>
+      {external ? (
+        <>
+          <span aria-hidden="true" className="pf-flink__arrow">
+            ↗
+          </span>
+          <span className="sr-only">(เปิดแท็บใหม่)</span>
+        </>
+      ) : null}
+    </>
+  );
+  if (internal)
+    return (
+      <Link href={href} className={cls}>
+        {body}
+      </Link>
+    );
+  return (
+    <a href={href} className={cls} {...(external ? { target: "_blank", rel: "noopener" } : {})}>
+      {body}
+    </a>
+  );
+}
+
+/**
+ * Platform footer — a calm closing scene (owner 2026-10-23: the flat clip-art gradient wordmark read cheap). A brand
+ * block (PromptCode mark + RentWeb, two-tone statement, start CTA), a four-column link grid (เมนู / เทมเพลต / บริษัท /
+ * ติดต่อ) with roll-over links, PromptCode logo + "RentWeb — a PromptCode product" + website / Facebook (new tab,
+ * rel=noopener), a quiet bottom bar (©, Bangkok clock, magnetic back-to-top circle) and a giant frosted-glass "RentWeb"
+ * sliced by the page edge whose colour is revealed by a pointer spotlight, over a soft ocean + sunrise aurora.
+ * Same on every (site) page: /, /templates, /templates/[key], /features, /pricing and the 404.
+ */
 export function SiteFooter() {
   const links = platformLinks();
   const templates = getTemplates();
+  const year = new Date().getFullYear();
   return (
-    <footer data-hue="dawn" className="pf-footer relative overflow-hidden pt-16 md:pt-24">
+    <footer data-hue="dawn" className="pf-footer relative isolate overflow-hidden">
+      <div className="pf-footer__aurora" aria-hidden="true">
+        <i data-a="ocean" />
+        <i data-a="sunrise" />
+        <i data-a="mist" />
+      </div>
       <div className="px-[var(--gutter)]">
-        <div className="grid gap-14 md:grid-cols-12">
-          <div className="md:col-span-5">
-            <Mono className="text-primary">(Ø) — RentWeb</Mono>
-            <p className="display-thai mt-6 max-w-[11em] text-step-4 font-semibold">{tg("เว็บสวย{ระดับ}{สตูดิโอ} ")}<span className="pf-grad-text">{tg("สำหรับ{ทุกร้าน}")}</span></p>
-            <p className="mt-5 max-w-md text-muted-foreground">
+        <div className="pf-footer__top grid gap-14 pt-16 md:pt-24 lg:grid-cols-12 lg:gap-10">
+          {/* brand block */}
+          <div className="lg:col-span-4">
+            <Link href="/" className="pf-footer__lockup group" aria-label="RentWeb by PromptCode — หน้าแรก">
+              <PromptCodeMark className="h-11" />
+              <span className="flex flex-col" aria-hidden="true">
+                <span className="font-accent text-[1.6rem] font-extrabold leading-none tracking-[-0.04em]">RentWeb</span>
+                <span className="mt-1.5 font-accent text-[0.68rem] font-bold uppercase leading-none tracking-[0.16em] text-muted-foreground" data-script="latin">
+                  a PromptCode product
+                </span>
+              </span>
+            </Link>
+            <p className="pf-footer__statement display-thai mt-9">
+              <span className="block">{tg("เว็บสวย{ระดับ}{สตูดิโอ}")}</span>
+              <span className="block text-muted-foreground">{tg("สำหรับ{ทุกร้าน}")}</span>
+            </p>
+            <p className="mt-5 max-w-sm text-[0.98rem] leading-[1.75] text-muted-foreground">
               {tg("{แพลตฟอร์ม}{เว็บไซต์}{สำเร็จรูป}สำหรับธุรกิจไทย เลือก{เทมเพลต} ปรับให้เป็น{แบรนด์}คุณ แล้วเปิดรับลูกค้าได้ในวันนี้")}
             </p>
-            <div className="pf-glass mt-9 flex max-w-md items-center gap-5 rounded-[24px] p-4 pr-6 shadow-[0_30px_60px_-44px_rgb(21_97_183/0.6)]">
-              <picture className="shrink-0">
-                <source srcSet="/brand/promptcode-logo.webp" type="image/webp" />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/brand/promptcode-logo.png" alt="PromptCode — Affordable Development" width={1024} height={706} loading="lazy" decoding="async" className="h-[5.5rem] w-auto" />
-              </picture>
-              <div className="min-w-0">
-                <p className="font-accent font-extrabold tracking-[-0.02em]">RentWeb — a PromptCode product</p>
-                <p className="mt-1 text-sm text-muted-foreground">{tg("{ผลิตภัณฑ์}โดย PromptCode {รับทำเว็บ}ราคาเข้าถึงได้")}</p>
-                <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold">
-                  {[
-                    { href: PROMPTCODE.site, label: "เว็บไซต์ PromptCode" },
-                    { href: PROMPTCODE.facebook, label: "Facebook" },
-                  ].map((l) => (
-                    <li key={l.href}>
-                      <a href={l.href} target="_blank" rel="noopener" className="group inline-flex min-h-11 items-center gap-1.5 text-primary">
-                        <RollText underline>{l.label}</RollText>
-                        <span aria-hidden="true" className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
-                          ↗
-                        </span>
-                        <span className="sr-only">(เปิดแท็บใหม่)</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+              <Cta href={links.signup} size="sm">
+                เริ่มสร้างเว็บไซต์
+              </Cta>
+              <span className="text-sm text-muted-foreground">{tg("เริ่มต้น ฿999/{เดือน}")}</span>
             </div>
           </div>
-          <nav aria-label="ลิงก์ส่วนท้าย" className="grid grid-cols-2 gap-10 sm:grid-cols-3 md:col-span-7">
-            <div>
-              <Mono as="p" className="text-muted-foreground">Explore</Mono>
-              <ul className="mt-5 grid gap-1">
+
+          {/* link grid */}
+          <nav aria-label="ลิงก์ส่วนท้าย" className="pf-footer__nav grid grid-cols-2 gap-x-6 gap-y-12 md:grid-cols-5 md:gap-x-8 lg:col-span-8 lg:pl-6">
+            <Column n="01" title="เมนู" className="order-1 md:order-none">
+              <ul className="pf-flist">
                 {[
                   { href: "/", label: "หน้าแรก" },
                   { href: "/templates", label: "เทมเพลต" },
@@ -59,59 +107,74 @@ export function SiteFooter() {
                   { href: "/pricing", label: "ราคา" },
                 ].map((l) => (
                   <li key={l.href}>
-                    <Link href={l.href} className="group inline-flex min-h-11 items-center text-[1.05rem]">
-                      <RollText underline>{l.label}</RollText>
-                    </Link>
+                    <FLink href={l.href} internal>
+                      {l.label}
+                    </FLink>
                   </li>
                 ))}
+                <li>
+                  <FLink href={links.login}>เข้าสู่ระบบ</FLink>
+                </li>
               </ul>
-            </div>
-            <div>
-              <Mono as="p" className="text-muted-foreground">Live demos</Mono>
-              <ul className="mt-5 grid gap-1">
+            </Column>
+            <Column n="02" title="เทมเพลต" className="order-3 col-span-2 md:order-none">
+              <ul className="pf-flist pf-flist--two">
                 {templates.map((t) => (
                   <li key={t.key}>
-                    <a href={t.demoUrl} target="_blank" rel="noreferrer" className="group inline-flex min-h-11 items-center gap-2 text-[1.05rem]">
-                      <RollText underline>{t.business.brand}</RollText>
-                      <span aria-hidden="true" className="text-muted-foreground transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
-                        ↗
-                      </span>
-                      <span className="sr-only">(เปิดแท็บใหม่)</span>
-                    </a>
+                    <FLink href={`/templates/${t.key}`} internal>
+                      {t.business.label}
+                    </FLink>
                   </li>
                 ))}
               </ul>
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <Mono as="p" className="text-muted-foreground">Start</Mono>
-              <ul className="mt-5 grid gap-1">
+            </Column>
+            <Column n="03" title="บริษัท" className="order-4 col-span-2 md:order-none md:col-span-1">
+              <div className="pf-footer__pc">
+                <picture className="block">
+                  <source srcSet="/brand/promptcode-logo.webp" type="image/webp" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/brand/promptcode-logo.png" alt="PromptCode — Affordable Development" width={1024} height={706} loading="lazy" decoding="async" className="h-16 w-auto" />
+                </picture>
+                <div>
+                  <p className="font-accent text-[0.95rem] font-extrabold leading-snug tracking-[-0.02em]">RentWeb — a PromptCode product</p>
+                  <p className="mt-1.5 text-sm leading-[1.65] text-muted-foreground">{tg("{ผลิตภัณฑ์}โดย PromptCode ทีม{รับทำเว็บ}ราคาเข้าถึงได้")}</p>
+                  <FLink href={PROMPTCODE.site} external className="mt-2 font-semibold text-primary">
+                    เว็บไซต์ PromptCode
+                  </FLink>
+                </div>
+              </div>
+            </Column>
+            <Column n="04" title="ติดต่อ" className="order-2 md:order-none">
+              <ul className="pf-flist">
                 <li>
-                  <a href={links.signup} className="group inline-flex min-h-11 items-center text-[1.05rem] font-semibold text-primary">
-                    <RollText underline>เริ่มสร้างเว็บไซต์</RollText>
-                  </a>
-                </li>
-                <li>
-                  <a href={links.login} className="group inline-flex min-h-11 items-center text-[1.05rem]">
-                    <RollText underline>เข้าสู่ระบบ</RollText>
-                  </a>
+                  <FLink href={PROMPTCODE.facebook} external>
+                    Facebook
+                  </FLink>
                 </li>
               </ul>
-              <div className="mt-10">
-                <Mono as="p" className="text-muted-foreground">Based in BKK</Mono>
-                <LiveClock label="กรุงเทพฯ" seconds className="mt-2 text-foreground" />
-              </div>
-            </div>
+              <p className="mt-4 text-sm leading-[1.7] text-muted-foreground">
+                {tg("ทักแชทเพจ PromptCode")}
+                <br />
+                {tg("{กรุงเทพฯ} · ประเทศไทย")}
+              </p>
+            </Column>
           </nav>
         </div>
 
-        <div className="mt-20 flex flex-col-reverse items-start justify-between gap-6 border-t border-border py-6 text-sm text-muted-foreground md:flex-row md:items-center">
-          <span>© {new Date().getFullYear()} RentWeb by PromptCode · สร้างด้วย Next.js · Postgres · ❤ ในประเทศไทย</span>
-          <BackToTop />
+        {/* bottom bar */}
+        <div className="pf-footer__bar mt-16 md:mt-20">
+          <p className="basis-full text-sm leading-[1.7] text-muted-foreground md:basis-auto">
+            <span className="block md:inline">© {year} RentWeb by PromptCode</span>
+            <span className="pf-footer__dot hidden md:inline-block" aria-hidden="true" />
+            <span className="block md:inline">{tg("{ออกแบบ}และพัฒนาในประเทศไทย")}</span>
+          </p>
+          <LiveClock label="กรุงเทพฯ" seconds className="pf-footer__clock text-muted-foreground" />
+          <Magnetic strength={0.4} max={14} className="pf-footer__btt inline-flex">
+            <BackToTop label="กลับขึ้นด้านบน" />
+          </Magnetic>
         </div>
       </div>
-      <div className="relative px-[var(--gutter)] pb-4">
-        <GiantWordmark text="RentWeb" effect="spotlight" decorative cap="40vw" className="font-accent font-semibold text-foreground" />
-      </div>
+      <FooterWordmark />
     </footer>
   );
 }
