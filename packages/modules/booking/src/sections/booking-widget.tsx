@@ -17,6 +17,7 @@ import { bookingConfig, type BookingConfig } from "../services/config";
 import { bookingDepositMethods } from "../services/bookings";
 import { addDays, bkkDateString, parseYmd, ymdToString } from "../services/time";
 import { METHOD_LABELS } from "../labels";
+import { BookingStyles } from "../components/hi/styles";
 
 type Props = z.output<typeof bookingWidget.schema>;
 
@@ -122,10 +123,13 @@ export async function BookingWidgetSection({ ctx, props: p, id, preselect, bare 
   );
 
   if (bare) return wizard;
+  // operational inside (§5.3/§5.5 "booking-widget"): the section frames it calmly, the widget itself has no scroll motion
   return (
-    <Section id={id} tone={p.compact ? "default" : "surface"}>
-      <div className={p.compact ? "container-x max-w-3xl" : "container-x"}>
-        <SectionHeading heading={p.heading} subheading={p.subheading} />
+    <Section id={id} type="booking-widget" tone={p.compact ? "default" : "surface"} className="overflow-clip">
+      <BookingStyles />
+      {!p.compact && <div aria-hidden className="bk-soft-bg pointer-events-none absolute inset-0" />}
+      <div className={p.compact ? "container-x relative max-w-3xl" : "container-x relative"}>
+        <SectionHeading eyebrow={p.compact ? undefined : "BOOKING"} heading={p.heading} subheading={p.subheading} />
         {/* embedded on a home page: no floating LINE button over the calendar while the widget is on a phone screen */}
         <FloatingChatOptOut>{wizard}</FloatingChatOptOut>
       </div>

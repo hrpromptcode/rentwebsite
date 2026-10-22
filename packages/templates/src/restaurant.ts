@@ -1,6 +1,6 @@
 import type { TemplateDefinition } from "@rentweb/core/tenant";
 import { diningTables, menuCategories, menuItemModifierGroups, menuItems, menus, modifierGroups, modifiers } from "@rentweb/db";
-import { section, hero, marquee, menuHighlight, imageText, gallery, testimonials, reservationCta, faq, features, stats } from "@rentweb/storefront/definitions";
+import { section, hero, marquee, menuHighlight, stickyStory, gallery, testimonials, reservationCta, faq, features, stats } from "@rentweb/storefront/definitions";
 import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, u, avatar } from "./shared";
 
 export const restaurant: TemplateDefinition = {
@@ -19,6 +19,11 @@ export const restaurant: TemplateDefinition = {
     // AC-02: the sample business's location / opening-hours copy; new (non-demo) shops get a placeholder or neutral copy
     ["มีที่จอดหน้าร้าน 6 คัน และจอดเพิ่มได้ที่ซอยอารีย์ 4 (ฟรี) หรือเดินจาก BTS อารีย์ 5 นาที", "[ที่จอดรถ · การเดินทางมาร้าน]"],
     ["BTS อารีย์ ทางออก 3 เดิน 5 นาที มีที่จอดรถหน้าร้าน", "[การเดินทางมาร้าน · ที่จอดรถ]"],
+    // the home sticky story's clock kickers are the sample kitchen's day; new shops get time-of-day words instead
+    ["05:00", "ก่อนรุ่งสาง"],
+    ["07:00", "เช้าตรู่"],
+    ["10:00", "ช่วงสาย"],
+    ["11:00", "มื้อของคุณ"],
   ],
   recommendedPresets: ["ember", "midnight", "candy", "aurora"],
   complexity: 3,
@@ -67,24 +72,32 @@ export const restaurant: TemplateDefinition = {
         section(hero, {
           variant: "fullscreen",
           eyebrow: "อารีย์ · กรุงเทพฯ",
-          heading: "รสชาติบ้าน ที่คิดถึง",
+          heading: "รสชาติบ้าน\nที่คิดถึง",
           subheading: "อาหารไทยตำรับคุณยาย ปรุงสดจากวัตถุดิบท้องถิ่น เสิร์ฟในบ้านไม้อายุ 70 ปี",
           primaryCta: { label: "ดูเมนู", href: "/menu" },
           secondaryCta: { label: "จองโต๊ะ", href: "/reserve" },
-          image: { url: u("1517248135467-4c7edcad34c4", 2000), alt: "บรรยากาศร้าน" },
-          overlay: 0.5,
+          // signature scene (preset ember → steam): steam curls up out of the tom yum bowl on the dark slate
+          image: { url: u("1548943487-a2e4e43b4853", 2000), alt: "ต้มยำกุ้งในชามเซรามิกสีเข้ม" },
+          overlay: 0.45,
+          scene: "auto",
+          cornerLabels: ["ครัวไทยตำรับบ้าน", "ปรุงสดทุกจาน"],
+          clock: true,
           stats: [{ value: "70 ปี", label: "บ้านไม้หลังเดิม" }, { value: "4.8", label: "Google Reviews" }, { value: "32", label: "เมนูประจำบ้าน" }],
         }),
         section(marquee, { items: ["แกงเขียวหวานไก่บ้าน", "ปลากะพงทอดน้ำปลา", "ยำส้มโอกุ้งสด", "ข้าวเหนียวมะม่วง", "หมูสะเต๊ะสูตรคุณยาย"], style: "giant", speed: 45, separator: "·" }),
         section(menuHighlight, { eyebrow: "เมนูแนะนำ", heading: "จานที่ทุกโต๊ะต้องสั่ง", subheading: "สแกน QR ที่โต๊ะเพื่อสั่งได้เลย หรือสั่งกลับบ้านล่วงหน้า", variant: "filmstrip", limit: 6 }),
-        section(imageText, {
+        section(stickyStory, {
           eyebrow: "วัตถุดิบ",
-          heading: "จากสวนถึงจาน ภายในวันเดียว",
-          body: "ผักและสมุนไพรจากสวนออร์แกนิกนครปฐม ปลาจากเรือประมงพื้นบ้านประจวบฯ ส่งถึงครัวทุกเช้า เราปรุงด้วยเครื่องแกงตำมือ ไม่ใช้ผงชูรส",
-          image: { url: u("1504674900247-0877df9cc836", 1400), alt: "อาหาร" },
-          imagePosition: "left",
-          bullets: ["เครื่องแกงตำมือทุกวัน", "ไม่ใช้ผงชูรส", "มีเมนูมังสวิรัติและไม่ใส่ถั่ว"],
-          cta: { label: "ดูเมนูทั้งหมด", href: "/menu" },
+          heading: "จากสวนถึงจาน\nภายในวันเดียว",
+          subheading: "ผักและสมุนไพรจากสวนออร์แกนิกนครปฐม ปลาจากเรือประมงพื้นบ้านประจวบฯ ส่งถึงครัวทุกเช้า เราปรุงด้วยเครื่องแกงตำมือ ไม่ใช้ผงชูรส",
+          mediaStyle: "full",
+          side: "right",
+          items: [
+            { kicker: "05:00", title: "สวนผักนครปฐม", body: "โหระพา กะเพรา ตะไคร้ เก็บจากแปลงออร์แกนิกตอนฟ้ายังไม่สาง ใบยังมีน้ำค้างตอนมาถึงครัว", image: u("1777205838206-03e7248e474c", 1400), chips: ["ออร์แกนิก", "เก็บสดทุกเช้า"] },
+            { kicker: "07:00", title: "ตลาดเช้า", body: "ปลาจากเรือประมงพื้นบ้าน กุ้งแม่น้ำ และผลไม้ตามฤดูกาล คัดเองทีละตะกร้าก่อนแม่ค้าจะเก็บร้าน", image: u("1747396108528-682b02327818", 1400), chips: ["ประมงพื้นบ้าน", "ตามฤดูกาล"] },
+            { kicker: "10:00", title: "ครัวบ้านริม", body: "ตำเครื่องแกงด้วยครกหิน ผัดไฟแรงในกระทะเหล็ก ไม่ใช้ผงชูรส ทุกจานปรุงตามสูตรที่คุณยายสอน", image: u("1723967052599-93403a001bb1", 1400), chips: ["เครื่องแกงตำมือ", "ไม่ใช้ผงชูรส"] },
+            { kicker: "11:00", title: "โต๊ะของคุณ", body: "เสิร์ฟร้อน ๆ ถึงโต๊ะ สั่งเพิ่มผ่าน QR ได้ตลอดมื้อ แล้วขอบิลจากมือถือได้เลย", image: u("1679541946014-a47f1ec0dc1a", 1400), chips: ["มีเมนูมังสวิรัติ", "แจ้งไม่ใส่ถั่วได้"], href: "/menu" },
+          ],
         }),
         section(features, {
           variant: "cards",
@@ -101,12 +114,15 @@ export const restaurant: TemplateDefinition = {
           layout: "masonry",
           columns: 3,
           images: [
-            { url: u("1517248135467-4c7edcad34c4", 1000), alt: "ร้าน" },
-            { url: u("1414235077428-338989a2e8c0", 1000), alt: "โต๊ะอาหาร" },
-            { url: u("1551218808-94e220e084d2", 1000), alt: "มุมสวน" },
-            { url: u("1546069901-ba9599a7e63c", 1000), alt: "จานอาหาร" },
-            { url: u("1555939594-58d7cb561ad1", 1000), alt: "ย่าง" },
-            { url: u("1476224203421-9ac39bcb3327", 1000), alt: "อาหาร" },
+            { url: u("1675150277436-9c7348972c11", 1000), alt: "สำรับอาหารไทยบนโต๊ะไม้" },
+            { url: u("1517248135467-4c7edcad34c4", 1000), alt: "บรรยากาศในร้านยามค่ำ" },
+            { url: u("1696785129061-6939a4c2a1fe", 1000), alt: "ไฟแรงจากเตาในครัว" },
+            { url: u("1722995690313-9ef561d30143", 1000), alt: "สำรับบนใบตอง" },
+            { url: u("1551218808-94e220e084d2", 1000), alt: "หั่นสมุนไพรสดในครัว" },
+            { url: u("1705056508219-0aa0ceb16820", 1000), alt: "ข้าวเหนียวมะม่วง" },
+            { url: u("1414235077428-338989a2e8c0", 1000), alt: "โต๊ะอาหารพร้อมเสิร์ฟ" },
+            { url: u("1646850149335-f15d028036b3", 1000), alt: "สำรับอาหารเหนือ" },
+            { url: u("1555939594-58d7cb561ad1", 1000), alt: "ของย่างเตาถ่าน" },
           ],
         }),
         section(testimonials, {
@@ -118,8 +134,8 @@ export const restaurant: TemplateDefinition = {
             { quote: "จองโต๊ะโซนสวนให้แม่วันเกิด ร้านเตรียมเค้กให้ด้วย ประทับใจ", name: "คุณบอส", role: "Facebook", avatar: avatar("bos"), rating: 5 },
           ],
         }),
-        section(reservationCta, { heading: "จองโต๊ะสำหรับวันพิเศษ", body: "โซนสวนรับได้ 6–12 ที่นั่ง เหมาะกับงานเลี้ยงครอบครัว แจ้งโอกาสพิเศษได้ตอนจอง", image: { url: u("1414235077428-338989a2e8c0", 1200), alt: "" } }),
-        section(stats, { variant: "row", items: [{ value: 70, suffix: " ปี", label: "บ้านไม้หลังเดิม" }, { value: 32, label: "เมนูประจำบ้าน" }, { value: 48000, suffix: "+", label: "จานที่เสิร์ฟปีที่แล้ว" }, { value: 4.8, label: "คะแนน Google" }] }),
+        section(reservationCta, { heading: "จองโต๊ะ\nสำหรับวันพิเศษ", body: "โซนสวนรับได้ 6–12 ที่นั่ง เหมาะกับงานเลี้ยงครอบครัว แจ้งโอกาสพิเศษได้ตอนจอง", image: { url: u("1414235077428-338989a2e8c0", 1200), alt: "" } }),
+        section(stats, { variant: "row", items: [{ value: 70, suffix: " ปี", label: "บ้านไม้หลังเดิม" }, { value: 32, label: "เมนูประจำบ้าน" }, { value: 48000, suffix: "+", label: "จานที่เสิร์ฟปีที่แล้ว" }, { value: 12, label: "โต๊ะในบ้านและในสวน" }] }),
         section(faq, {
           heading: "คำถามที่พบบ่อย",
           items: [
@@ -139,12 +155,12 @@ export const restaurant: TemplateDefinition = {
     const cats = await tx
       .insert(menuCategories)
       .values([
-        { tenantId, menuId: menu!.id, name: "ของทานเล่น", nameEn: "Starters", sort: 0 },
-        { tenantId, menuId: menu!.id, name: "แกงและต้ม", nameEn: "Curries & Soups", sort: 1 },
-        { tenantId, menuId: menu!.id, name: "ผัดและทอด", nameEn: "Stir-fried & Fried", sort: 2 },
-        { tenantId, menuId: menu!.id, name: "ยำ", nameEn: "Salads", sort: 3 },
-        { tenantId, menuId: menu!.id, name: "ของหวาน", nameEn: "Desserts", sort: 4 },
-        { tenantId, menuId: menu!.id, name: "เครื่องดื่ม", nameEn: "Drinks", sort: 5 },
+        { tenantId, menuId: menu!.id, name: "ของทานเล่น", nameEn: "Starters", description: "เปิดโต๊ะด้วยของกินเล่นจากเตาถ่าน", sort: 0 },
+        { tenantId, menuId: menu!.id, name: "แกงและต้ม", nameEn: "Curries & Soups", description: "เครื่องแกงตำมือทุกเช้า ไม่ใช้ผงชูรส", sort: 1 },
+        { tenantId, menuId: menu!.id, name: "ผัดและทอด", nameEn: "Stir-fried & Fried", description: "ไฟแรงจากกระทะเหล็ก หอมกลิ่นกระทะ", sort: 2 },
+        { tenantId, menuId: menu!.id, name: "ยำ", nameEn: "Salads", description: "เปรี้ยว เผ็ด หวาน ปรุงสดทีละจาน", sort: 3 },
+        { tenantId, menuId: menu!.id, name: "ของหวาน", nameEn: "Desserts", description: "ปิดท้ายมื้อแบบคุณยาย หวานกำลังดี", sort: 4 },
+        { tenantId, menuId: menu!.id, name: "เครื่องดื่ม", nameEn: "Drinks", description: "ชงสดทุกแก้ว", sort: 5 },
       ])
       .returning({ id: menuCategories.id, name: menuCategories.name });
     const cat = (n: string) => cats.find((c) => c.name === n)!.id;
@@ -170,26 +186,27 @@ export const restaurant: TemplateDefinition = {
       { tenantId, groupId: sweet!.id, name: "ไม่หวาน", priceDelta: 0, sort: 2 },
     ]);
 
+    // images: every dish photo shows the dish (verified ids, 2026-10-22); d = the menu line under the dish name
     const items = [
-      { c: "ของทานเล่น", n: "หมูสะเต๊ะสูตรคุณยาย (6 ไม้)", e: "Pork Satay", p: 16000, img: u("1555939594-58d7cb561ad1", 800), tags: ["แนะนำ"], mods: [extra!.id], f: true },
-      { c: "ของทานเล่น", n: "ปอเปี๊ยะทอดผัก", e: "Vegetable Spring Rolls", p: 12000, img: u("1559847844-5315695dadae", 800), tags: ["มังสวิรัติ"], mods: [] },
-      { c: "แกงและต้ม", n: "แกงเขียวหวานไก่บ้าน", e: "Green Curry", p: 22000, img: u("1455619452474-d2be8b1e70cd", 800), tags: ["แนะนำ", "เผ็ด"], spicy: 2, mods: [spicy!.id, extra!.id], f: true },
-      { c: "แกงและต้ม", n: "ต้มยำกุ้งแม่น้ำ", e: "Tom Yum Goong", p: 32000, img: u("1569718212165-3a8278d5f624", 800), tags: ["แนะนำ", "เผ็ด"], spicy: 3, mods: [spicy!.id], f: true },
-      { c: "แกงและต้ม", n: "แกงจืดเต้าหู้หมูสับ", e: "Clear Tofu Soup", p: 15000, img: u("1547592166-23ac45744acd", 800), tags: [], mods: [] },
-      { c: "ผัดและทอด", n: "ปลากะพงทอดน้ำปลา", e: "Fried Sea Bass", p: 45000, img: u("1534939561126-855b8675edd7", 800), tags: ["แนะนำ"], mods: [], f: true },
-      { c: "ผัดและทอด", n: "ผัดกะเพราเนื้อโคขุน", e: "Basil Beef", p: 19000, img: u("1512058564366-18510be2db19", 800), tags: ["เผ็ด"], spicy: 2, mods: [spicy!.id, extra!.id] },
-      { c: "ผัดและทอด", n: "ผัดผักรวมน้ำมันหอย", e: "Stir-fried Vegetables", p: 14000, img: u("1512621776951-a57141f2eefd", 800), tags: ["มังสวิรัติ"], mods: [] },
-      { c: "ยำ", n: "ยำส้มโอกุ้งสด", e: "Pomelo Salad", p: 21000, img: u("1546069901-ba9599a7e63c", 800), tags: ["แนะนำ"], spicy: 1, mods: [spicy!.id], f: true },
-      { c: "ยำ", n: "ส้มตำไทยไข่เค็ม", e: "Som Tum", p: 12000, img: u("1540189549336-e6e99c3679fe", 800), tags: ["เผ็ด"], spicy: 2, mods: [spicy!.id] },
-      { c: "ของหวาน", n: "ข้าวเหนียวมะม่วง", e: "Mango Sticky Rice", p: 14000, img: u("1551024601-bec78aea704b", 800), tags: ["แนะนำ"], mods: [], f: true },
-      { c: "ของหวาน", n: "บัวลอยไข่หวาน", e: "Bua Loy", p: 9000, img: u("1567620905732-2d1ec7ab7445", 800), tags: [], mods: [] },
-      { c: "เครื่องดื่ม", n: "ชาไทยเย็น", e: "Thai Iced Tea", p: 7000, img: u("1509042239860-f550ce710b93", 800), tags: [], mods: [sweet!.id] },
-      { c: "เครื่องดื่ม", n: "น้ำตะไคร้ใบเตย", e: "Lemongrass Pandan", p: 6000, img: u("1495474472287-4d71bcdd2085", 800), tags: ["มังสวิรัติ"], mods: [sweet!.id] },
+      { c: "ของทานเล่น", n: "หมูสะเต๊ะสูตรคุณยาย (6 ไม้)", e: "Pork Satay", d: "หมักกะทิและเครื่องเทศข้ามคืน ย่างเตาถ่าน เสิร์ฟน้ำจิ้มถั่วและอาจาด", p: 16000, img: u("1555939594-58d7cb561ad1", 800), tags: ["แนะนำ"], mods: [extra!.id], f: true },
+      { c: "ของทานเล่น", n: "ปอเปี๊ยะทอดผัก", e: "Vegetable Spring Rolls", d: "แป้งบางกรอบ ไส้วุ้นเส้นผักรวม จิ้มน้ำจิ้มบ๊วยเปรี้ยวหวาน", p: 12000, img: u("1515022376298-7333f33e704b", 800), tags: ["มังสวิรัติ"], mods: [] },
+      { c: "แกงและต้ม", n: "แกงเขียวหวานไก่บ้าน", e: "Green Curry", d: "ไก่บ้านเนื้อแน่น มะเขือเปราะ ใบโหระพา น้ำแกงข้นหอมกะทิ", p: 22000, img: u("1455619452474-d2be8b1e70cd", 800), tags: ["แนะนำ", "เผ็ด"], spicy: 2, mods: [spicy!.id, extra!.id], f: true },
+      { c: "แกงและต้ม", n: "ต้มยำกุ้งแม่น้ำ", e: "Tom Yum Goong", d: "กุ้งแม่น้ำตัวโต น้ำข้นเปรี้ยวจี๊ด หอมข่า ตะไคร้ ใบมะกรูด", p: 32000, img: u("1548943487-a2e4e43b4853", 800), tags: ["แนะนำ", "เผ็ด"], spicy: 3, mods: [spicy!.id], f: true },
+      { c: "แกงและต้ม", n: "แกงจืดเต้าหู้หมูสับ", e: "Clear Tofu Soup", d: "น้ำซุปกระดูกเคี่ยวนาน เต้าหู้ไข่ หมูสับ สาหร่าย", p: 15000, img: u("1547592166-23ac45744acd", 800), tags: [], mods: [] },
+      { c: "ผัดและทอด", n: "ปลากะพงทอดน้ำปลา", e: "Fried Sea Bass", d: "ปลากะพงทั้งตัว ทอดกรอบนอกนุ่มใน ราดน้ำปลา แกล้มยำมะม่วง", p: 45000, img: u("1533959938354-70634c231c21", 800), tags: ["แนะนำ"], mods: [], f: true },
+      { c: "ผัดและทอด", n: "ผัดกะเพราเนื้อโคขุน", e: "Basil Beef", d: "เนื้อโคขุนสับหยาบ ผัดไฟแรงกับกะเพราและพริกสด", p: 19000, img: u("1707897634981-39bcfe435268", 800), tags: ["เผ็ด"], spicy: 2, mods: [spicy!.id, extra!.id] },
+      { c: "ผัดและทอด", n: "ผัดผักรวมน้ำมันหอย", e: "Stir-fried Vegetables", d: "ผักสวนตามฤดูกาล ผัดไฟแรง กรอบหวาน", p: 14000, img: u("1592578630143-fac65cda7a67", 800), tags: ["มังสวิรัติ"], mods: [] },
+      { c: "ยำ", n: "ยำส้มโอกุ้งสด", e: "Pomelo Salad", d: "ส้มโอฉ่ำ กุ้งลวก มะพร้าวคั่ว น้ำยำเปรี้ยวหวานกลมกล่อม", p: 21000, img: u("1546069901-ba9599a7e63c", 800), tags: ["แนะนำ"], spicy: 1, mods: [spicy!.id], f: true },
+      { c: "ยำ", n: "ส้มตำไทยไข่เค็ม", e: "Som Tum", d: "มะละกอเส้นกรอบ ถั่วลิสงคั่ว ไข่เค็ม ตำในครกดินเผา", p: 12000, img: u("1652690528406-a547a6eb143f", 800), tags: ["เผ็ด"], spicy: 2, mods: [spicy!.id] },
+      { c: "ของหวาน", n: "ข้าวเหนียวมะม่วง", e: "Mango Sticky Rice", d: "มะม่วงน้ำดอกไม้สุกกำลังดี ข้าวเหนียวมูนกะทิ โรยถั่วทอง", p: 14000, img: u("1705234384751-84081009588e", 800), tags: ["แนะนำ"], mods: [], f: true },
+      { c: "ของหวาน", n: "บัวลอยไข่หวาน", e: "Bua Loy", d: "บัวลอยหลากสีในน้ำกะทิอบควันเทียน ใส่ไข่หวาน", p: 9000, img: u("1738573519644-93b700f3adf3", 800), tags: [], mods: [] },
+      { c: "เครื่องดื่ม", n: "ชาไทยเย็น", e: "Thai Iced Tea", d: "ใบชาไทยชงเข้ม นมข้นหอมมัน ไม่หวานแหลม", p: 7000, img: u("1788016284568-2cfdc5994fd5", 800), tags: [], mods: [sweet!.id] },
+      { c: "เครื่องดื่ม", n: "น้ำตะไคร้ใบเตย", e: "Lemongrass Pandan", d: "ต้มสดทุกวัน หอมตะไคร้และใบเตย ดื่มแล้วสดชื่น", p: 6000, img: u("1513558161293-cdaf765ed2fd", 800), tags: ["มังสวิรัติ"], mods: [sweet!.id] },
     ];
     for (const [i, it] of items.entries()) {
       const [row] = await tx
         .insert(menuItems)
-        .values({ tenantId, categoryId: cat(it.c), name: it.n, nameEn: it.e, price: it.p, image: it.img, tags: it.tags, spicyLevel: it.spicy ?? 0, featured: !!it.f, sort: i, station: it.c === "เครื่องดื่ม" ? "bar" : it.c === "ของหวาน" ? "dessert" : "kitchen", prepMinutes: 15 })
+        .values({ tenantId, categoryId: cat(it.c), name: it.n, nameEn: it.e, description: it.d, price: it.p, image: it.img, tags: it.tags, spicyLevel: it.spicy ?? 0, featured: !!it.f, sort: i, station: it.c === "เครื่องดื่ม" ? "bar" : it.c === "ของหวาน" ? "dessert" : "kitchen", prepMinutes: 15 })
         .returning({ id: menuItems.id });
       if (it.mods.length) await tx.insert(menuItemModifierGroups).values(it.mods.map((g, j) => ({ tenantId, itemId: row!.id, groupId: g, sort: j })));
     }

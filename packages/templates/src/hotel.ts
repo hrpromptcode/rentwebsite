@@ -1,7 +1,7 @@
 import type { TemplateDefinition } from "@rentweb/core/tenant";
 import { customers, nextCounter, rentalBlockedDates, rentalExtras, rentalRateRules, rentalStays, rentalUnitTypes } from "@rentweb/db";
-import { section, features, imageText, testimonials, faq, cta, gallery, steps, contact, staySearch, roomGrid, hero } from "@rentweb/storefront/definitions";
-import { aboutPage, contactPage, legalPages, u, avatar } from "./shared";
+import { section, features, imageText, testimonials, faq, cta, gallery, steps, contact, staySearch, roomGrid, hero, text, stickyStory, interlude } from "@rentweb/storefront/definitions";
+import { aboutPage, legalPages, u, avatar } from "./shared";
 
 /*
  * Hotel / resort template: "บ้านทะเล เขาหลัก" (Baan Talay Khao Lak) – a 21-key boutique resort on Khuk Khak beach,
@@ -145,41 +145,46 @@ export const hotel: TemplateDefinition = {
       title: "หน้าแรก",
       kind: "home",
       sections: [
+        // §5.9 signature: golden-hour photo on top, live WebGL sea in the lower band, glass date bar on the water
         section(staySearch, {
           variant: "fullscreen",
           eyebrow: "บูทีครีสอร์ตริมหาดคึกคัก · เขาหลัก พังงา",
-          heading: "ตื่นมาพร้อมเสียงคลื่น ที่บ้านทะเล",
-          subheading: "ห้องพักและพูลวิลล่า 21 หลังบนหาดคึกคักที่เงียบที่สุดของเขาหลัก อาหารเช้าริมทะเล สระอินฟินิตี้ และทีมงานที่จำชื่อคุณได้ตั้งแต่คืนแรก",
-          image: { url: IMG.hero, alt: "สระอินฟินิตี้ริมทะเลยามเย็น" },
+          heading: "ตื่นมาพร้อมเสียงคลื่น\nที่บ้านทะเล",
+          subheading: "พูลวิลล่าริมหาด อาหารเช้าสั่งทำทีละจาน และทีมงานที่จำชื่อคุณได้ตั้งแต่คืนแรก",
+          image: { url: IMG.beach, alt: "แสงอาทิตย์ยามเย็นบนหาดคึกคัก" },
           imageSecondary: { url: IMG.heroSecondary, alt: "พูลวิลล่า" },
           badges: ["หาดส่วนตัว", "อาหารเช้าริมทะเล", "รถรับส่งสนามบิน"],
           stats: [
-            { value: "21", label: "ห้องพักและวิลล่า" },
             { value: "180 ม.", label: "หาดส่วนตัว" },
             { value: "4.9", label: "คะแนนจากแขก" },
+            { value: "75 นาที", label: "จากสนามบินภูเก็ต" },
           ],
-          overlay: 0.42,
+          overlay: 0.3,
+        }),
+        section(text, {
+          eyebrow: "ที่บ้านทะเล",
+          body: "21 ห้องพักและพูลวิลล่า บนหาดคึกคักที่เงียบที่สุดของเขาหลัก",
+          align: "center",
+          size: "large",
         }),
         section(roomGrid, {
           eyebrow: "ห้องพัก",
           heading: "เลือกมุมที่ใช่ของคุณ",
           subheading: "ตั้งแต่ห้องดีลักซ์ในสวนไปจนถึงพูลวิลล่าหน้าหาด ทุกหลังมีระเบียง เครื่องนอนผ้าฝ้ายอียิปต์ และเครื่องชงกาแฟ",
-          variant: "cards",
+          variant: "editorial",
           limit: 6,
         }),
-        section(features, {
-          eyebrow: "ที่บ้านทะเล",
+        section(stickyStory, {
+          eyebrow: "หนึ่งวันที่บ้านทะเล",
           heading: "วันหยุดที่ไม่ต้องรีบไปไหน",
           subheading: "ทุกอย่างอยู่ห่างกันไม่เกินสองนาทีเดิน ทรายอยู่ปลายเท้า อาหารอยู่ปลายมือ",
-          variant: "bento",
-          columns: 3,
+          mediaStyle: "full",
+          side: "right",
           items: [
-            { icon: "Waves", title: "หาดส่วนตัว 180 เมตร", description: "เตียงอาบแดด ร่ม และผ้าเช็ดตัวจัดให้ทุกเช้า น้ำทะเลใสเดินลงได้จากสวนหน้าวิลล่า", image: IMG.beach },
-            { icon: "UtensilsCrossed", title: "ห้องอาหารริมหาด", description: "อาหารเช้าสั่งทำทีละจาน อาหารใต้และซีฟู้ดจากเรือประมงท้องถิ่นในมื้อเย็น", image: IMG.dining },
-            { icon: "Sparkles", title: "สปาใต้ต้นมะพร้าว", description: "นวดไทย อโรมา และทรีตเมนต์หลังวันแดดแรง จองล่วงหน้าได้ที่แผนกต้อนรับ" },
-            { icon: "Car", title: "รถรับส่งสนามบิน", description: "รถตู้ส่วนตัวพร้อมน้ำเย็นและผ้าเย็น ห่างจากสนามบินภูเก็ตเพียง 75 นาที" },
-            { icon: "Wifi", title: "Wi-Fi ความเร็วสูงทุกจุด", description: "ทำงานริมสระได้จริง ครอบคลุมถึงเตียงอาบแดดหน้าหาด" },
-            { icon: "Baby", title: "ยินดีต้อนรับครอบครัว", description: "เตียงเด็ก เก้าอี้เสริม สระเด็ก และเมนูเด็กไม่มีค่าใช้จ่าย", image: IMG.palms },
+            { kicker: "เช้า", title: "อาหารเช้าริมทะเล", body: "ตื่นตามใจ แล้วเดินลงหาดที่เงียบที่สุดของวัน อาหารเช้าสั่งทำทีละจานรออยู่ที่ห้องอาหารริมหาด บนระเบียงห้อง หรือริมสระส่วนตัว", image: IMG.swing, chips: ["สั่งทำทีละจาน", "เสิร์ฟถึงระเบียง"] },
+            { kicker: "บ่าย", title: "สระและหาดส่วนตัว", body: "หาดส่วนตัว 180 เมตร เตียงอาบแดด ร่ม และผ้าเช็ดตัวจัดไว้ให้ทุกวัน สระอินฟินิตี้หันหน้าออกทะเล และสปาใต้ต้นมะพร้าวหลังวันแดดแรง", image: IMG.heroSecondary, chips: ["สระอินฟินิตี้", "สปา", "Wi-Fi ถึงชายหาด"] },
+            { kicker: "เย็น", title: "พระอาทิตย์ตกที่ท่าเรือ", body: "เดินเลียบหาดไปปลายท่าเรือไม้ตอนแดดเริ่มอ่อน ดูฟ้าเปลี่ยนเป็นสีทองพร้อมเครื่องดื่มเย็น ๆ จากบาร์ริมสระ", image: IMG.poolDusk, chips: ["บาร์ริมสระ"] },
+            { kicker: "ค่ำ", title: "ดินเนอร์ใต้แสงเทียน", body: "ซีฟู้ดจากเรือประมงท้องถิ่นในมื้อเย็น หรือเลือกดินเนอร์ริมหาดใต้แสงเทียนเป็นบริการเสริมตอนจองห้อง", image: IMG.dining, chips: ["ซีฟู้ดท้องถิ่น", "บริการเสริม"], href: "/rooms" },
           ],
         }),
         section(imageText, {
@@ -195,14 +200,15 @@ export const hotel: TemplateDefinition = {
         section(gallery, {
           heading: "บรรยากาศที่บ้านทะเล",
           subheading: "แสงเช้าบนหาด สระอินฟินิตี้ยามเย็น และมุมโปรดของแขกที่กลับมาซ้ำ",
-          layout: "masonry",
+          layout: "filmstrip",
           columns: 3,
           images: [
-            { url: IMG.poolDusk, alt: "สระอินฟินิตี้ยามเย็น" },
+            { url: IMG.hero, alt: "สระอินฟินิตี้ริมทะเลยามเย็น" },
+            { url: IMG.sunset, alt: "ศาลาริมหาดยามเย็น" },
             { url: IMG.villaPool, alt: "พูลวิลล่าหน้าหาด" },
-            { url: IMG.swing, alt: "ชิงช้าริมหาด" },
+            { url: IMG.palms, alt: "ชายหาดขาวใต้ต้นมะพร้าว" },
+            { url: IMG.pool, alt: "สระว่ายน้ำยามค่ำ" },
             { url: IMG.bedroom, alt: "ห้องนอนดีลักซ์" },
-            { url: IMG.sunset, alt: "พระอาทิตย์ตกทะเลอันดามัน" },
             { url: IMG.spa, alt: "ห้องสปา" },
           ],
         }),
@@ -225,13 +231,15 @@ export const hotel: TemplateDefinition = {
             { q: "รับเด็กเล็กและสัตว์เลี้ยงหรือไม่?", a: "เด็กอายุไม่เกิน 6 ปีพักฟรีเมื่อใช้เตียงเดิม มีเตียงเด็กให้ยืม ส่วนสัตว์เลี้ยงรับเฉพาะวิลล่าหน้าหาด แจ้งล่วงหน้าเพื่อเตรียมที่นอนและชาม" },
           ],
         }),
-        section(cta, {
-          variant: "split",
+        // closing moment: the turquoise bay from above, rippling under the pointer (water-ripple scene)
+        section(interlude, {
+          scene: "water-ripple",
           heading: "ให้ทะเลเป็นคนปลุกคุณ",
           body: "เลือกวันเช็กอิน–เช็กเอาต์ ดูราคาต่อคืนแบบเห็นทุกบรรทัด แล้วยืนยันการจองด้วยมัดจำผ่านพร้อมเพย์ภายในไม่กี่นาที",
-          primaryCta: { label: "ค้นหาห้องว่าง", href: "/stay" },
-          secondaryCta: { label: "ดูห้องพักทั้งหมด", href: "/rooms" },
+          cta: { label: "ค้นหาห้องว่าง", href: "/stay" },
           image: { url: IMG.aerial, alt: "มุมสูงของรีสอร์ตริมหาด" },
+          height: "screen",
+          align: "center",
         }),
       ],
     },
@@ -331,15 +339,28 @@ export const hotel: TemplateDefinition = {
       heading: "บ้านทะเล — บ้านริมหาดที่เราอยากให้คุณกลับมา",
       body: "บ้านทะเลเปิดบ้านหลังแรกเมื่อปี 2016 จากบ้านพักตากอากาศของครอบครัวบนหาดคึกคัก ที่เพื่อนของเพื่อนขอมาพักจนต้องสร้างเพิ่มทีละหลัง วันนี้เรามีห้องพักและวิลล่า 21 หลัง แต่ยังรักษาสิ่งที่ทำให้ที่นี่ต่างจากโรงแรมใหญ่ไว้ นั่นคือทีมงานที่จำชื่อคุณได้ตั้งแต่คืนแรก อาหารเช้าที่สั่งทำทีละจาน และหาดที่เงียบพอจะได้ยินเสียงตัวเองคิด\n\nพนักงานกว่าครึ่งเป็นคนในตำบลเดียวกับเรา ปลาในมื้อเย็นมาจากเรือประมงที่จอดอยู่ปลายหาด และเราปลูกต้นไม้ชายฝั่งเพิ่มทุกปีเพื่อให้หาดนี้ยังเป็นหาดเดิมสำหรับแขกที่กลับมา",
     }),
-    contactPage({
-      heading: "ติดต่อและสอบถาม",
-      body: "ส่งข้อความถึงทีมงานได้ทุกช่องทาง เราตอบกลับภายในหนึ่งชั่วโมงในเวลาทำการ สำหรับการจองแบบกลุ่มหรืองานแต่งริมหาด แจ้งวันที่และจำนวนแขกเพื่อรับใบเสนอราคา",
-      faqs: [
-        { q: "จัดงานแต่งงานหรืองานเลี้ยงริมหาดได้ไหม?", a: "ได้ รองรับงานเลี้ยงริมหาดสูงสุด 80 ท่าน และเหมาทั้งรีสอร์ตสำหรับงานแต่งแบบส่วนตัว ติดต่อเราเพื่อรับใบเสนอราคา" },
-        { q: "มีบริการรับส่งจากสนามบินไหม?", a: "มี เลือกเพิ่มรถรับส่งสนามบินแบบส่วนตัวได้ในขั้นตอนจอง หรือแจ้งทีมงานล่วงหน้าอย่างน้อยหนึ่งวัน" },
-        { q: "ออกใบกำกับภาษีได้ไหม?", a: "ได้ แจ้งชื่อและเลขประจำตัวผู้เสียภาษีตอนเช็กอิน เราออกใบกำกับภาษีเต็มรูปแบบให้ก่อนเช็กเอาต์" },
+    {
+      slug: "contact",
+      title: "ติดต่อเรา",
+      showInNav: false,
+      sections: [
+        // §5.0: hotel contact = interest chips that prefill the message (same form, no backend change)
+        section(contact, {
+          heading: "ติดต่อและสอบถาม",
+          body: "ส่งข้อความถึงทีมงานได้ทุกช่องทาง เราตอบกลับภายในหนึ่งชั่วโมงในเวลาทำการ สำหรับการจองแบบกลุ่มหรืองานแต่งริมหาด แจ้งวันที่และจำนวนแขกเพื่อรับใบเสนอราคา",
+          variant: "chips",
+          interests: ["จองห้องพัก", "จองแบบกลุ่ม", "งานแต่งริมหาด", "รถรับส่งสนามบิน", "อื่น ๆ"],
+        }),
+        section(faq, {
+          heading: "คำถามที่พบบ่อย",
+          items: [
+            { q: "จัดงานแต่งงานหรืองานเลี้ยงริมหาดได้ไหม?", a: "ได้ รองรับงานเลี้ยงริมหาดสูงสุด 80 ท่าน และเหมาทั้งรีสอร์ตสำหรับงานแต่งแบบส่วนตัว ติดต่อเราเพื่อรับใบเสนอราคา" },
+            { q: "มีบริการรับส่งจากสนามบินไหม?", a: "มี เลือกเพิ่มรถรับส่งสนามบินแบบส่วนตัวได้ในขั้นตอนจอง หรือแจ้งทีมงานล่วงหน้าอย่างน้อยหนึ่งวัน" },
+            { q: "ออกใบกำกับภาษีได้ไหม?", a: "ได้ แจ้งชื่อและเลขประจำตัวผู้เสียภาษีตอนเช็กอิน เราออกใบกำกับภาษีเต็มรูปแบบให้ก่อนเช็กเอาต์" },
+          ],
+        }),
       ],
-    }),
+    },
     ...legalPages("Baan Talay Khao Lak"),
   ],
   async seed(tx, tenantId) {

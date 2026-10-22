@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CalendarCheck, ShieldCheck, Sparkles } from "lucide-react";
-import { Reveal } from "@rentweb/ui/motion";
+import { Eyebrow, SectionStyles } from "@rentweb/storefront";
 import { bookingWidget } from "@rentweb/storefront/definitions";
-import { BookingWidgetSection } from "@rentweb/module-booking/ui";
+import { BookingStyles, BookingWidgetSection, INDEX_LABEL } from "@rentweb/module-booking/ui";
 import { bookingConfig } from "@rentweb/module-booking/services";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime } from "@/lib/tenant";
@@ -38,19 +38,28 @@ export default async function BookPage({ params, searchParams }: { params: Param
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
-      <section className="container-x pt-8 pb-16 md:pt-12 md:pb-24">
-        <Reveal className="mx-auto mb-8 max-w-3xl text-center md:mb-12">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">{runtime.config.name}</p>
-          <h1 className="heading-display mt-3 text-4xl font-semibold md:text-6xl">จองคิวออนไลน์</h1>
-          <p className="mx-auto mt-4 max-w-xl text-muted-foreground">เลือกบริการ ผู้ให้บริการ วันและเวลาที่สะดวก กรอกเบอร์โทรเพื่อยืนยัน ใช้เวลาไม่ถึงหนึ่งนาที</p>
-          <ul className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+      <section className="container-x pt-6 pb-20 md:pt-10 md:pb-28">
+        <SectionStyles />
+        <BookingStyles />
+        <header className="mb-8 grid gap-6 md:mb-12 lg:grid-cols-12 lg:items-end">
+          <div className="lg:col-span-7">
+            <Eyebrow text={runtime.config.name} index={`01 / ${INDEX_LABEL.book}`} className="mb-4" />
+            <h1 data-script="thai" className="rw-h rw-fade font-heading text-step-5 font-semibold">
+              จองคิวออนไลน์
+            </h1>
+            <p className="rw-fade mt-4 max-w-xl text-step-1 leading-relaxed text-muted-foreground">เลือกบริการ ผู้ให้บริการ วันและเวลาที่สะดวก กรอกเบอร์โทรเพื่อยืนยัน ใช้เวลาไม่ถึงหนึ่งนาที</p>
+          </div>
+          <ul className="rw-fade grid gap-2 text-sm text-muted-foreground lg:col-span-5 lg:justify-self-end">
             {perks.map((p) => (
-              <li key={p.text} className="inline-flex max-w-full items-start gap-2 text-left">
-                <p.icon className="mt-0.5 size-4 shrink-0 text-primary" /> <span>{p.text}</span>
+              <li key={p.text} className="inline-flex max-w-full items-start gap-2.5">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
+                  <p.icon className="size-3.5" />
+                </span>
+                <span className="pt-1">{p.text}</span>
               </li>
             ))}
           </ul>
-        </Reveal>
+        </header>
         <BookingWidgetSection ctx={ctx} props={props} id="book" index={0} preselect={{ service: typeof service === "string" ? service : null, staff: typeof staff === "string" ? staff : null, package: typeof pkg === "string" ? pkg : null, date: typeof date === "string" ? date : null, start: typeof start === "string" ? start : null }} bare />
       </section>
     </PageBody>

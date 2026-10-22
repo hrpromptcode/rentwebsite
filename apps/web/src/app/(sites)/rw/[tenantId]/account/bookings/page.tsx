@@ -3,12 +3,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CalendarDays, ChevronLeft, ChevronRight, Clock, Sparkles, UserRound, Wallet } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
-import { Reveal, Stagger, StaggerItem } from "@rentweb/ui/motion";
 import { cn } from "@rentweb/ui/lib/utils";
 import { Img } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
 import { countActiveSessions, formatBkkTime, formatThaiDate, listCustomerBookings, packagesEnabled, type BookingListItem } from "@rentweb/module-booking/services";
-import { BookingStatusBadge } from "@rentweb/module-booking/ui";
+import { BookingStatusBadge, CompactIntro } from "@rentweb/module-booking/ui";
 import { L, PAYMENT_STATUS } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
@@ -46,36 +45,40 @@ export default async function AccountBookingsPage({ params, searchParams }: { pa
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
-      <section className="container-x pt-8 pb-16 md:pt-12 md:pb-24">
+      <section className="container-x pt-6 pb-20 md:pt-10 md:pb-28">
         <div className="mx-auto max-w-3xl">
-          <Link href="/account" className="inline-flex h-11 items-center gap-1 text-sm text-muted-foreground transition hover:text-foreground">
-            <ChevronLeft className="size-4" /> บัญชีของฉัน
-          </Link>
-          <Reveal className="mt-2 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="heading-display text-4xl font-semibold md:text-5xl">{copy.title}</h1>
-              <p className="mt-2 text-sm text-muted-foreground">
+          <CompactIntro
+            back={
+              <Link href="/account" className="inline-flex h-11 items-center gap-1 text-sm text-muted-foreground transition hover:text-foreground">
+                <ChevronLeft className="size-4" /> บัญชีของฉัน
+              </Link>
+            }
+            title={copy.title}
+            lead={
+              <>
                 {copy.stats}
                 {passes && sessionsLeft > 0 ? ` · ${clinic ? "คอร์ส" : "คลาสพาส"}เหลือ ${sessionsLeft} ครั้ง` : ""}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              {passes && (
-                <Button asChild variant="outline" className="h-11">
-                  <Link href="/account/packages">
-                    <Wallet /> {clinic ? "คอร์สของฉัน" : L.myPasses}
+              </>
+            }
+            right={
+              <div className="flex flex-wrap gap-2">
+                {passes && (
+                  <Button asChild variant="outline" className="h-11 rounded-full">
+                    <Link href="/account/packages">
+                      <Wallet /> {clinic ? "คอร์สของฉัน" : L.myPasses}
+                    </Link>
+                  </Button>
+                )}
+                <Button asChild className="h-11 rounded-full">
+                  <Link href={copy.ctaHref}>
+                    <Sparkles /> {copy.cta}
                   </Link>
                 </Button>
-              )}
-              <Button asChild className="h-11">
-                <Link href={copy.ctaHref}>
-                  <Sparkles /> {copy.cta}
-                </Link>
-              </Button>
-            </div>
-          </Reveal>
+              </div>
+            }
+          />
 
-          <nav aria-label="ช่วงเวลา" className="mt-6 grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
+          <nav aria-label="ช่วงเวลา" className="mt-8 grid grid-cols-2 gap-1 rounded-full border border-[color-mix(in_oklab,var(--foreground)_10%,transparent)] bg-muted/60 p-1">
             <ScopeTab href="/account/bookings" active={scope === "upcoming"}>
               {copy.upcoming} ({upcoming.length})
             </ScopeTab>
@@ -85,21 +88,23 @@ export default async function AccountBookingsPage({ params, searchParams }: { pa
           </nav>
 
           {list.length === 0 ? (
-            <div className="card mt-6 flex flex-col items-center gap-3 p-10 text-center">
-              <CalendarDays className="size-10 text-muted-foreground" />
+            <div className="bk-panel rw-fade mt-6 flex flex-col items-center gap-4 p-12 text-center">
+              <span className="flex size-14 items-center justify-center rounded-full bg-primary-soft text-primary">
+                <CalendarDays className="size-6" />
+              </span>
               <p className="text-muted-foreground">{scope === "upcoming" ? copy.emptyUpcoming : copy.emptyPast}</p>
-              <Button asChild size="lg">
+              <Button asChild size="lg" className="rounded-full">
                 <Link href={copy.ctaHref}>{copy.cta}</Link>
               </Button>
             </div>
           ) : (
-            <Stagger className="mt-6 grid gap-3">
-              {list.map((b) => (
-                <StaggerItem key={b.id}>
+            <ul className="mt-6 grid gap-3">
+              {list.map((b, i) => (
+                <li key={b.id} className="bk-pop" style={{ "--i": Math.min(i, 12) } as React.CSSProperties}>
                   <BookingRow b={b} />
-                </StaggerItem>
+                </li>
               ))}
-            </Stagger>
+            </ul>
           )}
         </div>
       </section>
@@ -109,7 +114,7 @@ export default async function AccountBookingsPage({ params, searchParams }: { pa
 
 function ScopeTab({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
   return (
-    <Link href={href} aria-current={active ? "page" : undefined} className={cn("flex h-11 items-center justify-center rounded-full text-sm font-medium transition", active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+    <Link href={href} aria-current={active ? "page" : undefined} className={cn("flex h-11 items-center justify-center rounded-full text-sm font-medium transition-colors duration-300", active ? "bg-primary text-primary-foreground shadow-[0_10px_24px_-14px_var(--primary)]" : "text-muted-foreground hover:text-foreground")}>
       {children}
     </Link>
   );
@@ -117,10 +122,10 @@ function ScopeTab({ href, active, children }: { href: string; active: boolean; c
 
 function BookingRow({ b }: { b: BookingListItem }) {
   return (
-    <Link href={`/bookings/${b.id}`} className="card flex items-center gap-4 p-4 transition hover:-translate-y-0.5 hover:border-primary/50 md:p-5">
-      <div className="flex w-16 shrink-0 flex-col items-center rounded-[var(--radius-lg)] bg-primary-soft py-2 text-primary">
+    <Link href={`/bookings/${b.id}`} className="bk-panel group flex items-center gap-4 p-4 transition-[transform,box-shadow,border-color] duration-500 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-[0_20px_50px_-30px_var(--primary)] md:p-5">
+      <div className="flex w-16 shrink-0 flex-col items-center rounded-[calc(var(--radius,.75rem)*1.1)] bg-primary-soft py-2 text-primary-ink">
         <span className="text-[11px] uppercase">{formatThaiDate(b.startsAt, { short: true }).split(" ")[1]}</span>
-        <span className="font-heading text-2xl font-semibold leading-none">{formatThaiDate(b.startsAt).split(" ")[0]}</span>
+        <span className="font-accent text-2xl font-semibold leading-none">{formatThaiDate(b.startsAt).split(" ")[0]}</span>
         <span className="text-[11px]">{formatBkkTime(b.startsAt)}</span>
       </div>
       {b.serviceImage ? <Img src={b.serviceImage} alt="" className="hidden size-14 shrink-0 rounded-[var(--radius-lg)] object-cover sm:block" /> : null}
@@ -145,7 +150,7 @@ function BookingRow({ b }: { b: BookingListItem }) {
       <div className="hidden text-right sm:block">
         <p className="font-heading text-lg font-semibold text-primary">{b.price === 0 ? L.free : thb(b.price)}</p>
       </div>
-      <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+      <ChevronRight className="size-5 shrink-0 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5" />
     </Link>
   );
 }

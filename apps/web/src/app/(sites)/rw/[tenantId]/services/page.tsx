@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, Sparkles } from "lucide-react";
-import { Button } from "@rentweb/ui/components/button";
-import { Reveal, Stagger, StaggerItem } from "@rentweb/ui/motion";
+import { Sparkles } from "lucide-react";
 import { cn } from "@rentweb/ui/lib/utils";
+import { CtaButton, Rise, StaggerCell, StaggerList } from "@rentweb/storefront";
 import { listServiceCategories, listServices } from "@rentweb/module-booking/services";
-import { ServiceCard } from "@rentweb/module-booking/ui";
+import { FilterPills, INDEX_LABEL, ModuleIntro, ServiceIndex, ServiceMotifCard, ServicesAside, lookOf } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
@@ -21,7 +19,11 @@ export async function generateMetadata({ params }: { params: Promise<{ tenantId:
 type Params = Promise<{ tenantId: string }>;
 type Search = Promise<{ category?: string }>;
 
-/** /services?category=<slug> – every active service, filterable by category. */
+/**
+ * /services?category=<slug> – every active service, filterable by category (§5.0 listing page, marketing-light):
+ * giant intro + the business signature visual (clinic glass droplets over an arch, spa slow water), category pills with a
+ * sliding active pill, then arch cards (clinic / default) or the spa menu index with cursor-following photos.
+ */
 export default async function ServicesPage({ params, searchParams }: { params: Params; searchParams: Search }) {
   const { tenantId } = await params;
   const { category } = await searchParams;
@@ -35,74 +37,60 @@ export default async function ServicesPage({ params, searchParams }: { params: P
   }));
   const active = categories.find((c) => c.slug === category) ?? null;
   const featured = services.filter((s) => s.featured);
+  const look = lookOf(runtime.config);
+  const allow3d = (runtime.theme.effects as { scene3d?: string }).scene3d !== "off";
+  const visuals = [...featured, ...services].map((s) => s.image).filter((x): x is string => !!x);
+  const spaStill = look === "spa" ? (services.find((s) => s.slug === "foot-60" || /หิน|stone/i.test(s.name))?.image ?? visuals[0]) : null;
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
-      <section className="container-x pt-8 pb-16 md:pt-12 md:pb-24">
-        <Reveal className="max-w-2xl">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">{L.services}</p>
-          <h1 className="heading-display mt-3 text-4xl font-semibold md:text-6xl">{active ? active.name : "บริการทั้งหมด"}</h1>
-          <p className="mt-4 text-muted-foreground">
+      <ModuleIntro
+        eyebrow={active ? L.services : L.services}
+        index={`02 / ${INDEX_LABEL.services}`}
+        title={active ? active.name : "บริการทั้งหมด"}
+        count={services.length}
+        countLabel="SERVICES"
+        lead={
+          <>
             {services.length} รายการ · เลือกบริการเพื่อดูรายละเอียด หรือกด “{L.bookNow}” เพื่อเลือกวันและเวลาได้ทันที
-          </p>
-        </Reveal>
-
+          </>
+        }
+        aside={visuals.length ? <ServicesAside look={look} images={spaStill ? [spaStill, ...visuals] : visuals} allow3d={allow3d} /> : undefined}
+      >
         {categories.length > 1 && (
-          <Reveal delay={0.05} className="-mx-4 mt-8 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-            <nav aria-label="หมวดหมู่บริการ" className="flex w-max gap-2 sm:w-auto sm:flex-wrap">
-              <CategoryChip href="/services" active={!active}>
-                ทั้งหมด
-              </CategoryChip>
-              {categories.map((c) => (
-                <CategoryChip key={c.id} href={`/services?category=${encodeURIComponent(c.slug)}`} active={active?.id === c.id}>
-                  {c.name}
-                </CategoryChip>
-              ))}
-            </nav>
-          </Reveal>
+          <FilterPills
+            id="svc-cats"
+            ariaLabel="หมวดหมู่บริการ"
+            items={[{ href: "/services", label: "ทั้งหมด", active: !active }, ...categories.map((c) => ({ href: `/services?category=${encodeURIComponent(c.slug)}`, label: c.name, active: active?.id === c.id }))]}
+          />
         )}
+      </ModuleIntro>
 
+      <section className="container-x pb-20 md:pb-32">
         {services.length === 0 ? (
-          <div className="card mt-10 p-10 text-center text-muted-foreground">ยังไม่มีบริการในหมวดนี้</div>
+          <div className="bk-panel mt-6 flex flex-col items-center gap-3 p-12 text-center text-muted-foreground">
+            <Sparkles className="size-8 text-primary" /> ยังไม่มีบริการในหมวดนี้
+          </div>
+        ) : look === "spa" ? (
+          <ServiceIndex services={services} look={look} grouped={!active} className="mt-4" />
         ) : (
-          <Stagger className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {services.map((s) => (
-              <StaggerItem key={s.id} className="h-full">
-                <ServiceCard s={s} />
-              </StaggerItem>
+          <StaggerList className="mt-4 grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3" stagger={0.08}>
+            {services.map((s, i) => (
+              <StaggerCell key={s.id} className={cn("h-full", i % 3 === 1 && "lg:translate-y-16")}>
+                <ServiceMotifCard s={s} look={look} index={i} priority={i < 3} />
+              </StaggerCell>
             ))}
-          </Stagger>
+          </StaggerList>
         )}
 
-        <Reveal className="mt-12 flex flex-col items-center gap-3 rounded-[var(--radius-xl)] bg-primary-soft p-8 text-center md:flex-row md:justify-between md:text-left">
-          <div>
-            <p className="font-heading flex items-center justify-center gap-2 text-xl font-semibold md:justify-start">
-              <Sparkles className="size-5 text-primary" /> พร้อมจองแล้วใช่ไหม
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">{featured.length ? `บริการยอดนิยม: ${featured.slice(0, 3).map((s) => s.name).join(" · ")}` : "เลือกวันและเวลาที่สะดวก ยืนยันทันที"}</p>
+        <Rise className="bk-panel bk-soft-bg relative mt-24 flex flex-col items-start gap-6 overflow-hidden p-8 md:mt-36 md:flex-row md:items-end md:justify-between md:p-12">
+          <div className="max-w-xl">
+            <p className="font-heading text-step-3 font-semibold leading-tight">พร้อมจองแล้วใช่ไหม</p>
+            <p className="mt-3 text-sm text-muted-foreground md:text-base">{featured.length ? `บริการยอดนิยม: ${featured.slice(0, 3).map((s) => s.name).join(" · ")}` : "เลือกวันและเวลาที่สะดวก ยืนยันทันที"}</p>
           </div>
-          <Button asChild size="lg">
-            <Link href="/book">
-              {L.bookNow} <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-        </Reveal>
+          <CtaButton href="/book" label={L.bookNow} size="xl" />
+        </Rise>
       </section>
     </PageBody>
-  );
-}
-
-function CategoryChip({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "inline-flex h-11 shrink-0 items-center rounded-full border px-5 text-sm font-medium transition",
-        active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:border-primary/60 hover:text-primary",
-      )}
-    >
-      {children}
-    </Link>
   );
 }

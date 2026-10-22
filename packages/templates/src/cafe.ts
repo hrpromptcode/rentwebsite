@@ -56,9 +56,17 @@ export const cafe: TemplateDefinition = {
       kind: "home",
       sections: [
         section(hero, {
-          variant: "split",
+          variant: "scatter",
           eyebrow: "อบใหม่ทุกเช้า 6 โมง",
-          heading: "ขนมอบที่ทำให้วันธรรมดา หวานขึ้นนิดนึง",
+          heading: "ขนมอบที่ทำให้วันธรรมดา\nหวานขึ้นนิดนึง",
+          scene: "auto",
+          cards: [
+            { image: u("1555507036-ab1f4038808a", 700), alt: "ครัวซองต์เนยฝรั่งเศส", title: "ครัวซองต์เนยฝรั่งเศส", tag: "ขายดี", href: "/products/croissant" },
+            { image: u("1558961363-fa8fdf82db35", 700), alt: "คุกกี้ในตะกร้า", title: "คุกกี้ช็อกโกแลตชิป", tag: "ใหม่", href: "/products/cookies" },
+            { image: u("1578985545062-69928b1d9587", 700), alt: "เค้กช็อกโกแลต", title: "เค้กวันเกิดสั่งทำ", tag: "สั่งล่วงหน้า", href: "/collections/cakes" },
+            { image: u("1509042239860-f550ce710b93", 700), alt: "ลาเต้", title: "ลาเต้คั่วเอง", tag: "", href: "/products/latte" },
+            { image: u("1551024601-bec78aea704b", 700), alt: "โดนัทโรยสี", title: "โดนัทโรยสี", tag: "ใหม่" },
+          ],
           subheading: "ครัวซองต์เนยฝรั่งเศส เค้กโฮมเมดสูตรลดหวาน และกาแฟคั่วเอง สั่งล่วงหน้าแล้วมารับได้เลยไม่ต้องรอ",
           primaryCta: { label: "สั่งล่วงหน้า", href: "/products" },
           secondaryCta: { label: "ดูเค้กวันเกิด", href: "/collections/cakes" },
@@ -88,7 +96,7 @@ export const cafe: TemplateDefinition = {
             { icon: "Gift", title: "แพ็กเป็นของขวัญ", description: "กล่องสวย ริบบิ้น และการ์ดฟรี" },
           ],
         }),
-        section(gallery, { heading: "มุมน่ารักในร้าน", layout: "grid", columns: 4, images: [{ url: u("1517686469429-8bdb88b9f907", 800), alt: "" }, { url: u("1554118811-1e0d58224f24", 800), alt: "" }, { url: u("1509042239860-f550ce710b93", 800), alt: "" }, { url: u("1495474472287-4d71bcdd2085", 800), alt: "" }] }),
+        section(gallery, { heading: "มุมน่ารักในร้าน", subheading: "ลากรูปเล่นได้นะ", layout: "polaroid", columns: 4, images: [{ url: u("1517686469429-8bdb88b9f907", 800), alt: "มือที่นวดแป้งทุกเช้า", caption: "นวดแป้งทุกเช้า" }, { url: u("1554118811-1e0d58224f24", 800), alt: "มุมนั่งในร้าน", caption: "มุมโปรดริมหน้าต่าง" }, { url: u("1509042239860-f550ce710b93", 800), alt: "ลาเต้อาร์ต", caption: "ลาเต้แก้วแรกของวัน" }, { url: u("1495474472287-4d71bcdd2085", 800), alt: "กาแฟคั่วเอง", caption: "กาแฟคั่วเองในร้าน" }] }),
         section(testimonials, { heading: "คำชมที่ทำให้เราอยากตื่นเช้า", variant: "marquee", items: [
           { quote: "ครัวซองต์กรอบนอกนุ่มใน เนยหอมมาก สั่งทุกวันศุกร์", name: "คุณมิ้น", role: "ลูกค้าประจำ", avatar: avatar("mint-cafe"), rating: 5 },
           { quote: "เค้กวันเกิดลูกสวยตรงปก เด็ก ๆ ชอบมาก", name: "คุณแม่น้ำหวาน", role: "สั่งเค้ก 2 ปอนด์", avatar: avatar("mom-cafe"), rating: 5 },
@@ -110,9 +118,9 @@ export const cafe: TemplateDefinition = {
     const [pastry, cakes, drinks] = await tx
       .insert(categories)
       .values([
-        { tenantId, name: "เบเกอรี่", slug: "pastry", sort: 0 },
-        { tenantId, name: "เค้ก", slug: "cakes", sort: 1 },
-        { tenantId, name: "เครื่องดื่ม", slug: "drinks", sort: 2 },
+        { tenantId, name: "เบเกอรี่", slug: "pastry", image: u("1555507036-ab1f4038808a", 800), sort: 0 },
+        { tenantId, name: "เค้ก", slug: "cakes", image: u("1578985545062-69928b1d9587", 800), sort: 1 },
+        { tenantId, name: "เครื่องดื่ม", slug: "drinks", image: u("1509042239860-f550ce710b93", 800), sort: 2 },
       ])
       .returning({ id: categories.id });
     const items = [

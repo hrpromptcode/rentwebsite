@@ -16,7 +16,7 @@ function range(page: number, pages: number): Array<number | "…"> {
   return out;
 }
 
-const cell = "inline-flex size-11 items-center justify-center rounded-[var(--radius-md)] text-sm font-medium transition";
+const cell = "inline-flex size-11 items-center justify-center rounded-full font-mono text-sm tabular-nums transition-colors duration-200";
 
 export function Pagination({ page, pages, hrefFor, className }: { page: number; pages: number; hrefFor: (page: number) => string; className?: string }) {
   if (pages <= 1) return null;
@@ -37,7 +37,7 @@ export function Pagination({ page, pages, hrefFor, className }: { page: number; 
             …
           </span>
         ) : (
-          <Link key={p} href={hrefFor(p)} aria-current={p === page ? "page" : undefined} className={cn(cell, p === page ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+          <Link key={p} href={hrefFor(p)} aria-current={p === page ? "page" : undefined} className={cn(cell, p === page ? "bg-foreground text-background" : "hover:bg-muted")}>
             {p}
           </Link>
         ),

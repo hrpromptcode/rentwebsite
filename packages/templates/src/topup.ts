@@ -4,13 +4,44 @@ import { encryptToString } from "@rentweb/core/crypto";
 import { section, hero, marquee, gameGrid, topupFeed, steps, features, faq, cta, stats, testimonials } from "@rentweb/storefront/definitions";
 import { aboutPage, contactPage, legalPages, u, avatar } from "./shared";
 
-/** Home page sections; `neutral` = the variant for a new (non-demo) shop (ADMIN-17: no "40+ เกม", volumes or ratings it does not have). */
+/** Game covers (the seed's game images and the hero's 3D card stack share them). */
+const COVER = {
+  rov: "1542751371-adc38448a05e",
+  "free-fire": "1511512578047-dfb367046420",
+  genshin: "1538481199705-c710c4e965fc",
+  valorant: "1552820728-8b83bb6b773f",
+  "pubg-mobile": "1593305841991-05c297ba4575",
+  roblox: "1612287230202-1ff1d85d1bdf",
+  mlbb: "1580327344181-c1163234e5a0",
+  "steam-wallet": "1550745165-9bc0b252726f",
+} as const;
+
+/**
+ * Hero card stack (§5.2): demo games orbiting the portal ring, each linking to its top-up page. Six, not eight: the
+ * kit's static fan (reduced motion / no WebGL) spreads ~1.43× its box with 8 cards and slid under the hero copy; 6 stay
+ * inside the media column + gap (the sold-out Roblox and Mobile Legends stay in the grid right below).
+ */
+const HERO_CARDS: Array<{ slug: keyof typeof COVER; title: string; tag: string }> = [
+  { slug: "rov", title: "RoV", tag: "MOBILE" },
+  { slug: "free-fire", title: "Free Fire", tag: "MOBILE" },
+  { slug: "genshin", title: "Genshin Impact", tag: "MOBILE" },
+  { slug: "valorant", title: "Valorant", tag: "PC" },
+  { slug: "pubg-mobile", title: "PUBG Mobile", tag: "MOBILE" },
+  { slug: "steam-wallet", title: "Steam Wallet", tag: "CODE" },
+];
+
+/**
+ * Home page sections (GameHub, docs/design/hi-end-direction.md §5.2); `neutral` = the variant for a new (non-demo) shop
+ * (ADMIN-17: no "40+ เกม", volumes, ratings or sample games it does not have — its hero falls back to the preset scene).
+ */
 function homeSections(neutral: boolean) {
   return [
     section(hero, {
       variant: "split",
+      scene: "auto",
+      cards: neutral ? [] : HERO_CARDS.map((c) => ({ image: u(COVER[c.slug], 600), alt: c.title, title: c.title, tag: c.tag, href: `/games/${c.slug}` })),
       eyebrow: "ระบบอัตโนมัติ 24 ชม.",
-      heading: "เติมเกมไว ภายใน 10 วินาที",
+      heading: "เติมเกมไว\nภายใน 10 วินาที",
       subheading: neutral
         ? "เลือกเกม เลือกแพ็กเกจ กรอก UID แล้วชำระเงิน ระบบเติมให้อัตโนมัติ จ่ายผ่าน PromptPay หรือกระเป๋าเงินในเว็บ"
         : "RoV · Free Fire · Genshin · Valorant · PUBG และเกมยอดนิยมอีกมากมาย ราคาถูกกว่าเติมตรง จ่ายผ่าน PromptPay หรือกระเป๋าเงินในเว็บ",
@@ -19,15 +50,18 @@ function homeSections(neutral: boolean) {
       image: { url: "", alt: "" },
       background: "theme",
       badges: ["ตรวจสลิปอัตโนมัติ", "คืนเงิน 100% ถ้าเติมไม่สำเร็จ", "ราคาสมาชิกถูกกว่า"],
+      cornerLabels: ["[ ONLINE ] AUTO TOP-UP", "SERVER TH · 24/7"],
+      clock: true,
       stats: neutral ? [] : [{ value: "1.2M+", label: "รายการเติมสำเร็จ" }, { value: "10 วิ", label: "เวลาเติมเฉลี่ย" }, { value: "4.9/5", label: "คะแนนจากผู้ใช้" }],
     }),
     section(marquee, { items: neutral ? ["เติมเกมออนไลน์", "บัตรและโค้ดเกม", "ระบบอัตโนมัติ 24 ชม.", "ตรวจสลิปอัตโนมัติ", "กระเป๋าเงินในเว็บ"] : ["RoV", "FREE FIRE", "GENSHIN IMPACT", "VALORANT", "PUBG MOBILE", "ROBLOX", "HONKAI STAR RAIL", "MOBILE LEGENDS", "STEAM WALLET"], style: "outline", speed: 22, separator: "◆" }),
-    section(topupFeed, { heading: "เติมล่าสุด (สด)", limit: 8 }),
+    // choosing a game is the job: the grid comes right after the hero (§5.2 #3), then the live feed (hidden while empty)
     section(gameGrid, { heading: "เลือกเกมที่ต้องการเติม", subheading: "กด เลือกแพ็กเกจ กรอก UID แล้วจ่ายเงิน ระบบเติมให้อัตโนมัติ", showSearch: true, variant: "tiles" }),
+    section(topupFeed, { heading: "เติมล่าสุด (สด)", limit: 8 }),
     section(steps, {
       eyebrow: "ใช้งานง่าย",
       heading: "เติมเกมใน 3 ขั้นตอน",
-      variant: "cards",
+      variant: "numbered",
       items: [
         { title: "เลือกเกมและแพ็กเกจ", description: "กรอก UID / Server ให้ถูกต้อง ระบบจะตรวจสอบชื่อตัวละครให้", icon: "Gamepad2" },
         { title: "ชำระเงิน", description: "PromptPay QR, แนบสลิป, หรือตัดจากกระเป๋าเงินในเว็บ (ได้โบนัส 2%)", icon: "QrCode" },
@@ -46,8 +80,12 @@ function homeSections(neutral: boolean) {
         { icon: "History", title: "ตรวจสอบย้อนหลังได้", description: "ประวัติทุกรายการ พร้อมหลักฐานการเติม" },
       ],
     }),
-    // sales volume / game count / success rate of the sample business — demo only
-    ...(neutral ? [] : [section(stats, { variant: "cards", items: [{ value: 1200000, suffix: "+", label: "รายการสำเร็จ" }, { value: 48, suffix: " เกม", label: "รองรับ" }, { value: 99.8, suffix: "%", label: "อัตราสำเร็จ" }, { value: 24, suffix: " ชม.", label: "เปิดบริการ" }] })]),
+    // sales volume / game count / success rate of the sample business — demo only. Short values ("1.2M+", "99.8%") keep
+    // the HUD odometers inside their cards at every width (a 10-character "1,200,000+" overflowed a quarter column) and
+    // the odometer formats integers only, so the decimals ride in the suffix.
+    ...(neutral ? [] : [section(stats, { variant: "cards", items: [{ value: 1, suffix: ".2M+", label: "รายการสำเร็จ" }, { value: 48, suffix: " เกม", label: "รองรับ" }, { value: 99, suffix: ".8%", label: "อัตราสำเร็จ" }, { value: 24, suffix: " ชม.", label: "เปิดบริการ" }] })]),
+    // §5.2 asks for variant "chat"; it stays "cards" until the shared `.rw-chat` class clash (shell floating LINE button
+    // vs the testimonials chat thread → the thread becomes position:fixed) is fixed — see tooling/qa/redesign/topup.md
     section(testimonials, {
       heading: "ผู้เล่นพูดถึงเรา",
       variant: "cards",
@@ -67,7 +105,7 @@ function homeSections(neutral: boolean) {
         { q: "เงินในกระเป๋าถอนได้ไหม?", a: "กระเป๋าเงินใช้สำหรับเติมเกมในเว็บนี้เท่านั้น ไม่สามารถถอนเป็นเงินสดได้" },
       ],
     }),
-    section(cta, { variant: "glow", heading: "พร้อมแรงค์ขึ้นแล้วหรือยัง?", body: "เติมครั้งแรกวันนี้ รับโบนัสกระเป๋าเงิน 2%", primaryCta: { label: "เริ่มเติมเกม", href: "/games" } }),
+    section(cta, { variant: "glow", heading: "พร้อมแรงค์ขึ้น\nแล้วหรือยัง?", body: "เติมครั้งแรกวันนี้ รับโบนัสกระเป๋าเงิน 2%", primaryCta: { label: "เริ่มเติมเกม", href: "/games" } }),
   ];
 }
 
@@ -147,14 +185,14 @@ export const topup: TemplateDefinition = {
       .returning({ id: topupSuppliers.id });
 
     const defs = [
-      { name: "RoV (Arena of Valor)", slug: "rov", publisher: "Garena", img: u("1542751371-adc38448a05e", 600), cat: "mobile", fields: [{ key: "uid", label: "Open ID / UID", type: "text", required: true, placeholder: "เช่น 123456789", pattern: "\\d{5,20}", inputMode: "numeric", hint: "ตัวเลข 5–20 หลัก" }], pk: [["40 คูปอง", 3500, 3300], ["120 คูปอง", 9900, 9500], ["240 คูปอง", 19900, 19000], ["500 คูปอง", 38900, 37000], ["1,200 คูปอง", 89900, 86000]] },
-      { name: "Free Fire", slug: "free-fire", publisher: "Garena", img: u("1511512578047-dfb367046420", 600), cat: "mobile", fields: [{ key: "uid", label: "Player ID", type: "text", required: true, placeholder: "เช่น 1234567890", pattern: "\\d{8,12}", inputMode: "numeric", hint: "ตัวเลข 8–12 หลัก" }], pk: [["100 เพชร", 3300, 3100], ["310 เพชร", 9500, 9100], ["520 เพชร", 15900, 15200], ["1,060 เพชร", 31900, 30500], ["2,180 เพชร", 63900, 61000]] },
-      { name: "Genshin Impact", slug: "genshin", publisher: "HoYoverse", img: u("1538481199705-c710c4e965fc", 600), cat: "mobile", fields: [{ key: "uid", label: "UID", type: "text", required: true, placeholder: "เช่น 812345678", pattern: "\\d{9,10}", inputMode: "numeric", hint: "ตัวเลข 9–10 หลัก" }, { key: "server", label: "Server", type: "select", required: true, options: ["Asia", "America", "Europe", "TW/HK/MO"] }], pk: [["60 Genesis Crystals", 3500, 3300], ["330 Genesis Crystals", 17500, 16800], ["1,090 Genesis Crystals", 52900, 50500], ["Blessing of the Welkin Moon", 17500, 16500]] },
-      { name: "Valorant", slug: "valorant", publisher: "Riot Games", img: u("1552820728-8b83bb6b773f", 600), cat: "pc", fields: [{ key: "riotid", label: "Riot ID#Tag", type: "text", required: true, placeholder: "Name#TAG", pattern: "[^#\\s][^#]{2,15}#[A-Za-z0-9]{3,5}", hint: "ชื่อ 3–16 ตัว ตามด้วย #Tag 3–5 ตัว เช่น Player#TH1" }], pk: [["420 VP", 11500, 11000], ["1,000 VP", 26900, 25900], ["2,100 VP", 53900, 52000]] },
-      { name: "PUBG Mobile", slug: "pubg-mobile", publisher: "Tencent", img: u("1593305841991-05c297ba4575", 600), cat: "mobile", fields: [{ key: "uid", label: "Character ID", type: "text", required: true, placeholder: "เช่น 5123456789", pattern: "\\d{5,12}", inputMode: "numeric", hint: "ตัวเลข 5–12 หลัก" }], pk: [["60 UC", 3500, 3300], ["325 UC", 17500, 16800], ["660 UC", 34900, 33500]] },
-      { name: "Roblox", slug: "roblox", publisher: "Roblox", img: u("1612287230202-1ff1d85d1bdf", 600), cat: "voucher", fields: [{ key: "username", label: "Username", type: "text", required: true, placeholder: "เช่น Player_123", pattern: "[A-Za-z0-9_]{3,20}", hint: "ตัวอักษรอังกฤษ ตัวเลข หรือ _ 3–20 ตัว" }], pk: [["400 Robux", 17900, 17200], ["800 Robux", 34900, 33500], ["1,700 Robux", 69900, 67000]] },
-      { name: "Mobile Legends", slug: "mlbb", publisher: "Moonton", img: u("1580327344181-c1163234e5a0", 600), cat: "mobile", fields: [{ key: "uid", label: "User ID", type: "text", required: true, placeholder: "เช่น 12345678", pattern: "\\d{5,12}", inputMode: "numeric", hint: "ตัวเลข 5–12 หลัก" }, { key: "zone", label: "Zone ID", type: "text", required: true, placeholder: "เช่น 1234", pattern: "\\d{3,6}", inputMode: "numeric", hint: "ตัวเลข 3–6 หลัก" }], pk: [["86 Diamonds", 5500, 5200], ["172 Diamonds", 10900, 10400], ["257 Diamonds", 15900, 15200], ["706 Diamonds", 42900, 41000]] },
-      { name: "Steam Wallet (TH)", slug: "steam-wallet", publisher: "Valve", img: u("1550745165-9bc0b252726f", 600), cat: "voucher", fields: [{ key: "contact", label: "LINE ID / อีเมลสำหรับรับโค้ด", type: "text", required: true, pattern: "\\S{3,100}", maxLength: 100, hint: "LINE ID หรืออีเมล ไม่มีเว้นวรรค" }], pk: [["฿100", 10900, 10500], ["฿300", 31900, 30900], ["฿500", 52900, 51000], ["฿1,000", 104900, 101500]] },
+      { name: "RoV (Arena of Valor)", slug: "rov", publisher: "Garena", img: u(COVER.rov, 600), cat: "mobile", fields: [{ key: "uid", label: "Open ID / UID", type: "text", required: true, placeholder: "เช่น 123456789", pattern: "\\d{5,20}", inputMode: "numeric", hint: "ตัวเลข 5–20 หลัก" }], pk: [["40 คูปอง", 3500, 3300], ["120 คูปอง", 9900, 9500], ["240 คูปอง", 19900, 19000], ["500 คูปอง", 38900, 37000], ["1,200 คูปอง", 89900, 86000]] },
+      { name: "Free Fire", slug: "free-fire", publisher: "Garena", img: u(COVER["free-fire"], 600), cat: "mobile", fields: [{ key: "uid", label: "Player ID", type: "text", required: true, placeholder: "เช่น 1234567890", pattern: "\\d{8,12}", inputMode: "numeric", hint: "ตัวเลข 8–12 หลัก" }], pk: [["100 เพชร", 3300, 3100], ["310 เพชร", 9500, 9100], ["520 เพชร", 15900, 15200], ["1,060 เพชร", 31900, 30500], ["2,180 เพชร", 63900, 61000]] },
+      { name: "Genshin Impact", slug: "genshin", publisher: "HoYoverse", img: u(COVER.genshin, 600), cat: "mobile", fields: [{ key: "uid", label: "UID", type: "text", required: true, placeholder: "เช่น 812345678", pattern: "\\d{9,10}", inputMode: "numeric", hint: "ตัวเลข 9–10 หลัก" }, { key: "server", label: "Server", type: "select", required: true, options: ["Asia", "America", "Europe", "TW/HK/MO"] }], pk: [["60 Genesis Crystals", 3500, 3300], ["330 Genesis Crystals", 17500, 16800], ["1,090 Genesis Crystals", 52900, 50500], ["Blessing of the Welkin Moon", 17500, 16500]] },
+      { name: "Valorant", slug: "valorant", publisher: "Riot Games", img: u(COVER.valorant, 600), cat: "pc", fields: [{ key: "riotid", label: "Riot ID#Tag", type: "text", required: true, placeholder: "Name#TAG", pattern: "[^#\\s][^#]{2,15}#[A-Za-z0-9]{3,5}", hint: "ชื่อ 3–16 ตัว ตามด้วย #Tag 3–5 ตัว เช่น Player#TH1" }], pk: [["420 VP", 11500, 11000], ["1,000 VP", 26900, 25900], ["2,100 VP", 53900, 52000]] },
+      { name: "PUBG Mobile", slug: "pubg-mobile", publisher: "Tencent", img: u(COVER["pubg-mobile"], 600), cat: "mobile", fields: [{ key: "uid", label: "Character ID", type: "text", required: true, placeholder: "เช่น 5123456789", pattern: "\\d{5,12}", inputMode: "numeric", hint: "ตัวเลข 5–12 หลัก" }], pk: [["60 UC", 3500, 3300], ["325 UC", 17500, 16800], ["660 UC", 34900, 33500]] },
+      { name: "Roblox", slug: "roblox", publisher: "Roblox", img: u(COVER.roblox, 600), cat: "voucher", fields: [{ key: "username", label: "Username", type: "text", required: true, placeholder: "เช่น Player_123", pattern: "[A-Za-z0-9_]{3,20}", hint: "ตัวอักษรอังกฤษ ตัวเลข หรือ _ 3–20 ตัว" }], pk: [["400 Robux", 17900, 17200], ["800 Robux", 34900, 33500], ["1,700 Robux", 69900, 67000]] },
+      { name: "Mobile Legends", slug: "mlbb", publisher: "Moonton", img: u(COVER.mlbb, 600), cat: "mobile", fields: [{ key: "uid", label: "User ID", type: "text", required: true, placeholder: "เช่น 12345678", pattern: "\\d{5,12}", inputMode: "numeric", hint: "ตัวเลข 5–12 หลัก" }, { key: "zone", label: "Zone ID", type: "text", required: true, placeholder: "เช่น 1234", pattern: "\\d{3,6}", inputMode: "numeric", hint: "ตัวเลข 3–6 หลัก" }], pk: [["86 Diamonds", 5500, 5200], ["172 Diamonds", 10900, 10400], ["257 Diamonds", 15900, 15200], ["706 Diamonds", 42900, 41000]] },
+      { name: "Steam Wallet (TH)", slug: "steam-wallet", publisher: "Valve", img: u(COVER["steam-wallet"], 600), cat: "voucher", fields: [{ key: "contact", label: "LINE ID / อีเมลสำหรับรับโค้ด", type: "text", required: true, pattern: "\\S{3,100}", maxLength: 100, hint: "LINE ID หรืออีเมล ไม่มีเว้นวรรค" }], pk: [["฿100", 10900, 10500], ["฿300", 31900, 30900], ["฿500", 52900, 51000], ["฿1,000", 104900, 101500]] },
     ] as const;
 
     const instructions: Record<string, string> = {

@@ -3,6 +3,9 @@ import { availabilityRules, bookings, clinicPackages, customers, nextCounter, se
 import { section, hero, marquee, features, imageText, testimonials, faq, cta, stats, steps, gallery, classHighlights, weeklySchedule, instructorGrid, passPricing } from "@rentweb/storefront/definitions";
 import { aboutPage, contactPage, legalPages, u, avatar } from "./shared";
 
+/** portrait crop for instructor photos (tall pill frames) */
+const portrait = (id: string) => u(id, 800, "&h=1100&crop=faces");
+
 /*
  * Course / studio template: "Sala Flow" – a yoga & pilates studio in Ari, Bangkok, built on the booking module.
  * A class = service with capacity > 1 and requiresStaff = false; its weekly timetable = availability_rules rows with
@@ -126,16 +129,18 @@ export const course: TemplateDefinition = {
       title: "หน้าแรก",
       kind: "home",
       sections: [
+        // §5.8 signature: the breathing orb between the two lines of the headline, cue "หายใจเข้า · ค้างไว้ · หายใจออก" (4-4-6-2)
         section(hero, {
-          variant: "split",
+          variant: "cinematic",
+          scene: "auto",
           eyebrow: "โยคะ & พิลาทิส สตูดิโอ · อารีย์ กรุงเทพฯ",
-          heading: "หายใจให้ช้าลง แล้วขยับให้ลึกขึ้น",
+          heading: "หายใจให้ช้าลง\nแล้วขยับให้ลึกขึ้น",
           subheading: "คลาสขนาดเล็ก 6–16 คน ครูปรับท่าให้ทีละคน เลือกรอบที่สะดวกจากตารางเรียนทั้งสัปดาห์ แล้วสมัครออนไลน์ได้ทันที ใช้คลาสพาสหรือจ่ายรายครั้งก็ได้",
           primaryCta: { label: "ดูตารางเรียนสัปดาห์นี้", href: "/schedule" },
           secondaryCta: { label: "คลาสสำหรับผู้เริ่มต้น", href: "/classes?level=beginner" },
           image: { url: IMG.hero, alt: "คลาสโยคะตอนเช้าที่ Sala Flow" },
           imageSecondary: { url: IMG.heroSecondary, alt: "ท่าโยคะ" },
-          badges: ["คลาสเล็ก 6–16 คน", "ครู RYT-500 / STOTT", "ยกเลิกฟรีก่อนเรียน 6 ชม."],
+          badges: ["คลาสเล็ก 6–16 คน", "ครู RYT-500 / STOTT"],
           stats: [
             { value: "25+", label: "รอบต่อสัปดาห์" },
             { value: "4", label: "ครูผู้สอน" },
@@ -143,10 +148,10 @@ export const course: TemplateDefinition = {
           ],
         }),
         section(marquee, { items: ["Hatha", "Vinyasa", "Yin & Sound Bath", "Reformer Pilates", "Mat Pilates", "Prenatal", "Breath & Meditation", "คลาสเช้าก่อนเข้างาน"], style: "outline", separator: "◦", speed: 36 }),
-        section(classHighlights, { limit: 3, eyebrow: "คลาสเรียน", heading: "คลาสยอดนิยมสัปดาห์นี้", subheading: "ทุกคลาสระบุระดับ ระยะเวลา ครูผู้สอน และที่นั่งคงเหลือ เลือกที่ใช่แล้วกดสมัครได้เลย", featured: true, variant: "cards" }),
+        section(classHighlights, { limit: 6, eyebrow: "คลาสเรียน", heading: "คลาสยอดนิยมสัปดาห์นี้", subheading: "ทุกคลาสระบุระดับ ระยะเวลา ครูผู้สอน และที่นั่งคงเหลือ เลือกที่ใช่แล้วกดสมัครได้เลย", featured: false, variant: "editorial" }),
         section(weeklySchedule, { eyebrow: "ตารางเรียน", heading: "ตารางเรียน 7 วันข้างหน้า", subheading: "ที่นั่งคงเหลืออัปเดตแบบเรียลไทม์ กดที่รอบเพื่อสมัคร", days: 7, showPrice: false }),
         section(features, {
-          variant: "icons",
+          variant: "list",
           columns: 4,
           eyebrow: "ทำไมต้อง Sala Flow",
           heading: "ฝึกอย่างปลอดภัย ก้าวหน้าได้จริง",
@@ -167,6 +172,7 @@ export const course: TemplateDefinition = {
           imagePosition: "left",
           bullets: ["เสื่อ บล็อก สายรัด ผ้าห่ม เตรียมให้ครบ", "ห้องอาบน้ำ + ล็อกเกอร์ฟรี", "ชาสมุนไพรหลังคลาสทุกรอบ"],
           cta: { label: "เกี่ยวกับเรา", href: "/about" },
+          style: "pinned",
         }),
         section(stats, { variant: "row", items: [{ value: 1200, suffix: "+", label: "นักเรียนที่ฝึกกับเรา" }, { value: 25, suffix: "+", label: "รอบต่อสัปดาห์" }, { value: 6, suffix: " ปี", label: "เปิดสอนที่อารีย์" }, { value: 92, suffix: "%", label: "นักเรียนกลับมาเรียนต่อ" }] }),
         section(testimonials, {
@@ -376,10 +382,10 @@ export const course: TemplateDefinition = {
     const team = await tx
       .insert(staff)
       .values([
-        { tenantId, name: "ครูแนน", slug: "kru-nan", title: "ผู้ก่อตั้ง · Hatha / Yin · RYT-500", bio: "ฝึกครูที่ฤๅษีเกศและเชียงใหม่ สอนมา 11 ปี เชื่อว่าโยคะที่ดีคือโยคะที่กลับมาทำได้ทุกวัน ถนัดดูแลผู้เริ่มต้นและคนที่มีอาการปวดหลังจากการทำงาน", avatar: avatar("kru-nan"), color: "#9A3B1E", sort: 0 },
-        { tenantId, name: "ครูพลอย", slug: "kru-ploy", title: "Vinyasa / Power Yoga · RYT-200", bio: "อดีตนักว่ายน้ำทีมชาติเยาวชน หลงรักโฟลว์ที่เร็วและชัด ลำดับท่าของครูพลอยเปลี่ยนทุกสัปดาห์ให้ร่างกายไม่เคยชิน", avatar: avatar("kru-ploy"), color: "#4F5D3A", sort: 1 },
-        { tenantId, name: "ครูมุก", slug: "kru-mook", title: "Mat Pilates / Breathwork", bio: "นักกายภาพบำบัดที่หันมาสอนพิลาทิสและการหายใจ อธิบายกล้ามเนื้อได้เห็นภาพ เหมาะกับคนที่อยากเข้าใจว่าทำไมท่านี้ถึงช่วย", avatar: avatar("kru-mook"), color: "#B07A4A", sort: 2 },
-        { tenantId, name: "ครูบีม", slug: "kru-beam", title: "Reformer Pilates · STOTT Certified", bio: "ผู้ดูแลห้องรีฟอร์เมอร์ของเรา ผ่านการรับรอง STOTT Pilates ครบทุกระดับ ละเอียดเรื่องการจัดแนวร่างกายและการฟื้นฟูหลังบาดเจ็บ", avatar: avatar("kru-beam"), color: "#5E6B8A", sort: 3 },
+        { tenantId, name: "ครูแนน", slug: "kru-nan", title: "ผู้ก่อตั้ง · Hatha / Yin · RYT-500", bio: "ฝึกครูที่ฤๅษีเกศและเชียงใหม่ สอนมา 11 ปี เชื่อว่าโยคะที่ดีคือโยคะที่กลับมาทำได้ทุกวัน ถนัดดูแลผู้เริ่มต้นและคนที่มีอาการปวดหลังจากการทำงาน", avatar: portrait("1592621385612-4d7129426394"), color: "#9A3B1E", sort: 0 },
+        { tenantId, name: "ครูพลอย", slug: "kru-ploy", title: "Vinyasa / Power Yoga · RYT-200", bio: "อดีตนักว่ายน้ำทีมชาติเยาวชน หลงรักโฟลว์ที่เร็วและชัด ลำดับท่าของครูพลอยเปลี่ยนทุกสัปดาห์ให้ร่างกายไม่เคยชิน", avatar: portrait("1606406054219-619c4c2e2100"), color: "#4F5D3A", sort: 1 },
+        { tenantId, name: "ครูมุก", slug: "kru-mook", title: "Mat Pilates / Breathwork", bio: "นักกายภาพบำบัดที่หันมาสอนพิลาทิสและการหายใจ อธิบายกล้ามเนื้อได้เห็นภาพ เหมาะกับคนที่อยากเข้าใจว่าทำไมท่านี้ถึงช่วย", avatar: portrait("1607746882042-944635dfe10e"), color: "#B07A4A", sort: 2 },
+        { tenantId, name: "ครูบีม", slug: "kru-beam", title: "Reformer Pilates · STOTT Certified", bio: "ผู้ดูแลห้องรีฟอร์เมอร์ของเรา ผ่านการรับรอง STOTT Pilates ครบทุกระดับ ละเอียดเรื่องการจัดแนวร่างกายและการฟื้นฟูหลังบาดเจ็บ", avatar: portrait("1507003211169-0a1dd7228f2d"), color: "#5E6B8A", sort: 3 },
       ])
       .returning({ id: staff.id, slug: staff.slug });
     const T = Object.fromEntries(team.map((t) => [t.slug, t.id])) as Record<string, string>;

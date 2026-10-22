@@ -16,6 +16,7 @@ import { L } from "../labels";
 import { formatBkkTime, formatThaiDate, formatThaiYmd } from "../services/time";
 import { MonthCalendar, type DayInfo } from "./month-calendar";
 import { SlotPicker, type SlotChip } from "./slot-picker";
+import { BookingStyles } from "./hi/styles";
 
 /* ------------------------------------------------------------------ */
 /* Types shared with the server shell                                   */
@@ -356,56 +357,61 @@ export function BookingWizard({ services: allServices, staff, config, today, max
     />
   );
 
-  const transition = reduce ? { duration: 0 } : { duration: 0.28, ease: EASE };
+  const transition = reduce ? { duration: 0 } : { duration: 0.42, ease: EASE };
 
   return (
-    <div className={cn("grid gap-6", !compact && "lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-10", className)}>
-      <div className={cn("card p-4 sm:p-6 md:p-8", compact && "p-4 sm:p-5")}>
+    <div className={cn("grid gap-6", !compact && "lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-10", className)}>
+      <BookingStyles />
+      <div className={cn("bk-panel bk-float p-4 sm:p-6 md:p-9", compact && "p-4 sm:p-5 md:p-6")}>
         <StepHeader steps={steps} current={step} reached={stepIndex} onJump={(k) => steps.indexOf(k) < stepIndex && go(k)} />
 
         {/* compact selection strip (mobile + compact mode) */}
-        <SelectionStrip service={service ?? null} staffLabel={group ? instructorName : staffChoice === undefined ? null : chosenStaff ? chosenStaff.name : L.anyStaff} date={date} start={start} className={cn("mt-4", !compact && "lg:hidden")} />
+        <SelectionStrip service={service ?? null} staffLabel={group ? instructorName : staffChoice === undefined ? null : chosenStaff ? chosenStaff.name : L.anyStaff} date={date} start={start} className={cn("mt-5", !compact && "lg:hidden")} />
 
         {/* clip only the horizontal step slide: overflow-hidden also cut the tone marks of the step heading (ที่) */}
-        <div className="relative mt-6 min-h-[320px] overflow-x-clip">
+        <div className="relative mt-7 min-h-[320px] overflow-x-clip">
           <AnimatePresence mode="wait" initial={false} custom={dir}>
             <motion.div
               key={step}
               custom={dir}
-              initial={reduce ? { opacity: 0 } : { opacity: 0, x: dir * 28 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={reduce ? { opacity: 0 } : { opacity: 0, x: dir * -28 }}
+              initial={reduce ? { opacity: 0 } : { opacity: 0, x: dir * 36, filter: "blur(4px)" }}
+              // same `animate` on server and client (useReducedMotion is null during SSR): no style mismatch on hydration
+              animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, x: dir * -28, filter: "blur(4px)" }}
               transition={transition}
             >
-              <h3 ref={setHeading} tabIndex={-1} data-step={step} className="font-heading text-xl font-semibold outline-offset-4 md:text-2xl">
-                <span className="sr-only">
-                  ขั้นตอนที่ {stepIndex + 1} จาก {steps.length}:{" "}
+              <div className="flex items-baseline gap-3">
+                <span aria-hidden className="font-mono text-xs tracking-[0.1em] text-muted-foreground">
+                  {String(stepIndex + 1).padStart(2, "0")}/{String(steps.length).padStart(2, "0")}
                 </span>
-                {STEP_TITLE[step]}
-              </h3>
+                <h3 ref={setHeading} tabIndex={-1} data-step={step} className="font-heading text-step-3 leading-tight font-semibold outline-offset-4">
+                  <span className="sr-only">
+                    ขั้นตอนที่ {stepIndex + 1} จาก {steps.length}:{" "}
+                  </span>
+                  {STEP_TITLE[step]}
+                </h3>
+              </div>
 
               {course && (
-                <p className="mt-3 flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-soft px-3 py-2 text-sm text-primary">
+                <p className="mt-4 flex items-center gap-2 rounded-full bg-primary-soft px-4 py-2 text-sm text-primary-ink">
                   <Ticket className="size-4 shrink-0" /> {L.useCourse}: {L.courseLeft(course.name, course.sessionsLeft)}
                 </p>
               )}
 
               {step === "service" && <ServiceStep services={services} selected={serviceId} onSelect={chooseService} />}
 
-              {step === "staff" && service && (
-                <StaffStep staff={eligibleStaff} selected={staffChoice} onSelect={chooseStaff} />
-              )}
+              {step === "staff" && service && <StaffStep staff={eligibleStaff} selected={staffChoice} onSelect={chooseStaff} />}
 
               {step === "date" && (
-                <div className="mt-4 grid gap-6 md:grid-cols-[minmax(0,1fr)_200px]">
+                <div className="mt-6 grid gap-8 md:grid-cols-[minmax(0,1fr)_200px]">
                   <MonthCalendar month={month} onMonthChange={setMonth} selected={date} onSelect={chooseDate} minDate={today} maxDate={maxDate} days={days[daysKey] ?? null} loadingLabel={L.loadingDays} className="max-w-md" />
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-muted-foreground md:border-l md:border-[color-mix(in_oklab,var(--foreground)_10%,transparent)] md:pl-6">
                     <p className="flex items-center gap-2">
                       <span className="inline-block size-1.5 rounded-full bg-primary" /> วันที่มีคิวว่าง
                     </p>
                     <p className="mt-3">จองล่วงหน้าได้สูงสุด {config.maxAdvanceDays} วัน</p>
                     {date && (
-                      <p className="mt-3 font-medium text-foreground">
+                      <p key={date} className="bk-flash mt-4 font-medium text-foreground">
                         <CalendarDays className="mr-1 inline size-4 text-primary" /> {formatThaiYmd(date, { weekday: true })}
                       </p>
                     )}
@@ -414,20 +420,24 @@ export function BookingWizard({ services: allServices, staff, config, today, max
               )}
 
               {step === "time" && (
-                <div className="mt-4">
-                  <button type="button" onClick={() => go("date")} className="mb-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-muted px-4 text-sm font-medium hover:bg-primary-soft">
+                <div className="mt-6">
+                  <button type="button" onClick={() => go("date")} className="mb-5 inline-flex min-h-11 items-center gap-2 rounded-full border border-[color-mix(in_oklab,var(--foreground)_14%,transparent)] px-4 text-sm font-medium transition-colors hover:border-primary hover:bg-primary-soft">
                     <CalendarDays className="size-4 text-primary" /> {date ? formatThaiYmd(date, { weekday: true }) : L.pickDateFirst}
                     <Pencil className="size-3.5 text-muted-foreground" />
                   </button>
                   {perPerson && service && <PartyStepper value={party} max={service.capacity} onChange={changeParty} />}
-                  {service?.seatsPerBooking ? <p className="mb-4 flex items-center gap-2 text-sm text-muted-foreground"><Users className="size-4 text-primary" /> {L.packageFor(service.seatsPerBooking)}</p> : null}
+                  {service?.seatsPerBooking ? (
+                    <p className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+                      <Users className="size-4 text-primary" /> {L.packageFor(service.seatsPerBooking)}
+                    </p>
+                  ) : null}
                   <SlotPicker slots={slots[slotsKey] ?? null} selected={start} onSelect={chooseTime} showRemaining={perPerson} staffNames={staffNames} />
                 </div>
               )}
 
               {step === "details" && (
                 <form
-                  className="mt-4 grid gap-5 sm:grid-cols-2"
+                  className="mt-6 grid gap-5 sm:grid-cols-2"
                   onSubmit={(e) => {
                     e.preventDefault();
                     submitDetails();
@@ -459,28 +469,33 @@ export function BookingWizard({ services: allServices, staff, config, today, max
               )}
 
               {step === "confirm" && service && start && (
-                <div className="mt-4 space-y-5">
-                  <div className="rounded-[var(--radius-lg)] bg-muted/60 p-4 sm:p-5">
-                    <dl className="grid gap-3 text-sm sm:grid-cols-2">
-                      <Row label={L.services} value={service.name} />
-                      {!group && <Row label={L.staff} value={chosenStaff ? chosenStaff.name : L.anyStaff} />}
-                      <Row label="วันและเวลา" value={`${formatThaiDate(start, { weekday: true })} · ${formatBkkTime(start)} น.`} />
-                      <Row label="ระยะเวลา" value={L.minutes(service.durationMin)} />
-                      {party > 1 && <Row label={L.partySize} value={L.guests(party)} />}
-                      {course && <Row label={L.useCourse} value={L.courseLeft(course.name, course.sessionsLeft)} />}
-                      <Row label={L.name} value={details.name} />
-                      <Row label={L.phone} value={details.phone} />
-                      {details.email && <Row label="อีเมล" value={details.email} />}
-                      {details.note && <Row label="หมายเหตุ" value={details.note} />}
-                    </dl>
-                    <div className="mt-4 flex items-end justify-between border-t pt-4">
+                <div className="mt-6 space-y-5">
+                  <div className="overflow-hidden rounded-[calc(var(--radius,.75rem)*1.4)] bg-muted/60" style={{ "--bk-notch": "var(--card)" } as React.CSSProperties}>
+                    <div className="p-5 sm:p-6">
+                      <dl className="grid gap-4 text-sm sm:grid-cols-2">
+                        <Row label={L.services} value={service.name} />
+                        {!group && <Row label={L.staff} value={chosenStaff ? chosenStaff.name : L.anyStaff} />}
+                        <Row label="วันและเวลา" value={`${formatThaiDate(start, { weekday: true })} · ${formatBkkTime(start)} น.`} />
+                        <Row label="ระยะเวลา" value={L.minutes(service.durationMin)} />
+                        {party > 1 && <Row label={L.partySize} value={L.guests(party)} />}
+                        {course && <Row label={L.useCourse} value={L.courseLeft(course.name, course.sessionsLeft)} />}
+                        <Row label={L.name} value={details.name} />
+                        <Row label={L.phone} value={details.phone} />
+                        {details.email && <Row label="อีเมล" value={details.email} />}
+                        {details.note && <Row label="หมายเหตุ" value={details.note} />}
+                      </dl>
+                    </div>
+                    <div aria-hidden className="bk-perf bk-notched" />
+                    <div className="flex min-h-[5.5rem] items-end justify-between gap-3 px-5 py-4 sm:px-6">
                       <div>
                         <p className="text-xs text-muted-foreground">{L.total}</p>
                         <p className="font-heading text-2xl font-semibold">{course ? L.useCourse : priceLabel(service, party)}</p>
                       </div>
                       {deposit > 0 ? (
                         <div className="text-right">
-                          <p className="text-xs text-muted-foreground">{L.dueNow} ({fullPay ? L.fullPay : L.deposit})</p>
+                          <p className="text-xs text-muted-foreground">
+                            {L.dueNow} ({fullPay ? L.fullPay : L.deposit})
+                          </p>
                           <p className="font-heading text-2xl font-semibold text-primary">{thb(deposit)}</p>
                         </div>
                       ) : depositWaived ? (
@@ -509,7 +524,7 @@ export function BookingWizard({ services: allServices, staff, config, today, max
                     </div>
                   )}
 
-                  <div className="flex items-start gap-3 rounded-[var(--radius-lg)] border border-dashed p-4 text-sm">
+                  <div className="flex items-start gap-3 rounded-[calc(var(--radius,.75rem)*1.2)] border border-dashed border-[color-mix(in_oklab,var(--foreground)_18%,transparent)] p-4 text-sm">
                     <ShieldCheck className="mt-0.5 size-5 shrink-0 text-primary" />
                     <div>
                       <p className="font-medium">{L.policyTitle}</p>
@@ -534,24 +549,24 @@ export function BookingWizard({ services: allServices, staff, config, today, max
           </AnimatePresence>
         </div>
 
-        <div className="mt-6 flex items-center justify-between gap-3 border-t pt-5">
-          <Button type="button" variant="ghost" size="lg" onClick={back} disabled={stepIndex === 0 || pending} className="px-4">
+        <div className="mt-7 flex items-center justify-between gap-3 border-t border-[color-mix(in_oklab,var(--foreground)_10%,transparent)] pt-5">
+          <Button type="button" variant="ghost" size="lg" onClick={back} disabled={stepIndex === 0 || pending} className="rounded-full px-4">
             <ChevronLeft className="size-4" /> {L.back}
           </Button>
           {step === "confirm" ? (
-            <Button type="button" size="lg" onClick={submit} disabled={pending} className="min-w-44 flex-1 sm:flex-none">
+            <Button type="button" size="lg" onClick={submit} disabled={pending} className="min-w-44 flex-1 rounded-full active:scale-[.97] sm:flex-none">
               {pending ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
               {pending ? L.confirming : L.confirm}
             </Button>
           ) : (
-            <Button type="button" size="lg" onClick={step === "details" ? submitDetails : next} disabled={!canProceed[step]} className="min-w-36">
+            <Button type="button" size="lg" onClick={step === "details" ? submitDetails : next} disabled={!canProceed[step]} className="min-w-36 rounded-full active:scale-[.97]">
               {L.next} <ChevronRight className="size-4" />
             </Button>
           )}
         </div>
       </div>
 
-      {!compact && <aside className="hidden lg:sticky lg:top-[calc(var(--header-h,0px)+1rem)] lg:block">{summary}</aside>}
+      {!compact && <aside className="hidden lg:sticky lg:top-[calc(var(--header-h,0px)+1.5rem)] lg:block">{summary}</aside>}
     </div>
   );
 }
@@ -560,43 +575,55 @@ export function BookingWizard({ services: allServices, staff, config, today, max
 /* Pieces                                                               */
 /* ------------------------------------------------------------------ */
 
+/** Numbered nodes on a line that fills as the customer advances; done nodes jump back. */
 function StepHeader({ steps, current, reached, onJump }: { steps: StepKey[]; current: StepKey; reached: number; onJump: (k: StepKey) => void }) {
-  const reduce = useReducedMotion();
-  const pct = ((steps.indexOf(current) + 1) / steps.length) * 100;
+  const idx = steps.indexOf(current);
+  const pct = ((idx + 1) / steps.length) * 100;
+  const fill = steps.length > 1 ? idx / (steps.length - 1) : 1;
   return (
     <div>
-      <ol className="flex items-center justify-between gap-1 text-xs sm:text-sm">
-        {steps.map((k, i) => {
-          const done = i < reached;
-          const active = k === current;
-          return (
-            <li key={k} className="flex min-w-0 flex-1 flex-col items-center gap-1.5 sm:flex-row sm:gap-2">
-              <button
-                type="button"
-                onClick={() => done && onJump(k)}
-                disabled={!done}
-                aria-current={active ? "step" : undefined}
-                aria-label={`ขั้นที่ ${i + 1} ${STEP_LABEL[k]}${done ? " (เสร็จแล้ว แตะเพื่อแก้ไข)" : active ? " (ขั้นปัจจุบัน)" : ""}`}
-                className={cn(
-                  "flex size-11 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition",
-                  active && "border-primary bg-primary text-primary-foreground shadow-md shadow-glow/40",
-                  done && "border-primary bg-primary-soft text-primary hover:bg-primary hover:text-primary-foreground",
-                  !active && !done && "border-border text-muted-foreground",
-                )}
-              >
-                {done ? <Check className="size-4" aria-hidden /> : i + 1}
-              </button>
-              <span className={cn("truncate", active ? "font-medium text-foreground" : "text-muted-foreground", "hidden sm:inline")}>{STEP_LABEL[k]}</span>
-            </li>
-          );
-        })}
+      <div className="relative">
+        <span aria-hidden className="absolute top-1/2 right-[22px] left-[22px] h-0.5 -translate-y-1/2 bg-[color-mix(in_oklab,var(--foreground)_10%,transparent)]" />
+        <span aria-hidden className="absolute top-1/2 right-[22px] left-[22px] h-0.5 -translate-y-1/2">
+          <span className="bk-step-line w-full" style={{ transform: `scaleX(${fill})` }} />
+        </span>
+        <ol className="relative flex items-center justify-between gap-1 text-xs sm:text-sm">
+          {steps.map((k, i) => {
+            const done = i < reached;
+            const active = k === current;
+            return (
+              <li key={k} className="flex flex-col items-center">
+                <button
+                  type="button"
+                  onClick={() => done && onJump(k)}
+                  disabled={!done}
+                  aria-current={active ? "step" : undefined}
+                  aria-label={`ขั้นที่ ${i + 1} ${STEP_LABEL[k]}${done ? " (เสร็จแล้ว แตะเพื่อแก้ไข)" : active ? " (ขั้นปัจจุบัน)" : ""}`}
+                  className={cn(
+                    "relative flex size-11 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition-all duration-500",
+                    active && "scale-110 border-primary bg-primary text-primary-foreground shadow-[0_10px_26px_-10px_var(--primary)]",
+                    done && "border-primary bg-background text-primary hover:bg-primary hover:text-primary-foreground",
+                    !active && !done && "border-[color-mix(in_oklab,var(--foreground)_14%,transparent)] bg-background text-muted-foreground",
+                  )}
+                >
+                  {done ? <Check className="size-4" aria-hidden /> : <span className="font-mono">{i + 1}</span>}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+      <ol aria-hidden className="mt-2 hidden justify-between text-xs sm:flex">
+        {steps.map((k) => (
+          <li key={k} className={cn("w-11 text-center whitespace-nowrap", k === current ? "font-semibold text-foreground" : "text-muted-foreground")}>
+            {STEP_LABEL[k]}
+          </li>
+        ))}
       </ol>
-      <p className="mt-2 text-xs text-muted-foreground sm:hidden">
+      <p className="mt-3 text-xs text-muted-foreground sm:hidden">
         ขั้นที่ {steps.indexOf(current) + 1}/{steps.length} · {STEP_LABEL[current]}
       </p>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
-        <motion.div className="h-full rounded-full bg-primary" initial={false} animate={{ width: `${pct}%` }} transition={reduce ? { duration: 0 } : { duration: 0.45, ease: EASE }} />
-      </div>
+      <div className="sr-only" role="progressbar" aria-label="ความคืบหน้าการจอง" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100} />
     </div>
   );
 }
@@ -607,12 +634,17 @@ function ServiceStep({ services, selected, onSelect }: { services: WizardService
     for (const s of services) map.set(s.categoryName ?? "", [...(map.get(s.categoryName ?? "") ?? []), s]);
     return [...map.entries()];
   }, [services]);
+  let n = 0;
   return (
-    <div className="mt-4 space-y-6">
+    <div className="mt-6 space-y-7">
       {groups.map(([cat, list]) => (
         <div key={cat || "_"}>
-          {cat && <p className="mb-2 text-xs font-semibold tracking-[0.18em] text-primary-ink uppercase">{cat}</p>}
-          <div className="grid gap-2 sm:grid-cols-2">
+          {cat && (
+            <p className="mb-3 flex items-center gap-3 text-xs font-semibold text-primary-ink">
+              <span aria-hidden className="h-px w-6 bg-current opacity-60" /> {cat}
+            </p>
+          )}
+          <div className="grid gap-2.5 sm:grid-cols-2">
             {list.map((s) => {
               const active = s.id === selected;
               return (
@@ -621,12 +653,14 @@ function ServiceStep({ services, selected, onSelect }: { services: WizardService
                   type="button"
                   onClick={() => onSelect(s)}
                   aria-pressed={active}
+                  style={{ "--i": n++ } as React.CSSProperties}
                   className={cn(
-                    "flex min-h-[72px] items-center gap-3 rounded-[var(--radius-lg)] border p-3 text-left transition",
-                    active ? "border-primary bg-primary-soft ring-2 ring-primary/30" : "hover:border-primary/50 hover:bg-muted/60",
+                    "bk-choice bk-pop flex min-h-[76px] items-center gap-3 rounded-[calc(var(--radius,.75rem)*1.2)] border p-3 text-left",
+                    active ? "border-primary bg-primary-soft" : "border-[color-mix(in_oklab,var(--foreground)_10%,transparent)] bg-background hover:border-primary/50",
                   )}
                 >
                   {s.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={s.image} alt="" className="size-14 shrink-0 rounded-[var(--radius-md)] object-cover" loading="lazy" />
                   ) : (
                     <span className="flex size-14 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-primary-soft text-primary">
@@ -634,15 +668,17 @@ function ServiceStep({ services, selected, onSelect }: { services: WizardService
                     </span>
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="flex items-start justify-between gap-2">
-                      <span className="font-medium leading-snug">{s.name}</span>
-                      <span className="shrink-0 text-sm font-semibold tabular-nums">{priceLabel(s, 1)}</span>
-                    </span>
+                    <span className="block font-medium leading-snug">{s.name}</span>
                     <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      <span className="font-semibold text-foreground tabular-nums">{priceLabel(s, 1)}</span>
                       <span className="inline-flex items-center gap-1">
                         <Clock className="size-3" /> {L.minutes(s.durationMin)}
                       </span>
-                      {s.depositRequired && s.depositAmount > 0 && <span>{L.deposit} {thb(s.depositAmount)}</span>}
+                      {s.depositRequired && s.depositAmount > 0 && (
+                        <span>
+                          {L.deposit} {thb(s.depositAmount)}
+                        </span>
+                      )}
                       {s.seatsPerBooking ? <span>{L.packageFor(s.seatsPerBooking)}</span> : s.capacity > 1 && <span>สูงสุด {s.capacity} ท่าน/รอบ</span>}
                       {s.featured && (
                         <Badge variant="soft" className="px-1.5 py-0 text-[10px]">
@@ -650,6 +686,9 @@ function ServiceStep({ services, selected, onSelect }: { services: WizardService
                         </Badge>
                       )}
                     </span>
+                  </span>
+                  <span aria-hidden className={cn("flex size-6 shrink-0 items-center justify-center rounded-full border transition-colors", active ? "border-primary bg-primary text-primary-foreground" : "border-[color-mix(in_oklab,var(--foreground)_18%,transparent)]")}>
+                    {active && <Check className="size-3.5" />}
                   </span>
                 </button>
               );
@@ -663,14 +702,14 @@ function ServiceStep({ services, selected, onSelect }: { services: WizardService
 
 function StaffStep({ staff, selected, onSelect }: { staff: WizardStaff[]; selected: string | null | undefined; onSelect: (id: string | null) => void }) {
   return (
-    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+    <div className="mt-6 grid gap-2.5 sm:grid-cols-2">
       <button
         type="button"
         onClick={() => onSelect(null)}
         aria-pressed={selected === null}
         className={cn(
-          "flex min-h-[72px] items-center gap-3 rounded-[var(--radius-lg)] border p-3 text-left transition sm:col-span-2",
-          selected === null ? "border-primary bg-primary-soft ring-2 ring-primary/30" : "hover:border-primary/50 hover:bg-muted/60",
+          "bk-choice bk-pop flex min-h-[76px] items-center gap-3 rounded-[calc(var(--radius,.75rem)*1.2)] border p-3 text-left sm:col-span-2",
+          selected === null ? "border-primary bg-primary-soft" : "border-[color-mix(in_oklab,var(--foreground)_10%,transparent)] bg-background hover:border-primary/50",
         )}
       >
         <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
@@ -681,7 +720,7 @@ function StaffStep({ staff, selected, onSelect }: { staff: WizardStaff[]; select
           <span className="block text-xs text-muted-foreground">{L.anyStaffHint}</span>
         </span>
       </button>
-      {staff.map((s) => {
+      {staff.map((s, i) => {
         const active = selected === s.id;
         return (
           <button
@@ -689,9 +728,14 @@ function StaffStep({ staff, selected, onSelect }: { staff: WizardStaff[]; select
             type="button"
             onClick={() => onSelect(s.id)}
             aria-pressed={active}
-            className={cn("flex min-h-[72px] items-center gap-3 rounded-[var(--radius-lg)] border p-3 text-left transition", active ? "border-primary bg-primary-soft ring-2 ring-primary/30" : "hover:border-primary/50 hover:bg-muted/60")}
+            style={{ "--i": i + 1 } as React.CSSProperties}
+            className={cn(
+              "bk-choice bk-pop flex min-h-[76px] items-center gap-3 rounded-[calc(var(--radius,.75rem)*1.2)] border p-3 text-left",
+              active ? "border-primary bg-primary-soft" : "border-[color-mix(in_oklab,var(--foreground)_10%,transparent)] bg-background hover:border-primary/50",
+            )}
           >
             {s.avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={s.avatar} alt="" className="size-12 shrink-0 rounded-full object-cover" loading="lazy" />
             ) : (
               <span className="flex size-12 shrink-0 items-center justify-center rounded-full text-white" style={{ background: s.color }}>
@@ -747,7 +791,7 @@ function SelectionStrip({ service, staffLabel, date, start, className }: { servi
   return (
     <div className={cn("flex flex-wrap gap-1.5", className)}>
       {chips.map((c, i) => (
-        <span key={i} className="inline-flex items-center rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary-ink">
+        <span key={`${i}-${c}`} className="bk-pop inline-flex items-center rounded-full bg-primary-soft px-3 py-1 text-xs font-medium text-primary-ink" style={{ "--i": i } as React.CSSProperties}>
           {c}
         </span>
       ))}
@@ -755,6 +799,29 @@ function SelectionStrip({ service, staffLabel, date, start, className }: { servi
   );
 }
 
+/** One summary row; a module-level component so its flash only replays when the value changes (not on every render). */
+function SummaryItem({ k, label, value, icon: Icon, steps, onEdit }: { k: StepKey; label: string; value: string | null; icon: React.ComponentType<{ className?: string }>; steps: StepKey[]; onEdit: (k: StepKey) => void }) {
+  return (
+    <li className="flex items-start gap-3">
+      <span className={cn("mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full transition-colors duration-500", value ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+        <Icon className="size-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-xs text-muted-foreground">{label}</span>
+        <span key={value ?? "-"} className={cn("block text-sm", value ? "bk-flash font-medium" : "text-muted-foreground/70")}>
+          {value ?? L.notSelected}
+        </span>
+      </span>
+      {value && steps.includes(k) && (
+        <button type="button" onClick={() => onEdit(k)} aria-label={`แก้ไข${label}`} className="flex size-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted">
+          <Pencil className="size-3.5" />
+        </button>
+      )}
+    </li>
+  );
+}
+
+/** Desktop summary that follows the customer (sticky): a ticket whose values flash as they change. */
 function Summary({
   service,
   staffLabel,
@@ -782,43 +849,37 @@ function Summary({
   onEdit: (k: StepKey) => void;
   steps: StepKey[];
 }) {
-  const Item = ({ k, label, value, icon: Icon }: { k: StepKey; label: string; value: string | null; icon: React.ComponentType<{ className?: string }> }) => (
-    <li className="flex items-start gap-3">
-      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
-        <Icon className="size-4" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-xs text-muted-foreground">{label}</span>
-        <span className={cn("block text-sm", value ? "font-medium" : "text-muted-foreground/70")}>{value ?? L.notSelected}</span>
-      </span>
-      {value && steps.includes(k) && (
-        <button type="button" onClick={() => onEdit(k)} aria-label={`แก้ไข${label}`} className="flex size-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted">
-          <Pencil className="size-3.5" />
-        </button>
-      )}
-    </li>
-  );
   return (
-    <div className="card p-5">
-      <p className="font-heading text-lg font-semibold">{L.summary}</p>
-      <ul className="mt-4 space-y-4">
-        <Item k="service" label={L.services} value={service?.name ?? null} icon={Sparkles} />
-        {steps.includes("staff") && <Item k="staff" label={L.staff} value={staffLabel} icon={UserRound} />}
-        <Item k="date" label="วัน" value={date ? formatThaiYmd(date, { weekday: true }) : null} icon={CalendarDays} />
-        <Item k="time" label="เวลา" value={start ? `${formatBkkTime(start)} น.${service ? ` · ${L.minutes(service.durationMin)}` : ""}` : null} icon={Clock} />
-        {instructorName && <Item k="time" label={L.instructor} value={instructorName} icon={UserRound} />}
+    <div className="bk-panel bk-float overflow-hidden">
+      <div className="flex items-center justify-between bg-primary-soft px-5 py-4">
+        <p className="font-heading text-lg font-semibold">{L.summary}</p>
+        <span aria-hidden className="font-mono text-[10px] tracking-[0.14em] text-primary-ink">
+          TICKET
+        </span>
+      </div>
+      <ul className="space-y-4 px-5 py-5">
+        <SummaryItem steps={steps} onEdit={onEdit} k="service" label={L.services} value={service?.name ?? null} icon={Sparkles} />
+        {steps.includes("staff") && <SummaryItem steps={steps} onEdit={onEdit} k="staff" label={L.staff} value={staffLabel} icon={UserRound} />}
+        <SummaryItem steps={steps} onEdit={onEdit} k="date" label="วัน" value={date ? formatThaiYmd(date, { weekday: true }) : null} icon={CalendarDays} />
+        <SummaryItem steps={steps} onEdit={onEdit} k="time" label="เวลา" value={start ? `${formatBkkTime(start)} น.${service ? ` · ${L.minutes(service.durationMin)}` : ""}` : null} icon={Clock} />
+        {instructorName && <SummaryItem steps={steps} onEdit={onEdit} k="time" label={L.instructor} value={instructorName} icon={UserRound} />}
       </ul>
       {service && (
-        <div className="mt-5 border-t pt-4 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">{party > 1 ? `${L.total} (${L.guests(party)})` : L.total}</span>
-            <span className="font-semibold">{course ? L.useCourse : priceLabel(service, party)}</span>
+        <>
+          <div aria-hidden className="bk-perf bk-notched" />
+          <div className="px-5 py-4 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{party > 1 ? `${L.total} (${L.guests(party)})` : L.total}</span>
+              <span key={`${party}-${service.id}`} className="bk-flash font-semibold">
+                {course ? L.useCourse : priceLabel(service, party)}
+              </span>
+            </div>
+            <div className="mt-1 flex justify-between">
+              <span className="text-muted-foreground">{deposit > 0 ? `${fullPay ? L.fullPay : L.deposit} (${L.dueNow})` : L.deposit}</span>
+              <span className={cn("font-semibold", deposit > 0 && "text-primary")}>{deposit > 0 ? thb(deposit) : "–"}</span>
+            </div>
           </div>
-          <div className="mt-1 flex justify-between">
-            <span className="text-muted-foreground">{deposit > 0 ? `${fullPay ? L.fullPay : L.deposit} (${L.dueNow})` : L.deposit}</span>
-            <span className={cn("font-semibold", deposit > 0 && "text-primary")}>{deposit > 0 ? thb(deposit) : "–"}</span>
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

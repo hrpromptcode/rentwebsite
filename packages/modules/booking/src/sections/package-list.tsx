@@ -1,39 +1,43 @@
 import * as React from "react";
-import Link from "next/link";
 import type { z } from "zod";
 import { getDb, withTenant } from "@rentweb/db";
-import { Button } from "@rentweb/ui/components/button";
-import { Reveal, Stagger, StaggerItem } from "@rentweb/ui/motion";
 import type { StorefrontCtx } from "@rentweb/storefront/ctx";
 import type { packageList } from "@rentweb/storefront/definitions";
-import { Section, SectionHeading } from "@rentweb/storefront";
+import { CtaButton, Rise, Section, SectionHeading, StaggerCell, StaggerList } from "@rentweb/storefront";
+import { cn } from "@rentweb/ui/lib/utils";
 import { listClinicPackages } from "../services/clinic";
 import { packagesEnabled } from "../services/config";
-import { PackageCard } from "../components/cards";
 import { L } from "../labels";
+import { lookOf } from "../components/hi/look";
+import { BookingStyles } from "../components/hi/styles";
+import { PassTicket, savePct } from "../components/hi/pass-views";
 
 type Props = z.output<typeof packageList.schema>;
 
+/** Courses as glass tickets (§5.3): the best saving gets the animated gradient border + sticker. */
 export async function PackageListSection({ ctx, props: p, id }: { ctx: StorefrontCtx; props: Props; id: string; index: number }) {
   if (!packagesEnabled(ctx.tenant.modules, ctx.tenant.moduleConfig)) return null;
   const packages = await withTenant(getDb(), ctx.tenant.id, (tx) => listClinicPackages(tx, ctx.tenant.id, { limit: p.limit }));
   if (!packages.length) return null;
+  const look = lookOf(ctx.tenant);
+  const saves = packages.map((x) => savePct(x));
+  const best = saves.some((v) => v > 0) ? packages[saves.indexOf(Math.max(...saves))]?.id : undefined;
   return (
-    <Section id={id} tone="surface">
-      <div className="container-x">
+    <Section id={id} type="package-list" tone="surface" className="overflow-clip" style={{ "--bk-notch": "var(--surface)" } as React.CSSProperties}>
+      <BookingStyles />
+      <div aria-hidden className="bk-soft-bg pointer-events-none absolute inset-0" />
+      <div className="container-x relative">
         <SectionHeading eyebrow={p.eyebrow} heading={p.heading} subheading={p.subheading} />
-        <Stagger className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {packages.map((pkg) => (
-            <StaggerItem key={pkg.id} className="h-full">
-              <PackageCard p={pkg} />
-            </StaggerItem>
+        <StaggerList className={cn("grid gap-8 sm:grid-cols-2", packages.length >= 3 ? "lg:grid-cols-3" : "lg:mx-auto lg:max-w-4xl")} stagger={0.12}>
+          {packages.map((pkg, i) => (
+            <StaggerCell key={pkg.id} className="h-full">
+              <PassTicket p={pkg} look={look} highlight={pkg.id === best} buyLabel={L.buyPackage} index={i} />
+            </StaggerCell>
           ))}
-        </Stagger>
-        <Reveal className="mt-10 text-center">
-          <Button asChild variant="outline" size="lg">
-            <Link href="/packages">{L.viewAllPackages}</Link>
-          </Button>
-        </Reveal>
+        </StaggerList>
+        <Rise className="mt-14 text-center">
+          <CtaButton href="/packages" label={L.viewAllPackages} variant="outline" size="lg" magnetic={false} />
+        </Rise>
       </div>
     </Section>
   );

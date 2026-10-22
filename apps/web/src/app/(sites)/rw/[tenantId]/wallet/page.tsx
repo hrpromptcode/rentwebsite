@@ -11,7 +11,7 @@ import { enabledMethods, getPayment, isOpenPaymentStatus, paymentSettings, promp
 import { thb } from "@rentweb/core/money";
 import { isUuid } from "@rentweb/core";
 import { getOrCreateWallet, getWallet, getWalletTopup, listTransactions, reconcileWalletTopup, topupConfig } from "@rentweb/module-topup/services";
-import { WalletTopupForm, dateTimeTh } from "@rentweb/module-topup/components";
+import { HoloCard, TopupStyles, WalletTopupForm, dateTimeTh } from "@rentweb/module-topup/components";
 import { WALLET_REASON_LABEL } from "@rentweb/module-topup/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
@@ -60,41 +60,80 @@ export default async function WalletPage({ params, searchParams }: { params: Pro
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
+      <TopupStyles />
       <section className="container-x pb-16 md:pb-24">
         <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-          {/* balance hero */}
-          <Reveal className="card relative overflow-hidden p-6 md:p-8 lg:col-span-2">
-            <div className="pointer-events-none absolute -top-24 -right-20 size-72 rounded-full bg-primary/30 blur-3xl animate-breathe" aria-hidden />
-            <div className="pointer-events-none absolute -bottom-24 -left-10 size-56 rounded-full bg-accent/20 blur-3xl" aria-hidden />
-            <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Wallet className="size-4 text-primary" /> ยอดเงินคงเหลือ
+          {/* the glowing balance card (holo tilt on desktop) + wallet facts */}
+          <Reveal className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-border/70 bg-card/50 p-5 backdrop-blur-xl md:p-8 lg:col-span-2">
+            <div aria-hidden className="pointer-events-none absolute -top-32 -left-24 size-80 rounded-full bg-primary/20 blur-3xl" />
+            <div className="relative grid gap-5 md:grid-cols-[minmax(0,25rem)_minmax(0,1fr)] md:grid-rows-[auto_1fr] md:gap-x-10 md:gap-y-5">
+              <div className="md:col-start-2 md:row-start-1 md:self-end">
+                <p className="tp-hud mb-2 text-primary" data-script="latin">
+                  [ Wallet ]
                 </p>
-                <p className="heading-display mt-2 text-5xl font-semibold text-glow md:text-7xl">
-                  <Counter to={balanceBaht} prefix="฿" decimals={wallet.balance % 100 ? 2 : 0} />
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {customer.name ?? customer.phone ?? customer.email} · ระดับ <span className="font-medium text-foreground uppercase">{customer.tier}</span>
-                </p>
+                <h1 className="font-heading text-step-4 font-semibold">กระเป๋าเงิน</h1>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {cfg.walletBonusPercent > 0 && (
-                  <Badge variant="success" className="gap-1.5 px-3 py-1.5 text-sm">
-                    <Gift /> โบนัส +{cfg.walletBonusPercent}% ทุกครั้งที่เติม
-                  </Badge>
-                )}
-                <Button asChild variant="outline" size="sm" className="h-11">
-                  <Link href="/games">
-                    <Zap /> ไปเติมเกม
-                  </Link>
-                </Button>
+              <HoloCard className="rounded-[1.4rem] md:col-start-1 md:row-span-2 md:row-start-1 md:self-center" max={6}>
+                <div className="tp-balance-card relative flex aspect-[1.586] flex-col justify-between overflow-hidden rounded-[inherit] p-5 md:p-6">
+                  <span aria-hidden className="tp-foil" />
+                  <div className="relative flex items-start justify-between gap-3">
+                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Wallet className="size-4 text-primary" /> ยอดเงินคงเหลือ
+                    </p>
+                    <span aria-hidden className="tp-hud text-[10px] text-foreground/80" data-script="latin">
+                      {runtime.config.name} · Wallet
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <span aria-hidden className="tp-chip mb-3 block h-7 w-10 md:h-8 md:w-11" />
+                    <p className="tp-num text-[2.5rem] leading-none font-semibold text-glow md:text-[3.25rem]">
+                      <Counter to={balanceBaht} prefix="฿" decimals={wallet.balance % 100 ? 2 : 0} />
+                    </p>
+                  </div>
+                  <div className="relative flex items-end justify-between gap-3">
+                    <p className="min-w-0 truncate text-sm text-muted-foreground">
+                      {customer.name ?? customer.phone ?? customer.email} · ระดับ <span className="font-medium text-foreground uppercase">{customer.tier}</span>
+                    </p>
+                    <span aria-hidden className="tp-hud shrink-0 text-[10px] text-muted-foreground" data-script="latin">
+                      •••• {wallet.id.replace(/-/g, "").slice(-4).toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+              </HoloCard>
+              <div className="grid content-start gap-5 md:col-start-2 md:row-start-2">
+                <div className="flex flex-wrap gap-2">
+                  {cfg.walletBonusPercent > 0 && (
+                    <Badge variant="success" className="h-9 gap-1.5 px-3 text-sm">
+                      <Gift /> โบนัส +{cfg.walletBonusPercent}% ทุกครั้งที่เติม
+                    </Badge>
+                  )}
+                  <Button asChild variant="outline" size="sm" className="h-11">
+                    <Link href="/games">
+                      <Zap /> ไปเติมเกม
+                    </Link>
+                  </Button>
+                </div>
+                <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-[var(--radius-lg)] border border-border/60 bg-border/60">
+                  {[
+                    ["Bonus", cfg.walletBonusPercent > 0 ? `+${cfg.walletBonusPercent}%` : "—"],
+                    ["Min", thb(cfg.minWalletTopup)],
+                    ["Tier", customer.tier.toUpperCase()],
+                  ].map(([k, v]) => (
+                    <div key={k} className="min-w-0 bg-card/80 px-3 py-3 sm:px-4">
+                      <dt className="tp-hud text-[10px] text-muted-foreground" data-script="latin">
+                        {k}
+                      </dt>
+                      <dd className={cn("mt-1 truncate font-semibold", k === "Tier" ? "font-heading text-base tracking-wide sm:text-lg" : "tp-num text-sm sm:text-lg")}>{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="text-sm text-muted-foreground">ใช้ยอดในกระเป๋าเติมเกมได้ทันที ไม่ต้องแนบสลิปทุกครั้ง · เติมไม่สำเร็จ ระบบคืนเงินเข้ากระเป๋าอัตโนมัติ</p>
               </div>
             </div>
           </Reveal>
 
           {frozen && (
-            <div role="alert" className="card flex items-start gap-3 border-destructive/50 bg-destructive/10 p-5 lg:col-span-2">
+            <div role="alert" className="flex items-start gap-3 rounded-[var(--radius-xl)] border border-destructive/50 bg-destructive/10 p-5 lg:col-span-2">
               <Lock className="mt-0.5 size-5 shrink-0 text-destructive" />
               <div className="text-sm">
                 <p className="font-semibold text-foreground">กระเป๋าเงินถูกระงับชั่วคราว</p>
@@ -106,13 +145,13 @@ export default async function WalletPage({ params, searchParams }: { params: Pro
           {/* main column */}
           <div className="grid gap-6">
             {cancelled === "1" && !pending && (
-              <div role="status" className="card flex items-center gap-3 p-5 text-sm">
+              <div role="status" className="flex items-center gap-3 rounded-[var(--radius-xl)] border border-border/70 bg-card/70 p-5 text-sm">
                 <X className="size-5 shrink-0 text-muted-foreground" />
                 <p>ยกเลิกรายการเติมเงินแล้ว ไม่มีการเรียกเก็บเงิน</p>
               </div>
             )}
             {closedTopup && (
-              <div role="status" className="card flex items-start gap-3 p-5 text-sm">
+              <div role="status" className="flex items-start gap-3 rounded-[var(--radius-xl)] border border-border/70 bg-card/70 p-5 text-sm">
                 <Info className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
                 <p>
                   รายการเติมเงิน {thb(pending.amount)} {payment.status === "cancelled" ? "ถูกยกเลิกแล้ว" : payment.status === "expired" ? "หมดเวลาชำระแล้ว" : "ไม่สำเร็จ"} — หากโอนเงินไปแล้ว กรุณาติดต่อแอดมินพร้อมสลิป
@@ -120,13 +159,13 @@ export default async function WalletPage({ params, searchParams }: { params: Pro
               </div>
             )}
             {justCredited && (
-              <Reveal className="card flex items-center gap-3 border-emerald-500/40 bg-emerald-500/10 p-5">
+              <Reveal className="flex items-center gap-3 rounded-[var(--radius-xl)] border border-emerald-500/40 bg-emerald-500/10 p-5 shadow-[0_0_40px_-16px_rgb(16_185_129/0.6)]">
                 <CheckCircle2 className="size-6 shrink-0 text-emerald-500" />
                 <div className="text-sm">
                   <p className="font-medium">เติมเงินสำเร็จ {thb(pending.amount)}</p>
                   {pending.bonus > 0 && <p className="text-muted-foreground">ได้รับโบนัสเพิ่ม {thb(pending.bonus)}</p>}
                 </div>
-                <Button asChild size="sm" className="ml-auto">
+                <Button asChild size="sm" className="ml-auto h-11">
                   <Link href="/games">เติมเกมเลย</Link>
                 </Button>
               </Reveal>
@@ -168,17 +207,22 @@ export default async function WalletPage({ params, searchParams }: { params: Pro
                 )}
               </Reveal>
             ) : frozen ? (
-              <div className="card p-5 md:p-7">
+              <div className="rounded-[var(--radius-xl)] border border-border/70 bg-card/70 p-5 md:p-7">
                 <h2 className="font-heading flex items-center gap-2 text-xl font-semibold">
                   <Lock className="size-5 text-muted-foreground" /> เติมเงินเข้ากระเป๋า
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground">ปิดการเติมเงินชั่วคราวเพราะกระเป๋าเงินถูกระงับ กรุณาติดต่อแอดมินเพื่อปลดระงับ</p>
               </div>
             ) : (
-              <Reveal className="card p-5 md:p-7" delay={0.05}>
-                <h2 className="font-heading flex items-center gap-2 text-xl font-semibold">
-                  <Plus className="size-5 text-primary" /> เติมเงินเข้ากระเป๋า
-                </h2>
+              <Reveal className="relative overflow-hidden rounded-[var(--radius-xl)] border border-border/70 bg-card/70 p-5 backdrop-blur-xl md:p-7" delay={0.05}>
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="font-heading flex items-center gap-2 text-xl font-semibold">
+                    <Plus className="size-5 text-primary" /> เติมเงินเข้ากระเป๋า
+                  </h2>
+                  <span aria-hidden className="tp-hud pt-1.5 text-[10px] text-muted-foreground" data-script="latin">
+                    Top-up
+                  </span>
+                </div>
                 <p className="mt-1 mb-6 text-sm text-muted-foreground">ใช้เติมเกมในเว็บนี้เท่านั้น ไม่สามารถถอนเป็นเงินสดได้ · ขั้นต่ำ {thb(cfg.minWalletTopup)}</p>
                 <WalletTopupForm presets={PRESETS} minAmount={cfg.minWalletTopup} bonusPercent={cfg.walletBonusPercent} methods={methods} action={createWalletTopupAction.bind(null, tenantId)} />
               </Reveal>
@@ -186,19 +230,29 @@ export default async function WalletPage({ params, searchParams }: { params: Pro
           </div>
 
           {/* history */}
-          <Reveal className="card p-5 md:p-6" delay={0.1}>
-            <h2 className="font-heading flex items-center gap-2 text-lg font-semibold">
-              <History className="size-5 text-primary" /> ประวัติรายการ
-            </h2>
+          <Reveal className="rounded-[var(--radius-xl)] border border-border/70 bg-card/70 p-5 backdrop-blur-xl md:p-6" delay={0.1}>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-heading flex items-center gap-2 text-lg font-semibold">
+                <History className="size-5 text-primary" /> ประวัติรายการ
+              </h2>
+              <span aria-hidden className="tp-hud text-[10px] text-muted-foreground" data-script="latin">
+                Ledger · {String(transactions.length).padStart(2, "0")}
+              </span>
+            </div>
             {transactions.length === 0 ? (
-              <p className="mt-4 text-sm text-muted-foreground">ยังไม่มีรายการ เติมเงินครั้งแรกเพื่อรับโบนัส</p>
+              <div className="mt-4 flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-dashed border-border/80 px-4 py-8 text-center">
+                <span className="flex size-11 items-center justify-center rounded-full bg-primary-soft text-primary">
+                  <Gift className="size-5" />
+                </span>
+                <p className="text-sm text-muted-foreground">ยังไม่มีรายการ เติมเงินครั้งแรกเพื่อรับโบนัส</p>
+              </div>
             ) : (
               <ul className="mt-4 divide-y divide-border/60">
                 {transactions.map((t) => {
                   const credit = t.type === "credit";
                   return (
                     <li key={t.id} className="flex items-center gap-3 py-3">
-                      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-full", credit ? "bg-emerald-500/15 text-emerald-500" : "bg-muted text-muted-foreground")}>
+                      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-md)]", credit ? "bg-emerald-500/15 text-emerald-500" : "bg-muted text-muted-foreground")}>
                         {credit ? <ArrowDownLeft className="size-4" /> : <ArrowUpRight className="size-4" />}
                       </span>
                       <div className="min-w-0 flex-1">

@@ -10,6 +10,7 @@ import { cn } from "@rentweb/ui/lib/utils";
 import { PaymentMethodPicker, type PaymentMethodOption } from "@rentweb/storefront/payments";
 import { percentOf, thb } from "@rentweb/core/money";
 import { MAX_WALLET_TOPUP_SATANG, parseBahtInput } from "./format";
+import { Brackets, TopupStyles } from "./topup-styles";
 
 export interface WalletTopupState {
   error?: string;
@@ -52,6 +53,7 @@ export function WalletTopupForm({
 
   return (
     <form action={submit} className="grid gap-6">
+      <TopupStyles />
       <input type="hidden" name="amount" value={amount} />
       <div>
         <Label className="mb-3 block">เลือกจำนวนเงิน</Label>
@@ -66,12 +68,15 @@ export function WalletTopupForm({
                 aria-checked={active}
                 onClick={() => pickPreset(p)}
                 className={cn(
-                  "flex h-16 flex-col items-center justify-center rounded-[var(--radius-lg)] border transition",
-                  active ? "border-primary bg-primary-soft ring-2 ring-primary/40 shadow-[0_0_28px_-8px_var(--glow)]" : "border-border/70 bg-background/40 hover:border-primary/50",
+                  "tp-pkg relative flex h-[4.5rem] flex-col items-center justify-center rounded-[var(--radius-lg)] border outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                  active ? "border-transparent bg-primary-soft shadow-[0_0_30px_-10px_var(--glow)]" : "border-border/70 bg-background/40 hover:border-primary/50 hover:bg-primary-soft/40",
                 )}
               >
-                <span className="font-heading text-lg font-semibold">{thb(p)}</span>
+                <span className="tp-num text-lg font-semibold">{thb(p)}</span>
                 {bonusPercent > 0 && <span className="text-[11px] text-emerald-500">+{thb(percentOf(p, bonusPercent))} โบนัส</span>}
+                <svg aria-hidden className="tp-draw">
+                  <rect x="1" y="1" rx="13" pathLength={1} />
+                </svg>
               </button>
             );
           })}
@@ -101,7 +106,8 @@ export function WalletTopupForm({
         </div>
       </div>
 
-      <div className="rounded-[var(--radius-lg)] border border-primary/30 bg-primary-soft p-4">
+      <div className="relative overflow-hidden rounded-[var(--radius-lg)] border border-primary/30 bg-primary-soft p-4">
+        <Brackets size={10} />
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">ชำระ</span>
           <span className="font-medium">{amount > 0 ? thb(amount) : "—"}</span>
@@ -116,7 +122,7 @@ export function WalletTopupForm({
         )}
         <div className="mt-2 flex items-center justify-between border-t border-primary/20 pt-2">
           <span className="font-medium">เข้ากระเป๋าทั้งหมด</span>
-          <span className="font-heading text-2xl font-semibold text-primary text-glow">{amount > 0 ? thb(amount + bonus) : "—"}</span>
+          <span className="tp-num text-2xl font-semibold text-primary text-glow">{amount > 0 ? thb(amount + bonus) : "—"}</span>
         </div>
       </div>
 
@@ -131,7 +137,7 @@ export function WalletTopupForm({
         </p>
       )}
 
-      <Button type="submit" size="xl" disabled={pending || blocked} className="w-full">
+      <Button type="submit" size="xl" disabled={pending || blocked} className={cn("w-full", !blocked && !pending && "shadow-[0_0_34px_-8px_var(--glow)]")}>
         {pending ? <Loader2 className="animate-spin" /> : <Plus />} {pending ? "กำลังสร้างรายการ…" : amount > 0 && !customError ? `เติมเงิน ${thb(amount)}` : "เติมเงิน"}
       </Button>
     </form>

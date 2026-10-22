@@ -3,12 +3,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CalendarClock, ChevronLeft, Layers, Phone, Sparkles, Wallet } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
-import { Reveal } from "@rentweb/ui/motion";
+import { cn } from "@rentweb/ui/lib/utils";
 import { Img, Prose } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
 import { isUuid } from "@rentweb/core";
 import { getClinicPackage, packagePaymentMethods, packagesEnabled } from "@rentweb/module-booking/services";
-import { depositMethodOptions } from "@rentweb/module-booking/ui";
+import { CompactIntro, depositMethodOptions, lookOf } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
@@ -36,33 +36,40 @@ export default async function BuyPackagePage({ params }: { params: Params }) {
   const methods = depositMethodOptions(runtime.config.settings).filter((m) => allowed.includes(m.value));
   const phone = (runtime.config.settings.contact as { phone?: string } | undefined)?.phone;
   const clinic = runtime.config.modules.includes("clinic");
+  const look = lookOf(runtime.config);
   const perSession = Math.round(pkg.price / Math.max(1, pkg.sessions));
   const save = pkg.compareAtPrice && pkg.compareAtPrice > pkg.price ? Math.round(((pkg.compareAtPrice - pkg.price) / pkg.compareAtPrice) * 100) : 0;
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
-      <section className="container-x pt-8 pb-16 md:pt-12 md:pb-24">
-        <div className="mx-auto max-w-4xl">
-          <Link href="/packages" className="inline-flex h-11 items-center gap-1 text-sm text-muted-foreground transition hover:text-foreground">
-            <ChevronLeft className="size-4" /> {clinic ? "คอร์สทั้งหมด" : "คลาสพาสทั้งหมด"}
-          </Link>
-          <div className="mt-2 grid gap-8 md:grid-cols-[1fr_minmax(0,380px)] md:gap-10">
-            <Reveal>
-              <div className="overflow-hidden rounded-[var(--radius-xl)] bg-muted">{pkg.image ? <Img src={pkg.image} alt={pkg.name} className="aspect-[16/10] w-full object-cover" /> : <div className="aspect-[16/10]" aria-hidden />}</div>
-              <p className="mt-6 text-sm font-medium uppercase tracking-[0.2em] text-primary">{pkg.serviceName ?? (clinic ? "คอร์ส" : "ใช้ได้ทุกคลาส")}</p>
-              <h1 className="heading-display mt-2 text-3xl font-semibold md:text-5xl">{pkg.name}</h1>
-              {pkg.description && <Prose text={pkg.description} className="mt-4 text-muted-foreground" />}
-              <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <section className="container-x pt-6 pb-20 md:pt-10 md:pb-28">
+        <div className="mx-auto max-w-5xl">
+          <CompactIntro
+            back={
+              <Link href="/packages" className="inline-flex h-11 items-center gap-1 text-sm text-muted-foreground transition hover:text-foreground">
+                <ChevronLeft className="size-4" /> {clinic ? "คอร์สทั้งหมด" : "คลาสพาสทั้งหมด"}
+              </Link>
+            }
+            eyebrow={pkg.serviceName ?? (clinic ? "คอร์ส" : "ใช้ได้ทุกคลาส")}
+            title={pkg.name}
+          />
+          <div className="mt-8 grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,380px)] md:gap-12">
+            <div>
+              <div className={cn("bk-frame aspect-[16/10]", look === "clinic" ? "bk-arch !aspect-[16/11]" : "bk-soft")}>
+                {pkg.image ? <Img src={pkg.image} alt={pkg.name} className="bk-cover" priority /> : <div className="bk-soft-bg flex size-full items-end p-6"><span className="bk-pass-num text-primary">{String(pkg.sessions).padStart(2, "0")}</span></div>}
+              </div>
+              {pkg.description && <Prose text={pkg.description} className="mt-6 text-step-1 text-muted-foreground" />}
+              <dl className="mt-6 grid grid-cols-2 border-t border-[color-mix(in_oklab,var(--foreground)_12%,transparent)] sm:grid-cols-3">
                 <Fact icon={Layers} label="จำนวนครั้ง" value={L.sessions(pkg.sessions)} />
                 <Fact icon={CalendarClock} label="อายุคอร์ส" value={L.validity(pkg.validityDays)} />
                 <Fact icon={Sparkles} label={L.perSession} value={thb(perSession)} />
               </dl>
-            </Reveal>
-            <Reveal delay={0.05}>
-              <div className="card sticky top-[calc(var(--header-h,0px)+1rem)] p-5 md:p-6">
+            </div>
+            <div>
+              <div className="bk-panel bk-float sticky top-[calc(var(--header-h,0px)+1rem)] p-5 md:p-6">
                 <p className="text-sm text-muted-foreground">ยอดชำระ</p>
                 <div className="mt-1 flex flex-wrap items-baseline gap-2">
-                  <span className="font-heading text-3xl font-semibold text-primary">{thb(pkg.price)}</span>
+                  <span className="font-heading text-step-4 font-semibold leading-none text-primary tabular-nums">{thb(pkg.price)}</span>
                   {pkg.compareAtPrice && pkg.compareAtPrice > pkg.price && (
                     <>
                       <span className="text-sm text-muted-foreground line-through">{thb(pkg.compareAtPrice)}</span>
@@ -70,7 +77,8 @@ export default async function BuyPackagePage({ params }: { params: Params }) {
                     </>
                   )}
                 </div>
-                <p className="mt-3 rounded-[var(--radius-md)] bg-muted/60 px-3 py-2 text-sm">
+                <div aria-hidden className="bk-perf -mx-5 mt-5 md:-mx-6" />
+                <p className="mt-5 rounded-[var(--radius-md)] bg-muted/60 px-3 py-2 text-sm">
                   ซื้อในชื่อ <span className="font-medium">{customer.name ?? customer.phone ?? customer.email}</span>
                   {customer.phone && customer.name && <span className="text-muted-foreground"> · {customer.phone}</span>}
                 </p>
@@ -93,7 +101,7 @@ export default async function BuyPackagePage({ params }: { params: Params }) {
                   )}
                 </div>
               </div>
-            </Reveal>
+            </div>
           </div>
         </div>
       </section>
@@ -103,7 +111,7 @@ export default async function BuyPackagePage({ params }: { params: Params }) {
 
 function Fact({ icon: Icon, label, value }: { icon: typeof Layers; label: string; value: string }) {
   return (
-    <div className="rounded-[var(--radius-lg)] bg-muted/60 p-4">
+    <div className="border-b border-[color-mix(in_oklab,var(--foreground)_12%,transparent)] py-4 pr-4">
       <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Icon className="size-3.5" /> {label}
       </dt>

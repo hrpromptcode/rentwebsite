@@ -17,18 +17,18 @@ export function TrackForm({ action }: { action: (prev: TrackState, form: FormDat
     <form action={submit} className="grid gap-4">
       <div className="grid gap-1.5">
         <Label htmlFor="tr-number">{L.trackNumber}</Label>
-        <Input id="tr-number" name="number" placeholder="#1001" required autoComplete="off" className="h-12 font-mono" />
+        <span className="rwc-input-line block"><Input id="tr-number" name="number" placeholder="#1001" required autoComplete="off" className="h-12 font-mono" /></span>
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="tr-contact">{L.trackContact}</Label>
-        <Input id="tr-contact" name="contact" placeholder="08x-xxx-xxxx หรือ you@email.com" required autoComplete="tel" className="h-12" />
+        <span className="rwc-input-line block"><Input id="tr-contact" name="contact" placeholder="08x-xxx-xxxx หรือ you@email.com" required autoComplete="tel" className="h-12" /></span>
       </div>
       {state.error && (
         <p className="flex items-center gap-2 text-sm text-destructive">
           <SearchX className="size-4" /> {state.error}
         </p>
       )}
-      <Button type="submit" size="lg" disabled={pending} className="h-12">
+      <Button type="submit" size="lg" disabled={pending} className="mt-1 h-12 active:scale-[.98]">
         {pending ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
         {L.trackSubmit}
       </Button>

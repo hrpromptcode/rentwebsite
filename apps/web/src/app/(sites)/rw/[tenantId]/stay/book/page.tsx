@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { AlertCircle, ChevronLeft } from "lucide-react";
-import { Button } from "@rentweb/ui/components/button";
-import { Reveal } from "@rentweb/ui/motion";
+import { AlertCircle, Check, ChevronLeft } from "lucide-react";
+import { PageIntro } from "@rentweb/storefront";
 import type { PaymentMethodOption } from "@rentweb/storefront/payments";
 import { bkkDateString, getUnitTypeBySlug, isValidYmd, listExtras, listRateRules, parseExtrasParam, payOptionsFor, quoteStay, rentalConfig, stayPaymentMethods, unitsAvailable } from "@rentweb/module-rental/services";
-import { L, METHOD_LABELS } from "@rentweb/module-rental/ui";
+import { L, METHOD_LABELS, RentalStyles } from "@rentweb/module-rental/ui";
 import { StayBookForm } from "@rentweb/module-rental/client";
 import { decodeSlug } from "@/lib/slug";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -17,6 +16,27 @@ export const metadata: Metadata = { title: "จองห้องพัก", rob
 
 type Params = Promise<{ tenantId: string }>;
 type Search = Promise<{ type?: string; from?: string; to?: string; guests?: string; extras?: string }>;
+
+const STEPS = ["เลือกห้องและวันที่", "ข้อมูลผู้เข้าพัก", "ชำระเงินและยืนยัน"];
+
+/** Three-step progress (step 1 done) with a line that fills; operational page = no motion beyond the fill. */
+function Stepper() {
+  return (
+    <ol className="rw-track mb-10 max-w-2xl" aria-label="ขั้นตอนการจอง">
+      {STEPS.map((s, i) => (
+        <li key={s} className="rw-track-step relative flex flex-col items-start gap-2" data-state={i === 0 ? "done" : i === 1 ? "now" : "todo"} aria-current={i === 1 ? "step" : undefined}>
+          {i < STEPS.length - 1 && (
+            <span aria-hidden className="rw-track-line !left-7 !w-[calc(100%-1.75rem)]">
+              <i style={{ "--fill": i === 0 ? 1 : 0.5 } as React.CSSProperties} />
+            </span>
+          )}
+          <span className="rw-track-dot text-xs font-semibold">{i === 0 ? <Check className="size-3.5" aria-hidden /> : i + 1}</span>
+          <span className={i === 1 ? "text-sm font-semibold" : "text-sm text-muted-foreground"}>{s}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 /** /stay/book?type=<slug>&from&to&guests&extras – guest details + payment → createStayAction → /stays/[id]?k= */
 export default async function StayBookPage({ params, searchParams }: { params: Params; searchParams: Search }) {
@@ -50,20 +70,22 @@ export default async function StayBookPage({ params, searchParams }: { params: P
   if (!q.ok || remaining < 1) {
     return (
       <PageBody theme={runtime.theme} sections={[]}>
-        <section className="container-x pt-8 pb-16 md:pt-12 md:pb-24">
-          <div className="card mx-auto flex max-w-lg flex-col items-center gap-4 p-8 text-center">
-            <span className="flex size-14 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-              <AlertCircle className="size-6" />
+        <RentalStyles />
+        <section className="container-x pt-10 pb-20 md:pt-16 md:pb-28">
+          <div className="mx-auto flex max-w-xl flex-col items-center gap-5 rounded-[var(--radius-2xl)] border border-border bg-card px-6 py-12 text-center shadow-float md:px-10">
+            <span className="flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <AlertCircle className="size-7" aria-hidden />
             </span>
-            <h1 className="font-heading text-2xl font-semibold">{q.ok ? L.unavailable : (L.errors[q.error] ?? L.errors.unknown)}</h1>
-            <p className="text-sm text-muted-foreground">เลือกวันเข้าพักใหม่บนหน้าห้องพัก หรือดูห้องประเภทอื่นที่ว่างในช่วงเดียวกัน</p>
+            <p className="mono-label text-muted-foreground">{type.name}</p>
+            <h1 className="font-heading text-step-3 font-semibold text-balance">{q.ok ? L.unavailable : (L.errors[q.error] ?? L.errors.unknown)}</h1>
+            <p className="max-w-md text-sm leading-relaxed text-muted-foreground">เลือกวันเข้าพักใหม่บนหน้าห้องพัก หรือดูห้องประเภทอื่นที่ว่างในช่วงเดียวกัน</p>
             <div className="flex flex-wrap justify-center gap-2">
-              <Button asChild size="lg">
-                <Link href={roomHref}>{L.changeDates}</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href={`/stay?from=${from}&to=${to}&guests=${guests}`}>{L.stayTitle}</Link>
-              </Button>
+              <Link href={roomHref} className="rw-press inline-flex min-h-12 items-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+                {L.changeDates}
+              </Link>
+              <Link href={`/stay?from=${from}&to=${to}&guests=${guests}`} className="rw-press inline-flex min-h-12 items-center rounded-full border border-border px-6 text-sm font-semibold hover:border-foreground">
+                {L.stayTitle}
+              </Link>
             </div>
           </div>
         </section>
@@ -76,15 +98,14 @@ export default async function StayBookPage({ params, searchParams }: { params: P
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
-      <section className="container-x pt-6 pb-16 md:pt-10 md:pb-24">
-        <Link href={roomHref} className="inline-flex h-11 items-center gap-1 text-sm text-muted-foreground transition hover:text-foreground">
-          <ChevronLeft className="size-4" /> {L.backToRoom}
-        </Link>
-        <Reveal className="mt-2 mb-8 max-w-2xl">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">{runtime.config.name}</p>
-          <h1 className="heading-display mt-2 text-4xl font-semibold md:text-5xl">{L.bookingFor}</h1>
-          <p className="mt-3 text-muted-foreground">{remaining <= 2 ? `${L.lastUnits(remaining)} สำหรับวันที่เลือก · ` : ""}กรอกข้อมูลผู้เข้าพักและเลือกวิธีชำระเงิน ใช้เวลาไม่ถึงหนึ่งนาที</p>
-        </Reveal>
+      <RentalStyles />
+      <section className="container-x pb-16 md:pb-24">
+        <PageIntro compact eyebrow={runtime.config.name} title={L.bookingFor} lead={`${remaining <= 2 ? `${L.lastUnits(remaining)} สำหรับวันที่เลือก · ` : ""}กรอกข้อมูลผู้เข้าพักและเลือกวิธีชำระเงิน ใช้เวลาไม่ถึงหนึ่งนาที`} className="pb-6 md:pb-8">
+          <Link href={roomHref} className="mt-4 inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
+            <ChevronLeft className="size-4" aria-hidden /> {L.backToRoom}
+          </Link>
+        </PageIntro>
+        <Stepper />
         <StayBookForm
           type={{ id: type.id, slug: type.slug, name: type.name, cover: type.gallery[0] ?? null }}
           checkIn={from}

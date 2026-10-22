@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PRESETS } from "@rentweb/core/theme";
 import { FONTS } from "@rentweb/core/theme";
-import { rootHost } from "@rentweb/core/env";
+import { env, rootHost } from "@rentweb/core/env";
 import { listTemplates } from "@rentweb/templates";
 import { requireSession } from "@/lib/session";
 import { OnboardingWizard, type PresetSummary, type TemplateSummary } from "./wizard";
@@ -11,6 +11,8 @@ export const metadata: Metadata = { title: "สร้างเว็บไซต
 export default async function OnboardingPage() {
   await requireSession("/onboarding");
 
+  // live storefront screenshots served by the platform site (apps/web/public/showcase), Unsplash preview as fallback
+  const showcase = `${env().WEB_URL.replace(/\/+$/, "")}/showcase`;
   const templates: TemplateSummary[] = listTemplates().map((t) => ({
     key: t.key,
     name: t.name.th,
@@ -20,6 +22,7 @@ export default async function OnboardingPage() {
     themePreset: t.themePreset,
     recommendedPresets: t.recommendedPresets?.length ? t.recommendedPresets : [t.themePreset],
     previewImage: t.previewImage ?? null,
+    shot: `${showcase}/${t.key}.webp`,
     complexity: t.complexity ?? 1,
     demoUrl: `${rootHost().startsWith("localhost") ? "http" : "https"}://demo-${t.key}.${rootHost()}`,
   }));

@@ -1,0 +1,13 @@
+import fs from "node:fs";
+import path from "node:path";
+import { chromium } from "@playwright/test";
+const ids = process.argv.slice(2);
+const cells = ids.map((id) => `<figure><img src="https://images.unsplash.com/photo-${id}?w=360&q=60&auto=format&fit=crop"><figcaption>${id}</figcaption></figure>`).join("");
+const html = `<!doctype html><body style="margin:0;background:#222;color:#ddd;font:11px system-ui"><div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:6px">${cells}</div><style>figure{margin:0}img{width:100%;height:200px;object-fit:cover;display:block}</style></body>`;
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1600, height: 900 } });
+await p.setContent(html);
+await p.waitForLoadState("networkidle");
+await p.waitForTimeout(1500);
+await p.screenshot({ path: path.resolve("screenshots/_ev-imgsheet.png"), fullPage: true });
+await b.close();

@@ -1,101 +1,66 @@
 import * as React from "react";
-import Link from "next/link";
 import type { z } from "zod";
-import { ArrowRight, Clock } from "lucide-react";
 import { getDb, withTenant } from "@rentweb/db";
-import { Button } from "@rentweb/ui/components/button";
-import { Reveal, Stagger, StaggerItem } from "@rentweb/ui/motion";
-import { cn } from "@rentweb/ui/lib/utils";
 import type { StorefrontCtx } from "@rentweb/storefront/ctx";
 import type { serviceList } from "@rentweb/storefront/definitions";
-import { Section, SectionHeading } from "@rentweb/storefront";
-import { thb } from "@rentweb/core/money";
+import { CtaButton, Rise, Section, SectionHeading, StaggerCell, StaggerList } from "@rentweb/storefront";
+import { cn } from "@rentweb/ui/lib/utils";
 import { listServices, type ServiceWithCategory } from "../services/catalog";
-import { ServiceCard, servicePriceLabel } from "../components/cards";
 import { L } from "../labels";
+import { lookOf } from "../components/hi/look";
+import { BookingStyles } from "../components/hi/styles";
+import { ServiceIndex, ServiceMotifCard } from "../components/hi/service-views";
+import { CategoryTabs } from "../components/hi/category-tabs";
 
 type Props = z.output<typeof serviceList.schema>;
 
-function groupByCategory(list: ServiceWithCategory[]) {
-  const map = new Map<string, ServiceWithCategory[]>();
-  for (const s of list) map.set(s.categoryName ?? "", [...(map.get(s.categoryName ?? "") ?? []), s]);
-  return [...map.entries()];
+/** Spa-menu layout kept as a named export for pages: grouped editorial index with hover previews. */
+export function ServiceMenu({ services, className, look = "spa" }: { services: ServiceWithCategory[]; className?: string; look?: ReturnType<typeof lookOf> }) {
+  return <ServiceIndex services={services} look={look} grouped className={className} />;
 }
 
-/** "Menu" layout: service name … dotted leader … price, like a spa menu card. */
-export function ServiceMenu({ services, className }: { services: ServiceWithCategory[]; className?: string }) {
-  const groups = groupByCategory(services);
-  return (
-    <div className={cn("grid gap-10 md:grid-cols-2 md:gap-x-14", className)}>
-      {groups.map(([cat, list]) => (
-        <Reveal key={cat || "_"}>
-          {cat && <h3 className="mb-4 font-heading text-xl font-semibold text-primary">{cat}</h3>}
-          <ul className="space-y-4">
-            {list.map((s) => (
-              <li key={s.id}>
-                {/* RA-10: the two-line row is ~42px; keep the whole tap target at least 44px */}
-                <Link href={`/services/${s.slug}`} className="group block min-h-11">
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-medium leading-snug group-hover:text-primary">{s.name}</span>
-                    <span aria-hidden className="mb-1 flex-1 border-b border-dotted border-foreground/30" />
-                    <span className="shrink-0 font-semibold tabular-nums">{servicePriceLabel(s)}</span>
-                  </div>
-                  <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
-                      <Clock className="size-3" /> {L.minutes(s.durationMin)}
-                    </span>
-                    {s.depositRequired && s.depositAmount > 0 && <span>{L.deposit} {thb(s.depositAmount)}</span>}
-                    {s.description && <span className="hidden truncate sm:inline">· {s.description}</span>}
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Reveal>
-      ))}
-    </div>
-  );
-}
-
+/**
+ * Home-page services (§5.3 clinic: arch-photo cards + category tabs with a sliding pill; §5.5 spa: menu with dotted
+ * leaders and cursor-following photos). Variants: cards | menu | list.
+ */
 export async function ServiceListSection({ ctx, props: p, id }: { ctx: StorefrontCtx; props: Props; id: string; index: number }) {
   const services = await withTenant(getDb(), ctx.tenant.id, (tx) => listServices(tx, ctx.tenant.id, { categorySlug: p.categorySlug, limit: p.limit }));
   if (!services.length) return null;
+  const look = lookOf(ctx.tenant);
   const truncated = services.length >= p.limit;
+  const cats = [...new Map(services.filter((s) => s.categorySlug).map((s) => [s.categorySlug!, s.categoryName ?? s.categorySlug!])).entries()].map(([slug, name]) => ({ slug, name }));
+  const listId = `${id}-list`;
+
   return (
-    <Section id={id} tone={p.variant === "menu" ? "surface" : "default"}>
+    <Section id={id} type="service-list">
+      <BookingStyles />
       <div className="container-x">
-        <SectionHeading eyebrow={p.eyebrow} heading={p.heading} subheading={p.subheading} />
-        {p.variant === "menu" && <ServiceMenu services={services} className="mx-auto max-w-5xl" />}
-        {p.variant === "list" && (
-          <Stagger className="mx-auto grid max-w-4xl gap-3">
-            {services.map((s) => (
-              <StaggerItem key={s.id}>
-                <ServiceCard s={s} variant="row" />
-              </StaggerItem>
-            ))}
-          </Stagger>
+        {p.variant === "cards" ? (
+          <>
+            <SectionHeading eyebrow={p.eyebrow} heading={p.heading} subheading={p.subheading} />
+            {cats.length > 1 && <CategoryTabs tabs={cats} targetId={listId} className="-mt-4 mb-12 md:-mt-6 md:mb-16" />}
+            <div id={listId}>
+            <StaggerList className="grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3" stagger={0.1}>
+              {services.map((s, i) => (
+                <StaggerCell key={s.id} className={cn("h-full", i % 3 === 1 && "lg:translate-y-16")}>
+                  <div data-cat={s.categorySlug ?? undefined} data-cat-hide="parent" className="h-full">
+                    <ServiceMotifCard s={s} look={look} index={i} />
+                  </div>
+                </StaggerCell>
+              ))}
+            </StaggerList>
+            </div>
+          </>
+        ) : (
+          <>
+            <SectionHeading eyebrow={p.eyebrow} heading={p.heading} subheading={p.subheading} align="left" layout="split" />
+            <ServiceIndex services={services} look={look} grouped={p.variant === "menu"} />
+          </>
         )}
-        {p.variant === "cards" && (
-          <Stagger className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {services.map((s) => (
-              <StaggerItem key={s.id} className="h-full">
-                <ServiceCard s={s} />
-              </StaggerItem>
-            ))}
-          </Stagger>
-        )}
-        <Reveal className="mt-10 flex flex-wrap justify-center gap-3">
-          <Button asChild size="lg">
-            <Link href="/book">
-              {L.bookNow} <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-          {truncated && (
-            <Button asChild size="lg" variant="outline">
-              <Link href="/services">{L.viewAllServices}</Link>
-            </Button>
-          )}
-        </Reveal>
+        <Rise className={cn("mt-14 flex flex-wrap items-center gap-3 md:mt-20", p.variant === "cards" ? "justify-center lg:mt-28" : "justify-start")}>
+          <CtaButton href="/book" label={L.bookNow} size="lg" />
+          {truncated && <CtaButton href="/services" label={L.viewAllServices} variant="outline" size="lg" magnetic={false} />}
+        </Rise>
       </div>
     </Section>
   );

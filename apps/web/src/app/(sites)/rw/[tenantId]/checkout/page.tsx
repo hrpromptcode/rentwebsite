@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { checkoutPaymentMethods, loadCart, quoteShipping } from "@rentweb/module-commerce/services";
-import { CheckoutForm, PageHeader, type CheckoutCart } from "@rentweb/module-commerce/components";
+import { CheckoutForm, FlowHeader, type CheckoutCart } from "@rentweb/module-commerce/components";
 import { L } from "@rentweb/module-commerce/labels";
 import { THAI_PROVINCES } from "@rentweb/module-commerce/lib";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -47,8 +47,8 @@ export default async function CheckoutPage({ params }: { params: Promise<{ tenan
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
-      <section className="container-x pb-16 md:pb-24">
-        <PageHeader title={L.checkoutTitle} size="md" crumbs={[{ label: L.cart, href: "/cart" }, { label: L.checkoutTitle }]} />
+      <section className="container-x pb-20 md:pb-28">
+        <FlowHeader title={L.checkoutTitle} step={1} crumbs={[{ label: L.cart, href: "/cart" }, { label: L.checkoutTitle }]} />
         <CheckoutForm
           cart={checkoutCart}
           shipping={shipping}

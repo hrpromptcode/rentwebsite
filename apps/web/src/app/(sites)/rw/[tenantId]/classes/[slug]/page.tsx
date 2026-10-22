@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, BadgeCheck, CalendarDays, Clock, Coins, Sparkles, Ticket, Users } from "lucide-react";
-import { Button } from "@rentweb/ui/components/button";
-import { Reveal, Stagger, StaggerItem } from "@rentweb/ui/motion";
-import { Img } from "@rentweb/storefront";
+import { ArrowUpRight, BadgeCheck, CalendarDays, ChevronRight, Clock, Coins, Sparkles, Ticket, Users } from "lucide-react";
+import { cn } from "@rentweb/ui/lib/utils";
+import { ImageReveal } from "@rentweb/ui/motion";
+import { CtaButton, Eyebrow, RevealHeading, Rise, SectionStyles, StaggerCell, StaggerList } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
 import { bookingConfig, getClassBySlug, listClasses, listClinicPackages, packagesEnabled, upcomingSessions, type ClassItem } from "@rentweb/module-booking/services";
-import { ClassCard, InstructorAvatar, LevelBadge, SessionRow, enrolHref, weeklyRhythm } from "@rentweb/module-booking/ui";
+import { BookingStyles, ClassStudioCard, InstructorAvatar, LevelBadge, SessionRow, enrolHref, frameClass, lookOf, titleStep, weeklyRhythm } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { decodeSlug } from "@/lib/slug";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -22,6 +22,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return c ? { title: c.name, description: c.description?.split(/\n/)[0] ?? undefined, openGraph: c.image ? { images: [c.image] } : undefined } : {};
 }
 
+const big = (url: string) => (/images\.unsplash\.com/.test(url) ? url.replace(/([?&]w=)\d+/, "$11400") : url);
+
 /**
  * Description convention for classes: paragraphs separated by blank lines; a paragraph whose lines start with "- "
  * is rendered as a check list ("สิ่งที่จะได้เรียน").
@@ -29,25 +31,40 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 function Syllabus({ text }: { text: string }) {
   const paras = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
   return (
-    <div className="space-y-4 leading-relaxed text-muted-foreground">
+    <div className="space-y-6 text-step-0 leading-relaxed text-muted-foreground">
       {paras.map((p, i) => {
         const lines = p.split("\n");
         if (lines.every((l) => /^[-•]\s/.test(l))) {
           return (
-            <ul key={i} className="grid gap-2 sm:grid-cols-2">
+            <ul key={i} className="grid gap-x-8 sm:grid-cols-2">
               {lines.map((l, j) => (
-                <li key={j} className="flex gap-2 text-foreground">
-                  <BadgeCheck className="mt-0.5 size-4 shrink-0 text-primary" /> <span>{l.replace(/^[-•]\s/, "")}</span>
+                <li key={j} className="flex gap-3 border-b border-[color-mix(in_oklab,var(--foreground)_10%,transparent)] py-3 text-foreground">
+                  <BadgeCheck className="mt-0.5 size-5 shrink-0 text-primary" /> <span>{l.replace(/^[-•]\s/, "")}</span>
                 </li>
               ))}
             </ul>
           );
         }
         const heading = /^[^\n]{2,40}:$/.test(lines[0] ?? "") ? lines.shift()!.slice(0, -1) : null;
+        // "หัวข้อ:" followed by "- " lines → heading + check list
+        if (heading && lines.length && lines.every((l) => /^[-•]\s/.test(l))) {
+          return (
+            <div key={i}>
+              <p className="mb-2 font-heading text-step-2 font-semibold text-foreground">{heading}</p>
+              <ul className="grid gap-x-8 sm:grid-cols-2">
+                {lines.map((l, j) => (
+                  <li key={j} className="flex gap-3 border-b border-[color-mix(in_oklab,var(--foreground)_10%,transparent)] py-3 text-foreground">
+                    <BadgeCheck className="mt-0.5 size-5 shrink-0 text-primary" /> <span>{l.replace(/^[-•]\s/, "")}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        }
         return (
           <div key={i}>
-            {heading && <p className="mb-1 font-heading text-lg font-semibold text-foreground">{heading}</p>}
-            <p>
+            {heading && <p className="mb-2 font-heading text-step-2 font-semibold text-foreground">{heading}</p>}
+            <p className={cn(i === 0 && !heading && "text-step-1 text-foreground/85")}>
               {lines.map((line, j) => (
                 <span key={j}>
                   {line}
@@ -62,7 +79,7 @@ function Syllabus({ text }: { text: string }) {
   );
 }
 
-/** /classes/[slug] – syllabus, instructors, weekly rhythm and the next sessions with seats left; "สมัครเรียน" → /book preselected. */
+/** /classes/[slug] – parallax media + sticky action box, syllabus, next sessions with seats left; "สมัครเรียน" → /book preselected. */
 export default async function ClassPage({ params }: { params: Params }) {
   const { tenantId, slug: rawSlug } = await params;
   const slug = decodeSlug(rawSlug);
@@ -70,6 +87,7 @@ export default async function ClassPage({ params }: { params: Params }) {
   if (!runtime || !runtime.config.modules.includes("booking")) notFound();
   const config = bookingConfig(runtime.config.moduleConfig);
   const passes = packagesEnabled(runtime.config.modules, runtime.config.moduleConfig);
+  const look = lookOf(runtime.config) === "default" ? "studio" : lookOf(runtime.config);
 
   const data = await tenantTx(tenantId, async (tx) => {
     const cls = await getClassBySlug(tx, tenantId, slug);
@@ -92,17 +110,22 @@ export default async function ClassPage({ params }: { params: Params }) {
     { icon: Users, label: "ที่นั่งต่อรอบ", value: `${cls.capacity} คน` },
     cls.sessions.length ? { icon: CalendarDays, label: "รอบประจำ", value: weeklyRhythm(cls.sessions, 3) } : null,
   ].filter(Boolean) as Array<{ icon: typeof Clock; label: string; value: string }>;
+  const nextLine = firstOpen
+    ? `รอบถัดไปที่ว่าง: ${new Date(firstOpen.start).toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok", weekday: "short", day: "numeric", month: "short" })} ${new Date(firstOpen.start).toLocaleTimeString("th-TH", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit", hour12: false })} น. · ${L.seatsLeft(firstOpen.remaining)}`
+    : "ยังไม่มีรอบที่เปิดรับสมัครในช่วงนี้";
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
-      <section className="container-x pt-8 pb-16 md:pt-12 md:pb-24">
-        <nav aria-label="breadcrumb" className="mb-6 text-sm text-muted-foreground">
+      <SectionStyles />
+      <BookingStyles />
+      <section className="container-x pt-6 pb-20 md:pt-10 md:pb-32">
+        <nav aria-label="breadcrumb" className="mb-6 flex flex-wrap items-center text-sm text-muted-foreground md:mb-10">
           <Link href="/classes" className="inline-flex h-11 items-center hover:text-foreground">
             {L.classes}
           </Link>
           {cls.categoryName && (
             <>
-              <span className="mx-2">/</span>
+              <ChevronRight aria-hidden className="mx-1 size-3.5" />
               <Link href={`/classes?category=${encodeURIComponent(cls.categorySlug ?? "")}`} className="inline-flex h-11 items-center hover:text-foreground">
                 {cls.categoryName}
               </Link>
@@ -110,114 +133,112 @@ export default async function ClassPage({ params }: { params: Params }) {
           )}
         </nav>
 
-        <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
-          <Reveal>
-            <div className="relative overflow-hidden rounded-[var(--radius-xl)] bg-muted">
-              {cls.image ? <Img src={cls.image} alt={cls.name} className="aspect-[4/3] w-full object-cover" /> : <div className="flex aspect-[4/3] items-center justify-center text-primary"><Sparkles className="size-10" /></div>}
-              <LevelBadge level={cls.level} className="absolute top-4 left-4 bg-background/95 px-3 py-1.5 text-sm backdrop-blur" />
+        <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+          <div className="lg:col-span-7">
+            <div className={cn("bk-frame relative mx-auto aspect-[4/5] w-full max-w-[38rem] lg:aspect-[5/6] lg:max-w-none", frameClass(look))}>
+              {cls.image ? <ImageReveal src={big(cls.image)} alt={cls.name} priority from="bottom" parallax={0.1} className="size-full" /> : <span className="flex size-full items-center justify-center text-primary"><Sparkles className="size-10" /></span>}
+              <LevelBadge level={cls.level} className="absolute top-5 left-5 z-10 bg-background/95 px-3 py-1.5 text-sm backdrop-blur" />
             </div>
-          </Reveal>
-          <Reveal delay={0.05} className="flex flex-col">
-            {cls.categoryName && <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">{cls.categoryName}</p>}
-            <h1 className="heading-display mt-3 text-4xl font-semibold md:text-5xl">{cls.name}</h1>
-            {instructors.length > 0 && (
-              <ul className="mt-4 flex flex-wrap gap-2" aria-label={L.instructors}>
-                {instructors.map((i) => (
-                  <li key={i.id}>
-                    <Link href={`/instructors/${i.slug}`} className="inline-flex min-h-11 items-center gap-2 rounded-full border bg-card py-1 pr-4 pl-1 text-sm transition hover:border-primary/60 hover:text-primary">
-                      <InstructorAvatar i={i} size="sm" /> {i.name}
-                    </Link>
-                  </li>
+          </div>
+          <div className="lg:col-span-5">
+            <div className="lg:sticky lg:top-[calc(var(--header-h,72px)+2rem)]">
+              {cls.categoryName && <Eyebrow text={cls.categoryName} className="mb-5" />}
+              <RevealHeading as="h1" text={cls.name} trigger="mount" mode="words" className={cn("font-heading font-semibold text-balance", titleStep(cls.name) === "text-step-6" ? "text-step-5" : "text-step-4")} />
+              {instructors.length > 0 && (
+                <ul className="mt-6 flex flex-wrap gap-2" aria-label={L.instructors}>
+                  {instructors.map((i) => (
+                    <li key={i.id}>
+                      <Link href={`/instructors/${i.slug}`} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[color-mix(in_oklab,var(--foreground)_14%,transparent)] py-1 pr-4 pl-1 text-sm transition-colors hover:border-primary hover:text-primary-ink">
+                        <InstructorAvatar i={i} size="sm" /> {i.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <dl className="mt-8 grid grid-cols-2 border-t border-[color-mix(in_oklab,var(--foreground)_12%,transparent)]">
+                {facts.map((f, i) => (
+                  <div key={f.label} className={cn("border-b border-[color-mix(in_oklab,var(--foreground)_12%,transparent)] py-4", i % 2 === 1 && "border-l pl-5")}>
+                    <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <f.icon className="size-3.5" /> {f.label}
+                    </dt>
+                    <dd className="mt-1 font-heading text-lg font-semibold">{f.value}</dd>
+                  </div>
                 ))}
-              </ul>
-            )}
+              </dl>
 
-            <dl className="mt-6 grid grid-cols-2 gap-3">
-              {facts.map((f) => (
-                <div key={f.label} className="rounded-[var(--radius-lg)] bg-muted/60 p-4">
-                  <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <f.icon className="size-3.5" /> {f.label}
-                  </dt>
-                  <dd className="mt-1 font-heading text-lg font-semibold">{f.value}</dd>
-                </div>
-              ))}
-            </dl>
+              <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+                {nextLine} · {L.policy(config.cancelHours)}
+              </p>
 
-            <p className="mt-4 text-sm text-muted-foreground">{firstOpen ? `รอบถัดไปที่ว่าง: ${new Date(firstOpen.start).toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok", weekday: "short", day: "numeric", month: "short" })} ${new Date(firstOpen.start).toLocaleTimeString("th-TH", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit", hour12: false })} น. · ${L.seatsLeft(firstOpen.remaining)}` : "ยังไม่มีรอบที่เปิดรับสมัครในช่วงนี้"} · {L.policy(config.cancelHours)}</p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button asChild size="lg" className="w-full sm:w-auto">
-                <Link href={bookHref}>
-                  {L.enrolClass} <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
-                <Link href={`/schedule?class=${encodeURIComponent(cls.slug)}`}>{L.schedule}</Link>
-              </Button>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <CtaButton href={bookHref} label={L.enrolClass} size="xl" className="w-full sm:w-auto" />
+                <CtaButton href={`/schedule?class=${encodeURIComponent(cls.slug)}`} label={L.schedule} variant="outline" size="xl" magnetic={false} arrow={false} className="w-full sm:w-auto" />
+              </div>
             </div>
-          </Reveal>
+          </div>
         </div>
 
-        <div className="mt-14 grid gap-10 lg:grid-cols-[1fr_minmax(0,420px)] lg:gap-14">
-          <div>
-            <Reveal>
-              <h2 className="font-heading text-2xl font-semibold md:text-3xl">เกี่ยวกับคลาสนี้</h2>
-            </Reveal>
-            <Reveal delay={0.05} className="mt-5">
+        <div className="mt-24 grid gap-14 md:mt-36 lg:grid-cols-12 lg:gap-16">
+          <div className="lg:col-span-7">
+            <Rise>
+              <h2 className="font-heading text-step-4 font-semibold">เกี่ยวกับคลาสนี้</h2>
+            </Rise>
+            <Rise delay={0.05} className="mt-8">
               {cls.description ? <Syllabus text={cls.description} /> : <p className="text-muted-foreground">คลาสขนาดเล็ก ดูแลใกล้ชิดโดยครูผู้สอน เหมาะกับทุกคนที่อยากเริ่มต้นหรือพัฒนาต่อ</p>}
-            </Reveal>
+            </Rise>
             {passes && passList.length > 0 && (
-              <Reveal className="mt-8 flex flex-col gap-3 rounded-[var(--radius-xl)] bg-primary-soft p-6 sm:flex-row sm:items-center sm:justify-between">
+              <Rise className="bk-panel bk-soft-bg mt-12 flex flex-col gap-5 p-7 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="font-heading flex items-center gap-2 text-lg font-semibold">
+                  <p className="flex items-center gap-2 font-heading text-step-2 font-semibold">
                     <Ticket className="size-5 text-primary" /> ใช้คลาสพาสกับคลาสนี้ได้
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {passList.map((p) => `${p.name} ${thb(p.price)}`).join(" · ")} — ระบบตัดครั้งให้อัตโนมัติเมื่อสมัครเรียน
                   </p>
                 </div>
-                <Button asChild variant="outline" className="h-11 shrink-0">
-                  <Link href="/packages">{L.buyPass}</Link>
-                </Button>
-              </Reveal>
+                <Link href="/packages" className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--foreground)_16%,transparent)] px-5 text-sm font-medium transition-colors hover:border-primary hover:bg-primary hover:text-primary-foreground">
+                  {L.buyPass} <ArrowUpRight className="size-4" />
+                </Link>
+              </Rise>
             )}
           </div>
 
-          <div>
-            <Reveal className="flex items-end justify-between gap-3">
-              <h2 className="font-heading text-2xl font-semibold md:text-3xl">{L.upcomingSessions}</h2>
-              <Link href={`/schedule?class=${encodeURIComponent(cls.slug)}`} className="inline-flex h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline">
+          <div className="lg:col-span-5">
+            <Rise className="flex items-end justify-between gap-3">
+              <h2 className="font-heading text-step-2 font-semibold">{L.upcomingSessions}</h2>
+              <Link href={`/schedule?class=${encodeURIComponent(cls.slug)}`} className="inline-flex h-11 items-center text-sm font-medium text-primary-ink underline-offset-4 hover:underline">
                 ดูทั้งหมด
               </Link>
-            </Reveal>
+            </Rise>
             {sessions.length === 0 ? (
-              <div className="card mt-5 flex flex-col items-center gap-2 p-8 text-center text-sm text-muted-foreground">
+              <div className="bk-panel mt-6 flex flex-col items-center gap-2 p-8 text-center text-sm text-muted-foreground">
                 <CalendarDays className="size-8" /> {L.noSessionsThisWeek}
               </div>
             ) : (
-              <Stagger className="mt-5 grid gap-3" data-testid="upcoming-sessions">
-                {sessions.map((s) => (
-                  <StaggerItem key={s.start}>
-                    <SessionRow s={s} showDate />
-                  </StaggerItem>
-                ))}
-              </Stagger>
+              <Rise className="mt-4 border-t border-[color-mix(in_oklab,var(--foreground)_10%,transparent)]">
+                <div data-testid="upcoming-sessions">
+                  {sessions.map((s) => (
+                    <SessionRow key={s.start} s={s} showDate />
+                  ))}
+                </div>
+              </Rise>
             )}
           </div>
         </div>
 
         {related.length > 0 && (
-          <div className="mt-16">
-            <Reveal>
-              <h2 className="font-heading text-2xl font-semibold md:text-3xl">คลาสที่คุณอาจชอบ</h2>
-            </Reveal>
-            <Stagger className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {related.map((c) => (
-                <StaggerItem key={c.id} className="h-full">
-                  <ClassCard c={c} />
-                </StaggerItem>
+          <div className="mt-24 md:mt-36">
+            <Rise className="mb-10 md:mb-14">
+              <h2 className="font-heading text-step-4 font-semibold">คลาสที่คุณอาจชอบ</h2>
+            </Rise>
+            <StaggerList className="grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3" stagger={0.1}>
+              {related.map((c, i) => (
+                <StaggerCell key={c.id} className="h-full">
+                  <ClassStudioCard c={c} look={look} index={i} />
+                </StaggerCell>
               ))}
-            </Stagger>
+            </StaggerList>
           </div>
         )}
       </section>

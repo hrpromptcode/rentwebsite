@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@rentweb/ui/lib/utils";
+import { RentalStyles } from "./rental-styles";
 import { addDays, daysInMonth, diffDays, eachNight, parseYmd, shiftMonth, THAI_MONTHS, THAI_WEEKDAYS, THAI_WEEKDAYS_SHORT, weekdayOf, ymdToString } from "../services/time";
 
 export interface RangeDayInfo {
@@ -30,6 +31,11 @@ export interface RangeCalendarProps {
   minNights?: number;
   className?: string;
   loadingLabel?: string;
+  /** which month arrows to render (a two-month view shows "prev" on the left grid and "next" on the right one) */
+  nav?: "both" | "prev" | "next";
+  /** shared hover day (two-month view: the range preview spans both grids) */
+  hover?: string | null;
+  onHoverChange?: (date: string | null) => void;
 }
 
 /** "เสาร์ 17 ตุลาคม 2569" */
@@ -48,7 +54,7 @@ function baht(satang: number): string {
  * night, range highlight with hover preview, ARIA grid with roving tabindex and arrow-key navigation. Unsellable nights
  * are aria-disabled; a check-out may land on a closed day as long as every night before it is open.
  */
-export function RangeCalendar({ month, onMonthChange, from, to, onChange, minDate, maxDate, days, showPrice, minNights = 1, className, loadingLabel }: RangeCalendarProps) {
+export function RangeCalendar({ month, onMonthChange, from, to, onChange, minDate, maxDate, days, showPrice, minNights = 1, className, loadingLabel, nav = "both", hover: hoverProp, onHoverChange }: RangeCalendarProps) {
   const [y, m] = month.split("-").map(Number) as [number, number];
   const total = daysInMonth(y, m);
   const first = `${month}-01`;
@@ -65,7 +71,9 @@ export function RangeCalendar({ month, onMonthChange, from, to, onChange, minDat
   const canNext = month < maxYm;
   const loading = days === null;
   const picking: "from" | "to" = from && !to ? "to" : "from";
-  const [hover, setHover] = React.useState<string | null>(null);
+  const [ownHover, setOwnHover] = React.useState<string | null>(null);
+  const hover = hoverProp !== undefined ? hoverProp : ownHover;
+  const setHover = (d: string | null) => (onHoverChange ? onHoverChange(d) : setOwnHover(d));
   const [focusDate, setFocusDate] = React.useState<string | null>(null);
   const gridRef = React.useRef<HTMLDivElement>(null);
   const titleId = React.useId();
@@ -123,23 +131,32 @@ export function RangeCalendar({ month, onMonthChange, from, to, onChange, minDat
   const KEYS: Record<string, [number, "day" | "month" | "edge"]> = { ArrowLeft: [-1, "day"], ArrowRight: [1, "day"], ArrowUp: [-7, "day"], ArrowDown: [7, "day"], Home: [-1, "edge"], End: [1, "edge"], PageUp: [-1, "month"], PageDown: [1, "month"] };
 
   return (
-    <div className={cn("select-none", className)} data-picking={picking}>
-      <div className="mb-3 flex items-center justify-between">
-        <button type="button" onClick={() => canPrev && onMonthChange(shiftMonth(month, -1))} disabled={!canPrev} aria-label="เดือนก่อนหน้า" className="flex size-11 items-center justify-center rounded-full transition hover:bg-muted disabled:opacity-30">
-          <ChevronLeft className="size-5" />
-        </button>
-        <div className="text-center">
-          <p id={titleId} className="font-heading text-lg font-semibold" aria-live="polite">
-            {THAI_MONTHS[m - 1]} {y + 543}
+    <div className={cn("rw-cal select-none", className)} data-picking={picking}>
+      <RentalStyles />
+      <div className="mb-3 flex items-center justify-between gap-2">
+        {nav !== "next" ? (
+          <button type="button" onClick={() => canPrev && onMonthChange(shiftMonth(month, -1))} disabled={!canPrev} aria-label="เดือนก่อนหน้า" className="rw-cal-nav">
+            <ChevronLeft className="size-5" aria-hidden />
+          </button>
+        ) : (
+          <span aria-hidden className="size-11 shrink-0" />
+        )}
+        <div className="min-w-0 text-center">
+          <p id={titleId} className="font-heading text-lg font-semibold leading-tight" aria-live="polite">
+            {THAI_MONTHS[m - 1]} <span className="font-accent tabular-nums">{y + 543}</span>
           </p>
-          <p className="text-xs text-muted-foreground">{loading ? (loadingLabel ?? "กำลังโหลดห้องว่าง…") : picking === "to" ? "เลือกวันเช็กเอาต์" : "เลือกวันเช็กอิน"}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{loading ? (loadingLabel ?? "กำลังโหลดห้องว่าง…") : picking === "to" ? "เลือกวันเช็กเอาต์" : "เลือกวันเช็กอิน"}</p>
         </div>
-        <button type="button" onClick={() => canNext && onMonthChange(shiftMonth(month, 1))} disabled={!canNext} aria-label="เดือนถัดไป" className="flex size-11 items-center justify-center rounded-full transition hover:bg-muted disabled:opacity-30">
-          <ChevronRight className="size-5" />
-        </button>
+        {nav !== "prev" ? (
+          <button type="button" onClick={() => canNext && onMonthChange(shiftMonth(month, 1))} disabled={!canNext} aria-label="เดือนถัดไป" className="rw-cal-nav">
+            <ChevronRight className="size-5" aria-hidden />
+          </button>
+        ) : (
+          <span aria-hidden className="size-11 shrink-0" />
+        )}
       </div>
-      <div ref={gridRef} role="grid" aria-labelledby={titleId} className="grid gap-0.5 sm:gap-1" onMouseLeave={() => setHover(null)}>
-        <div role="row" className="grid grid-cols-7 gap-0.5 text-center text-xs font-medium text-muted-foreground sm:gap-1">
+      <div ref={gridRef} role="grid" aria-labelledby={titleId} className="grid gap-y-1" onMouseLeave={() => setHover(null)}>
+        <div role="row" className="grid grid-cols-7 text-center text-xs font-medium text-muted-foreground">
           {THAI_WEEKDAYS_SHORT.map((w, i) => (
             <div key={w} role="columnheader" className="py-1">
               <span aria-hidden>{w}</span>
@@ -148,7 +165,7 @@ export function RangeCalendar({ month, onMonthChange, from, to, onChange, minDat
           ))}
         </div>
         {weeks.map((week, wi) => (
-          <div key={wi} role="row" className={cn("grid grid-cols-7 gap-0.5 sm:gap-1", wi === 0 && "mt-1")}>
+          <div key={wi} role="row" className={cn("grid grid-cols-7", wi === 0 && "mt-1")}>
             {week.map((date, i) => {
               if (!date) return <div key={`e-${i}`} role="gridcell" />;
               const info = days?.[date];
@@ -186,23 +203,26 @@ export function RangeCalendar({ month, onMonthChange, from, to, onChange, minDat
                     e.preventDefault();
                     moveTo(date, k[0], k[1]);
                   }}
+                  data-edge={isFrom ? "from" : isTo ? "to" : undefined}
+                  data-span={(isFrom && !!previewTo && previewTo !== from) || (isTo && !isFrom) ? "" : undefined}
+                  data-mid={between ? "" : undefined}
+                  data-blocked={info?.blocked ? "" : undefined}
                   className={cn(
-                    "relative flex w-full flex-col items-center justify-center text-sm transition",
+                    "rw-day relative isolate flex w-full flex-col items-center justify-center text-sm",
                     showPrice ? "h-12 sm:h-14" : "h-11 sm:h-12",
-                    isFrom || isTo ? "rounded-[var(--radius-md)]" : between ? "rounded-none" : "rounded-[var(--radius-md)]",
-                    disabled ? "cursor-not-allowed text-muted-foreground/40" : "hover:bg-primary-soft",
-                    between && "bg-primary-soft text-foreground",
-                    (isFrom || isTo) && "bg-primary text-primary-foreground hover:bg-primary",
-                    isToday && !isFrom && !isTo && "font-semibold text-primary",
+                    disabled ? "cursor-not-allowed text-muted-foreground/40" : "cursor-pointer",
+                    (isFrom || isTo) && "text-primary-foreground",
+                    isToday && !isFrom && !isTo && "font-semibold text-primary-ink",
                     loading && !out && "animate-pulse",
                     info?.blocked && !disabled && "line-through",
                   )}
                 >
+                  <span aria-hidden className="rw-day-fill" />
                   <span className="tabular-nums leading-none" aria-hidden>
                     {Number(date.slice(-2))}
                   </span>
                   {price ? (
-                    <span className={cn("mt-1 text-[10px] leading-none tabular-nums", isFrom || isTo ? "text-primary-foreground/85" : "text-muted-foreground")} aria-hidden>
+                    <span className={cn("rw-day-price mt-1 font-accent text-[10px] leading-none tabular-nums", isFrom || isTo ? "text-primary-foreground/85" : "text-muted-foreground")} aria-hidden>
                       {price}
                     </span>
                   ) : !out && days && !loading ? (

@@ -1,7 +1,10 @@
 import type { TemplateDefinition } from "@rentweb/core/tenant";
 import { availabilityRules, clinicPackages, serviceCategories, services, staff, staffServices } from "@rentweb/db";
-import { section, hero, serviceList, staffGrid, packageList, imageText, testimonials, features, faq, cta, bookingWidget, stats, gallery } from "@rentweb/storefront/definitions";
+import { section, hero, serviceList, staffGrid, packageList, stickyStory, testimonials, features, faq, cta, bookingWidget, stats, gallery } from "@rentweb/storefront/definitions";
 import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, u, avatar } from "./shared";
+
+/** portrait crop (4:5) for staff photos */
+const portrait = (id: string) => u(id, 800, "&h=1000&crop=faces");
 
 export const clinic: TemplateDefinition = {
   key: "clinic",
@@ -68,16 +71,19 @@ export const clinic: TemplateDefinition = {
         section(hero, {
           variant: "split",
           eyebrow: "คลินิกเวชกรรม ใบอนุญาตเลขที่ 10101234567",
-          heading: "สวยอย่างเป็นธรรมชาติ ในมือแพทย์ที่คุณไว้ใจ",
+          heading: "สวยอย่าง\nเป็นธรรมชาติ\nในมือแพทย์\nที่คุณไว้ใจ",
           subheading: "ปรึกษาฟรีกับแพทย์ผู้เชี่ยวชาญ วางแผนการดูแลเฉพาะบุคคล ด้วยเทคโนโลยีมาตรฐานสากล",
           primaryCta: { label: "นัดปรึกษาฟรี", href: "/book" },
           secondaryCta: { label: "ดูบริการทั้งหมด", href: "/services" },
           image: { url: u("1570172619644-dfd03ed5d881", 1400), alt: "คลินิก" },
           imageSecondary: { url: u("1519823551278-64ac92734fb1", 700), alt: "ผิวสวย" },
           badges: ["แพทย์ประจำทุกวัน", "เครื่องมือมาตรฐาน FDA", "จองออนไลน์ 24 ชม."],
+          // §5.3 signature: glass droplets + pearls drifting over the arch-framed portrait (preset porcelain → floating-objects)
+          scene: "auto",
         }),
         section(features, {
           variant: "icons",
+          columns: 4,
           heading: "ดูแลด้วยมาตรฐานโรงพยาบาล",
           items: [
             { icon: "Stethoscope", title: "แพทย์เฉพาะทาง", description: "ตรวจและทำหัตถการโดยแพทย์เท่านั้น" },
@@ -86,16 +92,21 @@ export const clinic: TemplateDefinition = {
             { icon: "HeartHandshake", title: "ดูแลหลังทำ", description: "ติดตามผล 7 วันผ่าน LINE" },
           ],
         }),
-        section(serviceList, { eyebrow: "บริการ", heading: "หัตถการและทรีตเมนต์", subheading: "เลือกบริการที่ใช่ แล้วจองคิวได้ทันที", variant: "cards", limit: 6 }),
+        section(serviceList, { eyebrow: "บริการ", heading: "หัตถการและทรีตเมนต์", subheading: "เลือกหมวดที่สนใจ ดูราคา ระยะเวลา แล้วจองคิวได้ทันที", variant: "cards", limit: 6 }),
         section(packageList, { eyebrow: "คุ้มกว่า", heading: "คอร์สและแพ็กเกจ", subheading: "ซื้อคอร์สครั้งเดียว ใช้ได้ตลอดปี เช็กจำนวนครั้งคงเหลือได้ในบัญชีของคุณ" }),
-        section(imageText, {
+        // §5.3: sticky story replaces the image-text — every treatment starts by listening
+        section(stickyStory, {
           eyebrow: "ปรึกษาก่อน ไม่มีค่าใช้จ่าย",
           heading: "ทุกการรักษาเริ่มจากการฟัง",
-          body: "แพทย์จะวิเคราะห์สภาพผิวด้วยเครื่อง Skin Analyzer และพูดคุยถึงความต้องการของคุณ ก่อนวางแผนการดูแลที่เหมาะกับงบประมาณและไลฟ์สไตล์",
-          image: { url: u("1559757148-5c350d0d3c56", 1400), alt: "แพทย์ให้คำปรึกษา" },
-          imagePosition: "right",
-          bullets: ["วิเคราะห์ผิวด้วยเครื่อง 3D", "แผนการดูแลเฉพาะบุคคล", "ไม่บังคับซื้อคอร์ส"],
-          cta: { label: "นัดปรึกษาฟรี", href: "/book" },
+          subheading: "แพทย์จะวิเคราะห์สภาพผิวด้วยเครื่อง Skin Analyzer และพูดคุยถึงความต้องการของคุณ ก่อนวางแผนการดูแลที่เหมาะกับงบประมาณและไลฟ์สไตล์",
+          mediaStyle: "arch",
+          side: "right",
+          items: [
+            { kicker: "ฟังก่อน ไม่เร่งตัดสินใจ", title: "ปรึกษาแพทย์", body: "พบแพทย์ผู้เชี่ยวชาญแบบตัวต่อตัว ถามได้ทุกข้อสงสัย ไม่มีค่าใช้จ่ายและไม่บังคับซื้อคอร์ส", image: u("1576091160550-2173dba999ef", 1200), chips: ["ฟรี", "30 นาที"], href: "/book?service=consult" },
+            { kicker: "เห็นผิวชัดกว่าที่เคย", title: "วิเคราะห์ผิว", body: "สแกนผิวด้วยเครื่อง 3D วัดความชุ่มชื้น เม็ดสี และริ้วรอย เพื่อเลือกการดูแลจากข้อมูลจริง", image: u("1616394584738-fc6e612e71b9", 1200), chips: ["Skin Analyzer 3D"] },
+            { kicker: "พอดีกับชีวิตจริง", title: "วางแผนเฉพาะคุณ", body: "แพทย์จัดลำดับการรักษาตามเป้าหมาย งบประมาณ และเวลาพักฟื้นที่คุณมี พร้อมบอกผลที่คาดหวังอย่างตรงไปตรงมา", image: u("1612817288484-6f916006741a", 1200), chips: ["แผนเฉพาะบุคคล", "ไม่บังคับซื้อคอร์ส"] },
+            { kicker: "ดูแลจนกว่าจะมั่นใจ", title: "ติดตามผล", body: "ติดตามอาการ 7 วันผ่าน LINE นัดตรวจซ้ำได้ฟรี และเช็กครั้งคงเหลือของคอร์สได้เองในบัญชี", image: u("1617897903246-719242758050", 1200), chips: ["LINE 7 วัน"], href: "/packages" },
+          ],
         }),
         section(staffGrid, { eyebrow: "ทีมแพทย์", heading: "แพทย์ผู้เชี่ยวชาญของเรา", subheading: "เลือกแพทย์ที่ต้องการได้ตอนจอง" }),
         section(stats, { variant: "row", items: [{ value: 15000, suffix: "+", label: "เคสที่ดูแล" }, { value: 12, suffix: " ปี", label: "ประสบการณ์" }, { value: 4.9, label: "คะแนนรีวิว Google" }, { value: 98, suffix: "%", label: "กลับมาใช้บริการซ้ำ" }] }),
@@ -124,7 +135,10 @@ export const clinic: TemplateDefinition = {
     {
       slug: "gallery",
       title: "ผลงาน",
-      sections: [section(gallery, { heading: "บรรยากาศและผลงาน", subheading: "ภาพผลการรักษาได้รับความยินยอมจากผู้รับบริการแล้ว", layout: "masonry", images: [{ url: u("1512290923902-8a9f81dc236c", 1000), alt: "" }, { url: u("1515377905703-c4788e51af15", 1000), alt: "" }, { url: u("1570172619644-dfd03ed5d881", 1000), alt: "" }, { url: u("1544161515-4ab6ce6db874", 1000), alt: "" }, { url: u("1519823551278-64ac92734fb1", 1000), alt: "" }, { url: u("1540555700478-4be289fbecef", 1000), alt: "" }] })],
+      sections: [
+        section(gallery, { heading: "บรรยากาศและผลงาน", subheading: "ภาพผลการรักษาได้รับความยินยอมจากผู้รับบริการแล้ว", layout: "masonry", images: [{ url: u("1512290923902-8a9f81dc236c", 1000), alt: "" }, { url: u("1515377905703-c4788e51af15", 1000), alt: "" }, { url: u("1570172619644-dfd03ed5d881", 1000), alt: "" }, { url: u("1544161515-4ab6ce6db874", 1000), alt: "" }, { url: u("1519823551278-64ac92734fb1", 1000), alt: "" }, { url: u("1540555700478-4be289fbecef", 1000), alt: "" }] }),
+        section(cta, { variant: "card", heading: "อยากได้ผลลัพธ์ที่เป็นธรรมชาติแบบนี้", body: "เริ่มจากการปรึกษาแพทย์ฟรี วิเคราะห์ผิวด้วยเครื่อง 3D ไม่มีข้อผูกมัด", primaryCta: { label: "นัดปรึกษาฟรี", href: "/book" }, secondaryCta: { label: "ดูบริการทั้งหมด", href: "/services" } }),
+      ],
     },
     aboutPage({ neutral: NEUTRAL_ABOUT.clinic, heading: "Lumière Clinic — ความงามที่เริ่มจากสุขภาพผิวที่ดี", body: "ก่อตั้งในปี 2014 โดย พญ.ณิชา วรรณกุล แพทย์ผิวหนังที่เชื่อว่าความสวยต้องปลอดภัยและเป็นธรรมชาติ เราไม่ขายคอร์สเกินความจำเป็น และตั้งใจให้ทุกคนที่เดินออกจากคลินิกรู้สึกมั่นใจในตัวเองมากขึ้น" }),
     contactPage({ heading: "ติดต่อและเดินทาง", body: "คลินิกอยู่ชั้น 3 เอ็มควอเทียร์ ติด BTS พร้อมพงษ์ ทางออก 1 มีที่จอดรถในห้าง" }),
@@ -143,7 +157,7 @@ export const clinic: TemplateDefinition = {
     const svc = await tx
       .insert(services)
       .values([
-        { tenantId, categoryId: face!.id, name: "ปรึกษาแพทย์ + วิเคราะห์ผิว", slug: "consult", durationMin: 30, price: 0, priceNote: "ฟรี", image: u("1559757148-5c350d0d3c56", 800), featured: true, sort: 0, description: "วิเคราะห์สภาพผิวด้วยเครื่อง 3D และวางแผนการดูแลเฉพาะบุคคล" },
+        { tenantId, categoryId: face!.id, name: "ปรึกษาแพทย์ + วิเคราะห์ผิว", slug: "consult", durationMin: 30, price: 0, priceNote: "ฟรี", image: u("1616394584738-fc6e612e71b9", 800), featured: true, sort: 0, description: "วิเคราะห์สภาพผิวด้วยเครื่อง 3D และวางแผนการดูแลเฉพาะบุคคล" },
         { tenantId, categoryId: face!.id, name: "Botox ลดกราม / ริ้วรอย", slug: "botox", durationMin: 45, price: 490000, priceNote: "เริ่มต้น", depositRequired: true, depositAmount: 50000, image: u("1512290923902-8a9f81dc236c", 800), featured: true, sort: 1, description: "โบท็อกซ์ของแท้ ตรวจสอบรหัสได้ ฉีดโดยแพทย์เท่านั้น" },
         { tenantId, categoryId: face!.id, name: "Filler ปรับรูปหน้า", slug: "filler", durationMin: 60, price: 1290000, priceNote: "ต่อ 1 cc", depositRequired: true, depositAmount: 100000, image: u("1515377905703-c4788e51af15", 800), sort: 2 },
         { tenantId, categoryId: laser!.id, name: "เลเซอร์หน้าใส Pico", slug: "pico", durationMin: 45, price: 350000, image: u("1570172619644-dfd03ed5d881", 800), featured: true, sort: 3, description: "ลดฝ้า กระ จุดด่างดำ ผิวกระจ่างใส" },
@@ -157,9 +171,9 @@ export const clinic: TemplateDefinition = {
     const doctors = await tx
       .insert(staff)
       .values([
-        { tenantId, name: "พญ.ณิชา วรรณกุล", slug: "dr-nicha", title: "แพทย์ผิวหนัง · ผู้อำนวยการคลินิก", bio: "แพทย์ผิวหนัง จบจุฬาฯ ประสบการณ์ 12 ปี เชี่ยวชาญการปรับรูปหน้าแบบธรรมชาติ", avatar: avatar("dr-nicha"), color: "#B76E79", sort: 0 },
-        { tenantId, name: "นพ.กันต์ ศิริวัฒน์", slug: "dr-kan", title: "แพทย์เวชศาสตร์ความงาม", bio: "เชี่ยวชาญเลเซอร์และการยกกระชับด้วย HIFU", avatar: avatar("dr-kan"), color: "#7A9E7E", sort: 1 },
-        { tenantId, name: "ทพญ.พิมพ์ชนก ตั้งใจ", slug: "dr-pim", title: "ทันตแพทย์", bio: "ทันตกรรมความงามและการจัดฟันใส", avatar: avatar("dr-pim"), color: "#D4A373", sort: 2 },
+        { tenantId, name: "พญ.ณิชา วรรณกุล", slug: "dr-nicha", title: "แพทย์ผิวหนัง · ผู้อำนวยการคลินิก", bio: "แพทย์ผิวหนัง จบจุฬาฯ ประสบการณ์ 12 ปี เชี่ยวชาญการปรับรูปหน้าแบบธรรมชาติ", avatar: portrait("1614608682850-e0d6ed316d47"), color: "#B76E79", sort: 0 },
+        { tenantId, name: "นพ.กันต์ ศิริวัฒน์", slug: "dr-kan", title: "แพทย์เวชศาสตร์ความงาม", bio: "เชี่ยวชาญเลเซอร์และการยกกระชับด้วย HIFU", avatar: portrait("1622902046580-2b47f47f5471"), color: "#7A9E7E", sort: 1 },
+        { tenantId, name: "ทพญ.พิมพ์ชนก ตั้งใจ", slug: "dr-pim", title: "ทันตแพทย์", bio: "ทันตกรรมความงามและการจัดฟันใส", avatar: portrait("1594824476967-48c8b964273f"), color: "#D4A373", sort: 2 },
       ])
       .returning({ id: staff.id, slug: staff.slug });
 

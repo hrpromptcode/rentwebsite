@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@rentweb/ui/components/button";
-import { Reveal } from "@rentweb/ui/motion";
 import { cn } from "@rentweb/ui/lib/utils";
+import { Rise } from "@rentweb/storefront";
 import { CLASS_LEVELS, LEVEL_LABELS, addDays, bkkDateString, bookingConfig, formatThaiYmd, isClassLevel, listClasses, listInstructors, listTimetable, parseYmd, weekStartOf, ymdToString } from "@rentweb/module-booking/services";
-import { InstructorAvatar, WeekTimetable } from "@rentweb/module-booking/ui";
+import { FilterPills, INDEX_LABEL, ModuleIntro, WeekTimetable } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
@@ -21,9 +20,12 @@ export async function generateMetadata({ params }: { params: Promise<{ tenantId:
 type Params = Promise<{ tenantId: string }>;
 type Search = Promise<{ week?: string; instructor?: string; level?: string; category?: string; class?: string }>;
 
+const navBtn = "inline-flex size-11 items-center justify-center rounded-full border border-[color-mix(in_oklab,var(--foreground)_14%,transparent)] transition-colors hover:border-primary hover:bg-primary hover:text-primary-foreground";
+
 /**
  * /schedule?week=YYYY-MM-DD&instructor=<slug>&level=<level>&category=<slug>&class=<slug>
- * Weekly timetable (Monday–Sunday) with seats left per session; desktop columns, mobile day tabs (WeekTimetable).
+ * Weekly timetable (Monday–Sunday) with seats left per session — the "living grid" (§5.8): hover a session to light up the
+ * class all week, a live "now" line today, seat meters; desktop columns, mobile day tabs with a sliding pill.
  */
 export default async function SchedulePage({ params, searchParams }: { params: Params; searchParams: Search }) {
   const { tenantId } = await params;
@@ -42,13 +44,13 @@ export default async function SchedulePage({ params, searchParams }: { params: P
 
   const { classes, instructors, sessions } = await tenantTx(tenantId, async (tx) => {
     const [classes, instructors] = await Promise.all([listClasses(tx, tenantId), listInstructors(tx, tenantId)]);
-    const instructor = sp.instructor ? instructors.find((i) => i.slug === sp.instructor || i.id === sp.instructor) ?? null : null;
-    const cls = sp.class ? classes.find((c) => c.slug === sp.class || c.id === sp.class) ?? null : null;
+    const instructor = sp.instructor ? (instructors.find((i) => i.slug === sp.instructor || i.id === sp.instructor) ?? null) : null;
+    const cls = sp.class ? (classes.find((c) => c.slug === sp.class || c.id === sp.class) ?? null) : null;
     const sessions = await listTimetable(tx, tenantId, { from: weekStart, days: 7, config, now, instructorId: instructor?.id ?? null, level, categorySlug: sp.category || null, serviceId: cls?.id ?? null });
     return { classes, instructors: instructors.filter((i) => i.weeklySessions > 0 || i.classes.length > 0), sessions };
   });
-  const activeInstructor = sp.instructor ? instructors.find((i) => i.slug === sp.instructor || i.id === sp.instructor) ?? null : null;
-  const activeClass = sp.class ? classes.find((c) => c.slug === sp.class || c.id === sp.class) ?? null : null;
+  const activeInstructor = sp.instructor ? (instructors.find((i) => i.slug === sp.instructor || i.id === sp.instructor) ?? null) : null;
+  const activeClass = sp.class ? (classes.find((c) => c.slug === sp.class || c.id === sp.class) ?? null) : null;
   const categories = [...new Map(classes.filter((c) => c.categorySlug).map((c) => [c.categorySlug!, c.categoryName ?? c.categorySlug!])).entries()];
   const activeCategory = categories.find(([slug]) => slug === sp.category) ?? null;
   const levels = CLASS_LEVELS.filter((lv) => classes.some((c) => c.level === lv));
@@ -73,112 +75,88 @@ export default async function SchedulePage({ params, searchParams }: { params: P
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
-      <section className="container-x pt-8 pb-16 md:pt-12 md:pb-24">
-        <Reveal className="flex flex-wrap items-end justify-between gap-4">
-          <div className="max-w-2xl">
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">{L.schedule}</p>
-            <h1 className="heading-display mt-3 text-4xl font-semibold md:text-6xl">{L.weeklyTimetable}</h1>
-            <p className="mt-4 text-muted-foreground" data-testid="schedule-summary">
-              {formatThaiYmd(weekStart, { short: true })} – {formatThaiYmd(weekEnd, { short: true })} · {sessions.length} รอบ · เปิดรับ {open} รอบ
-              {activeClass ? ` · ${activeClass.name}` : ""}
-              {activeInstructor ? ` · ${activeInstructor.name}` : ""}
-            </p>
-          </div>
-          <nav aria-label="เปลี่ยนสัปดาห์" className="flex items-center gap-2">
-            <Button asChild={canPrev} variant="outline" size="icon" className="size-11" disabled={!canPrev} aria-label="สัปดาห์ก่อนหน้า">
-              {canPrev ? (
-                <Link href={href({ week: prevWeek })}>
-                  <ChevronLeft className="size-5" />
-                </Link>
-              ) : (
+      <ModuleIntro
+        eyebrow={L.schedule}
+        index={`03 / ${INDEX_LABEL.schedule}`}
+        title={L.weeklyTimetable}
+        className="md:pb-10"
+        lead={
+          <p data-testid="schedule-summary">
+            {formatThaiYmd(weekStart, { short: true })} – {formatThaiYmd(weekEnd, { short: true })} · {sessions.length} รอบ · เปิดรับ {open} รอบ
+            {activeClass ? ` · ${activeClass.name}` : ""}
+            {activeInstructor ? ` · ${activeInstructor.name}` : ""}
+          </p>
+        }
+      >
+        <div className="space-y-4">
+          <nav aria-label="เปลี่ยนสัปดาห์" className="flex flex-wrap items-center gap-2">
+            {canPrev ? (
+              <Link href={href({ week: prevWeek })} scroll={false} aria-label="สัปดาห์ก่อนหน้า" className={navBtn}>
                 <ChevronLeft className="size-5" />
-              )}
-            </Button>
-            <Button asChild variant={weekStart === thisWeek ? "default" : "outline"} className="h-11">
-              <Link href={href({ week: null })}>สัปดาห์นี้</Link>
-            </Button>
-            <Button asChild={canNext} variant="outline" size="icon" className="size-11" disabled={!canNext} aria-label="สัปดาห์ถัดไป">
-              {canNext ? (
-                <Link href={href({ week: nextWeek })}>
-                  <ChevronRight className="size-5" />
-                </Link>
-              ) : (
+              </Link>
+            ) : (
+              <span aria-disabled aria-label="สัปดาห์ก่อนหน้า" className={cn(navBtn, "pointer-events-none opacity-35")}>
+                <ChevronLeft className="size-5" />
+              </span>
+            )}
+            <Link href={href({ week: null })} scroll={false} className={cn("inline-flex h-11 items-center rounded-full px-5 text-sm font-medium transition-colors", weekStart === thisWeek ? "bg-primary text-primary-foreground" : "border border-[color-mix(in_oklab,var(--foreground)_14%,transparent)] hover:border-primary")}>
+              สัปดาห์นี้
+            </Link>
+            {canNext ? (
+              <Link href={href({ week: nextWeek })} scroll={false} aria-label="สัปดาห์ถัดไป" className={navBtn}>
                 <ChevronRight className="size-5" />
-              )}
-            </Button>
+              </Link>
+            ) : (
+              <span aria-disabled aria-label="สัปดาห์ถัดไป" className={cn(navBtn, "pointer-events-none opacity-35")}>
+                <ChevronRight className="size-5" />
+              </span>
+            )}
           </nav>
-        </Reveal>
-
-        <Reveal delay={0.05} className="mt-8 space-y-3">
           {instructors.length > 1 && (
-            <div className="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-              <nav aria-label={L.instructors} className="flex w-max gap-2 sm:w-auto sm:flex-wrap">
-                <Chip href={href({ instructor: null })} active={!activeInstructor}>
-                  ครูทุกคน
-                </Chip>
-                {instructors.map((i) => (
-                  <Chip key={i.id} href={href({ instructor: i.slug })} active={activeInstructor?.id === i.id} className="pl-1.5">
-                    <InstructorAvatar i={i} size="xs" className="mr-2" /> {i.name}
-                  </Chip>
-                ))}
-              </nav>
-            </div>
+            <FilterPills
+              id="sch-teacher"
+              ariaLabel={L.instructors}
+              items={[{ href: href({ instructor: null }), label: "ครูทุกคน", active: !activeInstructor }, ...instructors.map((i) => ({ href: href({ instructor: i.slug }), label: i.name, active: activeInstructor?.id === i.id, avatar: i.avatar }))]}
+            />
           )}
           {(levels.length > 1 || categories.length > 1) && (
-            <div className="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-              <nav aria-label={L.level} className="flex w-max gap-2 sm:w-auto sm:flex-wrap">
-                {levels.length > 1 && (
-                  <>
-                    <Chip href={href({ level: null })} active={!level} variant="soft">
-                      {L.allLevels}
-                    </Chip>
-                    {levels.map((lv) => (
-                      <Chip key={lv} href={href({ level: lv })} active={level === lv} variant="soft">
-                        {LEVEL_LABELS[lv]}
-                      </Chip>
-                    ))}
-                  </>
-                )}
-                {categories.length > 1 && (
-                  <>
-                    <span className="mx-1 hidden w-px self-stretch bg-border sm:block" aria-hidden />
-                    {categories.map(([slug, name]) => (
-                      <Chip key={slug} href={href({ category: activeCategory?.[0] === slug ? null : slug })} active={activeCategory?.[0] === slug} variant="soft">
-                        {name}
-                      </Chip>
-                    ))}
-                  </>
-                )}
-              </nav>
-            </div>
+            <FilterPills
+              id="sch-level"
+              tone="soft"
+              ariaLabel={L.level}
+              items={[
+                ...(levels.length > 1 ? [{ href: href({ level: null }), label: "ทั้งหมด", active: !level }, ...levels.map((lv) => ({ href: href({ level: lv }), label: LEVEL_LABELS[lv], active: level === lv }))] : []),
+                ...(categories.length > 1 ? categories.map(([slug, name]) => ({ href: href({ category: activeCategory?.[0] === slug ? null : slug }), label: name, active: activeCategory?.[0] === slug })) : []),
+              ]}
+            />
           )}
           {activeClass && (
             <p className="text-sm text-muted-foreground">
               แสดงเฉพาะคลาส <span className="font-medium text-foreground">{activeClass.name}</span> ·{" "}
-              <Link href={href({ class: null })} className="font-medium text-primary underline-offset-4 hover:underline">
+              <Link href={href({ class: null })} className="font-medium text-primary-ink underline-offset-4 hover:underline">
                 ดูทุกคลาส
               </Link>
             </p>
           )}
-        </Reveal>
+        </div>
+      </ModuleIntro>
 
-        <div className="mt-8" data-testid="schedule-week">
+      <section className="container-x pb-20 md:pb-28">
+        <div data-testid="schedule-week">
           {sessions.length === 0 ? (
-            <div className="card flex flex-col items-center gap-3 p-10 text-center">
+            <div className="bk-panel flex flex-col items-center gap-4 p-12 text-center">
               <CalendarDays className="size-10 text-muted-foreground" />
               <p className="text-muted-foreground">{filtersOn ? "ไม่มีรอบเรียนที่ตรงกับตัวกรองในสัปดาห์นี้" : L.noSessionsThisWeek}</p>
               <div className="flex flex-wrap justify-center gap-2">
                 {filtersOn && (
-                  <Button asChild variant="outline" className="h-11">
-                    <Link href={href({ instructor: null, level: null, category: null, class: null })}>ล้างตัวกรอง</Link>
-                  </Button>
+                  <Link href={href({ instructor: null, level: null, category: null, class: null })} className="inline-flex min-h-11 items-center rounded-full border px-5 text-sm font-medium hover:border-primary">
+                    ล้างตัวกรอง
+                  </Link>
                 )}
                 {canNext && (
-                  <Button asChild className="h-11">
-                    <Link href={href({ week: nextWeek })}>
-                      สัปดาห์ถัดไป <ChevronRight className="size-4" />
-                    </Link>
-                  </Button>
+                  <Link href={href({ week: nextWeek })} className="inline-flex min-h-11 items-center gap-1 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground">
+                    สัปดาห์ถัดไป <ChevronRight className="size-4" />
+                  </Link>
                 )}
               </div>
             </div>
@@ -187,26 +165,10 @@ export default async function SchedulePage({ params, searchParams }: { params: P
           )}
         </div>
 
-        <Reveal className="mt-10 rounded-[var(--radius-xl)] bg-muted/60 p-6 text-sm text-muted-foreground">
+        <Rise className="mt-14 border-t border-[color-mix(in_oklab,var(--foreground)_12%,transparent)] pt-6 text-sm leading-relaxed text-muted-foreground">
           กดที่รอบเรียนเพื่อสมัคร ระบบจะพาไปยืนยันข้อมูลและชำระเงิน (หรือใช้คลาสพาส) · {L.policy(config.cancelHours)} · จองล่วงหน้าได้สูงสุด {config.maxAdvanceDays} วัน
-        </Reveal>
+        </Rise>
       </section>
     </PageBody>
-  );
-}
-
-function Chip({ href, active, children, variant = "solid", className }: { href: string; active: boolean; children: React.ReactNode; variant?: "solid" | "soft"; className?: string }) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "inline-flex h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition",
-        active ? (variant === "solid" ? "border-primary bg-primary text-primary-foreground" : "border-primary bg-primary-soft text-primary-ink") : "border-border bg-card text-foreground hover:border-primary/60 hover:text-primary",
-        className,
-      )}
-    >
-      {children}
-    </Link>
   );
 }

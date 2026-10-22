@@ -35,28 +35,28 @@ export function ExtrasPicker({ extras, value, onChange, className }: { extras: E
         const qty = qtyOf(e.id);
         const on = qty > 0;
         return (
-          <li key={e.id} className={cn("flex items-center gap-3 rounded-[var(--radius-lg)] border p-3 transition", on ? "border-primary bg-primary-soft/60" : "border-border hover:bg-muted/60")}>
+          <li key={e.id} className={cn("flex items-center gap-3 rounded-[var(--radius-lg)] border p-3 transition-colors duration-300", on ? "border-primary bg-primary-soft" : "border-border hover:border-foreground/40")}>
             <button type="button" role="checkbox" aria-checked={on} data-testid={`extra-${e.id}`} onClick={() => set(e.id, on ? 0 : 1)} className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left">
-              <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-md border transition", on ? "border-primary bg-primary text-primary-foreground" : "border-input bg-background")} aria-hidden>
+              <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-md border transition-all duration-300", on ? "scale-110 border-primary bg-primary text-primary-foreground" : "border-input bg-background")} aria-hidden>
                 {on && <Check className="size-4" />}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block font-medium leading-snug">{e.name}</span>
                 <span className="block text-xs text-muted-foreground">
-                  {thb(e.price)} {EXTRA_PRICING_LABEL[e.pricing] ?? ""}
+                  <span className="rw-price-num">{thb(e.price)}</span> {EXTRA_PRICING_LABEL[e.pricing] ?? ""}
                   {e.description ? ` · ${e.description}` : ""}
                 </span>
               </span>
             </button>
             {on && (
               <span className="flex shrink-0 items-center gap-1" role="group" aria-label={`จำนวน ${e.name}`}>
-                <button type="button" onClick={() => set(e.id, qty - 1)} aria-label={`ลดจำนวน ${e.name}`} className="flex size-10 items-center justify-center rounded-full border border-border bg-background hover:bg-muted">
+                <button type="button" onClick={() => set(e.id, qty - 1)} aria-label={`ลดจำนวน ${e.name}`} className="rw-press flex size-11 items-center justify-center rounded-full border border-border bg-background hover:border-foreground">
                   <Minus className="size-3.5" aria-hidden />
                 </button>
                 <span className="w-6 text-center text-sm font-medium tabular-nums" aria-live="polite">
                   {qty}
                 </span>
-                <button type="button" onClick={() => set(e.id, qty + 1)} disabled={qty >= MAX_QTY} aria-label={`เพิ่มจำนวน ${e.name}`} className="flex size-10 items-center justify-center rounded-full border border-border bg-background hover:bg-muted disabled:opacity-40">
+                <button type="button" onClick={() => set(e.id, qty + 1)} disabled={qty >= MAX_QTY} aria-label={`เพิ่มจำนวน ${e.name}`} className="rw-press flex size-11 items-center justify-center rounded-full border border-border bg-background hover:border-foreground disabled:opacity-40">
                   <Plus className="size-3.5" aria-hidden />
                 </button>
               </span>

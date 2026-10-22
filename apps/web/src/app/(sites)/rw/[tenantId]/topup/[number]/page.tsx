@@ -10,7 +10,7 @@ import { getPayment, isOpenPaymentStatus, paymentSettings, promptpayQrDataUrl } 
 import { thb } from "@rentweb/core/money";
 import { and, eq, gamePackages, games } from "@rentweb/db";
 import { getOrderByNumber, getOrderForCustomer, reconcileTopupOrder, revealDeliveredCode, toPublicOrder, topupPaymentLapsed } from "@rentweb/module-topup/services";
-import { CodeReveal, OrderTracker, StatusBadge, dateTimeTh } from "@rentweb/module-topup/components";
+import { CodeReveal, OrderTracker, StatusBadge, TopupStyles, dateTimeTh } from "@rentweb/module-topup/components";
 import { FULFILLMENT_LABEL, PAYMENT_METHOD_LABEL, errorLabel, parseTopupOrderNumber } from "@rentweb/module-topup/labels";
 import { renewTopupPaymentAction } from "./actions";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -71,14 +71,38 @@ export default async function TopupOrderPage({ params, searchParams }: { params:
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
+      <TopupStyles />
       <section className="container-x pb-16 md:pb-24">
         <div className="mx-auto max-w-3xl">
-          <Reveal className="mb-6 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-sm text-muted-foreground">เลขที่รายการ</p>
-              <h1 className="font-heading text-3xl font-semibold tracking-wide md:text-4xl">{view.number}</h1>
+          {/* receipt header: number in the HUD face, status, the game strip */}
+          <Reveal className="relative mb-5 overflow-hidden rounded-[var(--radius-xl)] border border-border/70 bg-card/70 p-5 backdrop-blur-xl md:mb-6 md:p-7">
+            <div aria-hidden className="pointer-events-none absolute -top-24 right-0 size-64 rounded-full bg-primary/20 blur-3xl" />
+            <div className="relative flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="flex items-center gap-3 text-sm text-muted-foreground">
+                  เลขที่รายการ
+                  <span aria-hidden className="tp-hud text-[10px] text-primary" data-script="latin">
+                    [ {view.fulfillment === "stock" ? "Code" : view.fulfillment === "manual" ? "Manual" : "Auto"} ]
+                  </span>
+                </p>
+                <h1 className="tp-num mt-1 text-3xl font-semibold tracking-wide md:text-5xl">{view.number}</h1>
+              </div>
+              <StatusBadge status={view.status} size="md" />
             </div>
-            <StatusBadge status={view.status} size="md" />
+            <div className="relative mt-5 flex items-center gap-4 border-t border-dashed border-border/80 pt-5">
+              {meta?.image ? (
+                <img src={meta.image} alt="" className="size-14 shrink-0 rounded-[var(--radius-lg)] object-cover ring-1 ring-border/70 md:size-16" />
+              ) : (
+                <span className="flex size-14 shrink-0 items-center justify-center rounded-[var(--radius-lg)] bg-muted md:size-16">
+                  <Gamepad2 className="size-6 text-muted-foreground" />
+                </span>
+              )}
+              <div className="min-w-0">
+                <p className="truncate font-medium">{view.gameName}</p>
+                <p className="truncate text-sm text-muted-foreground">{view.packageName}</p>
+              </div>
+              <p className="tp-num ml-auto text-2xl font-semibold text-primary md:text-3xl">{thb(view.price)}</p>
+            </div>
           </Reveal>
 
           <div className="grid gap-5">
@@ -106,7 +130,7 @@ export default async function TopupOrderPage({ params, searchParams }: { params:
 
             {lapsed && payment && (
               <Reveal delay={0.1}>
-                <div className="card grid gap-3 p-5 md:p-7">
+                <div className="grid gap-3 rounded-[var(--radius-xl)] border border-amber-500/40 bg-card/80 p-5 md:p-7">
                   <h2 className="font-heading text-lg font-semibold">{payment.status === "failed" ? "ร้านตรวจสลิปแล้วไม่ผ่าน" : "รายการชำระเงินหมดเวลาแล้ว"}</h2>
                   {payment.status === "failed" && payment.failureReason && <p className="text-sm">เหตุผล: {payment.failureReason}</p>}
                   <p className="text-sm text-muted-foreground">
@@ -133,7 +157,7 @@ export default async function TopupOrderPage({ params, searchParams }: { params:
             )}
 
             {!authorised && view.status === "pending_payment" && (
-              <div className="card flex items-start gap-3 p-5 text-sm text-muted-foreground">
+              <div className="flex items-start gap-3 rounded-[var(--radius-xl)] border border-border/70 bg-card/70 p-5 text-sm text-muted-foreground">
                 <Lock className="mt-0.5 size-4 shrink-0" />
                 <p>
                   รายการนี้ยังไม่ชำระเงิน เปิดลิงก์จากหน้าที่สั่งซื้อ หรือ{" "}
@@ -145,32 +169,19 @@ export default async function TopupOrderPage({ params, searchParams }: { params:
               </div>
             )}
 
-            <Reveal delay={0.15} className="card p-5 md:p-7">
-              <h2 className="font-heading flex items-center gap-2 text-lg font-semibold">
-                <Receipt className="size-5 text-primary" /> รายละเอียด
-              </h2>
-              <div className="mt-4 flex items-center gap-4">
-                {meta?.image ? <img src={meta.image} alt="" className="size-14 rounded-[var(--radius-lg)] object-cover" /> : <span className="flex size-14 items-center justify-center rounded-[var(--radius-lg)] bg-muted"><Gamepad2 className="size-6 text-muted-foreground" /></span>}
-                <div>
-                  <p className="font-medium">{view.gameName}</p>
-                  <p className="text-sm text-muted-foreground">{view.packageName}</p>
-                </div>
-                <p className="font-heading ml-auto text-2xl font-semibold text-primary">{thb(view.price)}</p>
+            <Reveal delay={0.15} className="relative overflow-hidden rounded-[var(--radius-xl)] border border-border/70 bg-card/70 p-5 backdrop-blur-xl md:p-7">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="font-heading flex items-center gap-2 text-lg font-semibold">
+                  <Receipt className="size-5 text-primary" /> รายละเอียด
+                </h2>
+                <span aria-hidden className="tp-hud text-[10px] text-muted-foreground" data-script="latin">
+                  Receipt
+                </span>
               </div>
-              <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+              <dl className="mt-4 grid gap-px overflow-hidden rounded-[var(--radius-lg)] border border-border/60 bg-border/60 text-sm sm:grid-cols-2">
                 {full
-                  ? Object.entries(full.playerFields ?? {}).map(([key, value]) => (
-                      <div key={key} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 rounded-[var(--radius-md)] bg-muted/50 px-3 py-2 sm:block">
-                        <dt className="text-muted-foreground">{fieldLabels.get(key) ?? key}</dt>
-                        <dd className="ml-auto min-w-0 text-right [overflow-wrap:anywhere] sm:ml-0 sm:text-left font-mono font-medium">{value}</dd>
-                      </div>
-                    ))
-                  : (
-                      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 rounded-[var(--radius-md)] bg-muted/50 px-3 py-2 sm:block">
-                        <dt className="text-muted-foreground">ผู้เล่น</dt>
-                        <dd className="ml-auto min-w-0 text-right [overflow-wrap:anywhere] sm:ml-0 sm:text-left font-mono font-medium">{view.player}</dd>
-                      </div>
-                    )}
+                  ? Object.entries(full.playerFields ?? {}).map(([key, value]) => <Row key={key} label={fieldLabels.get(key) ?? key} value={value} mono />)
+                  : <Row label="ผู้เล่น" value={view.player} mono />}
                 <Row label="วิธีเติม" value={FULFILLMENT_LABEL[view.fulfillment] ?? view.fulfillment} />
                 <Row label="ชำระผ่าน" value={PAYMENT_METHOD_LABEL[view.paymentMethod] ?? view.paymentMethod} />
                 <Row label="สั่งซื้อเมื่อ" value={dateTimeTh(view.placedAt)} />
@@ -182,12 +193,12 @@ export default async function TopupOrderPage({ params, searchParams }: { params:
             </Reveal>
 
             <div className="flex flex-wrap gap-3">
-              <Button asChild size="lg">
+              <Button asChild size="lg" className="h-12">
                 <Link href="/games">
                   <Repeat /> เติมอีกครั้ง
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline">
+              <Button asChild size="lg" variant="outline" className="h-12">
                 <Link href={customer ? "/account/topups" : "/topup/status"}>
                   <History /> {customer ? "ประวัติการเติม" : "ตรวจสอบสถานะ"}
                 </Link>
@@ -202,9 +213,9 @@ export default async function TopupOrderPage({ params, searchParams }: { params:
 
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 rounded-[var(--radius-md)] bg-muted/50 px-3 py-2 sm:block">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className={`ml-auto min-w-0 text-right [overflow-wrap:anywhere] sm:ml-0 sm:text-left ${mono ? "font-mono font-medium" : "font-medium"}`}>{value}</dd>
+    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 bg-card px-4 py-3 sm:block">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className={`ml-auto min-w-0 text-right [overflow-wrap:anywhere] sm:mt-0.5 sm:ml-0 sm:text-left ${mono ? "font-mono font-medium tracking-wide" : "font-medium"}`}>{value}</dd>
     </div>
   );
 }

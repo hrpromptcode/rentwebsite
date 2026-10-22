@@ -18,7 +18,10 @@ export interface QuoteBreakdownData {
   depositPercent: number;
 }
 
-/** Price breakdown (nights x rate, extra guests, add-ons, total, amount due now). Pure markup: usable from server and client. */
+/**
+ * Price breakdown (nights x rate, extra guests, add-ons, total, amount due now). Pure markup: usable from server and
+ * client. Amounts are plain text (journeys read them); a changed total re-keys its span so it flashes once (CSS only).
+ */
 export function QuoteBreakdown({
   quote,
   dueNow,
@@ -37,26 +40,26 @@ export function QuoteBreakdown({
   const sameRate = quote.nightly.every((n) => n.price === first?.price);
   const due = dueNow ?? null;
   return (
-    <dl className={cn("space-y-2 text-sm", className)} data-testid="quote-breakdown">
+    <dl className={cn("space-y-2.5 text-sm", className)} data-testid="quote-breakdown">
       <div className="flex items-start justify-between gap-4">
         <dt className="text-muted-foreground">
           {L.roomTotal} · {L.nights(quote.nights)}
           {sameRate && first ? (
             <span className="block text-xs">
-              {thb(first.price)} × {quote.nights}
+              <span className="rw-price-num">{thb(first.price)}</span> × {quote.nights}
             </span>
           ) : null}
         </dt>
-        <dd className="font-medium tabular-nums">{thb(quote.roomTotal)}</dd>
+        <dd className="rw-price-num font-medium tabular-nums">{thb(quote.roomTotal)}</dd>
       </div>
       {showNights && !sameRate && (
         <details className="rounded-[var(--radius-md)] bg-muted/60 px-3 py-2">
-          <summary className="cursor-pointer text-xs text-muted-foreground">ราคาต่อคืนตามวันที่</summary>
+          <summary className="min-h-8 cursor-pointer text-xs text-muted-foreground">ราคาต่อคืนตามวันที่</summary>
           <ul className="mt-2 space-y-1 text-xs">
             {quote.nightly.map((n) => (
               <li key={n.date} className="flex justify-between tabular-nums">
                 <span>{formatThaiYmd(n.date, { short: true, weekday: true })}</span>
-                <span>{thb(n.price)}</span>
+                <span className="rw-price-num">{thb(n.price)}</span>
               </li>
             ))}
           </ul>
@@ -67,7 +70,7 @@ export function QuoteBreakdown({
           <dt className="text-muted-foreground">
             {L.extraGuests} · {L.guestsN(quote.extraGuests)}
           </dt>
-          <dd className="font-medium tabular-nums">{thb(quote.extraGuestTotal)}</dd>
+          <dd className="rw-price-num font-medium tabular-nums">{thb(quote.extraGuestTotal)}</dd>
         </div>
       )}
       {quote.extras.map((e) => (
@@ -76,26 +79,28 @@ export function QuoteBreakdown({
             {e.name}
             {e.qty > 1 ? ` × ${e.qty}` : ""}
           </dt>
-          <dd className="font-medium tabular-nums">{thb(e.total)}</dd>
+          <dd className="rw-price-num font-medium tabular-nums">{thb(e.total)}</dd>
         </div>
       ))}
       <div className="flex items-baseline justify-between gap-4 border-t border-border pt-3">
         <dt className="font-medium">{L.total}</dt>
-        <dd className="font-heading text-2xl font-semibold tabular-nums" data-testid="quote-total">
-          {thb(quote.total)}
+        <dd className="text-step-3 leading-none text-foreground tabular-nums" data-testid="quote-total">
+          <span key={quote.total} className="rw-price-num rw-flash inline-block">
+            {thb(quote.total)}
+          </span>
         </dd>
       </div>
       {due !== null && (
-        <div className="flex items-baseline justify-between gap-4 rounded-[var(--radius-md)] bg-primary-soft px-3 py-2 text-primary">
+        <div className="flex items-baseline justify-between gap-4 rounded-[var(--radius-md)] bg-primary-soft px-3 py-2.5 text-primary-ink">
           <dt className="font-medium">{dueLabel ?? L.dueNow}</dt>
           <dd className="font-semibold tabular-nums" data-testid="quote-due">
-            {due > 0 ? thb(due) : L.payAtProperty}
+            {due > 0 ? <span className="rw-price-num">{thb(due)}</span> : L.payAtProperty}
           </dd>
         </div>
       )}
       {due !== null && due > 0 && due < quote.total && (
         <p className="text-xs text-muted-foreground">
-          {L.payLater} {thb(quote.total - due)}
+          {L.payLater} <span className="rw-price-num">{thb(quote.total - due)}</span>
         </p>
       )}
     </dl>

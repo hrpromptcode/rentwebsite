@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarX2, Search, Ticket } from "lucide-react";
+import { ArrowUpRight, Search } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
-import { Input } from "@rentweb/ui/components/input";
 import { cn } from "@rentweb/ui/lib/utils";
-import { Reveal, Stagger, StaggerItem } from "@rentweb/ui/motion";
+import { CtaButton, Eyebrow, RevealHeading, SectionStyles, StaggerCell, StaggerList } from "@rentweb/storefront";
 import { countEvents, eventCardStats, listEventCategories, listEvents, listPublicEvents } from "@rentweb/module-events/services";
-import { EventCard, L } from "@rentweb/module-events/ui";
+import { EvStyles, EventCard, L } from "@rentweb/module-events/ui";
+import { EvPills } from "@rentweb/module-events/client";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
 import { cmsFallback, moduleOrCmsMetadata } from "@/lib/cms-fallback";
@@ -17,13 +17,18 @@ type Search = Promise<{ scope?: string; category?: string; q?: string }>;
 
 /** archive = events still "published" whose last session ended, plus ones the organiser marked "ended" */
 const PAST_STATUSES: Array<"published" | "ended"> = ["published", "ended"];
+const p2 = (n: number) => String(n).padStart(2, "0");
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const runtime = await getRuntime((await params).tenantId);
   return runtime ? moduleOrCmsMetadata(runtime, "events", "events", { title: L.eventsTitle, description: L.eventsIntro }) : {};
 }
 
-/** /events?scope=upcoming|past&category=…&q=… – every published event with its date, venue and "from" price. */
+/**
+ * /events?scope=upcoming|past&category=…&q=… — the poster wall (§5.10): giant intro, sliding scope / category pills,
+ * a glowing search, and every published event as a stage poster (date stamp, beam glow + tilt, ticket stub price).
+ * Marketing-light: reveals + hover only (no WebGL here). Filtered views never mention other events' titles.
+ */
 export default async function EventsPage({ params, searchParams }: { params: Params; searchParams: Search }) {
   const { tenantId } = await params;
   const sp = await searchParams;
@@ -57,97 +62,129 @@ export default async function EventsPage({ params, searchParams }: { params: Par
     return `/events${str ? `?${str}` : ""}`;
   };
   const filtered = !!(q || category);
+  const offset = (i: number) => (events.length >= 3 && i % 3 === 1 ? "lg:translate-y-[9%]" : "");
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
-      <section className="container-x pt-8 pb-16 md:pt-12 md:pb-24">
-        <Reveal className="max-w-2xl">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">{runtime.config.name}</p>
-          <h1 className="heading-display mt-3 text-4xl font-semibold md:text-6xl">{L.eventsTitle}</h1>
-          <p className="mt-4 text-muted-foreground">{L.eventsIntro}</p>
-        </Reveal>
+      <EvStyles />
+      <SectionStyles />
+      <section className="relative overflow-x-clip">
+        {/* decorative stage glow + outline wordmark behind the intro */}
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[34rem] bg-[radial-gradient(45%_60%_at_85%_0%,color-mix(in_oklab,var(--primary)_16%,transparent),transparent_70%),radial-gradient(35%_50%_at_60%_10%,color-mix(in_oklab,var(--accent)_14%,transparent),transparent_70%)]" />
+        <div className="container-x pb-16 md:pb-28">
+          <header data-page-intro="" className="grid gap-8 pt-8 pb-10 md:pt-14 md:pb-12 lg:grid-cols-12 lg:items-end">
+            <div className="lg:col-span-8">
+              <Eyebrow text={runtime.config.name} index={scope === "past" ? "02 / ARCHIVE" : "01 / LINE-UP"} className="mb-5" />
+              <RevealHeading as="h1" text={L.eventsTitle} trigger="mount" className="font-heading text-step-6 font-bold text-balance" />
+              <p className="rw-fade mt-4 max-w-xl text-step-1 leading-relaxed text-muted-foreground">{L.eventsIntro}</p>
+            </div>
+            <div className="flex items-end gap-8 lg:col-span-4 lg:justify-end">
+              <p className="flex flex-col">
+                <span className="ev-num ev-ink text-[clamp(3rem,2.2rem+3vw,5.75rem)] font-bold">{p2(upcomingCount)}</span>
+                <span className="ev-mono mt-2 text-muted-foreground" data-script="thai">{L.upcoming}</span>
+              </p>
+              <p className="flex flex-col">
+                <span className="ev-num text-[clamp(3rem,2.2rem+3vw,5.75rem)] font-bold text-foreground/30">{p2(pastCount)}</span>
+                <span className="ev-mono mt-2 text-muted-foreground" data-script="thai">{L.past}</span>
+              </p>
+            </div>
+          </header>
 
-        <Reveal delay={0.05} className="mt-8 grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-center">
-          <nav aria-label="ช่วงเวลา" className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1 sm:inline-grid" data-testid="events-scope">
-            <ScopeTab href={href({ scope: "upcoming" })} active={scope === "upcoming"}>
-              {L.upcoming} ({upcomingCount})
-            </ScopeTab>
-            <ScopeTab href={href({ scope: "past" })} active={scope === "past"}>
-              {L.past} ({pastCount})
-            </ScopeTab>
-          </nav>
-          <form method="get" action="/events" role="search" className="flex gap-2 lg:max-w-md lg:justify-self-end" data-testid="events-search">
-            {scope === "past" && <input type="hidden" name="scope" value="past" />}
-            {category && <input type="hidden" name="category" value={category} />}
-            <label htmlFor="events-q" className="sr-only">
-              {L.search}
-            </label>
-            <Input id="events-q" name="q" type="search" defaultValue={q ?? ""} placeholder={L.searchPlaceholder} className="h-12" maxLength={80} />
-            <Button type="submit" size="lg" className="h-12 shrink-0" aria-label={L.search}>
-              <Search className="size-4" /> <span className="hidden sm:inline">{L.search}</span>
-            </Button>
-          </form>
-        </Reveal>
-
-        {categories.length > 1 && (
-          <Reveal delay={0.1} className="mt-4 flex flex-wrap gap-2" data-testid="events-categories">
-            <Chip href={href({ category: null })} active={!category}>
-              {L.allCategories}
-            </Chip>
-            {categories.map((c) => (
-              <Chip key={c.category} href={href({ category: c.category })} active={category === c.category}>
-                {c.category} <span className="opacity-60">{c.count}</span>
-              </Chip>
-            ))}
-          </Reveal>
-        )}
-
-        <p className="mt-6 text-sm text-muted-foreground" aria-live="polite">
-          {L.resultsN(events.length)}
-          {q ? ` · “${q}”` : ""}
-        </p>
-
-        {events.length === 0 ? (
-          <div className="card mt-4 flex flex-col items-center gap-3 p-10 text-center" data-testid="events-empty">
-            {filtered ? <Search className="size-10 text-muted-foreground" /> : <CalendarX2 className="size-10 text-muted-foreground" />}
-            <p className="text-muted-foreground">{filtered ? L.emptySearch : scope === "past" ? L.emptyPast : L.emptyEvents}</p>
-            <Button asChild size="lg" variant="outline">
-              <Link href={filtered ? href({ category: null, q: null }) : scope === "past" ? "/events" : "/contact"}>{filtered ? L.allEvents : scope === "past" ? L.upcoming : "ติดต่อผู้จัด"}</Link>
-            </Button>
+          {/* filters: scope pills · search · category pills */}
+          <div className="grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-center">
+            <EvPills
+              id="events-scope"
+              testId="events-scope"
+              ariaLabel="ช่วงเวลา"
+              current="page"
+              size="lg"
+              items={[
+                { href: href({ scope: "upcoming" }), label: L.upcoming, active: scope === "upcoming", count: upcomingCount },
+                { href: href({ scope: "past" }), label: L.past, active: scope === "past", count: pastCount },
+              ]}
+            />
+            <form method="get" action="/events" role="search" className="group relative flex items-center gap-2 lg:max-w-md lg:justify-self-end lg:w-full" data-testid="events-search">
+              {scope === "past" && <input type="hidden" name="scope" value="past" />}
+              {category && <input type="hidden" name="category" value={category} />}
+              <label htmlFor="events-q" className="sr-only">
+                {L.search}
+              </label>
+              <Search className="pointer-events-none absolute left-4 size-4 text-muted-foreground transition-colors group-focus-within:text-primary" aria-hidden />
+              <input
+                id="events-q"
+                name="q"
+                type="search"
+                defaultValue={q ?? ""}
+                placeholder={L.searchPlaceholder}
+                maxLength={80}
+                className="h-12 w-full min-w-0 rounded-full border border-[color-mix(in_oklab,var(--foreground)_14%,transparent)] bg-card/60 pr-4 pl-11 text-[15px] outline-none transition-[border-color,box-shadow] duration-300 placeholder:text-muted-foreground focus:border-primary focus:shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_18%,transparent)]"
+              />
+              <Button type="submit" size="lg" className="h-12 shrink-0 rounded-full" aria-label={L.search}>
+                <Search className="size-4" /> <span className="hidden sm:inline">{L.search}</span>
+              </Button>
+            </form>
           </div>
-        ) : (
-          <Stagger className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" stagger={0.05} data-testid="events-grid">
-            {events.map((e, i) => (
-              <StaggerItem key={e.id} className="h-full">
-                <EventCard event={e} stats={stats.get(e.id)} priority={i < 3} past={scope === "past"} />
-              </StaggerItem>
-            ))}
-          </Stagger>
-        )}
 
-        {scope === "upcoming" && events.length > 0 && (
-          <Reveal className="mt-12 flex flex-col items-center gap-2 text-center">
-            <Ticket className="size-6 text-primary" aria-hidden />
-            <p className="text-sm text-muted-foreground">{L.eventsIntro}</p>
-          </Reveal>
-        )}
+          {categories.length > 1 && (
+            <EvPills
+              id="events-categories"
+              testId="events-categories"
+              ariaLabel={L.category}
+              className="mt-4"
+              items={[{ href: href({ category: null }), label: L.allCategories, active: !category }, ...categories.map((c) => ({ href: href({ category: c.category }), label: c.category, active: category === c.category, count: c.count }))]}
+            />
+          )}
+
+          <div className="mt-8 flex items-center justify-between gap-4 border-t ev-hair pt-5 md:mt-10">
+            <p className="ev-mono text-muted-foreground" aria-live="polite" data-script="thai">
+              {L.resultsN(events.length)}
+              {q ? ` · “${q}”` : ""}
+              {category ? ` · ${category}` : ""}
+            </p>
+            {filtered && (
+              <Link href={href({ category: null, q: null })} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                ล้างตัวกรอง <ArrowUpRight className="size-4" aria-hidden />
+              </Link>
+            )}
+          </div>
+
+          {events.length === 0 ? (
+            <div className="relative mt-6 overflow-hidden rounded-[calc(var(--radius)*1.6)] border border-dashed ev-hair px-6 py-16 text-center md:py-24" data-testid="events-empty">
+              <div aria-hidden className="ev-ticket-x ev-ticket-bg ev-ticket-edge mx-auto mb-8 flex h-24 w-56 rotate-[-6deg] items-center justify-between rounded-xl px-5 opacity-80">
+                <span className="ev-num text-3xl font-bold text-muted-foreground">00.00</span>
+                <span className="ev-barcode h-14 w-10 text-muted-foreground" />
+              </div>
+              <p className="mx-auto max-w-md text-step-1 text-muted-foreground">{filtered ? L.emptySearch : scope === "past" ? L.emptyPast : L.emptyEvents}</p>
+              <div className="mt-8 flex justify-center">
+                <CtaButton href={filtered ? href({ category: null, q: null }) : scope === "past" ? "/events" : "/contact"} label={filtered ? L.allEvents : scope === "past" ? L.upcoming : "ติดต่อผู้จัด"} variant="outline" size="lg" />
+              </div>
+            </div>
+          ) : (
+            <div data-testid="events-grid">
+              <StaggerList className={cn("mt-6 grid gap-5 sm:grid-cols-2 md:gap-6 lg:grid-cols-3", events.length >= 3 && "lg:pb-[4%]")} stagger={0.08}>
+                {events.map((e, i) => (
+                  <StaggerCell key={e.id} className="h-full">
+                    <div className={cn("h-full", offset(i))}>
+                      <EventCard event={e} stats={stats.get(e.id)} priority={i < 3} past={scope === "past"} />
+                    </div>
+                  </StaggerCell>
+                ))}
+              </StaggerList>
+            </div>
+          )}
+
+          {scope === "upcoming" && events.length > 0 && (
+            <div className="ev-ticket-x ev-ticket-bg ev-ticket-edge mt-16 grid items-center gap-6 rounded-[calc(var(--radius)*1.6)] p-6 sm:grid-cols-[minmax(0,1fr)_auto] md:mt-24 md:p-10" style={{ "--at": "62%" } as React.CSSProperties}>
+              <div>
+                <p className="ev-mono text-muted-foreground">Admit one</p>
+                <p className="font-heading mt-2 text-step-3 leading-tight font-semibold text-balance">บัตรของคุณอยู่ในมือถือ</p>
+                <p className="mt-2 max-w-xl text-muted-foreground">เข้าสู่ระบบด้วยเบอร์โทรที่ใช้ซื้อ แล้วเปิด QR ของทุกงานได้ในที่เดียว</p>
+              </div>
+              <CtaButton href="/account/tickets" label={L.myTickets} size="lg" />
+            </div>
+          )}
+        </div>
       </section>
     </PageBody>
-  );
-}
-
-function ScopeTab({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link href={href} aria-current={active ? "page" : undefined} className={cn("flex h-11 items-center justify-center rounded-full px-5 text-sm font-medium transition", active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
-      {children}
-    </Link>
-  );
-}
-
-function Chip({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link href={href} aria-current={active ? "true" : undefined} className={cn("inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm transition", active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:border-primary/50")}>
-      {children}
-    </Link>
   );
 }

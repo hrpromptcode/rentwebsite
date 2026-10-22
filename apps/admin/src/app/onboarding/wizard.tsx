@@ -20,6 +20,8 @@ export interface TemplateSummary {
   themePreset: string;
   recommendedPresets: string[];
   previewImage: string | null;
+  /** live storefront screenshot (platform /showcase/<key>.webp) */
+  shot: string;
   complexity: number;
   demoUrl: string;
 }
@@ -145,19 +147,23 @@ export function OnboardingWizard({ templates, presets, rootHost }: { templates: 
   }, [template, presets, presetMap]);
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
-      {/* Stepper */}
-      <ol className="mx-auto mb-8 flex max-w-2xl items-center gap-2 sm:gap-4" aria-label="ขั้นตอน">
+    <div className="mx-auto w-full max-w-7xl pt-2 sm:pt-6">
+      {/* Stepper: three lit segments */}
+      <ol className="mx-auto mb-10 grid max-w-3xl grid-cols-3 gap-3 sm:mb-14 sm:gap-5" aria-label="ขั้นตอน">
         {STEPS.map((s, i) => {
           const done = i < step;
           const active = i === step;
           return (
-            <li key={s.key} className="flex flex-1 items-center gap-2 sm:gap-3">
-              <span className={cn("grid size-9 shrink-0 place-items-center rounded-full border text-sm font-semibold transition-colors", done ? "border-primary bg-primary text-primary-foreground" : active ? "border-primary text-primary" : "border-border text-muted-foreground")} aria-current={active ? "step" : undefined}>
-                {done ? <Check className="size-4" aria-hidden /> : i + 1}
+            <li key={s.key} className="min-w-0">
+              <span aria-hidden className="relative block h-[2px] overflow-hidden rounded-full bg-border">
+                <span className="absolute inset-y-0 left-0 rounded-full bg-primary shadow-[0_0_12px_rgb(255_107_61/0.8)] transition-[width] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ width: done ? "100%" : active ? "45%" : "0%" }} />
               </span>
-              <span className={cn("hidden text-sm font-medium sm:block", active ? "text-foreground" : "text-muted-foreground")}>{s.label}</span>
-              {i < STEPS.length - 1 && <span className={cn("h-px flex-1", done ? "bg-primary" : "bg-border")} aria-hidden />}
+              <span className="mt-3 flex items-center gap-2.5">
+                <span className={cn("rw-mono", done || active ? "text-primary" : "text-muted-foreground")} aria-current={active ? "step" : undefined}>
+                  {done ? <Check className="inline size-3.5" aria-label="เสร็จแล้ว" /> : String(i + 1).padStart(2, "0")}
+                </span>
+                <span className={cn("hidden truncate text-sm font-medium sm:block", active ? "text-foreground" : "text-muted-foreground")}>{s.label}</span>
+              </span>
             </li>
           );
         })}
@@ -167,15 +173,16 @@ export function OnboardingWizard({ templates, presets, rootHost }: { templates: 
       </p>
 
       <AnimatePresence mode="wait" custom={dir} initial={false}>
-        <motion.div key={step} custom={dir} variants={variants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}>
+        <motion.div key={step} custom={dir} variants={variants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}>
           {step === 0 && (
             <section>
-              <header className="mb-6 text-center">
-                <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">เว็บของคุณเป็นแบบไหน?</h1>
-                <p className="mt-2 text-muted-foreground">เลือกเทมเพลตที่ใกล้เคียงธุรกิจของคุณ ปรับเปลี่ยนได้ทุกอย่างในภายหลัง</p>
+              <header className="mb-10 text-center">
+                <p className="rw-mono text-primary">(01) — Template</p>
+                <h1 className="mt-4 font-heading text-[clamp(2.25rem,5vw,3.75rem)] leading-[1.15] font-semibold text-balance">เว็บของคุณเป็นแบบไหน?</h1>
+                <p className="mx-auto mt-3 max-w-xl text-[1.0625rem] text-muted-foreground">เลือกเทมเพลตที่ใกล้เคียงธุรกิจของคุณ ปรับเปลี่ยนได้ทุกอย่างในภายหลัง</p>
               </header>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {templates.map((t) => {
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {templates.map((t, idx) => {
                   const p = presetMap[t.themePreset];
                   const selected = templateKey === t.key;
                   return (
@@ -184,24 +191,26 @@ export function OnboardingWizard({ templates, presets, rootHost }: { templates: 
                       type="button"
                       onClick={() => pickTemplate(t.key)}
                       aria-pressed={selected}
-                      className={cn("card group relative flex flex-col overflow-hidden text-left transition-shadow focus-visible:ring-[3px] focus-visible:ring-ring/40", selected ? "ring-2 ring-primary" : "hover:shadow-lg")}
+                      className={cn(
+                        "group relative flex flex-col overflow-hidden rounded-2xl border bg-card text-left transition-[transform,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none",
+                        selected ? "border-primary shadow-[0_0_0_1px_var(--primary),0_30px_60px_-30px_rgb(255_107_61/0.6)]" : "border-border hover:-translate-y-1 hover:border-[#f3f1ec]/20 hover:shadow-[0_30px_60px_-30px_rgb(0_0_0/0.9)]",
+                      )}
                     >
                       <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted">
-                        {t.previewImage ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={t.previewImage} alt="" className="size-full object-cover transition-transform duration-500 ease-theme group-hover:scale-[1.03]" loading="lazy" />
-                        ) : (
-                          <div className="size-full" style={{ background: p ? `linear-gradient(135deg, ${p.colors.primary}, ${p.colors.accent})` : undefined }} />
-                        )}
+                        <ShotImage src={t.shot} fallback={t.previewImage} gradient={p ? `linear-gradient(135deg, ${p.colors.primary}, ${p.colors.accent})` : undefined} />
+                        <span aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 to-transparent" />
+                        <span aria-hidden className="rw-mono absolute top-3 left-3 rounded-full bg-black/55 px-2 py-0.5 text-[#f3f1ec] backdrop-blur">
+                          {String(idx + 1).padStart(2, "0")}
+                        </span>
                         {selected && (
-                          <span className="absolute right-3 top-3 grid size-7 place-items-center rounded-full bg-primary text-primary-foreground shadow">
+                          <span className="absolute top-3 right-3 grid size-8 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg">
                             <Check className="size-4" aria-hidden />
                           </span>
                         )}
                       </div>
                       <div className="flex flex-1 flex-col gap-3 p-5">
                         <div className="flex items-start justify-between gap-3">
-                          <h3 className="font-heading text-base font-semibold leading-snug">{t.name}</h3>
+                          <h3 className="font-heading text-lg leading-snug font-semibold">{t.name}</h3>
                           {p && (
                             <span className="flex shrink-0 -space-x-1.5" aria-label={`ธีม ${p.name}`}>
                               {[p.colors.primary, p.colors.accent, p.colors.background].map((c, i) => (
@@ -210,10 +219,10 @@ export function OnboardingWizard({ templates, presets, rootHost }: { templates: 
                             </span>
                           )}
                         </div>
-                        <p className="line-clamp-2 text-sm text-muted-foreground">{t.description}</p>
-                        <div className="mt-auto flex flex-wrap gap-1.5">
+                        <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">{t.description}</p>
+                        <div className="mt-auto flex flex-wrap gap-1.5 pt-1">
                           {t.modules.map((m) => (
-                            <span key={m} className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                            <span key={m} className="rounded-full border border-border px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                               {MODULE_TH[m] ?? m}
                             </span>
                           ))}
@@ -224,9 +233,9 @@ export function OnboardingWizard({ templates, presets, rootHost }: { templates: 
                 })}
               </div>
               {template && (
-                <p className="mt-4 text-center text-sm text-muted-foreground">
+                <p className="mt-6 text-center text-sm text-muted-foreground">
                   ดูตัวอย่างสด:{" "}
-                  <a href={template.demoUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                  <a href={template.demoUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-1 text-primary underline-offset-4 hover:underline">
                     {template.demoUrl.replace(/^https?:\/\//, "")} <ExternalLink className="size-3.5" aria-hidden />
                   </a>
                 </p>
@@ -235,73 +244,100 @@ export function OnboardingWizard({ templates, presets, rootHost }: { templates: 
           )}
 
           {step === 1 && (
-            <section className="mx-auto max-w-xl">
-              <header className="mb-6 text-center">
-                <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">ตั้งชื่อร้านของคุณ</h1>
-                <p className="mt-2 text-muted-foreground">ชื่อนี้จะแสดงบนเว็บและใช้สร้างที่อยู่เว็บ (เปลี่ยนภายหลังได้)</p>
-              </header>
-              <div className="card space-y-6 p-6 sm:p-8">
-                <div className="grid gap-2">
-                  <Label htmlFor="shop-name">ชื่อร้าน / ธุรกิจ</Label>
-                  <Input
-                    id="shop-name"
-                    value={name}
-                    autoFocus
-                    placeholder="เช่น Siam Atelier"
-                    onChange={(e) => {
-                      setName(e.target.value);
-                      if (!slugTouched) setSlug(finalizeSlug(e.target.value));
-                    }}
-                    maxLength={60}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="shop-slug">ที่อยู่เว็บ (slug)</Label>
-                  <div className="flex items-stretch overflow-hidden rounded-md border border-input bg-background focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/30">
-                    <span className="hidden items-center border-r bg-muted px-3 text-sm text-muted-foreground sm:flex">https://</span>
-                    <input
-                      id="shop-slug"
-                      value={slug}
-                      inputMode="url"
-                      autoCapitalize="none"
-                      spellCheck={false}
+            <section className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-14">
+              <div>
+                <header className="mb-8">
+                  <p className="rw-mono text-primary">(02) — Name</p>
+                  <h1 className="mt-4 font-heading text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.15] font-semibold">ตั้งชื่อร้านของคุณ</h1>
+                  <p className="mt-3 text-[1.0625rem] text-muted-foreground">ชื่อนี้จะแสดงบนเว็บและใช้สร้างที่อยู่เว็บ (เปลี่ยนภายหลังได้)</p>
+                </header>
+                <div className="space-y-6 rounded-2xl border border-border bg-card/80 p-6 backdrop-blur sm:p-8">
+                  <div className="grid gap-2.5">
+                    <Label htmlFor="shop-name">ชื่อร้าน / ธุรกิจ</Label>
+                    <Input
+                      id="shop-name"
+                      value={name}
+                      autoFocus
+                      placeholder="เช่น Siam Atelier"
                       onChange={(e) => {
-                        setSlugTouched(true);
-                        setSlug(typingSlug(e.target.value));
+                        setName(e.target.value);
+                        if (!slugTouched) setSlug(finalizeSlug(e.target.value));
                       }}
-                      onBlur={() => setSlug((v) => finalizeSlug(v))}
-                      className="h-11 min-w-0 flex-1 bg-transparent px-3 text-base outline-none md:text-sm"
-                      placeholder="my-shop"
-                      aria-describedby="slug-status"
+                      maxLength={60}
+                      className="rw-field"
                     />
-                    <span className="flex items-center border-l bg-muted px-3 text-sm text-muted-foreground">.{rootHost}</span>
                   </div>
-                  <p id="slug-status" className="flex min-h-5 items-center gap-1.5 text-xs">
-                    {slugState.status === "checking" && (
-                      <>
-                        <Loader2 className="size-3.5 animate-spin text-muted-foreground" aria-hidden /> <span className="text-muted-foreground">กำลังตรวจสอบ…</span>
-                      </>
-                    )}
-                    {slugState.status === "ok" && (
-                      <>
-                        <CheckCircle2 className="size-3.5 text-emerald-600" aria-hidden /> <span className="text-emerald-700">ว่าง! ใช้ชื่อนี้ได้</span>
-                      </>
-                    )}
-                    {slugState.status === "taken" && (
-                      <>
-                        <XCircle className="size-3.5 text-destructive" aria-hidden /> <span className="text-destructive">{slugState.reason ?? "ชื่อนี้ถูกใช้แล้ว"}</span>
-                      </>
-                    )}
-                    {slugState.status === "idle" && <span className="text-muted-foreground">อย่างน้อย 3 ตัวอักษร ใช้ a-z 0-9 และขีดกลาง</span>}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 rounded-xl bg-primary-soft p-4 text-sm">
-                  <Globe className="size-5 shrink-0 text-primary" aria-hidden />
-                  <div className="min-w-0">
-                    <p className="text-muted-foreground">เว็บของคุณจะอยู่ที่</p>
-                    <p className="truncate font-medium text-primary">
-                      {rootHost.startsWith("localhost") ? "http" : "https"}://{slugCandidate || "ชื่อร้าน"}.{rootHost}
+                  <div className="grid gap-2.5">
+                    <Label htmlFor="shop-slug">ที่อยู่เว็บ (slug)</Label>
+                    <div className="flex h-12 items-stretch overflow-hidden rounded-xl border border-input bg-[#f3f1ec]/[0.035] transition-[border-color,box-shadow] focus-within:border-primary focus-within:shadow-[0_0_0_4px_rgb(255_107_61/0.18)]">
+                      <span className="hidden items-center border-r border-input px-3 font-mono text-xs text-muted-foreground sm:flex">https://</span>
+                      <input
+                        id="shop-slug"
+                        value={slug}
+                        inputMode="url"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        onChange={(e) => {
+                          setSlugTouched(true);
+                          setSlug(typingSlug(e.target.value));
+                        }}
+                        onBlur={() => setSlug((v) => finalizeSlug(v))}
+                        className="min-w-0 flex-1 bg-transparent px-3 font-mono text-base outline-none placeholder:text-muted-foreground/70 md:text-sm"
+                        placeholder="my-shop"
+                        aria-describedby="slug-status"
+                      />
+                      <span className="flex max-w-[45%] items-center truncate border-l border-input px-3 font-mono text-xs text-muted-foreground">.{rootHost}</span>
+                    </div>
+                    <p id="slug-status" className="flex min-h-5 items-center gap-1.5 text-xs" aria-live="polite">
+                      {slugState.status === "checking" && (
+                        <>
+                          <Loader2 className="size-3.5 animate-spin text-muted-foreground" aria-hidden /> <span className="text-muted-foreground">กำลังตรวจสอบ…</span>
+                        </>
+                      )}
+                      {slugState.status === "ok" && (
+                        <>
+                          <CheckCircle2 className="size-3.5 text-emerald-400" aria-hidden /> <span className="text-emerald-300">ว่าง! ใช้ชื่อนี้ได้</span>
+                        </>
+                      )}
+                      {slugState.status === "taken" && (
+                        <>
+                          <XCircle className="size-3.5 text-destructive" aria-hidden /> <span className="text-destructive">{slugState.reason ?? "ชื่อนี้ถูกใช้แล้ว"}</span>
+                        </>
+                      )}
+                      {slugState.status === "idle" && <span className="text-muted-foreground">อย่างน้อย 3 ตัวอักษร ใช้ a-z 0-9 และขีดกลาง</span>}
                     </p>
+                  </div>
+                  <div className="flex items-center gap-3 rounded-xl border border-primary/25 bg-primary-soft p-4 text-sm">
+                    <Globe className="size-5 shrink-0 text-primary" aria-hidden />
+                    <div className="min-w-0">
+                      <p className="text-muted-foreground">เว็บของคุณจะอยู่ที่</p>
+                      <p className="truncate font-mono font-medium text-foreground">
+                        {rootHost.startsWith("localhost") ? "http" : "https"}://{slugCandidate || "ชื่อร้าน"}.{rootHost}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* live preview: the chosen template in a browser frame, renamed as you type */}
+              <div className="lg:sticky lg:top-8" aria-hidden>
+                <div className="overflow-hidden rounded-2xl border border-border bg-[#0b0c10] shadow-[0_50px_100px_-40px_rgb(0_0_0/0.9),0_0_80px_-30px_rgb(255_107_61/0.35)]">
+                  <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+                    <span className="flex gap-1.5">
+                      {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
+                        <span key={c} className="size-2.5 rounded-full" style={{ background: c }} />
+                      ))}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate rounded-full bg-[#f3f1ec]/[0.05] px-3 py-1 text-center font-mono text-[11px] text-muted-foreground">
+                      {slugCandidate || "ชื่อร้าน"}.{rootHost}
+                    </span>
+                  </div>
+                  <div className="relative aspect-[16/10]">
+                    {template && <ShotImage src={template.shot} fallback={template.previewImage} />}
+                    <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+                    <span className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
+                      <span className="rw-mono block text-[#f3f1ec]/70">{template?.name ?? ""}</span>
+                      <span className="mt-2 block truncate font-heading text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.2] font-semibold text-[#f3f1ec]">{name.trim() || "ร้านของคุณ"}</span>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -310,32 +346,42 @@ export function OnboardingWizard({ templates, presets, rootHost }: { templates: 
 
           {step === 2 && (
             <section>
-              <header className="mb-6 text-center">
-                <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">เลือกธีมเริ่มต้น</h1>
-                <p className="mt-2 text-muted-foreground">
+              <header className="mb-10 text-center">
+                <p className="rw-mono text-primary">(03) — Theme</p>
+                <h1 className="mt-4 font-heading text-[clamp(2.25rem,5vw,3.75rem)] leading-[1.15] font-semibold">เลือกธีมเริ่มต้น</h1>
+                <p className="mx-auto mt-3 max-w-2xl text-[1.0625rem] text-muted-foreground">
                   ธีมที่แนะนำสำหรับ <span className="font-medium text-foreground">{template?.name}</span> อยู่ด้านบน — ปรับสี ฟอนต์ และเลย์เอาต์เองได้ทุกเมื่อ
                 </p>
               </header>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {orderedPresets.map((p) => {
                   const selected = preset === p.key;
                   const recommended = template?.recommendedPresets.includes(p.key);
                   return (
-                    <button key={p.key} type="button" onClick={() => setPreset(p.key)} aria-pressed={selected} className={cn("card relative flex flex-col overflow-hidden text-left transition-shadow focus-visible:ring-[3px] focus-visible:ring-ring/40", selected ? "ring-2 ring-primary" : "hover:shadow-lg")}>
-                      <PresetPreview preset={p} name={name || "ร้านของคุณ"} />
-                      <div className="flex items-start justify-between gap-3 p-4">
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => setPreset(p.key)}
+                      aria-pressed={selected}
+                      className={cn(
+                        "group relative flex flex-col overflow-hidden rounded-2xl border bg-card text-left transition-[transform,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none",
+                        selected ? "border-primary shadow-[0_0_0_1px_var(--primary),0_30px_60px_-30px_rgb(255_107_61/0.6)]" : "border-border hover:-translate-y-1 hover:border-[#f3f1ec]/20",
+                      )}
+                    >
+                      <PresetPreview preset={p} name={name || "ร้านของคุณ"} className="transition-transform duration-700 group-hover:scale-[1.02]" />
+                      <div className="flex items-start justify-between gap-3 border-t border-border p-4">
                         <div className="min-w-0">
-                          <h3 className="font-heading text-sm font-semibold">{p.name}</h3>
-                          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{p.description}</p>
+                          <h3 className="font-heading text-base font-semibold">{p.name}</h3>
+                          <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{p.description}</p>
                         </div>
                         {recommended && (
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-medium">
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/30 bg-primary-soft px-2 py-0.5 text-[11px] font-medium text-primary">
                             <Sparkles className="size-3" aria-hidden /> แนะนำ
                           </span>
                         )}
                       </div>
                       {selected && (
-                        <span className="absolute right-3 top-3 grid size-7 place-items-center rounded-full bg-primary text-primary-foreground shadow">
+                        <span className="absolute top-3 right-3 grid size-8 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg">
                           <Check className="size-4" aria-hidden />
                         </span>
                       )}
@@ -349,22 +395,43 @@ export function OnboardingWizard({ templates, presets, rootHost }: { templates: 
       </AnimatePresence>
 
       {/* Footer nav */}
-      <div className="sticky bottom-0 mt-8 flex items-center justify-between gap-3 border-t bg-surface/90 py-4 backdrop-blur">
-        <Button type="button" variant="ghost" onClick={() => go(step - 1)} disabled={step === 0 || creating}>
-          <ArrowLeft aria-hidden /> ย้อนกลับ
-        </Button>
-        {step < 2 ? (
-          <Button type="button" size="lg" onClick={() => go(step + 1)} disabled={!canNext}>
-            ถัดไป <ArrowRight aria-hidden />
+      <div className="sticky bottom-0 z-20 mx-[calc(50%-50vw)] mt-10 border-t border-border bg-background/80 px-4 py-4 backdrop-blur-xl sm:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+          <Button type="button" variant="ghost" className="h-11" onClick={() => go(step - 1)} disabled={step === 0 || creating}>
+            <ArrowLeft aria-hidden /> ย้อนกลับ
           </Button>
-        ) : (
-          <Button type="button" size="lg" onClick={create} disabled={!canNext || creating}>
-            {creating ? <Loader2 className="animate-spin" aria-hidden /> : <Sparkles aria-hidden />}
-            {creating ? "กำลังสร้างเว็บ…" : "สร้างเว็บไซต์"}
-          </Button>
-        )}
+          <span className="rw-mono hidden text-muted-foreground sm:inline">{`Step ${step + 1} / 3`}</span>
+          {step < 2 ? (
+            <Button type="button" size="lg" className="rw-cta px-7" onClick={() => go(step + 1)} disabled={!canNext}>
+              ถัดไป <ArrowRight aria-hidden />
+            </Button>
+          ) : (
+            <Button type="button" size="lg" className="rw-cta px-7" onClick={create} disabled={!canNext || creating}>
+              {creating ? <Loader2 className="animate-spin" aria-hidden /> : <Sparkles aria-hidden />}
+              {creating ? "กำลังสร้างเว็บ…" : "สร้างเว็บไซต์"}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
+  );
+}
+
+/** Live storefront screenshot with a graceful fallback (the template's Unsplash preview, then the preset gradient). */
+function ShotImage({ src, fallback, gradient }: { src: string; fallback: string | null; gradient?: string }) {
+  const [url, setUrl] = React.useState<string | null>(src);
+  React.useEffect(() => setUrl(src), [src]);
+  if (!url) return <span className="block size-full" style={{ background: gradient }} />;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={url}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      onError={() => setUrl((u) => (u === src && fallback ? fallback : null))}
+      className="size-full object-cover object-top transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.04]"
+    />
   );
 }
 

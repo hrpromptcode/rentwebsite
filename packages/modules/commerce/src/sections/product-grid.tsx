@@ -1,11 +1,7 @@
 import * as React from "react";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import type { z } from "zod";
 import { getDb, withTenant } from "@rentweb/db";
-import { Button } from "@rentweb/ui/components/button";
-import { Magnetic, Reveal } from "@rentweb/ui/motion";
-import { Section, SectionHeading, type StorefrontCtx } from "@rentweb/storefront";
+import { CtaButton, Rise, Section, SectionHeading, hasAccentFont, type StorefrontCtx } from "@rentweb/storefront";
 import type { productGrid } from "@rentweb/storefront/definitions";
 import { listProducts, type ListProductsInput } from "../services/products";
 import { ProductGridView } from "../components/product-grid-view";
@@ -28,6 +24,11 @@ function queryFor(p: Props): ListProductsInput {
   }
 }
 
+/**
+ * Product grid section (§7.3): split heading with a mono count, magnetic "ดูทั้งหมด", and the card language of the
+ * chosen cardStyle (editorial = staggered magazine grid, hover-swap = 3D tilt, standard = sticker cards on "brutal"
+ * card shapes).
+ */
 export async function ProductGridSection({ ctx, props: p, id }: { ctx: StorefrontCtx; props: Props; id: string; index: number }) {
   const tenantId = ctx.tenant.id;
   let list = await withTenant(getDb(), tenantId, (tx) => listProducts(tx, tenantId, { ...queryFor(p), perPage: p.limit }));
@@ -35,34 +36,23 @@ export async function ProductGridSection({ ctx, props: p, id }: { ctx: Storefron
   if (!list.items.length && p.source === "featured") list = await withTenant(getDb(), tenantId, (tx) => listProducts(tx, tenantId, { sort: "best_selling", perPage: p.limit }));
   if (!list.items.length) return null;
   const viewAllHref = p.source === "category" && p.categorySlug ? `/collections/${encodeURIComponent(p.categorySlug)}` : "/products";
+  const count = `(${String(list.items.length).padStart(2, "0")})`;
 
   return (
-    <Section id={id}>
+    <Section id={id} type="product-grid">
       <div className="container-x">
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-4 md:mb-12">
-          <SectionHeading eyebrow={p.eyebrow} heading={p.heading} subheading={p.subheading} align="left" className="mb-0 md:mb-0" />
+        <div className="mb-10 flex flex-wrap items-end justify-between gap-6 md:mb-16">
+          <SectionHeading eyebrow={p.eyebrow} index={p.eyebrow ? count : undefined} heading={p.heading} subheading={p.subheading} align="left" accent={hasAccentFont(ctx)} className="mb-0 max-w-2xl md:mb-0" />
           {p.showViewAll && (
-            <Reveal delay={0.15} className="hidden md:block">
-              <Magnetic strength={0.15}>
-                <Button asChild variant="outline" size="lg">
-                  <Link href={viewAllHref}>
-                    {L.viewAll}
-                    <ArrowRight className="size-4" />
-                  </Link>
-                </Button>
-              </Magnetic>
-            </Reveal>
+            <Rise delay={0.15} className="hidden md:block">
+              <CtaButton href={viewAllHref} label={L.viewAll} variant="outline" size="lg" />
+            </Rise>
           )}
         </div>
         <ProductGridView products={list.items} columns={p.columns} style={p.cardStyle} />
         {p.showViewAll && (
-          <div className="mt-8 md:hidden">
-            <Button asChild variant="outline" size="lg" className="w-full">
-              <Link href={viewAllHref}>
-                {L.viewAll}
-                <ArrowRight className="size-4" />
-              </Link>
-            </Button>
+          <div className="mt-10 md:hidden">
+            <CtaButton href={viewAllHref} label={L.viewAll} variant="outline" size="lg" className="w-full justify-center" magnetic={false} />
           </div>
         )}
       </div>

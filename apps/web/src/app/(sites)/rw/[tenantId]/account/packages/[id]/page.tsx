@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { CalendarClock, CalendarDays, CheckCircle2, ChevronLeft, Package, Receipt, RefreshCw, Sparkles } from "lucide-react";
+import { CalendarClock, CalendarDays, ChevronLeft, Package, Receipt, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
-import { Reveal } from "@rentweb/ui/motion";
 import { Img } from "@rentweb/storefront";
 import { PaymentPanel } from "@rentweb/storefront/payments";
 import { paymentSettings, promptpayQrDataUrl } from "@rentweb/core/payments";
 import { thb } from "@rentweb/core/money";
 import { isUuid } from "@rentweb/core";
 import { formatThaiDate, getPatientPackageForCustomer, packagesEnabled } from "@rentweb/module-booking/services";
-import { PackageStatusBadge } from "@rentweb/module-booking/ui";
+import { CompactIntro, DetailRows, PackageStatusBadge, StatusTicket, SuccessCheck } from "@rentweb/module-booking/ui";
 import { L, METHOD_LABELS } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
@@ -46,47 +45,51 @@ export default async function AccountPackagePage({ params }: { params: Params })
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
-      <section className="container-x pt-8 pb-16 md:pt-12 md:pb-24">
+      <section className="container-x pt-6 pb-20 md:pt-10 md:pb-28">
         <div className="mx-auto max-w-3xl">
-          <Link href="/account/packages" className="inline-flex h-11 items-center gap-1 text-sm text-muted-foreground transition hover:text-foreground">
-            <ChevronLeft className="size-4" /> คอร์สของฉัน
-          </Link>
-          <Reveal className="mt-2 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-sm text-muted-foreground">{item.serviceName ?? "คอร์ส"}</p>
-              <h1 className="font-heading text-3xl font-semibold md:text-4xl">{item.packageName}</h1>
-            </div>
-            <PackageStatusBadge status={item.status} expired={item.isExpired} className="px-4 py-1.5 text-sm" />
-          </Reveal>
+          <CompactIntro
+            back={
+              <Link href="/account/packages" className="inline-flex h-11 items-center gap-1 text-sm text-muted-foreground transition hover:text-foreground">
+                <ChevronLeft className="size-4" /> คอร์สของฉัน
+              </Link>
+            }
+            eyebrow={item.serviceName ?? "คอร์ส"}
+            title={item.packageName}
+            right={<PackageStatusBadge status={item.status} expired={item.isExpired} className="px-4 py-1.5 text-sm" />}
+          />
 
-          <Reveal delay={0.05} className="card mt-6 overflow-hidden p-0">
-            <div className="flex items-start gap-3 bg-primary-soft px-5 py-4 md:px-7">
-              {usable ? <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" /> : <Sparkles className="mt-0.5 size-5 shrink-0 text-primary" />}
-              <div>
-                <p className="font-heading text-lg font-semibold">{pending ? "ชำระเงินเพื่อเปิดใช้งานคอร์ส" : cancelled ? "รายการสั่งซื้อนี้ถูกยกเลิก" : usable ? "คอร์สพร้อมใช้งาน จองคิวเพื่อใช้สิทธิ์ได้เลย" : item.isExpired ? "คอร์สนี้หมดอายุแล้ว" : item.status === "exhausted" ? "ใช้สิทธิ์ครบแล้ว ขอบคุณที่ไว้วางใจ" : "รายละเอียดคอร์ส"}</p>
-                <p className="text-sm text-muted-foreground">{pending ? "คอร์สจะเปิดใช้งานและเริ่มนับอายุทันทีเมื่อยืนยันการชำระ" : cancelled ? "ไม่ได้ชำระเงินภายในเวลาที่กำหนด สั่งซื้อใหม่ได้จากหน้าแพ็กเกจ" : item.expiresAt ? `${item.isExpired ? "หมดอายุเมื่อ" : "ใช้ได้ถึง"} ${formatThaiDate(item.expiresAt, { weekday: true })}` : ""}</p>
+          <StatusTicket
+            className="mt-6"
+            band={
+              <div className="flex items-start gap-4">
+                {usable ? <SuccessCheck /> : <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-background text-primary"><Sparkles className="size-5" /></span>}
+                <div className="min-w-0">
+                  <p className="font-heading text-step-2 leading-snug font-semibold">{pending ? "ชำระเงินเพื่อเปิดใช้งานคอร์ส" : cancelled ? "รายการสั่งซื้อนี้ถูกยกเลิก" : usable ? "คอร์สพร้อมใช้งาน จองคิวเพื่อใช้สิทธิ์ได้เลย" : item.isExpired ? "คอร์สนี้หมดอายุแล้ว" : item.status === "exhausted" ? "ใช้สิทธิ์ครบแล้ว ขอบคุณที่ไว้วางใจ" : "รายละเอียดคอร์ส"}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{pending ? "คอร์สจะเปิดใช้งานและเริ่มนับอายุทันทีเมื่อยืนยันการชำระ" : cancelled ? "ไม่ได้ชำระเงินภายในเวลาที่กำหนด สั่งซื้อใหม่ได้จากหน้าแพ็กเกจ" : item.expiresAt ? `${item.isExpired ? "หมดอายุเมื่อ" : "ใช้ได้ถึง"} ${formatThaiDate(item.expiresAt, { weekday: true })}` : ""}</p>
+                </div>
               </div>
-            </div>
-            <div className="grid gap-5 p-5 md:grid-cols-[auto_1fr] md:p-7">
-              {item.packageImage ? <Img src={item.packageImage} alt="" className="size-24 rounded-[var(--radius-lg)] object-cover" /> : <span className="flex size-24 items-center justify-center rounded-[var(--radius-lg)] bg-muted"><Package className="size-8 text-muted-foreground" /></span>}
+            }
+          >
+            <div className="grid gap-6 md:grid-cols-[auto_1fr] md:items-center">
+              {item.packageImage ? <Img src={item.packageImage} alt="" className="size-24 rounded-[calc(var(--radius,.75rem)*1.2)] object-cover" /> : <span className="flex size-24 items-center justify-center rounded-[calc(var(--radius,.75rem)*1.2)] bg-muted"><Package className="size-8 text-muted-foreground" /></span>}
               <div>
                 <div className="flex items-end justify-between gap-3">
                   <p className="text-sm text-muted-foreground">ครั้งคงเหลือ</p>
-                  <p className="font-heading text-3xl font-semibold tabular-nums">
+                  <p className="font-accent text-step-4 leading-none font-semibold tabular-nums">
                     {item.sessionsLeft}
-                    <span className="text-base font-normal text-muted-foreground">/{item.sessionsTotal}</span>
+                    <span className="font-body text-base font-normal text-muted-foreground">/{item.sessionsTotal}</span>
                   </p>
                 </div>
-                <div className="mt-2 h-3 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={item.sessionsLeft} aria-valuemin={0} aria-valuemax={item.sessionsTotal} aria-label="ครั้งคงเหลือ">
-                  <div className="h-full rounded-full bg-primary" style={{ width: `${usable ? pct : 0}%` }} />
+                <div className="bk-meter mt-3 !h-2.5" role="progressbar" aria-valuenow={item.sessionsLeft} aria-valuemin={0} aria-valuemax={item.sessionsTotal} aria-label="ครั้งคงเหลือ">
+                  <i style={{ transform: `scaleX(${usable ? pct / 100 : 0})` }} />
                 </div>
                 {item.packageDescription && <p className="mt-3 text-sm text-muted-foreground">{item.packageDescription}</p>}
               </div>
             </div>
-          </Reveal>
+          </StatusTicket>
 
           {showPayment && payment && (
-            <Reveal delay={0.1} className="mt-5">
+            <div className="rw-fade mt-5">
               <PaymentPanel
                 payment={{ id: payment.id, method: payment.method, status: payment.status, amount: payment.amount, qrDataUrl: payment.qrPayload ? await promptpayQrDataUrl(payment.qrPayload) : null, expiresAt: payment.expiresAt?.toISOString() ?? null, slipUrl: payment.slipUrl }}
                 amountLabel={thb(payment.amount)}
@@ -95,46 +98,49 @@ export default async function AccountPackagePage({ params }: { params: Params })
                 bankAccounts={settings.bankAccounts ?? []}
                 successHref={selfHref}
               />
-            </Reveal>
+            </div>
           )}
 
           {pending && !paymentLive && (
-            <Reveal delay={0.1} className="card mt-5 flex flex-col items-start gap-3 p-5 md:flex-row md:items-center md:justify-between md:p-6">
+            <div className="bk-panel rw-fade mt-5 flex flex-col items-start gap-3 p-5 md:flex-row md:items-center md:justify-between md:p-6">
               <div>
                 <p className="font-heading text-lg font-semibold">QR ชำระเงินหมดอายุแล้ว</p>
                 <p className="text-sm text-muted-foreground">สร้างรายการชำระเงินใหม่ {thb(item.pricePaid)} เพื่อเปิดใช้งานคอร์ส</p>
               </div>
               <form action={renewPackagePaymentAction.bind(null, tenantId, item.id)}>
-                <Button type="submit" size="lg">
+                <Button type="submit" size="lg" className="rounded-full">
                   <RefreshCw className="size-4" /> สร้าง QR ใหม่
                 </Button>
               </form>
-            </Reveal>
+            </div>
           )}
 
-          <Reveal delay={0.15} className="card mt-5 p-5 md:p-7">
-            <h2 className="font-heading flex items-center gap-2 text-lg font-semibold">
+          <div className="bk-panel rw-fade mt-5 p-5 md:p-8">
+            <h2 className="flex items-center gap-2 font-heading text-lg font-semibold">
               <Receipt className="size-5 text-primary" /> รายละเอียด
             </h2>
-            <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-              <Row label="ราคาคอร์ส" value={thb(item.pricePaid)} />
-              <Row label="จำนวนครั้ง" value={L.sessions(item.sessionsTotal)} />
-              <Row label="ใช้ไปแล้ว" value={L.sessions(item.sessionsUsed)} />
-              {payment && <Row label="ช่องทางชำระ" value={METHOD_LABELS[payment.method]?.label ?? payment.method} />}
-              <Row label={pending ? "สร้างรายการเมื่อ" : "ซื้อเมื่อ"} value={formatThaiDate(item.purchasedAt, { time: true })} />
-              {item.expiresAt && <Row label="หมดอายุ" value={formatThaiDate(item.expiresAt)} />}
-            </dl>
-          </Reveal>
+            <DetailRows
+              className="mt-3"
+              rows={[
+                { label: "ราคาคอร์ส", value: thb(item.pricePaid) },
+                { label: "จำนวนครั้ง", value: L.sessions(item.sessionsTotal) },
+                { label: "ใช้ไปแล้ว", value: L.sessions(item.sessionsUsed) },
+                payment ? { label: "ช่องทางชำระ", value: METHOD_LABELS[payment.method]?.label ?? payment.method } : null,
+                { label: pending ? "สร้างรายการเมื่อ" : "ซื้อเมื่อ", value: formatThaiDate(item.purchasedAt, { time: true }) },
+                item.expiresAt ? { label: "หมดอายุ", value: formatThaiDate(item.expiresAt) } : null,
+              ]}
+            />
+          </div>
 
           <div className="mt-8 flex flex-wrap gap-3">
             {usable && item.sessionsLeft > 0 && (
-              <Button asChild size="lg">
+              <Button asChild size="lg" className="rounded-full">
                 <Link href={`/book?${new URLSearchParams({ ...(item.serviceSlug ? { service: item.serviceSlug } : {}), package: item.id }).toString()}`}>
                   <CalendarDays className="size-4" /> จองคิวใช้สิทธิ์
                 </Link>
               </Button>
             )}
-            <Button asChild size="lg" variant="outline">
+            <Button asChild size="lg" variant="outline" className="rounded-full">
               <Link href="/packages">
                 <CalendarClock className="size-4" /> ดูคอร์สอื่น
               </Link>
@@ -143,14 +149,5 @@ export default async function AccountPackagePage({ params }: { params: Params })
         </div>
       </section>
     </PageBody>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-4 rounded-[var(--radius-md)] bg-muted/50 px-3 py-2 sm:block">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-medium">{value}</dd>
-    </div>
   );
 }

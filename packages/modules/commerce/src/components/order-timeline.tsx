@@ -3,8 +3,12 @@ import { Check, CircleX, Clock, CreditCard, PackageCheck, Truck } from "lucide-r
 import { Badge } from "@rentweb/ui/components/badge";
 import { cn } from "@rentweb/ui/lib/utils";
 import { L, ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS } from "../labels";
+import { CommerceStyles } from "./commerce-styles";
 
-/** 4-step order progress: รอชำระ → ชำระแล้ว → กำลังจัดส่ง → สำเร็จ (or a cancelled banner). */
+/**
+ * 4-step order progress: รอชำระ → ชำระแล้ว → กำลังจัดส่ง → สำเร็จ (or a cancelled banner). The connecting line fills
+ * step by step on mount and the current step breathes (CSS only; static under reduced motion).
+ */
 export function OrderTimeline({ step, cancelled, cod, className }: { step: number; cancelled?: boolean; cod?: boolean; className?: string }) {
   const steps = [
     { label: cod ? L.stepPlaced : L.stepUnpaid, icon: Clock },
@@ -24,6 +28,8 @@ export function OrderTimeline({ step, cancelled, cod, className }: { step: numbe
     );
   }
   return (
+    <>
+    <CommerceStyles />
     <ol className={cn("grid grid-cols-4 gap-1", className)} aria-label={L.orderStatus}>
       {steps.map((s, i) => {
         const done = i < step;
@@ -31,22 +37,28 @@ export function OrderTimeline({ step, cancelled, cod, className }: { step: numbe
         const Icon = done ? Check : s.icon;
         return (
           <li key={s.label} className="relative flex flex-col items-center text-center">
-            {i > 0 && <span aria-hidden className={cn("absolute top-5 right-1/2 left-[-50%] h-0.5", i <= step ? "bg-primary" : "bg-border")} />}
+            {i > 0 && (
+              <span aria-hidden className="absolute top-5 right-1/2 left-[-50%] h-0.5 bg-foreground/15">
+                <span className="rwc-steps-fill absolute inset-0 bg-primary" style={{ transform: `scaleX(${i <= step ? 1 : 0})`, animationDelay: `${0.2 + i * 0.25}s` }} />
+              </span>
+            )}
             <span
               className={cn(
                 "relative z-10 flex size-10 items-center justify-center rounded-full border-2 transition",
                 done && "border-primary bg-primary text-primary-foreground",
                 current && "border-primary bg-background text-primary ring-4 ring-primary/20",
-                !done && !current && "border-border bg-background text-muted-foreground",
+                !done && !current && "border-foreground/20 bg-background text-muted-foreground",
               )}
             >
+              {current && <span aria-hidden className="absolute inset-[-6px] animate-ping rounded-full border border-primary/40 [animation-duration:2.4s] motion-reduce:hidden" />}
               <Icon className="size-4.5" />
             </span>
-            <span className={cn("mt-2 text-[11px] leading-tight font-medium md:text-sm", done || current ? "text-foreground" : "text-muted-foreground")}>{s.label}</span>
+            <span className={cn("mt-2.5 text-[11px] leading-tight font-medium md:text-sm", done || current ? "text-foreground" : "text-muted-foreground")}>{s.label}</span>
           </li>
         );
       })}
     </ol>
+    </>
   );
 }
 

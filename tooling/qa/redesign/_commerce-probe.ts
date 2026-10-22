@@ -1,0 +1,20 @@
+import { chromium } from "@playwright/test";
+import { isolateHmr, stableGoto } from "../bughunt/fixes/_dev-stable";
+const url = process.argv[2]!;
+const out = process.argv[3]!;
+const w = Number(process.argv[4] ?? 1440);
+const b = await chromium.launch({ args: ["--enable-gpu", "--ignore-gpu-blocklist", "--use-angle=d3d11"] });
+const ctx = await b.newContext({ viewport: { width: w, height: w >= 768 ? 900 : 844 }, isMobile: w < 768, hasTouch: w < 768 });
+await isolateHmr(ctx);
+const p = await ctx.newPage();
+const errs: string[] = [];
+p.on("console", (m) => m.type() === "error" && errs.push(m.text().slice(0, 200)));
+await stableGoto(p, url, "load");
+await p.waitForTimeout(3000);
+const info = await p.evaluate(() => {
+  const els = [...document.querySelectorAll("body *")].filter((e) => { const r = e.getBoundingClientRect(); const cs = getComputedStyle(e); return r.width > 250 && r.height < 60 && r.height > 20 && (cs.backgroundColor.includes("6, 122, 54") || cs.backgroundColor.includes("rgb(6, 122")); });
+  return els.slice(0, 5).map((e) => `${e.tagName}.${(e as HTMLElement).className.toString().slice(0, 120)} ${JSON.stringify(e.getBoundingClientRect())}`);
+});
+console.log(info.join("\n"), errs);
+await p.screenshot({ path: out });
+await b.close();

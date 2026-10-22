@@ -7,3 +7,6 @@ export { OrderConfirmation, SuccessBurst } from "./order-confirmation";
 export { TagBadges, SpicyDots } from "./badges";
 export { CancelReservationButton } from "./cancel-reservation";
 export type { DineInResult, PickupState, ReserveState } from "../action-types";
+export { MenuCover, coverDish } from "./menu-cover";
+export { RestaurantStyles } from "./styles";
+export { PickupSteps } from "./pickup-steps";

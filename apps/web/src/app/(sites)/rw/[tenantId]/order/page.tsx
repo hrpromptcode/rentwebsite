@@ -4,9 +4,8 @@ import { notFound } from "next/navigation";
 import { Clock, Lock, MapPin, Phone, Search, Store, Wallet } from "lucide-react";
 import { Badge } from "@rentweb/ui/components/badge";
 import { Button } from "@rentweb/ui/components/button";
-import { Reveal } from "@rentweb/ui/motion";
 import { getActiveMenu, parseHours, pickupSlots, restaurantConfigOf, restaurantPaymentNotice, restaurantPaymentOptions } from "@rentweb/module-restaurant/services";
-import { MenuBrowser } from "@rentweb/module-restaurant/components";
+import { MenuBrowser, PickupSteps } from "@rentweb/module-restaurant/components";
 import { L } from "@rentweb/module-restaurant/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
@@ -44,35 +43,36 @@ export default async function PickupPage({ params, searchParams }: { params: Par
   return (
     <PageBody theme={runtime.theme} sections={[]}>
       <section className="container-x pt-6 pb-4 md:pt-10 md:pb-6">
-        <Reveal>
-          <p className="flex items-center gap-1.5 text-xs font-semibold tracking-[0.2em] text-primary-ink uppercase">
-            <Store className="size-3.5" /> {L.pickupShort}
-          </p>
-          <h1 className="font-heading mt-1 text-4xl font-semibold md:text-6xl">{L.pickup}</h1>
-          <p className="mt-3 max-w-xl text-muted-foreground md:text-lg">เลือกเมนู เลือกเวลารับ ชำระล่วงหน้า มาถึงรับได้เลยไม่ต้องรอ</p>
-        </Reveal>
-        <Reveal delay={0.1} className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-          <Badge variant="soft" className="h-8 gap-1.5 px-3 text-sm">
+        <div className="grid gap-6 lg:grid-cols-12 lg:items-end">
+          <div className="rr-fade lg:col-span-7">
+            <p className="flex items-center gap-2 text-sm font-semibold tracking-[0.02em] text-primary-ink">
+              <Store className="size-4" aria-hidden /> {L.pickupShort}
+            </p>
+            <h1 className="mt-2 font-heading text-step-4 leading-[1.25] font-semibold">{L.pickup}</h1>
+            <p className="mt-3 max-w-xl text-step-0 leading-relaxed text-muted-foreground">เลือกเมนู เลือกเวลารับ ชำระล่วงหน้า มาถึงรับได้เลยไม่ต้องรอ</p>
+          </div>
+          {cfg.pickup && <PickupSteps steps={["เลือกเมนู", "เวลารับ", "ชำระเงิน", "มารับที่ร้าน"]} current={0} className="rr-fade-2 lg:col-span-5" />}
+        </div>
+        <div className="rr-fade-3 mt-6 flex flex-wrap items-center gap-2 text-sm">
+          <Badge variant="soft" className="h-9 gap-1.5 px-3.5 text-sm">
             <Clock className="size-3.5" /> รับได้ {hours.open}–{hours.close} น.
           </Badge>
           {firstDay && slots[0] && (
-            <Badge variant="muted" className="h-8 gap-1.5 px-3 text-sm">
+            <Badge variant="muted" className="h-9 gap-1.5 px-3.5 text-sm">
               รอบแรก {firstDay} {slots[0].label}
             </Badge>
           )}
           {contact.address && (
-            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+            <span className="inline-flex min-h-9 items-center gap-1.5 px-1 text-muted-foreground">
               <MapPin className="size-3.5" /> {contact.address}
             </span>
           )}
-        </Reveal>
-        <Reveal delay={0.15} className="mt-4">
-          <Button asChild variant="link" className="h-11 px-0">
+          <Button asChild variant="link" className="h-11 px-1 sm:ml-auto">
             <Link href="/orders/r/lookup">
               <Search className="size-4" /> {L.trackOrder}
             </Link>
           </Button>
-        </Reveal>
+        </div>
       </section>
 
       {payNotice && menu && menu.categories.length ? (
@@ -92,15 +92,17 @@ export default async function PickupPage({ params, searchParams }: { params: Par
               )}
             </div>
           </section>
-          <MenuBrowser menu={menu} mode={{ kind: "browse" }} serviceChargePercent={0} initialItemId={item ?? null} />
+          <MenuBrowser menu={menu} mode={{ kind: "browse" }} layout="compact" serviceChargePercent={0} initialItemId={item ?? null} />
         </>
       ) : cfg.pickup && menu && menu.categories.length ? (
-        <MenuBrowser menu={menu} mode={{ kind: "pickup", place, slots, methods }} serviceChargePercent={0} initialItemId={item ?? null} />
+        <MenuBrowser menu={menu} mode={{ kind: "pickup", place, slots, methods }} layout="compact" serviceChargePercent={0} initialItemId={item ?? null} />
       ) : (
         <section className="container-x pb-24">
           <div className="card flex flex-col items-center gap-3 px-6 py-16 text-center">
-            <Lock className="size-10 text-muted-foreground" />
-            <p className="font-medium">ขณะนี้ยังไม่เปิดรับออเดอร์สั่งกลับบ้าน</p>
+            <span className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <Lock className="size-6" />
+            </span>
+            <p className="font-heading text-xl font-semibold">ขณะนี้ยังไม่เปิดรับออเดอร์สั่งกลับบ้าน</p>
             <p className="text-sm text-muted-foreground">ดูเมนูหรือจองโต๊ะล่วงหน้าได้ตามปกติ</p>
             <div className="mt-2 flex flex-wrap justify-center gap-2">
               <Button asChild variant="outline" size="lg">

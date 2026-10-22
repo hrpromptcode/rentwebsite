@@ -1,7 +1,7 @@
 import { randomInt } from "node:crypto";
 import type { TemplateDefinition } from "@rentweb/core/tenant";
 import { customers, eq, eventPromoCodes, eventSessions, events, nextCounter, ticketOrders, ticketTypes, tickets } from "@rentweb/db";
-import { section, features, imageText, testimonials, faq, cta, gallery, steps, contact, hero, eventHero, eventGrid, eventHighlights } from "@rentweb/storefront/definitions";
+import { section, features, imageText, testimonials, faq, cta, gallery, steps, contact, hero, marquee, eventHero, eventGrid, eventHighlights } from "@rentweb/storefront/definitions";
 import { aboutPage, contactPage, legalPages, u, avatar } from "./shared";
 
 /*
@@ -59,20 +59,22 @@ const IMG = {
   lecture: u("1524178232363-1fb2b075b655", 1400),
   speaker: u("1515169067868-5387ec356754", 1400),
   workshop: u("1452860606245-08befc0ff44b", 1400),
-  makers: u("1464366400600-7168b8af9bc3", 1400),
+  makers: u("1513467535987-fd81bc7d62f8", 1400),
   team: u("1522071820081-009f0129c71c", 1400),
   run: u("1452626038306-9aae5e071dd3", 1600),
   runners: u("1486218119243-13883505764c", 1400),
   runner: u("1461896836934-ffe607ba8211", 1400),
   shoes: u("1552674605-db6ffd4facb5", 1400),
   market: u("1533900298318-6b8da08a523e", 1400),
-  marketStalls: u("1513639776629-7b61b0ac49cb", 1400),
+  marketStalls: u("1513125370-3460ebe3401b", 1400),
   marketFlowers: u("1555529669-e69e7aa0ba9a", 1400),
   party: u("1511578314322-379afb476865", 1400),
   audience: u("1531058020387-3be344556be6", 1400),
   warehouse: u("1517457373958-b7bdd4587205", 1600),
   bangkok: u("1508009603885-50cf7c579365", 1600),
   river: u("1563492065599-3520f775eeed", 1400),
+  qrPhone: u("1595079676339-1534801ad6cf", 1200),
+  payPhone: u("1556742049-0cfed4f6a45d", 1200),
 };
 
 const MAP = "https://www.google.com/maps?q=Khlong+San+Bangkok&output=embed";
@@ -171,6 +173,13 @@ export const eventsTemplate: TemplateDefinition = {
           overlay: 0.55,
           textReveal: true,
         }),
+        section(marquee, {
+          items: ["RIVERSIDE LIVE", "LEATHER WORKSHOP", "DESIGN TALK", "NIGHT RUN", "MAKER MARKET"],
+          style: "giant",
+          separator: "✦",
+          speed: 46,
+          velocity: true,
+        }),
         section(eventGrid, {
           eyebrow: "เร็ว ๆ นี้",
           heading: "งานที่กำลังจะมาถึง",
@@ -187,8 +196,8 @@ export const eventsTemplate: TemplateDefinition = {
           variant: "bento",
           columns: 3,
           items: [
-            { icon: "QrCode", title: "e-ticket พร้อม QR ทันที", description: "ชำระเงินเสร็จ บัตรทุกใบโผล่ในหน้าคำสั่งซื้อและในบัญชีของคุณ แชร์ลิงก์บัตรให้เพื่อนที่มาด้วยได้ทีละใบ", image: IMG.crowd },
-            { icon: "Smartphone", title: "พร้อมเพย์หรือโอนแนบสลิป", description: "สแกน QR พร้อมเพย์จ่ายได้ในแอปธนาคาร ระบบจองบัตรให้ 20 นาทีระหว่างชำระเงิน" },
+            { icon: "QrCode", title: "e-ticket พร้อม QR ทันที", description: "ชำระเงินเสร็จ บัตรทุกใบโผล่ในหน้าคำสั่งซื้อและในบัญชีของคุณ แชร์ลิงก์บัตรให้เพื่อนที่มาด้วยได้ทีละใบ", image: IMG.qrPhone },
+            { icon: "Smartphone", title: "พร้อมเพย์หรือโอนแนบสลิป", description: "สแกน QR พร้อมเพย์จ่ายได้ในแอปธนาคาร ระบบจองบัตรให้ 20 นาทีระหว่างชำระเงิน", image: IMG.payPhone },
             { icon: "ScanLine", title: "เช็กอินหน้างานใน 2 วินาที", description: "ทีมงานสแกน QR จากหน้าจอมือถือ ไม่ต้องยื่นบัตรประชาชน ไม่ต้องหาชื่อในกระดาษ" },
             { icon: "Users", title: "ชื่อผู้เข้าร่วมทุกใบ", description: "ซื้อหลายใบได้ในคำสั่งซื้อเดียว ใส่ชื่อแต่ละคนตอนซื้อ หรือใช้ชื่อผู้ซื้อแล้วค่อยแก้ทีหลัง" },
             { icon: "CalendarPlus", title: "เพิ่มลงปฏิทินได้", description: "ดาวน์โหลด .ics จากหน้าบัตร เวลาประตูเปิดและพิกัดสถานที่ติดไปด้วย" },
@@ -238,8 +247,8 @@ export const eventsTemplate: TemplateDefinition = {
           ],
         }),
         section(cta, {
-          variant: "split",
-          heading: "สุดสัปดาห์นี้ออกจากบ้านมาคลองสาน",
+          variant: "glow",
+          heading: "สุดสัปดาห์นี้\nออกจากบ้านมาคลองสาน",
           body: "เลือกงานที่อยากไป กดซื้อบัตร ชำระด้วยพร้อมเพย์ แล้วเจอกันที่โกดังริมน้ำ — หรือถ้าคุณมีงานอยากจัด โกดังของเราว่างรับฟังไอเดีย",
           primaryCta: { label: "ดูอีเวนต์ทั้งหมด", href: "/events" },
           secondaryCta: { label: "จัดงานกับเรา", href: "/contact" },
@@ -297,7 +306,7 @@ export const eventsTemplate: TemplateDefinition = {
             { url: IMG.stage, alt: "เวทีหลักในโถงโกดัง" },
             { url: IMG.audience, alt: "ผู้ชมในโถงหลัก" },
             { url: IMG.workshop, alt: "ห้องเวิร์กช็อป" },
-            { url: IMG.party, alt: "ลานริมน้ำยามค่ำ" },
+            { url: IMG.lights, alt: "ไฟเวทีในโถงหลักยามค่ำ" },
             { url: IMG.river, alt: "วิวแม่น้ำเจ้าพระยาจากดาดฟ้า" },
             { url: IMG.market, alt: "ตลาดนัดในลานโกดัง" },
           ],

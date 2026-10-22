@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useActionState } from "react";
-import { AlertCircle, Loader2, Lock, MapPin, MessageSquare, Package, ShieldCheck, Truck, UserRound } from "lucide-react";
+import { AlertCircle, Loader2, Lock, MapPin, Package } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
 import { Input } from "@rentweb/ui/components/input";
 import { Label } from "@rentweb/ui/components/label";
@@ -14,6 +14,8 @@ import { thb } from "@rentweb/core/money";
 import { cn } from "@rentweb/ui/lib/utils";
 import type { ShippingQuote } from "../services/shipping";
 import { L, PAYMENT_LABELS, label } from "../labels";
+import { Flash } from "./cart-view";
+import { CommerceStyles } from "./commerce-styles";
 
 export type CheckoutState = { error?: string; fieldErrors?: Record<string, string> };
 export type CheckoutMethod = PaymentMethodOption["value"];
@@ -46,8 +48,8 @@ function describedBy(id: string, error?: string, hint?: boolean): string | undef
 function Field({ id, label: text, error, children, className, hint }: { id: string; label: string; error?: string; children: React.ReactNode; className?: string; hint?: string }) {
   return (
     <div className={cn("grid gap-1.5", className)}>
-      <Label htmlFor={id}>{text}</Label>
-      {children}
+      <Label htmlFor={id} className="text-[0.8125rem] font-medium text-foreground/80">{text}</Label>
+      <span className="rwc-input-line block">{children}</span>
       {hint && !error && (
         <p id={`${id}-hint`} className="text-xs text-muted-foreground">
           {hint}
@@ -109,18 +111,17 @@ export function CheckoutForm({ cart, shipping, methods, customer, provinces, log
     if (state.error || Object.keys(errors).length) topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const section = "card grid gap-4 p-5 md:p-6";
-  const heading = (Icon: typeof UserRound, text: string) => (
-    <h2 className="font-heading flex items-center gap-2 text-lg font-semibold">
-      <span className="flex size-9 items-center justify-center rounded-full bg-primary-soft text-primary">
-        <Icon className="size-4.5" />
-      </span>
+  const section = "card grid gap-5 p-5 md:p-7";
+  const heading = (n: number, text: string) => (
+    <h2 className="font-heading flex items-center gap-3 text-step-2 leading-tight font-semibold">
+      <span aria-hidden className="rwc-sec-index shrink-0">{String(n).padStart(2, "0")}</span>
       {text}
     </h2>
   );
 
   return (
-    <form id="checkout-form" action={submit} className="grid gap-8 pb-24 lg:grid-cols-[1fr_24rem] lg:items-start lg:pb-0" noValidate>
+    <form id="checkout-form" action={submit} className="grid gap-8 pb-24 lg:grid-cols-[1fr_26rem] lg:items-start lg:gap-14 lg:pb-0" noValidate>
+      <CommerceStyles />
       <div ref={topRef} className="grid gap-5 scroll-mt-28">
         {state.error && (
           <div role="alert" className="flex items-start gap-3 rounded-[var(--radius-lg)] border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
@@ -132,7 +133,7 @@ export function CheckoutForm({ cart, shipping, methods, customer, provinces, log
         {/* contact */}
         <Reveal className={section}>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            {heading(UserRound, L.contact)}
+            {heading(1, L.contact)}
             {customer ? (
               <span className="text-sm text-muted-foreground">
                 {L.loggedInAs} <span className="font-medium text-foreground">{customer.name ?? customer.phone ?? customer.email}</span>
@@ -159,7 +160,7 @@ export function CheckoutForm({ cart, shipping, methods, customer, provinces, log
 
         {/* shipping method */}
         <Reveal delay={0.05} className={section}>
-          {heading(Truck, L.shippingMethod)}
+          {heading(2, L.shippingMethod)}
           {shipping.length === 0 ? (
             <p className="text-sm text-destructive">{L.noShipping}</p>
           ) : (
@@ -168,9 +169,17 @@ export function CheckoutForm({ cart, shipping, methods, customer, provinces, log
                 const active = s.id === shippingId;
                 const fee = cart.freeShipping ? 0 : s.amount;
                 return (
-                  <label key={s.id} className={cn("flex cursor-pointer items-center gap-4 rounded-[var(--radius-lg)] border p-4 transition", active ? "border-primary bg-primary-soft ring-2 ring-primary/30" : "hover:bg-muted")}>
+                  <label
+                    key={s.id}
+                    data-checked={active ? "" : undefined}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-4 rounded-[var(--radius-lg)] border p-4 transition-[background-color,border-color,box-shadow] duration-300 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+                      active ? "border-primary bg-primary-soft shadow-[0_14px_30px_-22px_var(--primary)]" : "hover:border-foreground/40 hover:bg-muted/60",
+                    )}
+                  >
                     <input type="radio" name="shippingMethodId" value={s.id} checked={active} onChange={() => setShippingId(s.id)} className="sr-only" />
-                    <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-full", active ? "bg-primary text-primary-foreground" : "bg-muted")}>{s.isPickup ? <MapPin className="size-5" /> : <Package className="size-5" />}</span>
+                    <span aria-hidden className="rwc-radio-dot" />
+                    <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-full transition-colors duration-300", active ? "bg-primary text-primary-foreground" : "bg-muted")}>{s.isPickup ? <MapPin className="size-5" /> : <Package className="size-5" />}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block font-medium">{s.name}</span>
                       <span className="block text-sm text-muted-foreground">
@@ -196,7 +205,7 @@ export function CheckoutForm({ cart, shipping, methods, customer, provinces, log
 
         {/* address */}
         <Reveal delay={0.1} className={section}>
-          {heading(MapPin, L.address)}
+          {heading(3, L.address)}
           {quote?.isPickup ? (
             <p className="rounded-[var(--radius-md)] bg-muted/60 px-4 py-3 text-sm text-muted-foreground">{L.pickupNoAddress}</p>
           ) : (
@@ -234,7 +243,7 @@ export function CheckoutForm({ cart, shipping, methods, customer, provinces, log
 
         {/* payment */}
         <Reveal delay={0.15} className={section}>
-          {heading(ShieldCheck, L.paymentMethod)}
+          {heading(4, L.paymentMethod)}
           {quote?.requiresCod && <p className="rounded-[var(--radius-md)] bg-muted/60 px-4 py-3 text-sm text-muted-foreground">{L.codOnly}</p>}
           {paymentNotice ? (
             <p role="status" className="rounded-[var(--radius-md)] border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -254,25 +263,23 @@ export function CheckoutForm({ cart, shipping, methods, customer, provinces, log
 
         {/* note */}
         <Reveal delay={0.2} className={section}>
-          <h2 className="font-heading flex items-center gap-2 text-lg font-semibold">
-            <span className="flex size-9 items-center justify-center rounded-full bg-primary-soft text-primary" aria-hidden>
-              <MessageSquare className="size-4.5" />
-            </span>
+          <h2 className="font-heading flex items-center gap-3 text-step-2 leading-tight font-semibold">
+            <span aria-hidden className="rwc-sec-index shrink-0">05</span>
             <label htmlFor="note">{L.note}</label>
           </h2>
-          <Textarea id="note" name="note" placeholder={L.notePlaceholder} maxLength={500} className="min-h-20" />
+          <span className="rwc-input-line block"><Textarea id="note" name="note" placeholder={L.notePlaceholder} maxLength={500} className="min-h-24" /></span>
         </Reveal>
       </div>
 
       {/* summary */}
-      <Reveal delay={0.1} className="card p-5 md:p-6 lg:sticky lg:top-[calc(var(--header-h,0px)+1rem)]">
-        <h2 className="font-heading text-xl font-semibold">{L.orderSummary}</h2>
+      <Reveal delay={0.1} className="card p-5 md:p-7 lg:sticky lg:top-[calc(var(--header-h,0px)+1.5rem)]">
+        <div className="flex items-baseline justify-between gap-3"><h2 className="font-heading text-step-2 font-semibold">{L.orderSummary}</h2><span className="rwc-num text-muted-foreground">{label("items", { n: cart.itemCount })}</span></div>
         <ul className="mt-4 grid max-h-72 gap-3 overflow-y-auto pr-1">
           {cart.items.map((it) => (
             <li key={it.id} className="flex items-center gap-3 text-sm">
-              <span className="relative size-14 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-muted">
-                {it.image && <img src={it.image} alt="" className="absolute inset-0 size-full object-cover" loading="lazy" />}
-                <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-foreground text-[10px] font-semibold text-background">{it.quantity}</span>
+              <span className="relative aspect-[4/5] w-12 shrink-0 rounded-[var(--radius-md)] bg-muted">
+                {it.image && <img src={it.image} alt="" className="absolute inset-0 size-full rounded-[inherit] object-cover" loading="lazy" />}
+                <span className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-foreground font-mono text-[10px] font-semibold text-background ring-2 ring-card">{it.quantity}</span>
               </span>
               <span className="min-w-0 flex-1">
                 <span className="line-clamp-1 font-medium">{it.name}</span>
@@ -282,7 +289,7 @@ export function CheckoutForm({ cart, shipping, methods, customer, provinces, log
             </li>
           ))}
         </ul>
-        <dl className="mt-4 grid gap-2 border-t pt-4 text-sm">
+        <dl className="mt-5 grid gap-2.5 border-t border-foreground/10 pt-5 text-sm">
           <div className="flex justify-between">
             <dt className="text-muted-foreground">{L.subtotal}</dt>
             <dd className="tabular-nums">{thb(cart.subtotal)}</dd>
@@ -306,20 +313,21 @@ export function CheckoutForm({ cart, shipping, methods, customer, provinces, log
               <dd className="tabular-nums">{thb(codFee)}</dd>
             </div>
           )}
-          <div className="mt-1 flex items-baseline justify-between border-t pt-3">
+          <div className="mt-2 flex items-baseline justify-between border-t border-foreground/10 pt-4">
             <dt className="font-medium">{L.total}</dt>
-            <dd className="font-heading text-2xl font-semibold tabular-nums">{thb(total)}</dd>
+            <dd className="rwc-price-accent font-heading text-step-3 font-semibold tabular-nums"><Flash value={thb(total)} className="font-semibold" /></dd>
           </div>
         </dl>
-        <Button type="submit" size="xl" disabled={!canSubmit} className="mt-5 hidden w-full lg:inline-flex">
+        <Button type="submit" size="xl" disabled={!canSubmit} className="mt-6 hidden w-full active:scale-[.98] lg:inline-flex">
           {pending ? <Loader2 className="size-5 animate-spin" /> : <Lock className="size-5" />}
           {pending ? L.placing : L.placeOrder}
         </Button>
-        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{L.terms}</p>
+        <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground"><Lock className="size-3.5" /> {L.secureCheckout}</p>
+        <p className="mt-2 text-center text-xs leading-relaxed text-muted-foreground">{L.terms}</p>
       </Reveal>
 
       {/* mobile sticky bar */}
-      <div data-sticky-bar="lg" className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+      <div data-sticky-bar="lg" className="fixed inset-x-0 bottom-0 z-40 border-t border-foreground/10 bg-background/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150 lg:hidden">
         <div className="flex items-center gap-3 px-4 py-3">
           <div className="min-w-0 flex-1">
             <p className="text-xs text-muted-foreground">
@@ -327,7 +335,7 @@ export function CheckoutForm({ cart, shipping, methods, customer, provinces, log
             </p>
             <p className="font-heading text-xl font-semibold tabular-nums">{thb(total)}</p>
           </div>
-          <Button type="submit" size="lg" disabled={!canSubmit}>
+          <Button type="submit" size="lg" disabled={!canSubmit} className="active:scale-[.97]">
             {pending ? <Loader2 className="size-4 animate-spin" /> : <Lock className="size-4" />}
             {pending ? L.placing : L.placeOrder}
           </Button>

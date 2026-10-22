@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import { decodeSlug } from "@/lib/slug";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, Clock, Coins, Users, Wallet } from "lucide-react";
-import { Button } from "@rentweb/ui/components/button";
-import { Reveal, Stagger, StaggerItem } from "@rentweb/ui/motion";
-import { Img, Prose } from "@rentweb/storefront";
+import { ChevronRight, Clock, Coins, ShieldCheck, Users, Wallet } from "lucide-react";
+import { cn } from "@rentweb/ui/lib/utils";
+import { ImageReveal } from "@rentweb/ui/motion";
+import { CtaButton, Eyebrow, Prose, RevealHeading, Rise, SectionStyles, StaggerCell, StaggerList } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
 import { bookingConfig, bookingDepositMethods, getServiceBySlug, listServices, listStaffForService } from "@rentweb/module-booking/services";
-import { ServiceCard, StaffCard, servicePriceLabel } from "@rentweb/module-booking/ui";
+import { BookingStyles, ServiceMotifCard, StaffPortraitCard, frameClass, lookOf, servicePriceLabel, titleStep } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
@@ -22,7 +22,9 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return s ? { title: s.name, description: s.description ?? undefined, openGraph: s.image ? { images: [s.image] } : undefined } : {};
 }
 
-/** /services/[slug] – service detail with the staff who perform it and a direct booking CTA. */
+const big = (url: string) => (/images\.unsplash\.com/.test(url) ? url.replace(/([?&]w=)\d+/, "$11400") : url);
+
+/** /services/[slug] – detail (§5.0): parallax media in the motif frame + a sticky action box; who performs it; related. */
 export default async function ServicePage({ params }: { params: Params }) {
   const { tenantId, slug: rawSlug } = await params;
   const slug = decodeSlug(rawSlug);
@@ -41,6 +43,7 @@ export default async function ServicePage({ params }: { params: Params }) {
   });
   if (!data) notFound();
   const { service, team, related } = data;
+  const look = lookOf(runtime.config);
   const depositWanted = config.depositEnabled && service.depositRequired && service.depositAmount > 0;
   // ADMIN_B2-04: without a deposit receiver the booking is taken without one and paid at the shop
   const depositOn = depositWanted && bookingDepositMethods(runtime.config.settings).length > 0;
@@ -53,17 +56,20 @@ export default async function ServicePage({ params }: { params: Params }) {
     depositOn ? { icon: Wallet, label: L.deposit, value: thb(service.depositAmount) } : null,
     service.capacity > 1 ? { icon: Users, label: "รองรับ", value: `${service.capacity} ท่าน / รอบ` } : null,
   ].filter(Boolean) as Array<{ icon: typeof Clock; label: string; value: string }>;
+  const cols = facts.length === 3 ? 3 : 2;
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
-      <section className="container-x pt-8 pb-16 md:pt-12 md:pb-24">
-        <nav aria-label="breadcrumb" className="mb-6 text-sm text-muted-foreground">
+      <SectionStyles />
+      <BookingStyles />
+      <section className="container-x pt-6 pb-20 md:pt-10 md:pb-32">
+        <nav aria-label="breadcrumb" className="mb-6 flex flex-wrap items-center text-sm text-muted-foreground md:mb-10">
           <Link href="/services" className="inline-flex h-11 items-center hover:text-foreground">
             {L.services}
           </Link>
           {service.categoryName && (
             <>
-              <span className="mx-2">/</span>
+              <ChevronRight aria-hidden className="mx-1 size-3.5" />
               <Link href={`/services?category=${encodeURIComponent(service.categorySlug ?? "")}`} className="inline-flex h-11 items-center hover:text-foreground">
                 {service.categoryName}
               </Link>
@@ -71,78 +77,91 @@ export default async function ServicePage({ params }: { params: Params }) {
           )}
         </nav>
 
-        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
-          <Reveal>
-            <div className="overflow-hidden rounded-[var(--radius-xl)] bg-muted">
-              {service.image ? <Img src={service.image} alt={service.name} className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3]" aria-hidden />}
+        <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+          <div className="lg:col-span-7">
+            <div className={cn("bk-frame mx-auto aspect-[4/5] w-full max-w-[38rem] lg:max-w-none", frameClass(look), look === "clinic" ? "lg:aspect-[5/6]" : "lg:aspect-[4/5]")}>
+              {service.image ? (
+                <ImageReveal src={big(service.image)} alt={service.name} priority from="bottom" parallax={0.1} className="size-full" />
+              ) : (
+                <span className="absolute inset-0 bg-primary-soft" aria-hidden />
+              )}
             </div>
-          </Reveal>
-          <Reveal delay={0.05} className="flex flex-col">
-            {service.categoryName && <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">{service.categoryName}</p>}
-            <h1 className="heading-display mt-3 text-4xl font-semibold md:text-5xl">{service.name}</h1>
-            {service.description && <Prose text={service.description} className="mt-5 text-muted-foreground" />}
+          </div>
 
-            <dl className="mt-6 grid grid-cols-2 gap-3">
-              {facts.map((f) => (
-                <div key={f.label} className="rounded-[var(--radius-lg)] bg-muted/60 p-4">
-                  <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <f.icon className="size-3.5" /> {f.label}
-                  </dt>
-                  <dd className="mt-1 font-heading text-lg font-semibold">{f.value}</dd>
-                </div>
-              ))}
-            </dl>
+          <div className="lg:col-span-5">
+            <div className="lg:sticky lg:top-[calc(var(--header-h,72px)+2rem)]">
+              {service.categoryName && <Eyebrow text={service.categoryName} className="mb-5" />}
+              <RevealHeading as="h1" text={service.name} trigger="mount" mode="words" className={cn("font-heading font-semibold text-balance", titleStep(service.name) === "text-step-6" ? "text-step-5" : "text-step-4")} />
+              {service.description && <Prose text={service.description} className="mt-6 text-step-1 text-muted-foreground" />}
 
-            <p className="mt-4 text-sm text-muted-foreground">
-              {depositOn ? L.depositNote(thb(service.depositAmount)) : payAtShop ? L.payAtShopNotice : L.noDeposit} · {L.policy(config.cancelHours)}
-            </p>
+              <dl className={cn("mt-8 grid border-t border-[color-mix(in_oklab,var(--foreground)_12%,transparent)]", cols === 3 ? "grid-cols-3" : "grid-cols-2")}>
+                {facts.map((f, i) => (
+                  <div key={f.label} className={cn("border-b border-[color-mix(in_oklab,var(--foreground)_12%,transparent)] py-4", i % cols !== 0 && "border-l pl-4 md:pl-5")}>
+                    <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <f.icon className="size-3.5" /> {f.label}
+                    </dt>
+                    <dd className="mt-1 font-heading text-xl font-semibold tabular-nums">{f.value}</dd>
+                  </div>
+                ))}
+              </dl>
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button asChild size="lg" className="w-full sm:w-auto">
-                <Link href={bookHref}>
-                  {L.bookService} <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
-                <Link href="/services">{L.viewAllServices}</Link>
-              </Button>
+              <p className="mt-5 flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
+                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  {depositOn ? L.depositNote(thb(service.depositAmount)) : payAtShop ? L.payAtShopNotice : L.noDeposit} · {L.policy(config.cancelHours)}
+                </span>
+              </p>
+
+              <div className="mt-8 flex flex-wrap gap-3">
+                <CtaButton href={bookHref} label={L.bookService} size="xl" className="w-full sm:w-auto" />
+                <CtaButton href="/services" label={L.viewAllServices} variant="outline" size="xl" magnetic={false} arrow={false} className="w-full sm:w-auto" />
+              </div>
             </div>
-          </Reveal>
+          </div>
         </div>
 
         {team.length > 0 && (
-          <div className="mt-16">
-            <Reveal>
-              <h2 className="font-heading text-2xl font-semibold md:text-3xl">{L.performedBy}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">เลือกผู้ให้บริการที่ต้องการ หรือให้ระบบจัด “{L.anyStaff}” ให้ในขั้นตอนจอง</p>
-            </Reveal>
-            <Stagger className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {team.map((t) => (
-                <StaggerItem key={t.id} className="h-full">
-                  <div className="flex h-full flex-col gap-3">
-                    <StaffCard s={t} className="flex-1" />
-                    <Button asChild variant="outline" className="h-11">
-                      <Link href={`${bookHref}&staff=${encodeURIComponent(t.slug)}`}>{L.bookWith(t.name)}</Link>
-                    </Button>
-                  </div>
-                </StaggerItem>
-              ))}
-            </Stagger>
+          <div className="mt-24 md:mt-36">
+            <Rise className="mb-10 grid gap-4 md:mb-14 lg:grid-cols-12 lg:items-end">
+              <h2 className="font-heading text-step-4 font-semibold lg:col-span-7">{L.performedBy}</h2>
+              <p className="text-muted-foreground lg:col-span-5">เลือกผู้ให้บริการที่ต้องการ หรือให้ระบบจัด “{L.anyStaff}” ให้ในขั้นตอนจอง</p>
+            </Rise>
+            {team.length === 1 ? (
+              <div className="grid items-center gap-10 sm:grid-cols-2 lg:grid-cols-12">
+                <Rise className="max-w-sm lg:col-span-4">
+                  <StaffPortraitCard s={team[0]!} look={look} index={0} bookHref={`${bookHref}&staff=${encodeURIComponent(team[0]!.slug)}`} />
+                </Rise>
+                {team[0]!.bio && (
+                  <Rise delay={0.1} className="lg:col-span-7 lg:col-start-6">
+                    <p className="font-heading text-step-3 leading-snug text-balance">“{team[0]!.bio}”</p>
+                    {team[0]!.title && <p className="mt-5 text-sm text-muted-foreground">{team[0]!.name} · {team[0]!.title}</p>}
+                  </Rise>
+                )}
+              </div>
+            ) : (
+              <StaggerList className={cn("grid grid-cols-1 gap-x-8 gap-y-14 sm:grid-cols-2", team.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3")} stagger={0.1}>
+                {team.map((t, i) => (
+                  <StaggerCell key={t.id} className="h-full">
+                    <StaffPortraitCard s={t} look={look} index={i} bookHref={`${bookHref}&staff=${encodeURIComponent(t.slug)}`} />
+                  </StaggerCell>
+                ))}
+              </StaggerList>
+            )}
           </div>
         )}
 
         {related.length > 0 && (
-          <div className="mt-16">
-            <Reveal>
-              <h2 className="font-heading text-2xl font-semibold md:text-3xl">บริการที่เกี่ยวข้อง</h2>
-            </Reveal>
-            <Stagger className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {related.map((s) => (
-                <StaggerItem key={s.id} className="h-full">
-                  <ServiceCard s={s} />
-                </StaggerItem>
+          <div className="mt-24 md:mt-36">
+            <Rise className="mb-10 md:mb-14">
+              <h2 className="font-heading text-step-4 font-semibold">บริการที่เกี่ยวข้อง</h2>
+            </Rise>
+            <StaggerList className="grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3" stagger={0.1}>
+              {related.map((s, i) => (
+                <StaggerCell key={s.id} className="h-full">
+                  <ServiceMotifCard s={s} look={look} index={i} />
+                </StaggerCell>
               ))}
-            </Stagger>
+            </StaggerList>
           </div>
         )}
       </section>

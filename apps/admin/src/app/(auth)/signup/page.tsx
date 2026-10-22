@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { and, eq, getAdminDb, gt, isNull, tenantInvitations, tenants } from "@rentweb/db";
 import { sanitizeNext } from "@/lib/safe-next";
 import { getSession } from "@/lib/session";
+import { AuthSplit, ShopWindows } from "../_brand/brand";
 import { SignupForm, type SignupInvite } from "./signup-form";
 
 export const metadata: Metadata = { title: "สมัครใช้งาน" };
@@ -25,5 +26,9 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
   const session = await getSession();
   if (session) redirect(next ?? "/onboarding");
   const invite = await inviteFor(next);
-  return <SignupForm next={next ?? undefined} invite={invite} />;
+  return (
+    <AuthSplit panel={<ShopWindows kicker="(01) — Open your shop" statement={"เปิดเว็บร้านของคุณ\nวันนี้ ไม่ต้องเขียนโค้ด"} />}>
+      <SignupForm next={next ?? undefined} invite={invite} />
+    </AuthSplit>
+  );
 }

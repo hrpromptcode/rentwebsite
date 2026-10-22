@@ -1,0 +1,286 @@
+/* RentWeb platform identity "เปิดไฟหน้าร้าน" (docs/design/hi-end-direction.md §4.1) for the admin's first-impression
+   screens: login, signup and the onboarding wizard. Plain CSS (no Tailwind directives), imported by (auth)/layout.tsx
+   and onboarding/layout.tsx. Tokens apply to the whole document while a `.rw-night` root is mounted, so portals
+   (toasts, dropdown menus) match. AA verified palette from §4.1 (≥ 6.23:1). */
+
+html:has(.rw-night) {
+  --background: #07080b;
+  --foreground: #f3f1ec;
+  --card: #111319;
+  --card-foreground: #f3f1ec;
+  --popover: #111319;
+  --popover-foreground: #f3f1ec;
+  --surface: #0b0c10;
+  --primary: #ff6b3d;
+  --primary-foreground: #0b0b0c;
+  --primary-hover: #ff825a;
+  --primary-soft: rgb(255 107 61 / 0.14);
+  --secondary: #14161d;
+  --secondary-foreground: #f3f1ec;
+  --accent: #8e7dff;
+  --accent-foreground: #07080b;
+  --accent-soft: rgb(142 125 255 / 0.16);
+  --muted: #14161d;
+  --muted-foreground: #a3a099;
+  --glow: #ffb38a;
+  --border: #23262f;
+  --input: #2c2f3a;
+  --ring: #ff8a64;
+  --destructive: #ff6b6b;
+  --destructive-foreground: #07080b;
+  --radius: 0.875rem;
+  --rw-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  color-scheme: dark;
+  background: var(--background);
+}
+/* the next/font variables live on the .rw-night element (nested layouts cannot class <html>), so the identity fonts are
+   resolved there; portals outside it keep the admin fonts */
+.rw-night {
+  --font-heading: var(--font-rw-anuphan), var(--font-ibm-plex-sans-thai), system-ui, sans-serif;
+  --font-display: var(--font-rw-anuphan), var(--font-ibm-plex-sans-thai), system-ui, sans-serif;
+  --font-body: var(--font-ibm-plex-sans-thai), var(--font-rw-anuphan), system-ui, sans-serif;
+  --font-accent: var(--font-rw-unbounded), var(--font-rw-anuphan), system-ui, sans-serif;
+  --font-mono: var(--font-rw-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, var(--font-ibm-plex-sans-thai), monospace;
+  font-family: var(--font-body);
+}
+html:has(.rw-night) body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+}
+html:has(.rw-night) ::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* ---------------------------------------------------------------- wordmark "RentWeb●" + the pulsing online dot */
+.rw-brandmark {
+  font-family: var(--font-accent);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+.rw-dot {
+  position: relative;
+  display: inline-block;
+  width: 0.42em;
+  height: 0.42em;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 0 0.6em color-mix(in oklab, var(--primary) 70%, transparent);
+}
+.rw-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+}
+
+/* ---------------------------------------------------------------- HUD labels */
+.rw-mono {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.rw-mono[data-script="thai"] {
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+}
+
+/* ---------------------------------------------------------------- night backdrop: faint grid + coral/violet glows */
+.rw-night-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(55% 60% at 8% 100%, rgb(255 107 61 / 0.16), transparent 70%),
+    radial-gradient(45% 55% at 100% 0%, rgb(142 125 255 / 0.13), transparent 70%),
+    var(--background);
+}
+.rw-night-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgb(243 241 236 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(243 241 236 / 0.045) 1px, transparent 1px);
+  background-size: 88px 88px;
+  mask-image: radial-gradient(90% 80% at 50% 40%, #000 30%, transparent 85%);
+}
+.rw-night-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------------------------------------------------------------- "shop windows": a tilted wall of live template screenshots */
+.rw-windows {
+  overflow: hidden;
+  isolation: isolate;
+  perspective: 1800px;
+}
+.rw-windows-plane {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 150%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+  transform: translate(-46%, -50%) rotateX(48deg) rotateZ(-24deg);
+  transform-style: preserve-3d;
+}
+.rw-windows-col {
+  display: grid;
+  gap: 1.25rem;
+  align-content: start;
+}
+.rw-window {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: var(--card);
+  border: 1px solid rgb(243 241 236 / 0.08);
+  box-shadow: 0 40px 80px -30px rgb(0 0 0 / 0.8), 0 0 0 1px rgb(0 0 0 / 0.4);
+}
+.rw-window img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  object-position: top;
+}
+.rw-window-label {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.6rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgb(7 8 11 / 0.72);
+  color: #f3f1ec;
+  backdrop-filter: blur(8px);
+}
+.rw-windows-fade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, var(--background) 0%, transparent 22%, transparent 78%, rgb(7 8 11 / 0.6) 100%),
+    linear-gradient(0deg, var(--background) 0%, rgb(7 8 11 / 0.82) 26%, transparent 60%),
+    linear-gradient(180deg, var(--background) 0%, transparent 18%);
+}
+.rw-windows-glow {
+  position: absolute;
+  inset: auto -10% -30% -10%;
+  height: 70%;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(50% 50% at 50% 50%, rgb(255 107 61 / 0.28), transparent 70%);
+  filter: blur(20px);
+}
+
+/* ---------------------------------------------------------------- phones: drifting strip of shop windows */
+.rw-strip {
+  overflow: hidden;
+  padding-block: 0.75rem;
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+.rw-strip-track {
+  display: flex;
+  gap: 0.75rem;
+  width: max-content;
+  transform: rotate(-3deg);
+}
+.rw-strip-track img {
+  width: 9.5rem;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 0.6rem;
+  border: 1px solid rgb(243 241 236 / 0.08);
+  box-shadow: 0 18px 30px -18px rgb(0 0 0 / 0.9);
+}
+
+/* ---------------------------------------------------------------- form controls on night */
+.rw-night .rw-field {
+  height: 3rem;
+  border-radius: 0.75rem;
+  border-color: var(--input);
+  background: rgb(243 241 236 / 0.035);
+  font-size: 1rem;
+  transition: border-color 160ms, background-color 160ms, box-shadow 160ms;
+}
+.rw-night .rw-field:hover {
+  border-color: color-mix(in oklab, var(--foreground) 22%, var(--input));
+}
+.rw-night .rw-field:focus-visible {
+  border-color: var(--primary);
+  background: rgb(243 241 236 / 0.05);
+  box-shadow: 0 0 0 4px rgb(255 107 61 / 0.18);
+}
+.rw-night .rw-cta {
+  height: 3.25rem;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: 0 18px 40px -18px rgb(255 107 61 / 0.75);
+}
+.rw-night .rw-cta svg {
+  transition: transform 320ms var(--rw-ease);
+}
+.rw-night .rw-cta:hover:not(:disabled) svg:last-child {
+  transform: translateX(4px);
+}
+
+/* ---------------------------------------------------------------- motion (all of it optional) */
+@media (prefers-reduced-motion: no-preference) {
+  .rw-dot::after {
+    animation: rw-ping 2.4s var(--rw-ease) infinite;
+  }
+  .rw-windows-col {
+    animation: rw-drift var(--rw-drift, 60s) linear infinite;
+  }
+  .rw-strip-track {
+    animation: rw-strip 60s linear infinite;
+  }
+  .rw-windows-col:nth-child(2) {
+    animation-direction: reverse;
+  }
+  .rw-enter {
+    animation: rw-enter 0.9s var(--rw-ease) both;
+    animation-delay: var(--d, 0ms);
+  }
+  .rw-windows-plane {
+    animation: rw-plane-in 1.6s var(--rw-ease) both;
+  }
+}
+@keyframes rw-ping {
+  0% { transform: scale(1); opacity: 0.7; }
+  70%, 100% { transform: scale(3.2); opacity: 0; }
+}
+@keyframes rw-strip {
+  from { transform: rotate(-3deg) translateX(0); }
+  to { transform: rotate(-3deg) translateX(-50%); }
+}
+@keyframes rw-drift {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+@keyframes rw-enter {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rw-plane-in {
+  from { opacity: 0; transform: translate(-46%, -42%) rotateX(58deg) rotateZ(-24deg); }
+  to { opacity: 1; transform: translate(-46%, -50%) rotateX(48deg) rotateZ(-24deg); }
+}

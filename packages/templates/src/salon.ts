@@ -1,7 +1,10 @@
 import type { TemplateDefinition } from "@rentweb/core/tenant";
 import { availabilityRules, serviceCategories, services, staff, staffServices } from "@rentweb/db";
-import { section, hero, serviceList, staffGrid, bookingWidget, imageText, testimonials, features, faq, cta, gallery, steps } from "@rentweb/storefront/definitions";
+import { section, hero, serviceList, staffGrid, bookingWidget, imageText, testimonials, faq, cta, gallery, steps, text } from "@rentweb/storefront/definitions";
 import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, u, avatar } from "./shared";
+
+/** portrait crop (4:5) for therapist photos */
+const portrait = (id: string) => u(id, 800, "&h=1000&crop=faces");
 
 export const salon: TemplateDefinition = {
   key: "salon",
@@ -60,17 +63,29 @@ export const salon: TemplateDefinition = {
       title: "หน้าแรก",
       kind: "home",
       sections: [
+        // §5.5 signature: slow water over a hot-stone still life (preset zen → water-ripple); the pointer leaves wide rings
         section(hero, {
-          variant: "centered",
+          variant: "cinematic",
           eyebrow: "สปาและนวดไทย · สุขุมวิท 31",
-          heading: "หายใจเข้าช้า ๆ แล้วปล่อยให้เราดูแล",
+          heading: "หายใจเข้าช้า ๆ\nแล้วปล่อย\nให้เราดูแล",
           subheading: "นวดไทยโบราณ อโรมา และทรีตเมนต์ผิว โดยเทอราพิสต์ที่ผ่านการรับรองจากกระทรวงสาธารณสุข",
           primaryCta: { label: "จองคิวตอนนี้", href: "/book" },
           secondaryCta: { label: "ดูบริการ", href: "/services" },
-          image: { url: u("1540555700478-4be289fbecef", 1800), alt: "สปา" },
-          badges: ["จองออนไลน์ยืนยันทันที", "เลือกเทอราพิสต์ได้", "ห้องส่วนตัวทุกห้อง"],
+          image: { url: u("1600334129128-685c5582fd35", 1800), alt: "หินร้อนและน้ำมันนวดบนผ้าลินิน" },
+          badges: ["จองออนไลน์ยืนยันทันที", "เลือกเทอราพิสต์ได้"],
+          scene: "auto",
         }),
         section(serviceList, { eyebrow: "บริการ", heading: "ทรีตเมนต์ของเรา", subheading: "ทุกคอร์สรวมชาสมุนไพรและห้องอาบน้ำส่วนตัว", variant: "menu", limit: 8 }),
+        // §5.5: the house as a quiet statement (ScrubText)
+        section(text, { eyebrow: "พื้นที่ของเรา", body: "บ้านเก่าในซอยสวัสดี ที่เงียบจนได้ยินเสียงใบไม้", size: "large", align: "left" }),
+        section(imageText, {
+          eyebrow: "ห้องส่วนตัว",
+          heading: "พักในบ้าน ไม่ใช่ในห้าง",
+          body: "เราปรับบ้านไม้สองชั้นให้เป็นห้องนวดส่วนตัว 6 ห้อง ล้อมด้วยสวนเล็ก ๆ ทุกห้องมีห้องอาบน้ำในตัว ใช้น้ำมันหอมระเหยออร์แกนิกจากเชียงใหม่",
+          image: { url: u("1544161515-4ab6ce6db874", 1400), alt: "ห้องนวด" },
+          imagePosition: "left",
+          style: "overlap",
+        }),
         section(steps, {
           eyebrow: "จองง่าย",
           heading: "จองคิวใน 1 นาที",
@@ -79,14 +94,6 @@ export const salon: TemplateDefinition = {
             { title: "เลือกวันและเวลา", description: "เห็นเฉพาะช่วงที่ว่างจริง ไม่ต้องรอยืนยัน" },
             { title: "ยืนยันด้วยเบอร์โทร", description: "รับข้อความยืนยันและเตือนล่วงหน้า 24 ชั่วโมงทาง LINE" },
           ],
-        }),
-        section(imageText, {
-          eyebrow: "พื้นที่ของเรา",
-          heading: "บ้านเก่าในซอยสวัสดี ที่เงียบจนได้ยินเสียงใบไม้",
-          body: "เราปรับบ้านไม้สองชั้นให้เป็นห้องนวดส่วนตัว 6 ห้อง ล้อมด้วยสวนเล็ก ๆ ทุกห้องมีห้องอาบน้ำในตัว ใช้น้ำมันหอมระเหยออร์แกนิกจากเชียงใหม่",
-          image: { url: u("1544161515-4ab6ce6db874", 1400), alt: "ห้องนวด" },
-          imagePosition: "left",
-          style: "overlap",
         }),
         section(staffGrid, { eyebrow: "ทีม", heading: "เทอราพิสต์ของเรา", subheading: "ผ่านการรับรองหลักสูตรนวดไทย 150 ชั่วโมงขึ้นไปทุกคน" }),
         section(gallery, { heading: "บรรยากาศ", layout: "filmstrip", images: [{ url: u("1540555700478-4be289fbecef", 1000), alt: "" }, { url: u("1544161515-4ab6ce6db874", 1000), alt: "" }, { url: u("1570172619644-dfd03ed5d881", 1000), alt: "" }, { url: u("1600334129128-685c5582fd35", 1000), alt: "" }] }),
@@ -111,7 +118,15 @@ export const salon: TemplateDefinition = {
         section(cta, { variant: "banner", heading: "ให้วันนี้เป็นวันที่คุณได้พัก", body: "จองคิวล่วงหน้า รับส่วนลด 10% สำหรับการนัดครั้งแรก", primaryCta: { label: "จองคิว", href: "/book" } }),
       ],
     },
-    { slug: "gallery", title: "บรรยากาศ", sections: [section(gallery, { heading: "บรรยากาศ", layout: "masonry", images: [{ url: u("1540555700478-4be289fbecef", 1000), alt: "" }, { url: u("1544161515-4ab6ce6db874", 1000), alt: "" }, { url: u("1570172619644-dfd03ed5d881", 1000), alt: "" }, { url: u("1600334129128-685c5582fd35", 1000), alt: "" }, { url: u("1522337660859-02fbefca4702", 1000), alt: "" }] })] },
+    {
+      slug: "gallery",
+      title: "บรรยากาศ",
+      sections: [
+        section(text, { eyebrow: "บรรยากาศ", heading: "ความเงียบที่จับต้องได้", body: "แสงจากสวน ผ้าลินินที่ซักด้วยมือ กลิ่นตะไคร้หอมจาง ๆ ทุกมุมของบ้านตั้งใจให้คุณได้ช้าลง ก่อนจะเริ่มนวดเสียอีก", size: "normal" }),
+        section(gallery, { heading: "", layout: "masonry", images: [{ url: u("1540555700478-4be289fbecef", 1000), alt: "" }, { url: u("1544161515-4ab6ce6db874", 1000), alt: "" }, { url: u("1570172619644-dfd03ed5d881", 1000), alt: "" }, { url: u("1600334129128-685c5582fd35", 1000), alt: "" }, { url: u("1522337660859-02fbefca4702", 1000), alt: "" }] }),
+        section(cta, { variant: "banner", heading: "มาพักด้วยกันสักครั้ง", body: "เลือกทรีตเมนต์และเทอราพิสต์ที่ชอบ ยืนยันคิวได้ทันที", primaryCta: { label: "จองคิว", href: "/book" } }),
+      ],
+    },
     aboutPage({ neutral: NEUTRAL_ABOUT.salon, heading: "สบาย สบาย — เริ่มจากความเชื่อว่าการพักผ่อนคือสิ่งจำเป็น", body: "เราเปิดในปี 2016 โดยอดีตพยาบาลที่เห็นว่าคนเมืองพักผ่อนน้อยเกินไป ทีมเทอราพิสต์ทุกคนผ่านการอบรมและมีใบประกอบวิชาชีพ เราจ่ายค่าตอบแทนที่เป็นธรรม เพราะเชื่อว่ามือที่มีความสุขจึงจะส่งต่อความสบายได้" }),
     contactPage(),
     ...legalPages("สบาย สบาย"),
@@ -143,10 +158,10 @@ export const salon: TemplateDefinition = {
     const team = await tx
       .insert(staff)
       .values([
-        { tenantId, name: "พี่แอน", slug: "ann", title: "หัวหน้าเทอราพิสต์ · 15 ปี", avatar: avatar("ann-spa"), color: "#2F5D50", sort: 0 },
-        { tenantId, name: "พี่มะลิ", slug: "mali", title: "เทอราพิสต์ · นวดไทย/หินร้อน", avatar: avatar("mali-spa"), color: "#D4A373", sort: 1 },
-        { tenantId, name: "พี่น้ำ", slug: "nam", title: "เทอราพิสต์ · อโรมา/ผิวพรรณ", avatar: avatar("nam-spa"), color: "#7FB8A4", sort: 2 },
-        { tenantId, name: "พี่โบว์", slug: "bow", title: "เทอราพิสต์ · นวดเท้า", avatar: avatar("bow-spa"), color: "#8A6E7C", sort: 3 },
+        { tenantId, name: "พี่แอน", slug: "ann", title: "หัวหน้าเทอราพิสต์ · 15 ปี", avatar: portrait("1548142813-c348350df52b"), color: "#2F5D50", sort: 0 },
+        { tenantId, name: "พี่มะลิ", slug: "mali", title: "เทอราพิสต์ · นวดไทย/หินร้อน", avatar: portrait("1534751516642-a1af1ef26a56"), color: "#D4A373", sort: 1 },
+        { tenantId, name: "พี่น้ำ", slug: "nam", title: "เทอราพิสต์ · อโรมา/ผิวพรรณ", avatar: portrait("1580489944761-15a19d654956"), color: "#7FB8A4", sort: 2 },
+        { tenantId, name: "พี่โบว์", slug: "bow", title: "เทอราพิสต์ · นวดเท้า", avatar: portrait("1567532939604-b6b5b0db2604"), color: "#8A6E7C", sort: 3 },
       ])
       .returning({ id: staff.id, slug: staff.slug });
 

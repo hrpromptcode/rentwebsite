@@ -145,7 +145,7 @@ export function MonthCalendar({ month, onMonthChange, selected, onSelect, minDat
           <ChevronLeft className="size-5" />
         </button>
         <div className="text-center">
-          <p id={titleId} className="font-heading text-lg font-semibold" aria-live="polite">
+          <p id={titleId} className="font-heading text-xl font-semibold" aria-live="polite">
             {THAI_MONTHS[m - 1]} {y + 543}
           </p>
           {days === null && <p className="text-xs text-muted-foreground">{loadingLabel ?? "กำลังโหลด…"}</p>}
@@ -198,10 +198,10 @@ export function MonthCalendar({ month, onMonthChange, selected, onSelect, minDat
                   onKeyDown={(e) => onKeyDown(e, date)}
                   onFocus={() => setFocusDate(date)}
                   className={cn(
-                    "relative flex h-11 w-full flex-col items-center justify-center rounded-[var(--radius-md)] text-sm transition sm:h-12",
-                    disabled ? "cursor-not-allowed text-muted-foreground/40" : "hover:bg-primary-soft",
-                    isSelected && "bg-primary text-primary-foreground hover:bg-primary",
-                    isToday && !isSelected && "font-semibold text-primary",
+                    "relative flex h-11 w-full flex-col items-center justify-center rounded-[calc(var(--radius,.75rem)*1.1)] text-sm transition-[background-color,color,box-shadow,scale] duration-300 sm:h-12",
+                    disabled ? "cursor-not-allowed text-muted-foreground/40" : "hover:bg-primary-soft active:scale-95",
+                    isSelected && "scale-105 bg-primary text-primary-foreground shadow-[0_10px_24px_-12px_var(--primary)] hover:bg-primary",
+                    isToday && !isSelected && "font-semibold text-primary-ink ring-1 ring-primary/40",
                     !known && !outOfRange && "animate-pulse",
                   )}
                 >

@@ -3,9 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, MailOpen, Sparkles } from "lucide-react";
+import { ArrowUpRight, Check, Loader2, MailOpen, Sparkles } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@rentweb/ui/components/card";
 import { Input } from "@rentweb/ui/components/input";
 import { Label } from "@rentweb/ui/components/label";
 import { toast } from "@rentweb/ui/components/sonner";
@@ -18,6 +17,7 @@ export interface SignupInvite {
   tenantName: string;
 }
 
+/** Shown under the heading (all widths); the big marketing line lives in the shop-windows panel (lg). */
 const PERKS = ["ทดลองใช้ฟรี 14 วัน ไม่ต้องใส่บัตร", "เปิดเว็บได้ภายใน 2 นาทีจากเทมเพลต", "รับเงินผ่าน PromptPay และสลิปโอน"];
 
 export function SignupForm({ next, invite }: { next?: string; invite?: SignupInvite | null }) {
@@ -58,74 +58,76 @@ export function SignupForm({ next, invite }: { next?: string; invite?: SignupInv
   }
 
   return (
-    <div className="grid w-full max-w-4xl gap-8 lg:grid-cols-[1fr_minmax(0,28rem)] lg:items-center">
-      <div className="hidden lg:block">
-        <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-xs font-medium text-primary">
-          <Sparkles className="size-3.5" aria-hidden /> เว็บไซต์สำเร็จรูปสำหรับธุรกิจไทย
-        </p>
-        <h1 className="font-heading text-4xl font-semibold leading-tight tracking-tight">
-          เปิดเว็บร้านของคุณวันนี้
-          <br />
-          <span className="gradient-text">ไม่ต้องเขียนโค้ด</span>
-        </h1>
-        <ul className="mt-6 space-y-3 text-muted-foreground">
+    <div className="w-full max-w-[28rem]">
+      <p className="rw-enter rw-mono text-primary" data-script="thai">
+        (01) — เว็บไซต์สำเร็จรูปสำหรับธุรกิจไทย
+      </p>
+      <h1 className="rw-enter mt-5 font-heading text-[clamp(2.5rem,5vw,3.5rem)] leading-[1.15] font-semibold text-balance" style={{ ["--d" as string]: "60ms" }}>
+        {invite ? "สมัครบัญชีเพื่อเข้าร่วมทีม" : "สมัครใช้งาน"}
+      </h1>
+      <p className="rw-enter mt-3 text-[1.0625rem] leading-relaxed text-pretty text-muted-foreground" style={{ ["--d" as string]: "120ms" }}>
+        {invite ? `คุณได้รับเชิญเข้าร่วมทีม ${invite.tenantName} — สร้างบัญชีด้วยอีเมลที่ได้รับเชิญ` : "สร้างบัญชีแล้วเลือกเทมเพลตเว็บในขั้นตอนถัดไป"}
+      </p>
+      {!invite && (
+        <ul className="rw-enter mt-6 grid gap-2.5 text-sm text-foreground/85" style={{ ["--d" as string]: "160ms" }}>
           {PERKS.map((p) => (
             <li key={p} className="flex items-start gap-3">
-              <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-emerald-500/15 text-emerald-700">
+              <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-primary-soft text-primary">
                 <Check className="size-3" aria-hidden />
               </span>
               {p}
             </li>
           ))}
         </ul>
-      </div>
-      <Card className="w-full animate-fade-up">
-        <CardHeader>
-          <CardTitle className="text-2xl">{invite ? "สมัครบัญชีเพื่อเข้าร่วมทีม" : "สมัครใช้งาน"}</CardTitle>
-          <CardDescription>{invite ? `คุณได้รับเชิญเข้าร่วมทีม ${invite.tenantName} — สร้างบัญชีด้วยอีเมลที่ได้รับเชิญ` : "สร้างบัญชีแล้วเลือกเทมเพลตเว็บในขั้นตอนถัดไป"}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {invite && (
-            <p className="mb-5 flex items-start gap-2 rounded-lg bg-primary-soft px-3 py-2 text-sm text-primary">
-              <MailOpen className="mt-0.5 size-4 shrink-0" aria-hidden />
-              <span>หลังสมัครเสร็จ ระบบจะพากลับไปที่คำเชิญของ {invite.tenantName} เพื่อยืนยันเข้าร่วมทีม</span>
-            </p>
-          )}
-          <form onSubmit={onSubmit} className="grid gap-5" noValidate>
-            <div className="grid gap-2">
-              <Label htmlFor="name">ชื่อของคุณ</Label>
-              <Input id="name" name="name" autoComplete="name" placeholder="เช่น สมชาย ใจดี" maxLength={NAME_MAX} required />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="email">อีเมล</Label>
-              <Input id="email" name="email" type="email" autoComplete="email" inputMode="email" placeholder="you@example.com" defaultValue={invite?.email} required />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">รหัสผ่าน</Label>
-              <Input id="password" name="password" type="password" autoComplete="new-password" minLength={8} maxLength={PASSWORD_MAX} required aria-describedby="password-hint" />
-              <p id="password-hint" className="text-xs text-muted-foreground">
-                {PASSWORD_HINT}
-              </p>
-            </div>
-            {error && (
-              <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {error}
-              </p>
-            )}
-            <Button type="submit" size="lg" disabled={pending} className="w-full">
-              {pending && <Loader2 className="animate-spin" aria-hidden />}
-              สร้างบัญชีฟรี
-            </Button>
-            <p className="text-center text-xs text-muted-foreground">การสมัครถือว่ายอมรับเงื่อนไขการใช้บริการและนโยบายความเป็นส่วนตัว</p>
-          </form>
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            มีบัญชีอยู่แล้ว?{" "}
-            <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-medium text-primary underline-offset-4 hover:underline">
-              เข้าสู่ระบบ
-            </Link>
+      )}
+      {invite && (
+        <p className="rw-enter mt-6 flex items-start gap-2 rounded-xl border border-primary/25 bg-primary-soft px-4 py-3 text-sm text-foreground">
+          <MailOpen className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+          <span>หลังสมัครเสร็จ ระบบจะพากลับไปที่คำเชิญของ {invite.tenantName} เพื่อยืนยันเข้าร่วมทีม</span>
+        </p>
+      )}
+
+      <form onSubmit={onSubmit} className="rw-enter mt-9 grid gap-5" style={{ ["--d" as string]: "200ms" }} noValidate>
+        <div className="grid gap-2.5">
+          <Label htmlFor="name" className="text-sm font-medium">
+            ชื่อของคุณ
+          </Label>
+          <Input id="name" name="name" autoComplete="name" placeholder="เช่น สมชาย ใจดี" maxLength={NAME_MAX} required className="rw-field" />
+        </div>
+        <div className="grid gap-2.5">
+          <Label htmlFor="email" className="text-sm font-medium">
+            อีเมล
+          </Label>
+          <Input id="email" name="email" type="email" autoComplete="email" inputMode="email" placeholder="you@example.com" defaultValue={invite?.email} required className="rw-field" />
+        </div>
+        <div className="grid gap-2.5">
+          <Label htmlFor="password" className="text-sm font-medium">
+            รหัสผ่าน
+          </Label>
+          <Input id="password" name="password" type="password" autoComplete="new-password" minLength={8} maxLength={PASSWORD_MAX} required aria-describedby="password-hint" className="rw-field" />
+          <p id="password-hint" className="text-xs leading-relaxed text-muted-foreground">
+            {PASSWORD_HINT}
           </p>
-        </CardContent>
-      </Card>
+        </div>
+        {error && (
+          <p role="alert" className="rounded-xl border border-destructive/35 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <Button type="submit" size="lg" disabled={pending} className="rw-cta mt-1 w-full">
+          {pending ? <Loader2 className="animate-spin" aria-hidden /> : <Sparkles aria-hidden />}
+          สร้างบัญชีฟรี
+        </Button>
+        <p className="text-center text-xs leading-relaxed text-muted-foreground">การสมัครถือว่ายอมรับเงื่อนไขการใช้บริการและนโยบายความเป็นส่วนตัว</p>
+      </form>
+
+      <div className="rw-enter mt-8 flex items-center justify-between gap-4 border-t border-border pt-6 text-sm" style={{ ["--d" as string]: "260ms" }}>
+        <span className="text-muted-foreground">มีบัญชีอยู่แล้ว?</span>
+        <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="group inline-flex min-h-11 items-center gap-1.5 font-medium text-foreground underline-offset-4 hover:underline">
+          เข้าสู่ระบบ
+          <ArrowUpRight aria-hidden className="size-4 text-primary transition-transform duration-300 group-hover:rotate-45" />
+        </Link>
+      </div>
     </div>
   );
 }

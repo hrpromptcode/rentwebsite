@@ -7,7 +7,11 @@ export { OrderTimeline, OrderStatusBadge } from "./order-timeline";
 export { PageHeader, Breadcrumbs, type Crumb } from "./page-header";
 export { Pagination } from "./pagination";
 export { CatalogListing, catalogHref, parseCatalogParams, cardStyleForPreset, type CatalogListingProps } from "./catalog-listing";
-export { CategoryTiles, CategoryPills, CategoryCircles } from "../sections/category-list";
+export { CategoryTiles, CategoryPills, CategoryCircles, CategoryIndex, categoryLayoutFor, withCategoryImages } from "../sections/category-list";
+export { CommerceStyles } from "./commerce-styles";
+export { CheckoutSteps } from "./checkout-steps";
+export { FlowHeader } from "./flow-header";
+export { ListingIntro } from "./listing-intro";
 export { dateTimeTh, dateTh } from "./format";
 
 // Client components

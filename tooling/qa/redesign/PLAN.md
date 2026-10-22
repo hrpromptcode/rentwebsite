@@ -36,3 +36,6 @@ Each agent: follow docs/design/hi-end-direction.md section d for its templates, 
   agents: commerce, booking, restaurant, topup, rental, events, common (progress files tooling/qa/redesign/<key>.md).
   Phase-3 inputs: "For shared owners" sections in every progress file (shared kit/storefront fixes), platform.md "For kit owners",
   re-capture showcase screenshots (tooling/qa/redesign/capture-showcase.ts then platform-og.ts), admin onboarding template preselect follow-up.
+- 2026-10-22 ~02:40 — phase 2 run wf_43110144-d79 died after ~4 min (session limit, all 7 agents) with only progress notes.
+- 2026-10-22 04:05 — phase 2 relaunched in two waves: Workflow task wpqtetmw7, run id wf_53f7b99d-037,
+  script ...\workflows\scripts\rentweb-hiend-phase2b.js (wave A commerce/booking/topup/common, wave B restaurant/rental/events).

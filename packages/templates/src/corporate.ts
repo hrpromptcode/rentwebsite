@@ -1,7 +1,115 @@
-import type { TemplateDefinition } from "@rentweb/core/tenant";
+import type { TemplateDefinition, TemplatePage } from "@rentweb/core/tenant";
 import { forms, posts } from "@rentweb/db";
-import { section, hero, logos, features, stats, imageText, team, testimonials, pricing, faq, cta, steps } from "@rentweb/storefront/definitions";
-import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, u, avatar } from "./shared";
+import {
+  section,
+  hero,
+  logos,
+  features,
+  stats,
+  team,
+  testimonials,
+  pricing,
+  faq,
+  cta,
+  contact,
+  curvedGallery,
+  projectList,
+  tunnel,
+  giantWordmark,
+} from "@rentweb/storefront/definitions";
+import { aboutPage, NEUTRAL_ABOUT, legalPages, u, avatar } from "./shared";
+
+/**
+ * Case studies (fictional demo clients): one list feeds the home curved gallery, the home project index and the work
+ * page, so the three always tell the same story. Hi-end direction §5.6 (Vyre-like studio).
+ */
+const CASES = [
+  {
+    title: "คลังสินค้า 200 สาขา",
+    client: "Siam Retail Group",
+    category: "Retail",
+    year: "2025",
+    image: u("1586528116311-ad8dd3c8310d", 1400),
+    summary: "ลดเวลาเช็กสต็อกจาก 3 วันเหลือ 2 ชั่วโมง ด้วยการสแกนบาร์โค้ดบนมือถือและแดชบอร์ดเรียลไทม์",
+  },
+  {
+    title: "แอปนัดแพทย์",
+    client: "Krungthep Health",
+    category: "Healthcare",
+    year: "2024",
+    image: u("1576091160550-2173dba999ef", 1400),
+    summary: "ผู้ป่วยจองและเลื่อนนัดเองผ่านแอป ลดสายโทรเข้าลง 40% ได้ 4.8 ดาวบน App Store",
+  },
+  {
+    title: "ติดตามรถขนส่ง",
+    client: "Chao Phraya Logistics",
+    category: "Logistics",
+    year: "2025",
+    image: u("1494412574643-ff11b0a5c1c3", 1400),
+    summary: "ติดตามรถ 1,200 คันบนแผนที่สด แจ้งลูกค้าล่วงหน้าก่อนรถถึง ลดสายสอบถามสถานะลงครึ่งหนึ่ง",
+  },
+  {
+    title: "แดชบอร์ดผู้บริหาร",
+    client: "Thonburi Capital",
+    category: "Finance",
+    year: "2024",
+    image: u("1551288049-bebda4e38f71", 1400),
+    summary: "รวมข้อมูลจาก 7 ระบบเป็นหน้าจอเดียว แสดงผลภายใน 2 วินาที ผู้บริหาร 120 คนใช้ทุกเช้า",
+  },
+  {
+    title: "จองห้องพักตรง",
+    client: "Andaman Resorts",
+    category: "Hospitality",
+    year: "2023",
+    image: u("1520250497591-112f2f40a3f4", 1400),
+    summary: "ยอดจองตรงผ่านเว็บโต 3 เท่า ประหยัดค่าคอมมิชชัน OTA ได้กว่า 2 ล้านบาทต่อปี",
+  },
+  {
+    title: "แอปสะสมแต้ม",
+    client: "Lanna Foods",
+    category: "F&B",
+    year: "2023",
+    image: u("1504674900247-0877df9cc836", 1400),
+    summary: "สมาชิก 180,000 คนใน 6 เดือน สะสมและแลกแต้มผ่าน LINE ได้ทันทีที่หน้าร้าน",
+  },
+  {
+    title: "ฟาร์มอัจฉริยะ",
+    client: "Isan Agritech",
+    category: "Agritech",
+    year: "2026",
+    image: u("1625246333195-78d9c38ad449", 1400),
+    summary: "เซนเซอร์ความชื้นดิน 3,000 จุด แจ้งเตือนเกษตรกรผ่าน LINE ลดการใช้น้ำลง 25%",
+  },
+];
+
+const galleryItems = CASES.map((c) => ({ image: c.image, title: c.title, subtitle: `${c.client} · ${c.year}`, tag: c.category.toUpperCase(), href: "/work" }));
+const projectItems = CASES.map((c) => ({ title: c.title, category: `${c.category} — ${c.client}`, year: c.year, image: c.image, summary: c.summary, href: "/work" }));
+
+const TEAM = [
+  { name: "ธนกร วิริยะ", role: "CEO & Founder", avatar: u("1560250097-0b93528c311a", 800), bio: "อดีตหัวหน้าทีมวิศวกรที่ Agoda" },
+  { name: "พิมพ์มาดา ศรีสุข", role: "Head of Design", avatar: u("1573496359142-b8d87734a5a2", 800), bio: "ออกแบบผลิตภัณฑ์ให้ธนาคารชั้นนำ 3 แห่ง" },
+  { name: "ณัฐพล เกียรติ", role: "CTO", avatar: u("1500648767791-00dcc994a43e", 800), bio: "Cloud architect ประสบการณ์ 14 ปี" },
+  { name: "อรจิรา ทองดี", role: "Head of Delivery", avatar: u("1494790108377-be9c29b29330", 800), bio: "PMP · ดูแลโปรเจกต์กว่า 60 โครงการ" },
+];
+
+const SERVICES = [
+  { icon: "Compass", title: "Discovery & UX Research", description: "สัมภาษณ์ผู้ใช้ ทำ journey map กำหนดขอบเขตและ KPI ก่อนเขียนโค้ดสักบรรทัด", image: u("1581291518857-4e27b48ff24e", 1200) },
+  { icon: "PenTool", title: "Product Design", description: "Design system และ prototype ที่ทดสอบกับผู้ใช้จริง ก่อนส่งต่อให้ทีมพัฒนา", image: u("1561070791-2526d30994b5", 1200) },
+  { icon: "Code2", title: "Web Application", description: "Next.js / TypeScript / PostgreSQL พร้อม CI/CD ทดสอบอัตโนมัติทุกการเปลี่ยนแปลง", image: u("1461749280684-dccba630e2f6", 1200) },
+  { icon: "Smartphone", title: "Mobile Application", description: "React Native แอปเดียวขึ้นได้ทั้ง App Store และ Google Play", image: u("1512941937669-90a1b58e7e9c", 1200) },
+  { icon: "Cloud", title: "Cloud & DevOps", description: "AWS / GCP, Terraform, monitoring และการลดค่าใช้จ่าย cloud ที่วัดผลได้", image: u("1558494949-ef010cbdcc31", 1200) },
+  { icon: "LifeBuoy", title: "Support & Growth", description: "SLA, on-call และทีมพัฒนาต่อยอดรายเดือน หลังระบบขึ้นใช้งานจริง", image: u("1551434678-e076c223a692", 1200) },
+];
+
+/** About = the shared statement page + the studio in numbers + the people (the closing CTA card stays last). */
+function withAboutExtras(page: TemplatePage): TemplatePage {
+  const extras = [
+    section(stats, { variant: "row", items: [{ value: 120, suffix: "+", label: "โปรเจกต์ที่ส่งมอบ" }, { value: 35, label: "ทีมงาน" }, { value: 98, suffix: "%", label: "ส่งตรงเวลา" }, { value: 7, label: "อุตสาหกรรม" }] }),
+    section(team, { eyebrow: "ทีมผู้บริหาร", heading: "คนที่จะดูแล\nโปรเจกต์ของคุณ", variant: "list", members: TEAM }),
+  ];
+  const insert = (list: TemplatePage["sections"]) => [list[0]!, ...extras, ...list.slice(1)];
+  return { ...page, sections: insert(page.sections), neutralSections: page.neutralSections ? insert(page.neutralSections) : undefined };
+}
 
 export const corporate: TemplateDefinition = {
   key: "corporate",
@@ -13,6 +121,8 @@ export const corporate: TemplateDefinition = {
   themePreset: "obsidian", // hi-end direction §5.6 (dark studio preset)
   // ADMIN_B2-07: the sample brand; new (non-demo) shops get their own name instead
   sampleBrand: ["Northstar"],
+  // the giant home wordmark is the demo brand in capitals; new shops get "" = their own shop name
+  neutralText: [["NORTHSTAR", ""]],
   recommendedPresets: ["obsidian", "quartz", "midnight", "aurora"],
   complexity: 1,
   previewImage: u("1497366216548-37526070297c", 1200),
@@ -41,22 +151,39 @@ export const corporate: TemplateDefinition = {
       title: "หน้าแรก",
       kind: "home",
       sections: [
+        // 1 — heavy moment #1: particle-morph (crystal-flower → star → globe) behind a bottom-left giant headline
         section(hero, {
-          variant: "split",
-          eyebrow: "Software & Design Studio · Bangkok",
-          heading: "สร้างระบบที่ทีมของคุณอยากใช้ทุกวัน",
+          variant: "cinematic",
+          eyebrow: "Software & Design Studio",
+          heading: "สร้างระบบที่ทีมของคุณ\nอยากใช้ทุกวัน",
           subheading: "เราออกแบบและพัฒนาเว็บแอป ระบบหลังบ้าน และแอปมือถือ สำหรับธุรกิจที่ต้องการเติบโตอย่างมีระบบ — ส่งมอบตรงเวลา 98%",
           primaryCta: { label: "ปรึกษาโปรเจกต์ฟรี", href: "/contact" },
           secondaryCta: { label: "ดูผลงาน", href: "/work" },
           image: { url: u("1522071820081-009f0129c71c", 1400), alt: "ทีมงาน" },
-          stats: [{ value: "120+", label: "โปรเจกต์ที่ส่งมอบ" }, { value: "98%", label: "ส่งตรงเวลา" }, { value: "9 ปี", label: "ประสบการณ์" }],
+          scene: "auto",
+          clock: true,
+          cornerLabels: ["Northstar — Bangkok", "N 13°45′ · E 100°30′"],
         }),
-        section(logos, { heading: "องค์กรที่ไว้วางใจเรา", items: Array.from({ length: 6 }, (_, i) => ({ url: `https://dummyimage.com/200x60/94a3b8/ffffff&text=Partner+${i + 1}`, alt: `Partner ${i + 1}` })) }),
+        section(giantWordmark, { text: "NORTHSTAR", effect: "rise", caption: "ออกแบบ · พัฒนา · ดูแล — ระบบที่ใช้งานได้จริงทุกวัน" }),
+        section(logos, { heading: "องค์กรที่ไว้วางใจเรา", items: [], names: ["Siam Retail Group", "Krungthep Health", "Chao Phraya Logistics", "Lanna Foods", "Andaman Resorts", "Isan Agritech"], marquee: true }),
+        // heavy moment #2: Vyre-style curved gallery over a grid floor
+        section(curvedGallery, {
+          eyebrow: "ผลงานคัดสรร",
+          heading: "ระบบที่ลูกค้าใช้งานจริง\nทุกวัน ทุกสาขา",
+          bigTitle: "WORKS",
+          bigTitleSuffix: "©19—26",
+          items: galleryItems,
+          floor: "grid",
+          autoplay: true,
+          height: "compact",
+          cta: { label: "ดูผลงานทั้งหมด", href: "/work" },
+        }),
+        section(projectList, { eyebrow: "ดัชนีโปรเจกต์", heading: "เคสล่าสุด\nจาก 7 อุตสาหกรรม", items: projectItems, layout: "list-hover", cursorLabel: "ดูโปรเจกต์" }),
+        section(stats, { variant: "big", heading: "ตัวเลขที่เราภูมิใจ", items: [{ value: 120, suffix: "+", label: "โปรเจกต์ที่ส่งมอบ" }, { value: 98, suffix: "%", label: "ส่งตรงเวลา" }, { value: 35, label: "ทีมงาน" }, { value: 9, suffix: " ปี", label: "ประสบการณ์" }] }),
         section(features, {
-          variant: "cards",
+          variant: "list",
           eyebrow: "บริการ",
-          heading: "ครบทุกขั้นตอน ตั้งแต่ไอเดียถึงใช้งานจริง",
-          columns: 3,
+          heading: "ครบทุกขั้นตอน\nตั้งแต่ไอเดีย\nถึงใช้งานจริง",
           items: [
             { icon: "Compass", title: "Discovery & UX", description: "วิจัยผู้ใช้ กำหนดขอบเขต ออกแบบ wireframe และ prototype ที่ทดสอบได้" },
             { icon: "Code2", title: "Web & Mobile Development", description: "Next.js, React Native, Node — โค้ดสะอาด ทดสอบอัตโนมัติ ส่งมอบพร้อมเอกสาร" },
@@ -66,43 +193,32 @@ export const corporate: TemplateDefinition = {
             { icon: "LifeBuoy", title: "Support & Growth", description: "ดูแลระบบหลังส่งมอบ พร้อม SLA และการพัฒนาต่อยอดรายเดือน" },
           ],
         }),
-        section(steps, {
+        // heavy moment #3: the camera flies through the process
+        section(tunnel, {
           eyebrow: "วิธีทำงาน",
           heading: "โปร่งใสทุกสัปดาห์",
-          items: [
-            { title: "เข้าใจปัญหา", description: "เวิร์กช็อป 1 วันกับทีมของคุณ สรุปเป้าหมายและตัวชี้วัด" },
-            { title: "ออกแบบและสร้าง", description: "ส่งมอบทุก 2 สัปดาห์ ดูของจริง ปรับได้ตลอด" },
-            { title: "ส่งมอบและดูแล", description: "อบรมทีม เอกสารครบ ดูแลต่อเนื่องตาม SLA" },
+          tint: "accent",
+          length: "normal",
+          steps: [
+            { kicker: "01 · Discovery", title: "เข้าใจปัญหา", body: "เวิร์กช็อป 1 วันกับทีมของคุณ สรุปเป้าหมายและตัวชี้วัด", image: u("1552664730-d307ca884978", 1024) },
+            { kicker: "02 · Design", title: "ออกแบบ", body: "prototype ที่กดได้จริง ทดสอบกับผู้ใช้ก่อนเริ่มพัฒนา", image: u("1581291518857-4e27b48ff24e", 1024) },
+            { kicker: "03 · Build", title: "สร้างและทดสอบ", body: "ส่งมอบทุก 2 สัปดาห์ ดูของจริง ปรับได้ตลอด", image: u("1461749280684-dccba630e2f6", 1024) },
+            { kicker: "04 · Launch", title: "ส่งมอบและดูแล", body: "อบรมทีม เอกสารครบ ดูแลต่อเนื่องตาม SLA", image: u("1522071820081-009f0129c71c", 1024) },
           ],
         }),
-        section(imageText, {
-          eyebrow: "ผลงานเด่น",
-          heading: "ระบบจัดการคลังสินค้าสำหรับผู้ค้าปลีก 200 สาขา",
-          body: "ลดเวลาเช็กสต็อกจาก 3 วันเหลือ 2 ชั่วโมง ด้วยระบบสแกนบาร์โค้ดบนมือถือและแดชบอร์ดเรียลไทม์ ใช้งานจริงใน 200 สาขาภายใน 6 เดือน",
-          image: { url: u("1552664730-d307ca884978", 1400), alt: "เคสสตั๊ดดี้" },
-          imagePosition: "right",
-          bullets: ["ลดเวลาเช็กสต็อก 92%", "สแกนบาร์โค้ดผ่านมือถือ", "แดชบอร์ดผู้บริหารเรียลไทม์"],
-          cta: { label: "ดูผลงานทั้งหมด", href: "/work" },
-        }),
-        section(stats, { variant: "cards", items: [{ value: 120, suffix: "+", label: "โปรเจกต์" }, { value: 98, suffix: "%", label: "ส่งตรงเวลา" }, { value: 35, label: "ทีมงาน" }, { value: 4.9, label: "คะแนนความพึงพอใจ" }] }),
         section(team, {
           eyebrow: "ทีมผู้บริหาร",
-          heading: "คนที่จะดูแลโปรเจกต์ของคุณ",
-          variant: "grid",
-          members: [
-            { name: "ธนกร วิริยะ", role: "CEO & Founder", avatar: u("1560250097-0b93528c311a", 800), bio: "อดีตหัวหน้าทีมวิศวกรที่ Agoda" },
-            { name: "พิมพ์มาดา ศรีสุข", role: "Head of Design", avatar: u("1573496359142-b8d87734a5a2", 800), bio: "ออกแบบผลิตภัณฑ์ให้ธนาคารชั้นนำ 3 แห่ง" },
-            { name: "ณัฐพล เกียรติ", role: "CTO", avatar: u("1500648767791-00dcc994a43e", 800), bio: "Cloud architect ประสบการณ์ 14 ปี" },
-            { name: "อรจิรา ทองดี", role: "Head of Delivery", avatar: u("1494790108377-be9c29b29330", 800), bio: "PMP · ดูแลโปรเจกต์กว่า 60 โครงการ" },
-          ],
+          heading: "คนที่จะดูแล\nโปรเจกต์ของคุณ",
+          variant: "large",
+          members: TEAM,
         }),
         section(testimonials, {
           heading: "ลูกค้าพูดถึงเรา",
           variant: "spotlight",
           items: [
-            { quote: "ทีม Northstar เข้าใจธุรกิจเราเร็วมาก ส่งงานทุก 2 สัปดาห์ตามที่สัญญา และระบบใช้งานจริงใน 200 สาขาโดยไม่มีปัญหาใหญ่", name: "คุณวรรณา ตั้งมั่น", role: "COO, Retail Group", avatar: avatar("wanna"), rating: 5 },
-            { quote: "เอกสารและโค้ดสะอาดจนทีมในของเรารับช่วงต่อได้ทันที", name: "คุณปริญญ์", role: "IT Director", avatar: avatar("prin"), rating: 5 },
-            { quote: "UX ที่ออกแบบให้ลดการโทรเข้า call center ลง 40%", name: "คุณศิริพร", role: "Head of CX", avatar: avatar("siriporn"), rating: 5 },
+            { quote: "ทีม Northstar เข้าใจธุรกิจเราเร็วมาก ส่งงานทุก 2 สัปดาห์ตามที่สัญญา และระบบใช้งานจริงใน 200 สาขาโดยไม่มีปัญหาใหญ่", name: "คุณวรรณา ตั้งมั่น", role: "COO, Siam Retail Group", avatar: avatar("wanna"), rating: 5 },
+            { quote: "เอกสารและโค้ดสะอาดจนทีมในของเรารับช่วงต่อได้ทันที", name: "คุณปริญญ์", role: "IT Director, Chao Phraya Logistics", avatar: avatar("prin"), rating: 5 },
+            { quote: "UX ที่ออกแบบให้ลดการโทรเข้า call center ลง 40%", name: "คุณศิริพร", role: "Head of CX, Krungthep Health", avatar: avatar("siriporn"), rating: 5 },
           ],
         }),
         section(pricing, {
@@ -123,7 +239,7 @@ export const corporate: TemplateDefinition = {
             { q: "โค้ดเป็นของใคร?", a: "ของลูกค้า 100% ส่งมอบพร้อม repository และเอกสารทั้งหมด" },
           ],
         }),
-        section(cta, { variant: "glow", heading: "มีโปรเจกต์ในใจ? มาคุยกัน", body: "นัดเวิร์กช็อป Discovery ฟรี 1 ชั่วโมง ไม่มีข้อผูกมัด", primaryCta: { label: "นัดคุยกับทีม", href: "/contact" } }),
+        section(cta, { variant: "wordmark", heading: "มีโปรเจกต์ในใจ? มาคุยกัน", body: "นัดเวิร์กช็อป Discovery ฟรี 1 ชั่วโมง ไม่มีข้อผูกมัด", primaryCta: { label: "นัดคุยกับทีม", href: "/contact" } }),
       ],
     },
     {
@@ -131,14 +247,7 @@ export const corporate: TemplateDefinition = {
       title: "บริการ",
       showInNav: false,
       sections: [
-        section(features, { variant: "list", eyebrow: "บริการ", heading: "สิ่งที่เราทำ", subheading: "ครบวงจรตั้งแต่วิจัยผู้ใช้จนถึงดูแลระบบ", items: [
-          { icon: "Compass", title: "Discovery & UX Research", description: "สัมภาษณ์ผู้ใช้ Journey map กำหนดขอบเขตและ KPI" },
-          { icon: "PenTool", title: "Product Design", description: "Design system, prototype ทดสอบกับผู้ใช้จริง" },
-          { icon: "Code2", title: "Web Application", description: "Next.js / TypeScript / PostgreSQL พร้อม CI/CD" },
-          { icon: "Smartphone", title: "Mobile Application", description: "React Native ส่งขึ้น App Store และ Google Play" },
-          { icon: "Cloud", title: "Cloud & DevOps", description: "AWS / GCP, Terraform, monitoring, cost optimization" },
-          { icon: "LifeBuoy", title: "Support & Growth", description: "SLA, on-call, พัฒนาต่อยอดรายเดือน" },
-        ] }),
+        section(features, { variant: "sticky", eyebrow: "บริการ", heading: "สิ่งที่เราทำ", subheading: "ครบวงจรตั้งแต่วิจัยผู้ใช้จนถึงดูแลระบบ", items: SERVICES }),
         section(cta, { variant: "card", heading: "ไม่แน่ใจว่าต้องเริ่มจากอะไร?", body: "เวิร์กช็อป Discovery ฟรี 1 ชั่วโมง ช่วยสรุปทางเลือกและงบประมาณ", primaryCta: { label: "นัดคุย", href: "/contact" } }),
       ],
     },
@@ -146,15 +255,27 @@ export const corporate: TemplateDefinition = {
       slug: "work",
       title: "ผลงาน",
       sections: [
-        section(imageText, { eyebrow: "Retail · 2025", heading: "ระบบคลังสินค้า 200 สาขา", body: "ลดเวลาเช็กสต็อก 92% ด้วยการสแกนบาร์โค้ดบนมือถือและแดชบอร์ดเรียลไทม์", image: { url: u("1552664730-d307ca884978", 1400), alt: "" }, imagePosition: "right", bullets: ["Next.js + PostgreSQL", "200 สาขา / 3,000 ผู้ใช้", "ส่งมอบใน 6 เดือน"] }),
-        section(imageText, { eyebrow: "Healthcare · 2024", heading: "แอปนัดหมายแพทย์สำหรับโรงพยาบาลเอกชน", body: "ลดการโทรจอง 40% ผู้ป่วยจองและเลื่อนนัดเองผ่านแอป", image: { url: u("1576091160550-2173dba999ef", 1400), alt: "" }, imagePosition: "left", bullets: ["React Native", "เชื่อม HIS ของโรงพยาบาล", "4.8 ดาวบน App Store"] }),
-        section(imageText, { eyebrow: "Finance · 2024", heading: "แดชบอร์ดผู้บริหารแบบเรียลไทม์", body: "รวมข้อมูลจาก 7 ระบบ แสดงผลภายใน 2 วินาที", image: { url: u("1551288049-bebda4e38f71", 1400), alt: "" }, imagePosition: "right", bullets: ["BigQuery + Looker", "7 แหล่งข้อมูล", "ผู้ใช้ 120 คน"] }),
-        section(cta, { variant: "banner", heading: "อยากเห็นผลงานที่ใกล้เคียงธุรกิจของคุณ?", primaryCta: { label: "ขอดูเคสเพิ่มเติม", href: "/contact" } }),
+        section(projectList, { eyebrow: "ผลงาน", heading: "งานที่ใช้งานจริง\nไม่ใช่แค่สไลด์สวย", items: CASES.map((c) => ({ title: c.title, category: c.category, year: c.year, image: c.image, summary: `${c.client} — ${c.summary}` })), layout: "grid-staggered", cursorLabel: "ดูโปรเจกต์" }),
+        section(curvedGallery, { bigTitle: "ARCHIVE", bigTitleSuffix: "©19—26", heading: "ลากเพื่อดูทุกโปรเจกต์", items: galleryItems.map((it) => ({ ...it, href: undefined })), floor: "reflect", height: "compact" }),
+        section(cta, { variant: "glow", heading: "อยากเห็นผลงานที่ใกล้เคียงธุรกิจของคุณ?", primaryCta: { label: "ขอดูเคสเพิ่มเติม", href: "/contact" } }),
       ],
     },
     { slug: "careers", title: "ร่วมงานกับเรา", sections: [section(features, { variant: "icons", heading: "ทำไมต้องร่วมงานกับ Northstar", items: [{ icon: "Laptop", title: "Hybrid 3 วัน", description: "เข้าออฟฟิศ 2 วัน/สัปดาห์" }, { icon: "GraduationCap", title: "งบเรียนรู้ ฿30,000/ปี", description: "คอร์ส หนังสือ คอนเฟอเรนซ์" }, { icon: "HeartPulse", title: "ประกันสุขภาพกลุ่ม", description: "รวมทันตกรรมและสายตา" }, { icon: "Sun", title: "ลาพักร้อน 15 วัน", description: "เพิ่มตามอายุงาน" }] }), section(cta, { variant: "card", heading: "ส่งเรซูเม่มาคุยกัน", body: "เปิดรับ Frontend, Backend และ Product Designer", primaryCta: { label: "ส่งเรซูเม่", href: "mailto:jobs@northstar.co.th" } })] },
-    aboutPage({ neutral: NEUTRAL_ABOUT.corporate, eyebrow: "เกี่ยวกับเรา", heading: "Northstar — สตูดิโอซอฟต์แวร์ที่เชื่อในงานที่ใช้ได้จริง", body: "ก่อตั้งปี 2017 โดยวิศวกร 3 คนที่เบื่อระบบองค์กรที่ไม่มีใครอยากใช้ เราเติบโตเป็นทีม 35 คน ส่งมอบมากกว่า 120 โปรเจกต์ให้ธุรกิจค้าปลีก การเงิน และสุขภาพ\n\nเราวัดความสำเร็จจากตัวเลขของลูกค้า ไม่ใช่จำนวนฟีเจอร์" }),
-    contactPage({ heading: "ขอใบเสนอราคา / นัดคุย", body: "เล่าโปรเจกต์ของคุณคร่าว ๆ ทีมจะติดต่อกลับภายใน 1 วันทำการ" }),
+    withAboutExtras(aboutPage({ neutral: NEUTRAL_ABOUT.corporate, eyebrow: "เกี่ยวกับเรา", heading: "Northstar — สตูดิโอซอฟต์แวร์ที่เชื่อในงานที่ใช้ได้จริง", body: "ก่อตั้งปี 2017 โดยวิศวกร 3 คนที่เบื่อระบบองค์กรที่ไม่มีใครอยากใช้ เราเติบโตเป็นทีม 35 คน ส่งมอบมากกว่า 120 โปรเจกต์ให้ธุรกิจค้าปลีก การเงิน และสุขภาพ\n\nเราวัดความสำเร็จจากตัวเลขของลูกค้า ไม่ใช่จำนวนฟีเจอร์" })),
+    {
+      slug: "contact",
+      title: "ติดต่อเรา",
+      showInNav: false,
+      sections: [
+        section(contact, {
+          variant: "chips",
+          heading: "ขอใบเสนอราคา / นัดคุย",
+          body: "เล่าโปรเจกต์ของคุณคร่าว ๆ ทีมจะติดต่อกลับภายใน 1 วันทำการ",
+          interests: ["เว็บไซต์", "แอปมือถือ", "ระบบหลังบ้าน", "Data / Dashboard", "UX/UI"],
+          budgets: ["< ฿300k", "฿300k–1M", "฿1M–3M", "฿3M+"],
+        }),
+      ],
+    },
     ...legalPages("Northstar"),
   ],
   async seed(tx, tenantId) {

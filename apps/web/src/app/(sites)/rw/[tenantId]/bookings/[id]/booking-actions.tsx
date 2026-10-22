@@ -30,7 +30,7 @@ export function BookingActions({ canModify, cancelHours, serviceId, staffId, tod
   const [cancelState, submitCancel, cancelling] = useActionState(cancelAction, {} as BookingActionState);
 
   return (
-    <div className="card p-5 md:p-6">
+    <div className="bk-panel p-5 md:p-8">
       <h2 className="font-heading flex items-center gap-2 text-lg font-semibold">
         <CalendarClock className="size-5 text-primary" /> {L.policyTitle}
       </h2>

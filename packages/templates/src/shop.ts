@@ -1,6 +1,6 @@
 import type { TemplateDefinition } from "@rentweb/core/tenant";
 import { categories, products, productVariants, shippingMethods, discounts, reviews } from "@rentweb/db";
-import { section, hero, marquee, productGrid, categoryList, imageText, testimonials, features, faq, cta, stats } from "@rentweb/storefront/definitions";
+import { section, hero, marquee, productGrid, categoryList, imageText, testimonials, features, faq, cta, stats, stickyStory } from "@rentweb/storefront/definitions";
 import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, defaultHours, u, avatar } from "./shared";
 
 export const shop: TemplateDefinition = {
@@ -71,8 +71,11 @@ export const shop: TemplateDefinition = {
       sections: [
         section(hero, {
           variant: "editorial",
-          eyebrow: "คอลเลกชัน ฤดูฝน 2026",
-          heading: "สวมใส่ความเรียบง่าย ที่ไม่ธรรมดา",
+          eyebrow: "คอลเลกชันฤดูฝน 2026",
+          heading: "สวมใส่\nความเรียบง่าย\nที่ไม่ธรรมดา",
+          scene: "auto",
+          headingSize: "xl",
+          cornerLabels: ["Monsoon ’26", "ทอมือทุกชิ้น · ผลิตจำนวนจำกัด", "01 / 08"],
           subheading: "ผ้าฝ้ายทอมือ ลินินธรรมชาติ และงานฝีมือจากช่างเชียงใหม่ — ผลิตจำนวนจำกัดทุกชิ้น",
           primaryCta: { label: "ช้อปคอลเลกชันใหม่", href: "/products" },
           secondaryCta: { label: "ดูเรื่องราวของเรา", href: "/about" },
@@ -80,9 +83,22 @@ export const shop: TemplateDefinition = {
           imageSecondary: { url: u("1515886657613-9f3515b0c78f", 900), alt: "รายละเอียดผ้า" },
           badges: ["ส่งฟรีเมื่อครบ ฿990", "เปลี่ยนคืนได้ 7 วัน", "ผลิตในไทย"],
         }),
-        section(marquee, { items: ["ผ้าฝ้ายทอมือ", "ส่งฟรีทั่วไทย", "ผลิตจำนวนจำกัด", "เปลี่ยนคืนได้ 7 วัน", "ของแท้จากช่างเชียงใหม่"], style: "text", speed: 28 }),
+        section(marquee, { items: ["ผ้าฝ้ายทอมือ", "ส่งฟรีทั่วไทย", "ผลิตจำนวนจำกัด", "เปลี่ยนคืนได้ 7 วัน", "ของแท้จากช่างเชียงใหม่"], style: "outline", speed: 28, separator: "✦" }),
         section(categoryList, { heading: "เลือกตามหมวดหมู่", variant: "tiles" }),
         section(productGrid, { eyebrow: "มาใหม่", heading: "คอลเลกชันล่าสุด", source: "newest", limit: 8, cardStyle: "editorial" }),
+        section(stickyStory, {
+          eyebrow: "กว่าจะเป็นเสื้อหนึ่งตัว",
+          heading: "จากเส้นด้าย ถึงตู้เสื้อผ้าของคุณ",
+          subheading: "สี่ขั้นตอนช้า ๆ ที่เราไม่ยอมเร่ง เพราะผ้าที่ดีต้องใช้เวลา",
+          mediaStyle: "card",
+          side: "right",
+          items: [
+            { kicker: "Fiber", title: "ปลูกฝ้าย", body: "ฝ้ายออร์แกนิกจากไร่ชุมชน เก็บด้วยมือ ไม่ใช้สารเคมี", image: u("1434389677669-e08b4cac3105", 1200), chips: ["ฝ้ายออร์แกนิก 100%"] },
+            { kicker: "Indigo", title: "ย้อมคราม", body: "ย้อมด้วยครามธรรมชาติที่หมักเองในหม้อดิน ทีละรอบจนได้สีที่ลึก", image: u("1596755094514-f87e34085b2c", 1200), chips: ["สีธรรมชาติ"] },
+            { kicker: "Loom", title: "ทอมือ", body: "ช่างทอ 14 ครอบครัวทอด้วยกี่ไม้ทีละเส้น ลายจึงไม่ซ้ำกันสักผืน", image: u("1522771739844-6a9f6d5f14af", 1200), chips: ["กี่ไม้", "ลายไม่ซ้ำ"] },
+            { kicker: "Atelier", title: "ตัดเย็บ", body: "ตัดเย็บและตรวจทีละชิ้น ก่อนพับห่ออย่างดีส่งถึงตู้เสื้อผ้าของคุณ", image: u("1490481651871-ab68de25d43d", 1200), chips: ["ตรวจทุกชิ้น"] },
+          ],
+        }),
         section(imageText, {
           eyebrow: "งานฝีมือ",
           heading: "ทุกชิ้นมีเรื่องราวของมือที่ทอมัน",
@@ -124,7 +140,7 @@ export const shop: TemplateDefinition = {
             { q: "มีหน้าร้านไหม?", a: "มีค่ะ ที่ถ.นิมมานเหมินท์ เชียงใหม่ เปิดทุกวัน 10:00–20:00" },
           ],
         }),
-        section(cta, { variant: "glow", heading: "สมัครรับข่าวคอลเลกชันใหม่ก่อนใคร", body: "รับส่วนลด 10% สำหรับการสั่งซื้อครั้งแรก", primaryCta: { label: "เริ่มช้อป", href: "/products" } }),
+        section(cta, { variant: "wordmark", heading: "สมัครรับข่าวคอลเลกชันใหม่ก่อนใคร", body: "รับส่วนลด 10% สำหรับการสั่งซื้อครั้งแรก", primaryCta: { label: "เริ่มช้อป", href: "/products" } }),
       ],
     },
     aboutPage({ neutral: NEUTRAL_ABOUT.shop,

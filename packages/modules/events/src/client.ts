@@ -5,3 +5,7 @@ export { TicketPicker, linesParam, type TicketPickerProps, type PickerSession, t
 export { Countdown, HoldCountdown, type CountdownProps } from "./components/countdown";
 export { OrderActions, type OrderActionsProps } from "./components/order-actions";
 export { TicketTools, type TicketToolsProps } from "./components/ticket-tools";
+export { EvPills, type EvPill } from "./components/ev-pills";
+export { EvTilt } from "./components/ev-tilt";
+export { StageTicketScene, type StageTicketSceneProps } from "./components/stage-ticket-scene";
+export { VelocitySkew } from "./components/velocity-skew";

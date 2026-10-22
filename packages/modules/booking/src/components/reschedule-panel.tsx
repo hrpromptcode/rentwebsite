@@ -71,7 +71,7 @@ export function ReschedulePanel({ serviceId, staffId, today, maxDate, action, on
   };
 
   return (
-    <div className={cn("card p-5 md:p-6", className)}>
+    <div className={cn("bk-panel p-5 md:p-6", className)}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-heading text-xl font-semibold">เลือกวันและเวลาใหม่</h3>
