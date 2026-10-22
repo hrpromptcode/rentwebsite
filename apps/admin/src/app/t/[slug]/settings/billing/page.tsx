@@ -55,8 +55,6 @@ export default async function BillingSettingsPage({ params }: { params: Promise<
       .map((u) => ({ key: u.metric, label: LIMIT_LABEL[u.metric] ?? u.metric, icon: Database, value: u.value, display: fmtNumber(u.value) })),
   ];
 
-  const trialDaysLeft = ctx.tenant.trialEndsAt ? Math.max(0, Math.ceil((ctx.tenant.trialEndsAt.getTime() - Date.now()) / 86_400_000)) : null;
-
   return (
     <div className="grid gap-6">
       <Card>
@@ -77,7 +75,6 @@ export default async function BillingSettingsPage({ params }: { params: Promise<
             <div className="mt-1">
               <StatusBadge status={ctx.tenant.status} />
             </div>
-            {ctx.tenant.status === "trialing" && trialDaysLeft !== null && <p className="mt-1 text-sm text-muted-foreground">เหลืออีก {trialDaysLeft} วัน (ถึง {fmtDate(ctx.tenant.trialEndsAt)})</p>}
           </div>
           <div>
             <p className="text-xs text-muted-foreground">รอบบิลถัดไป</p>

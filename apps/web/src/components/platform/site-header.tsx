@@ -31,7 +31,7 @@ export function SiteHeader() {
           เข้าสู่ระบบ
         </NavLink>
         <Cta href={links.signup} size="sm" arrow={false}>
-          เริ่มฟรี 14 วัน
+          เริ่มสร้างเว็บ
         </Cta>
       </div>
     </>
@@ -53,7 +53,7 @@ export function SiteHeader() {
       </nav>
       <div className="grid gap-3">
         <Cta href={links.signup} size="lg" className="w-full" magnetic={false}>
-          เริ่มฟรี 14 วัน
+          เริ่มสร้างเว็บ
         </Cta>
         <a href={links.login} className="pf-btn w-full" data-variant="ghost" data-size="lg">
           เข้าสู่ระบบ

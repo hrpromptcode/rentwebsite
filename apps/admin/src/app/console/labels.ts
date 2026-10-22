@@ -24,7 +24,7 @@ export const AUDIT_LABEL: Record<string, string> = {
   "tenant.provision": "สร้างร้านใหม่",
   "tenant.plan.change": "เปลี่ยนแพ็กเกจ",
   "tenant.status.change": "เปลี่ยนสถานะร้าน",
-  "tenant.trial.extend": "ขยายระยะทดลองใช้",
+  "tenant.trial.extend": "ขยายระยะใช้งาน (เดิม)",
   "superadmin.impersonate.start": "ผู้ดูแลเข้าดูหลังบ้าน",
   "superadmin.impersonate.stop": "ผู้ดูแลออกจากหลังบ้าน",
 };

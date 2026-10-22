@@ -64,7 +64,6 @@ export interface ProvisionInput {
   ownerUserId?: string;
   locale?: string;
   planKey?: string;
-  trialDays?: number;
   settings?: Record<string, unknown>;
   themeOverrides?: Partial<ThemeInput>;
   /** when true, seeds sample content (default true) */
@@ -192,7 +191,6 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
   }
 
   const modules = resolveModules(tpl.modules);
-  const trialDays = input.trialDays ?? 14;
   const theme: ThemeInput = { preset: tpl.themePreset, ...(tpl.theme ?? {}), ...(input.themeOverrides ?? {}) };
 
   const tenantId = await db.transaction(async (tx) => {
@@ -202,13 +200,12 @@ export async function provisionTenant(input: ProvisionInput): Promise<ProvisionR
         slug,
         name: input.name,
         siteType: tpl.siteType,
-        planKey: input.planKey ?? "trial",
-        status: "trialing",
+        planKey: input.planKey ?? "starter",
+        status: "active",
         locale: input.locale ?? "th",
         settings: { ...templateSettings, ...(input.settings ?? {}), templateKey: tpl.key },
         theme: theme as Record<string, unknown>,
         onboarding: { steps: {}, startedAt: new Date().toISOString() },
-        trialEndsAt: new Date(Date.now() + trialDays * 86_400_000),
       })
       .returning({ id: tenants.id });
     const id = t!.id;

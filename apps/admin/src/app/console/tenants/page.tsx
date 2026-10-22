@@ -14,7 +14,7 @@ import { fmtDate, fmtNumber, TENANT_STATUS_LABEL } from "@/lib/format";
 export const metadata: Metadata = { title: "ร้านค้า" };
 
 const PAGE_SIZE = 25;
-const STATUSES = ["trialing", "active", "past_due", "suspended", "cancelled", "deleted"] as const;
+const STATUSES = ["active", "past_due", "suspended", "cancelled", "deleted"] as const;
 
 const selectCls = "flex h-11 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-auto";
 
@@ -98,7 +98,6 @@ export default async function ConsoleTenantsPage({ searchParams }: { searchParam
                 <TableHead className="hidden sm:table-cell">เทมเพลต</TableHead>
                 <TableHead className="hidden md:table-cell">แพ็กเกจ</TableHead>
                 <TableHead>สถานะ</TableHead>
-                <TableHead className="hidden lg:table-cell">ทดลองถึง</TableHead>
                 <TableHead className="hidden lg:table-cell">สร้างเมื่อ</TableHead>
               </TableRow>
             </TableHeader>
@@ -119,7 +118,6 @@ export default async function ConsoleTenantsPage({ searchParams }: { searchParam
                   <TableCell>
                     <StatusBadge status={t.status} />
                   </TableCell>
-                  <TableCell className="hidden text-muted-foreground lg:table-cell">{t.status === "trialing" ? fmtDate(t.trialEndsAt) : "—"}</TableCell>
                   <TableCell className="hidden text-muted-foreground lg:table-cell">{fmtDate(t.createdAt)}</TableCell>
                 </TableRow>
               ))}

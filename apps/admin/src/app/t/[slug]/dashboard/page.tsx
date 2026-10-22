@@ -28,7 +28,6 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
   const base = `/t/${slug}`;
   const hasModuleKpis = kpis.ordersToday !== null || kpis.restOrdersToday !== null || kpis.bookingsToday !== null || kpis.topupsToday !== null;
   const kpiCount = [kpis.ordersToday, kpis.restOrdersToday, kpis.revenueToday, kpis.reservationsToday, kpis.bookingsToday, kpis.topupsToday, kpis.pendingSlips].filter((v) => v !== null).length + 1 + (hasModuleKpis ? 0 : 1);
-  const trialDaysLeft = ctx.tenant.trialEndsAt ? Math.max(0, Math.ceil((ctx.tenant.trialEndsAt.getTime() - Date.now()) / 86_400_000)) : null;
   const revenue14 = trends.revenue ? trends.revenue.reduce((a, b) => a + b, 0) : 0;
   const required = data.checklist.filter((c) => !c.optional);
   const doneCount = required.filter((c) => c.done).length;
@@ -59,18 +58,12 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
           </h1>
           <div className="adm-rise mt-4 flex flex-wrap items-center gap-2 text-sm text-muted-foreground" style={{ "--d": "100ms" } as React.CSSProperties}>
             <StatusBadge status={ctx.tenant.status} />
-            {ctx.tenant.status === "trialing" && trialDaysLeft !== null && <span>ทดลองใช้เหลืออีก {trialDaysLeft} วัน</span>}
             <span aria-hidden>·</span>
             <a href={ctx.storefrontUrl} target="_blank" rel="noreferrer" className="adm-link adm-mono -my-3 inline-flex items-center gap-1 py-3 text-[13px]">
               {ctx.hostname} <ExternalLink className="size-3.5" aria-hidden />
             </a>
           </div>
           <div className="adm-rise adm-chips -mx-4 mt-5 flex items-center gap-2 overflow-x-auto px-4 py-1 sm:mx-0 sm:mt-6 sm:flex-wrap sm:overflow-visible sm:px-0 sm:py-0" style={{ "--d": "150ms" } as React.CSSProperties}>
-            {ctx.tenant.status === "trialing" && (
-              <Button asChild className="shrink-0 rounded-full">
-                <Link href={`/t/${slug}/settings/billing`}>เลือกแพ็กเกจ</Link>
-              </Button>
-            )}
             {quick.map((q) => (
               <Link key={q.key} href={q.href} className="adm-chip shrink-0">
                 {q.icon}

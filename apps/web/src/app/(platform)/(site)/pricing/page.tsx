@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "ราคา",
-  description: "แพ็กเกจเว็บไซต์สำเร็จรูปเริ่มต้นหลักร้อยต่อเดือน ทดลองฟรี 14 วัน ไม่ต้องใส่บัตร จ่ายรายปีประหยัดกว่า 2 เดือน ยกเลิกได้ทุกเมื่อ",
+  description: "แพ็กเกจเว็บไซต์สำเร็จรูปเริ่มต้น 999 บาทต่อเดือน ไม่มีค่าติดตั้ง จ่ายรายปีประหยัดกว่า 2 เดือน ยกเลิกได้ทุกเมื่อ",
   alternates: { canonical: "/pricing" },
 };
 
@@ -27,7 +27,7 @@ const LIMIT_ROWS: { key: string; label: string; fmt?: (n: number) => string }[] 
 ];
 
 export default async function PricingPage() {
-  const { paid, enterprise, trial } = await getPlans();
+  const { paid, enterprise } = await getPlans();
   const links = platformLinks();
   const cheapest = paid[0];
   const rows: CompareRow[] = LIMIT_ROWS.map((r) => ({
@@ -41,7 +41,7 @@ export default async function PricingPage() {
   }));
   const pro = paid.find((p) => p.key === "pro") ?? paid[1] ?? paid[0];
   const billingFaq = [
-    { q: "ทดลองใช้ฟรีได้นานแค่ไหน?", a: `ทดลองฟรี 14 วัน ไม่ต้องใส่บัตร${trial?.features.some((f) => f.includes("Pro")) ? " ระหว่างทดลองใช้ได้ทุกฟีเจอร์ของแพ็กเกจ Pro" : ""} ยกเลิกได้ทุกเมื่อ` },
+    { q: "ชำระค่าบริการอย่างไร?", a: "ชำระรายเดือนหรือรายปีผ่าน PromptPay หรือโอนเงิน ไม่มีค่าติดตั้ง ไม่มีสัญญาผูกมัด ยกเลิกได้ทุกเมื่อ" },
     ...(pro ? [{ q: "จ่ายรายปีคุ้มกว่าแค่ไหน?", a: `จ่ายรายปีประหยัดกว่า 2 เดือน เช่น ${pro.name} ฿${bahtNumber(pro.monthly)}/เดือน หรือ ฿${bahtNumber(pro.yearly)}/ปี` }] : []),
     { q: "เปลี่ยนแพ็กเกจได้ไหม?", a: "ได้ อัปเกรดเพื่อปลดล็อกโมดูลและขีดจำกัดที่มากขึ้นได้จากหน้าตั้งค่าการชำระเงินในหลังบ้าน การเปลี่ยนแพ็กเกจมีผลทันที" },
     FAQ[4]!,
@@ -61,7 +61,7 @@ export default async function PricingPage() {
               <p className="pf-odo-grad mt-3 font-accent text-[clamp(4rem,2.4rem+6vw,8.5rem)] font-semibold leading-[0.9] tracking-[-0.05em]">
                 <Odometer value={bahtNumber(cheapest.monthly)} prefix="฿" trigger="mount" duration={1.6} />
               </p>
-              <p className="mt-3 text-muted-foreground">{tg("ทดลองฟรี 14 วัน {ไม่ต้อง}ใส่บัตร ยกเลิกได้ทุกเมื่อ")}</p>
+              <p className="mt-3 text-muted-foreground">{tg("ไม่มีค่าติดตั้ง {ยกเลิก}ได้ทุกเมื่อ")}</p>
             </div>
           ) : null}
         </div>

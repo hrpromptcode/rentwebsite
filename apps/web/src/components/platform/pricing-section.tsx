@@ -27,10 +27,10 @@ export async function PricingSection({ index = "08", heading = "h2", id = "prici
       <div className="grid gap-8 md:grid-cols-12 md:items-end">
         <div className="md:col-span-8">
           <SectionIndex n={index} label="Pricing — ราคาที่ร้านเล็กจ่ายไหว" />
-          <SplitReveal id={`${id}-title`} as={heading} text={tg("เริ่มต้น{หลักร้อย}{ต่อเดือน}")} className="display-thai mt-6 text-step-5 font-semibold" />
+          <SplitReveal id={`${id}-title`} as={heading} text={tg("เริ่มต้น 999 บาท{ต่อเดือน}")} className="display-thai mt-6 text-step-5 font-semibold" />
         </div>
         <p className="max-w-md text-step-1 leading-[1.7] text-muted-foreground md:col-span-4 md:justify-self-end">
-          ทดลองฟรี 14 วัน ไม่ต้องใส่บัตร จ่ายรายปีประหยัดกว่า 2 เดือน ยกเลิกได้ทุกเมื่อ
+          ไม่มีค่าติดตั้ง จ่ายรายปีประหยัดกว่า 2 เดือน ยกเลิกได้ทุกเมื่อ
         </p>
       </div>
       <div className="mt-12">

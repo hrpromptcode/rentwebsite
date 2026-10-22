@@ -18,7 +18,7 @@ const FLOATS: { k?: "blob"; style: React.CSSProperties }[] = [
  * blobs, giant white headline, and a magnetic white disc CTA that fills with the gradient on hover. A soft violet
  * scrim behind the copy keeps the white text AA on every gradient stop.
  */
-export function FinalCta({ href, title = "พร้อมเปิดร้านแล้วหรือยัง?", sub = "สร้างเว็บจาก{เทมเพลต}แล้วปรับเป็นของคุณได้ในวันนี้ {ทดลองฟรี} 14 วัน {ไม่ต้อง}ใส่บัตร" }: { href: string; title?: string; sub?: string }) {
+export function FinalCta({ href, title = "พร้อมเปิดร้านแล้วหรือยัง?", sub = "สร้างเว็บจาก{เทมเพลต}แล้วปรับเป็นของคุณได้ในวันนี้ เริ่มต้น{เพียง} 999 บาท{ต่อเดือน} {ยกเลิก}ได้ทุกเมื่อ" }: { href: string; title?: string; sub?: string }) {
   return (
     <section data-hue="dawn" className="relative px-[max(10px,calc(var(--gutter)*0.6))] py-[calc(var(--section-y)*0.6)]" aria-labelledby="final-cta-title">
       <div className="pf-cta-panel">
@@ -32,7 +32,7 @@ export function FinalCta({ href, title = "พร้อมเปิดร้า�
           <Magnetic strength={0.45} max={18} className="mt-12 inline-flex">
             <a href={href} className="pf-orb-btn group" data-cursor="link" data-cursor-label="เริ่มเลย">
               <span data-magnetic-inner="">
-                <RollText>เริ่มฟรี 14 วัน</RollText>
+                <RollText>เริ่มสร้างเว็บ</RollText>
               </span>
             </a>
           </Magnetic>

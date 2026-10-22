@@ -50,8 +50,8 @@ export const tenants = pgTable(
     slug: text("slug").notNull(),
     name: text("name").notNull(),
     siteType: text("site_type").notNull(), // template key used at provisioning
-    planKey: text("plan_key").notNull().default("trial"),
-    status: tenantStatus("status").notNull().default("trialing"),
+    planKey: text("plan_key").notNull().default("starter"),
+    status: tenantStatus("status").notNull().default("active"),
     locale: text("locale").notNull().default("th"),
     timezone: text("timezone").notNull().default("Asia/Bangkok"),
     currency: text("currency").notNull().default("THB"),
@@ -188,7 +188,7 @@ export const tenantUsage = pgTable(
 /* ------------------------------------------------------------------ */
 
 export const plans = pgTable("plans", {
-  key: text("key").primaryKey(), // trial, starter, pro, business, enterprise
+  key: text("key").primaryKey(), // starter, pro, business, enterprise
   name: text("name").notNull(),
   description: text("description"),
   priceMonthly: money("price_monthly").notNull().default(0),

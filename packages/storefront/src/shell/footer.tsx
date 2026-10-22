@@ -83,7 +83,7 @@ export function SiteFooter({ ctx, nav: rawNav, legal }: { ctx: StorefrontCtx; na
   const variant = ctx.theme.layout.footer;
   const year = new Date().getFullYear();
   const tagline = ctx.theme.brand.tagline ?? (ctx.tenant.settings.tagline as string | undefined);
-  const showPowered = ctx.tenant.planKey === "trial" || ctx.tenant.planKey === "starter";
+  const showPowered = ctx.tenant.planKey === "starter";
   const groups = nav.filter((n) => n.children?.length);
   const flat = nav.filter((n) => !n.children?.length);
   const brandWord = (ctx.theme.brand.logoText ?? ctx.tenant.name).trim();

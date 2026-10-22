@@ -48,7 +48,7 @@ export async function updateTenantPlan(input: z.input<typeof planSchema>): Promi
 
 const statusSchema = z.object({
   tenantId: z.string().uuid(),
-  status: z.enum(["trialing", "active", "past_due", "suspended", "cancelled"]),
+  status: z.enum(["active", "past_due", "suspended", "cancelled"]),
   /** why RentWeb staff changed the status — shown to the owner in Settings > Danger zone */
   reason: z.string().trim().max(500).optional(),
 });
@@ -68,21 +68,4 @@ export async function updateTenantStatus(input: z.input<typeof statusSchema>): P
   revalidatePath(`/console/tenants/${tenantId}`);
   revalidatePath("/console/tenants");
   return { ok: true, message: "อัปเดตสถานะแล้ว" };
-}
-
-const trialSchema = z.object({ tenantId: z.string().uuid(), days: z.coerce.number().int().min(1).max(365) });
-
-export async function extendTrial(input: z.input<typeof trialSchema>): Promise<ActionResult> {
-  const s = await requireSuperadmin();
-  const { tenantId, days } = trialSchema.parse(input);
-  const db = getAdminDb();
-  const [t] = await db.select({ trialEndsAt: tenants.trialEndsAt }).from(tenants).where(eq(tenants.id, tenantId)).limit(1);
-  if (!t) return { ok: false, error: "ไม่พบร้านนี้" };
-  const base = t.trialEndsAt && t.trialEndsAt.getTime() > Date.now() ? t.trialEndsAt : new Date();
-  const next = new Date(base.getTime() + days * 86_400_000);
-  await db.update(tenants).set({ trialEndsAt: next, status: "trialing" }).where(eq(tenants.id, tenantId));
-  await invalidateTenant(tenantId, await tenantHostnames(tenantId));
-  await auditLog({ tenantId, actorType: "superadmin", actorId: s.user.id, action: "tenant.trial.extend", targetType: "tenant", targetId: tenantId, diff: { days, until: next.toISOString() } });
-  revalidatePath(`/console/tenants/${tenantId}`);
-  return { ok: true, message: `ขยายทดลองใช้อีก ${days} วัน` };
 }

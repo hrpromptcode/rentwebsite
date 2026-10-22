@@ -80,7 +80,7 @@ export function ShopWindows({ statement, kicker, className }: { statement: strin
           {[
             [String(templates), "เทมเพลตตามธุรกิจ"],
             [String(presets), "ธีมสำเร็จรูป"],
-            ["14", "วัน ทดลองใช้ฟรี"],
+            ["999", "บาท/เดือน เริ่มต้น"],
           ].map(([n, label]) => (
             <p key={label} className="grid gap-1.5">
               <span className="font-accent text-[2rem] leading-none font-medium tracking-[-0.03em] text-[#f3f1ec]">{n}</span>

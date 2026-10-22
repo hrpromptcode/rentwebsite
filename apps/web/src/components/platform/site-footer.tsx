@@ -87,7 +87,7 @@ export function SiteFooter() {
               <ul className="mt-5 grid gap-1">
                 <li>
                   <a href={links.signup} className="group inline-flex min-h-11 items-center text-[1.05rem] font-semibold text-primary">
-                    <RollText underline>เริ่มฟรี 14 วัน</RollText>
+                    <RollText underline>เริ่มสร้างเว็บไซต์</RollText>
                   </a>
                 </li>
                 <li>

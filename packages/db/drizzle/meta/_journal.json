@@ -78,6 +78,13 @@
       "when": 1792364448925,
       "tag": "0010_topup_code_hash",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792688110665,
+      "tag": "0011_no_trial_defaults",
+      "breakpoints": true
     }
   ]
 }

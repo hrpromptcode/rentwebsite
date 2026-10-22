@@ -275,7 +275,7 @@ export interface PlanView {
   limits: Record<string, number>;
 }
 
-export async function getPlans(): Promise<{ paid: PlanView[]; enterprise: PlanView | null; trial: PlanView | null }> {
+export async function getPlans(): Promise<{ paid: PlanView[]; enterprise: PlanView | null }> {
   const rows = await getAdminDb()
     .select()
     .from(plansTable)
@@ -294,7 +294,6 @@ export async function getPlans(): Promise<{ paid: PlanView[]; enterprise: PlanVi
   return {
     paid: active.filter((p) => p.priceMonthly > 0 && p.key !== "enterprise").map(view),
     enterprise: active.find((p) => p.key === "enterprise") ? view(active.find((p) => p.key === "enterprise")!) : null,
-    trial: active.find((p) => p.key === "trial") ? view(active.find((p) => p.key === "trial")!) : null,
   };
 }
 

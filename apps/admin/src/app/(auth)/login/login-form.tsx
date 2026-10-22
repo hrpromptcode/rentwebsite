@@ -88,7 +88,7 @@ export function LoginForm({ next }: { next?: string }) {
         <span className="text-muted-foreground">ยังไม่มีบัญชี?</span>
         {/* ADMIN_B2-12: keep ?next (e.g. /invite/<token>) through sign-up */}
         <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="group inline-flex min-h-11 items-center gap-1.5 font-medium text-foreground underline-offset-4 hover:underline">
-          {invite ? "สมัครบัญชีเพื่อเข้าร่วมทีม" : "สมัครและสร้างเว็บฟรี 14 วัน"}
+          {invite ? "สมัครบัญชีเพื่อเข้าร่วมทีม" : "สมัครและสร้างเว็บไซต์"}
           <ArrowUpRight aria-hidden className="size-4 text-primary transition-transform duration-300 group-hover:rotate-45" />
         </Link>
       </div>

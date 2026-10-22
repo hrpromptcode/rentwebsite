@@ -134,7 +134,7 @@ const AUDIT_LABELS: Record<string, string> = {
   "team.remove": "ลบสมาชิกทีม",
   "tenant.status.change": "เปลี่ยนสถานะร้าน",
   "tenant.plan.change": "เปลี่ยนแพ็กเกจ",
-  "tenant.trial.extend": "ขยายเวลาทดลองใช้",
+  "tenant.trial.extend": "ขยายระยะใช้งาน (เดิม)",
   "tenant.self.suspend": "ระงับเว็บไซต์ชั่วคราว",
   "tenant.self.reactivate": "เปิดใช้งานเว็บไซต์อีกครั้ง",
   "tenant.self.cancel": "ยกเลิกเว็บไซต์",

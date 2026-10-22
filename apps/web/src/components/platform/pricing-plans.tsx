@@ -23,7 +23,7 @@ export interface PlanCard {
  * Plans with a monthly / yearly switch (§4.3 #10, §4.7). Prices roll (odometer) when the period changes; the
  * visible price text is the sr-only value of each odometer, so screen readers and text search read "฿390" once.
  */
-export function PricingPlans({ plans, popular = "pro", trialDays = 14 }: { plans: PlanCard[]; popular?: string; trialDays?: number }) {
+export function PricingPlans({ plans, popular = "pro" }: { plans: PlanCard[]; popular?: string }) {
   const [yearly, setYearly] = React.useState(false);
   const [toggled, setToggled] = React.useState(false);
   return (
@@ -55,7 +55,7 @@ export function PricingPlans({ plans, popular = "pro", trialDays = 14 }: { plans
           ))}
         </div>
         <p className="text-sm text-muted-foreground">
-          <span className="font-semibold text-[#d11a63]">จ่ายรายปีประหยัดกว่า 2 เดือน</span> · ทดลองฟรี {trialDays} วัน ไม่ต้องใส่บัตร
+          <span className="font-semibold text-[#d11a63]">จ่ายรายปีประหยัดกว่า 2 เดือน</span> · ยกเลิกได้ทุกเมื่อ
         </p>
       </div>
 
@@ -92,7 +92,7 @@ export function PricingPlans({ plans, popular = "pro", trialDays = 14 }: { plans
                 data-variant={hot ? "primary" : "ghost"}
                 data-size="lg"
               >
-                เริ่มทดลองฟรี
+                เลือกแพ็กเกจนี้
               </a>
             </div>
           );

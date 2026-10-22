@@ -51,7 +51,7 @@ export default async function ConsoleOverviewPage() {
       />
 
       <div className="adm-kpis grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        <KpiCard label="ร้านค้าทั้งหมด" value={fmtNumber(total)} countTo={fmtNumber(total)} icon={Building2} tone="primary" hint={`ใช้งาน ${fmtNumber(statusCount.active ?? 0)} · ทดลอง ${fmtNumber(statusCount.trialing ?? 0)}`} />
+        <KpiCard label="ร้านค้าทั้งหมด" value={fmtNumber(total)} countTo={fmtNumber(total)} icon={Building2} tone="primary" hint={`ใช้งาน ${fmtNumber(statusCount.active ?? 0)} · ค้างชำระ ${fmtNumber(statusCount.past_due ?? 0)}`} />
         <KpiCard label="ร้านใหม่ 7 วัน" value={fmtNumber(Number(new7?.c ?? 0))} countTo={fmtNumber(Number(new7?.c ?? 0))} icon={CalendarPlus} tone="success" hint={`30 วัน: ${fmtNumber(Number(new30?.c ?? 0))}`} />
         <KpiCard label="ผู้ใช้ทั้งหมด" value={fmtNumber(Number(users?.c ?? 0))} countTo={fmtNumber(Number(users?.c ?? 0))} icon={Users} hint="บัญชีผู้ดูแลร้านบนแพลตฟอร์ม" />
         <KpiCard label="ต้องติดตาม" value={fmtNumber((statusCount.past_due ?? 0) + (statusCount.suspended ?? 0))} countTo={fmtNumber((statusCount.past_due ?? 0) + (statusCount.suspended ?? 0))} icon={Activity} tone="accent" hint={`ค้างชำระ ${fmtNumber(statusCount.past_due ?? 0)} · ระงับ ${fmtNumber(statusCount.suspended ?? 0)}`} />
@@ -63,7 +63,7 @@ export default async function ConsoleOverviewPage() {
             <CardTitle>ตามสถานะ</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2">
-            {(["trialing", "active", "past_due", "suspended", "cancelled", "deleted"] as const).map((s) => {
+            {(["active", "past_due", "suspended", "cancelled", "deleted"] as const).map((s) => {
               const n = statusCount[s] ?? 0;
               const pct = total ? Math.round((n / Math.max(total, 1)) * 100) : 0;
               return (

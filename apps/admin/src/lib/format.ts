@@ -60,7 +60,7 @@ export function assetUrl(url: string | null | undefined): string {
 }
 
 export const TENANT_STATUS_LABEL: Record<string, string> = {
-  trialing: "ทดลองใช้",
+  trialing: "เปิดใช้งาน",
   active: "ใช้งาน",
   past_due: "ค้างชำระ",
   suspended: "ระงับ",

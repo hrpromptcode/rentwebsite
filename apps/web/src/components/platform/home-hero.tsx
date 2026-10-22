@@ -53,15 +53,15 @@ export function HomeHero({ signup, templates, systems, shots }: { signup: string
             </Reveal>
             <Reveal delay={0.62} className="mt-8 flex flex-wrap items-center gap-2.5 sm:mt-9 sm:gap-3">
               <Cta href={signup} size="lg" cursorLabel="เริ่มเลย">
-                เริ่มทดลองฟรี 14 วัน
+                เริ่มสร้างเว็บไซต์
               </Cta>
               <Cta href="#templates" variant="ghost" size="lg" arrow={false}>
                 ดูเดโมสด
               </Cta>
             </Reveal>
             <Reveal delay={0.75}>
-              <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-[0.95rem] text-muted-foreground sm:mt-8" aria-label="ทดลองใช้ได้ทันที">
-                {["ไม่ต้องใส่บัตร", "ยกเลิกได้ทุกเมื่อ", "ภาษาไทยเต็มรูปแบบ"].map((t, i) => (
+              <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-[0.95rem] text-muted-foreground sm:mt-8" aria-label="จุดเด่นของบริการ">
+                {["เริ่มต้น ฿999/เดือน", "ยกเลิกได้ทุกเมื่อ", "ภาษาไทยเต็มรูปแบบ"].map((t, i) => (
                   <li key={t} className={`items-center gap-2 ${i === 2 ? "hidden sm:inline-flex" : "inline-flex"}`}>
                     <span className="pf-tick" aria-hidden="true">
                       <Check className="size-3" strokeWidth={3} />

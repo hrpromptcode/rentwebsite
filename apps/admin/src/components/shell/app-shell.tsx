@@ -190,7 +190,7 @@ function RailBrand({ compact, mode }: { compact: boolean; mode: "tenant" | "cons
 
 const SITE_STATUS: Record<string, { label: string; live: boolean }> = {
   active: { label: "ออนไลน์", live: true },
-  trialing: { label: "ออนไลน์ · ทดลองใช้", live: true },
+  trialing: { label: "ออนไลน์", live: true },
   past_due: { label: "ค้างชำระ", live: true },
   suspended: { label: "ปิดชั่วคราว", live: false },
   cancelled: { label: "ปิดแล้ว", live: false },

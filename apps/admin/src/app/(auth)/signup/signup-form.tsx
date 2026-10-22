@@ -18,7 +18,7 @@ export interface SignupInvite {
 }
 
 /** Shown under the heading (all widths); the big marketing line lives in the shop-windows panel (lg). */
-const PERKS = ["ทดลองใช้ฟรี 14 วัน ไม่ต้องใส่บัตร", "เปิดเว็บได้ภายใน 2 นาทีจากเทมเพลต", "รับเงินผ่าน PromptPay และสลิปโอน"];
+const PERKS = ["เริ่มต้นเพียง ฿999/เดือน ไม่มีค่าติดตั้ง", "เปิดเว็บได้ภายใน 2 นาทีจากเทมเพลต", "รับเงินผ่าน PromptPay และสลิปโอน"];
 
 export function SignupForm({ next, invite }: { next?: string; invite?: SignupInvite | null }) {
   const router = useRouter();
