@@ -5,7 +5,7 @@ import { ArrowUpRight, BedDouble, CalendarDays, Clock } from "lucide-react";
 import { HoverPreview } from "@rentweb/ui/motion";
 import { CtaButton, PageIntro, Rise, pad2, sized } from "@rentweb/storefront";
 import { fromPrices, listUnitTypes, rentalConfig, isValidYmd } from "@rentweb/module-rental/services";
-import { L, Price, RentalStyles, RoomCard, formatThaiRange } from "@rentweb/module-rental/ui";
+import { L, Price, RentalStyles, RoomCard, RoomName, formatThaiRange } from "@rentweb/module-rental/ui";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
 import { cmsFallback, moduleOrCmsMetadata } from "@/lib/cms-fallback";
@@ -90,7 +90,7 @@ export default async function RoomsPage({ params, searchParams }: { params: Para
                     className="rw-row rw-room-row group grid min-h-16 grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 py-5 md:grid-cols-[4rem_minmax(0,1fr)_14rem_12rem_2rem] md:py-7"
                   >
                     <span className="rw-index rw-row-idx text-muted-foreground">{pad2(i + 1)}</span>
-                    <span className="rw-row-title font-heading text-step-3 leading-tight font-semibold">{t.name}</span>
+                    <RoomName name={t.name} className="rw-row-title font-heading text-step-3 leading-tight font-semibold" />
                     <span className="col-start-2 text-sm text-muted-foreground md:col-start-auto">
                       {L.maxGuests(t.maxGuests)}
                       {t.sizeSqm ? ` · ${L.sizeSqm(t.sizeSqm)}` : ""}

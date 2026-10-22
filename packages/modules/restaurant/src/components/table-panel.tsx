@@ -14,16 +14,17 @@ import type { SessionDto } from "../dto";
 import { L, ORDER_STATUS_LABEL } from "../labels";
 import { formatThaiTime } from "../services/time";
 import { usePoll } from "./use-poll";
+import { RestaurantStyles } from "./styles";
 
 const TABLE_COOKIE = "rw_table";
 
-const STATUS_TONE: Record<string, string> = {
-  received: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
-  preparing: "bg-orange-500/15 text-orange-700 dark:text-orange-300",
-  ready: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-  served: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-  completed: "bg-muted text-muted-foreground",
-  cancelled: "bg-destructive/10 text-destructive",
+const STATUS_TONE: Record<string, "warning" | "soft" | "success" | "muted" | "destructive"> = {
+  received: "warning",
+  preparing: "soft",
+  ready: "success",
+  served: "success",
+  completed: "muted",
+  cancelled: "destructive",
 };
 
 export interface TablePanelProps {
@@ -105,50 +106,76 @@ export function TablePanel({ initial, promptpayEnabled, promptpayName, promptpay
   const open = data.payment && (data.payment.status === "pending" || data.payment.status === "pending_verification") ? data.payment : null;
   const payment: PaymentPanelData | null = open && (open.status === "pending_verification" || open.amount === data.dueTotal) ? open : null;
 
+  const statusBadge = paid ? (
+    <Badge variant="success" className="h-7 gap-1 px-2.5">
+      <CheckCircle2 /> ชำระแล้ว
+    </Badge>
+  ) : data.status === "bill_requested" ? (
+    <Badge variant="accent" className="h-7 px-2.5">ขอบิลแล้ว</Badge>
+  ) : (
+    <span className="rr-dim inline-flex h-7 items-center gap-2 text-xs">
+      {L.items(data.orders.length)} · เปิดโต๊ะ {formatThaiTime(data.openedAt)}
+    </span>
+  );
+
   return (
-    <section className="container-x pt-4 md:pt-6">
-      <div className="card relative overflow-hidden p-5 md:p-7">
-        <div className="pointer-events-none absolute -top-16 -right-16 size-56 rounded-full bg-glow/40 blur-3xl" aria-hidden />
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="flex items-center gap-1.5 text-xs font-semibold tracking-[0.2em] text-primary-ink uppercase">
-              <QrCode className="size-3.5" /> {L.dineIn}
-            </p>
-            <h1 className="heading-display mt-1 text-5xl font-semibold md:text-6xl">
+    <section className="container-x pt-4 md:pt-8">
+      <RestaurantStyles />
+      {/* table tent card: who / where on top, the running total and the two thumb buttons at the bottom */}
+      <div className="rr-fade rr-night relative overflow-hidden rounded-[var(--radius-2xl)] p-5 md:p-8">
+        <div className="flex items-center justify-between gap-3">
+          <p className="flex items-center gap-2 text-sm font-semibold tracking-[0.02em]">
+            <QrCode className="size-4 text-primary" aria-hidden /> {L.dineIn}
+          </p>
+          {live && (
+            <span className="rr-dim inline-flex items-center gap-2 text-xs">
+              <span className="rr-live text-primary" aria-hidden /> {data.status === "bill_requested" ? "รอพนักงาน" : "เปิดอยู่"}
+            </span>
+          )}
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-5">
+          <div className="min-w-0">
+            <h1 className="heading-display font-heading text-[clamp(3rem,2.2rem+4vw,5.5rem)] leading-[1.12] font-semibold">
               {L.table} {data.table?.name ?? "-"}
             </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              {data.table?.zone && <Badge variant="soft">{L.zone} {data.table.zone}</Badge>}
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+              {data.table?.zone && (
+                <span className="inline-flex h-7 items-center rounded-full bg-primary px-3 text-xs font-semibold text-primary-foreground">
+                  {L.zone} {data.table.zone}
+                </span>
+              )}
               {data.table?.seats ? (
-                <span className="inline-flex items-center gap-1">
+                <span className="rr-dim inline-flex items-center gap-1.5">
                   <Users className="size-3.5" /> {data.table.seats} ที่นั่ง
                 </span>
               ) : null}
-              <span className="inline-flex items-center gap-1 font-mono text-xs">รหัส {token}</span>
+              <span className="rr-dim rr-num inline-flex items-center font-mono text-xs">รหัส {token}</span>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-muted-foreground">{L.runningTotal}</p>
-            <p className="font-heading text-3xl font-semibold tabular-nums">{thb(data.total)}</p>
-            {paid ? (
-              <Badge variant="success" className="mt-1">
-                <CheckCircle2 /> ชำระแล้ว
-              </Badge>
-            ) : data.status === "bill_requested" ? (
-              <Badge variant="warning" className="mt-1">ขอบิลแล้ว</Badge>
-            ) : (
-              <Badge variant="muted" className="mt-1">{L.items(data.orders.length)} · เปิดโต๊ะ {formatThaiTime(data.openedAt)}</Badge>
-            )}
+          <div className="text-left sm:text-right">
+            <p className="rr-dim text-xs">{L.runningTotal}</p>
+            <p key={data.total} className="rr-flash rr-num font-heading text-[2.5rem] leading-[1.15] font-semibold">
+              {thb(data.total)}
+            </p>
+            <div className="mt-1 flex sm:justify-end">{statusBadge}</div>
           </div>
         </div>
 
         {live && (
-          <div className="relative mt-5 grid grid-cols-2 gap-3">
-            <Button type="button" variant="outline" size="lg" className="h-12" onClick={() => call({ kind: "staff" })} disabled={busy === "staff"}>
+          <div className="relative mt-6 grid grid-cols-2 gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="h-13 border-current/25 bg-transparent text-[var(--rr-night-fg)] hover:bg-current/10 hover:text-[var(--rr-night-fg)] active:scale-[0.97]"
+              onClick={() => call({ kind: "staff" })}
+              disabled={busy === "staff"}
+            >
               {busy === "staff" ? <Loader2 className="size-5 animate-spin" /> : <BellRing className="size-5" />}
               {L.callStaff}
             </Button>
-            <Button type="button" size="lg" className="h-12" onClick={() => setBillOpen(true)} disabled={data.dueTotal <= 0 && !payment}>
+            <Button type="button" size="lg" className="h-13 active:scale-[0.97]" onClick={() => setBillOpen(true)} disabled={data.dueTotal <= 0 && !payment}>
               <Receipt className="size-5" />
               {L.requestBill}
             </Button>
@@ -156,11 +183,11 @@ export function TablePanel({ initial, promptpayEnabled, promptpayName, promptpay
         )}
         {paid && (
           // the session is settled: call-staff / bill are refused by the API, so they are replaced by the paid state
-          <div className="relative mt-5 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-            <p className="flex items-center gap-2 rounded-[var(--radius-lg)] bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">
-              <CheckCircle2 className="size-4 shrink-0" /> {L.billPaid}
+          <div className="relative mt-6 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+            <p className="flex items-center gap-2 rounded-[var(--radius-lg)] bg-current/[0.08] px-4 py-3 text-sm">
+              <CheckCircle2 className="size-4 shrink-0 text-primary" /> {L.billPaid}
             </p>
-            <Button type="button" variant="outline" size="lg" className="h-12" onClick={orderAgain}>
+            <Button type="button" size="lg" className="h-12" onClick={orderAgain}>
               <RotateCcw className="size-5" /> {L.orderAgain}
             </Button>
           </div>
@@ -173,55 +200,66 @@ export function TablePanel({ initial, promptpayEnabled, promptpayName, promptpay
               initial={reduce ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="relative mt-4 flex items-center gap-2 rounded-[var(--radius-lg)] bg-primary-soft px-4 py-3 text-sm text-foreground"
+              className="relative mt-4 flex items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--rr-night-fg)] px-4 py-3 text-sm font-medium text-[var(--rr-night)]"
             >
-              <CheckCircle2 className="size-4 text-primary" /> {toast}
+              <CheckCircle2 className="size-4 shrink-0 text-primary" /> {toast}
             </motion.p>
           )}
         </AnimatePresence>
       </div>
 
       {data.orders.length > 0 && (
-        <div className="mt-4">
-          <button type="button" className="flex h-11 w-full items-center justify-between text-left" onClick={() => setHistoryOpen((v) => !v)} aria-expanded={historyOpen}>
-            <span className="font-heading text-lg font-semibold">รายการที่สั่งแล้ว ({data.orders.length} รอบ)</span>
-            <ChevronDown className={cn("size-5 transition", historyOpen && "rotate-180")} />
+        <div className="mt-5">
+          <button type="button" className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[var(--radius-lg)] text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40" onClick={() => setHistoryOpen((v) => !v)} aria-expanded={historyOpen}>
+            <span className="font-heading text-lg font-semibold md:text-xl">รายการที่สั่งแล้ว ({data.orders.length} รอบ)</span>
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border">
+              <ChevronDown className={cn("size-5 transition-transform duration-300", historyOpen && "rotate-180")} />
+            </span>
           </button>
           <AnimatePresence initial={false}>
             {historyOpen && (
-              <motion.ul initial={reduce ? false : { height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+              <motion.ul initial={reduce ? false : { height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="grid items-start gap-2.5 overflow-hidden pt-2 md:grid-cols-2 xl:grid-cols-3">
                 {data.orders.map((o, idx) => (
-                  <li key={o.id} className="card mb-2 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">{L.round} {data.orders.length - idx}</span>
+                  <motion.li
+                    key={o.id}
+                    layout={!reduce}
+                    initial={reduce ? false : { opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="rounded-[var(--radius-xl)] border border-border bg-card p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="block font-heading text-base font-semibold">
+                          {L.round} {data.orders.length - idx}
+                        </span>
                         <span className="text-xs text-muted-foreground">
                           {o.number} · {formatThaiTime(o.placedAt)}
                           {o.guestLabel ? ` · ${o.guestLabel}` : ""}
                         </span>
                       </div>
-                      <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium", STATUS_TONE[o.status] ?? "bg-muted")}>
-                        {/* motion-safe via CSS, not useReducedMotion(): the hook is null on the server but true on a reduced-motion client's first render → hydration mismatch */}
+                      <Badge variant={STATUS_TONE[o.status] ?? "muted"} className="h-7 shrink-0 gap-1.5 px-2.5">
+                        {/* motion-safe via CSS, not useReducedMotion(): the hook is null on the server but true on a reduced-motion first client render (hydration mismatch) */}
                         {(o.status === "received" || o.status === "preparing") && <span className="size-1.5 rounded-full bg-current motion-safe:animate-pulse" />}
                         {ORDER_STATUS_LABEL[o.status] ?? o.status}
-                      </span>
+                      </Badge>
                     </div>
-                    <ul className="mt-2 space-y-1 text-sm">
+                    <ul className="mt-3 space-y-1.5 border-t border-dashed border-border pt-3 text-sm">
                       {o.items.map((it) => (
                         <li key={it.id} className="flex justify-between gap-3">
                           <span className="min-w-0">
-                            <span className="tabular-nums">{it.quantity}×</span> {it.name}
+                            <span className="rr-num font-medium">{it.quantity}×</span> {it.name}
                             {it.modifiers.length > 0 && <span className="text-muted-foreground"> · {it.modifiers.join(", ")}</span>}
                           </span>
-                          <span className="shrink-0 tabular-nums text-muted-foreground">{thb(it.total)}</span>
+                          <span className="rr-num shrink-0 text-muted-foreground">{thb(it.total)}</span>
                         </li>
                       ))}
                     </ul>
-                    <div className="mt-2 flex items-center justify-between border-t pt-2 text-sm">
+                    <div className="mt-3 flex items-center justify-between border-t border-border pt-2.5 text-sm">
                       <span className="text-muted-foreground">{o.paymentStatus === "paid" ? "ชำระแล้ว" : "ยังไม่ชำระ"}</span>
-                      <span className="font-semibold tabular-nums">{thb(o.total)}</span>
+                      <span className="rr-num font-semibold">{thb(o.total)}</span>
                     </div>
-                  </li>
+                  </motion.li>
                 ))}
               </motion.ul>
             )}
@@ -231,10 +269,10 @@ export function TablePanel({ initial, promptpayEnabled, promptpayName, promptpay
 
       <Sheet open={billOpen} onOpenChange={setBillOpen}>
         <SheetContent side="bottom" className="mx-auto max-h-[92dvh] w-full gap-0 overflow-y-auto p-0 sm:max-w-lg" aria-describedby={undefined}>
-          <div className="border-b px-5 py-4 pr-14">
+          <div className="border-b px-5 pt-5 pb-4 pr-14">
             <SheetTitle className="font-heading text-xl">{L.requestBill}</SheetTitle>
-            <SheetDescription>
-              {L.due}: <span className="font-semibold text-foreground tabular-nums">{thb(data.dueTotal)}</span>
+            <SheetDescription className="mt-1 flex flex-wrap items-baseline gap-x-2">
+              {L.due}: <span className="rr-num font-heading text-2xl font-semibold text-foreground">{thb(data.dueTotal)}</span>
             </SheetDescription>
           </div>
           <div className="px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">

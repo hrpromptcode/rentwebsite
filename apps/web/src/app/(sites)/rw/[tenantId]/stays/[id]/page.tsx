@@ -9,7 +9,7 @@ import { thb } from "@rentweb/core/money";
 import { isUuid } from "@rentweb/core";
 import type { StayMeta } from "@rentweb/db";
 import { canCustomerCancel, evaluateCancellation, getStayForCustomer, rentalConfig } from "@rentweb/module-rental/services";
-import { L, METHOD_LABELS, QuoteBreakdown, RentalStyles, STAY_PAYMENT_STATUS, StayStatusBadge, formatThaiDateTime, formatThaiYmd } from "@rentweb/module-rental/ui";
+import { L, METHOD_LABELS, QuoteBreakdown, RentalStyles, RoomName, STAY_PAYMENT_STATUS, StayStatusBadge, formatThaiDateTime, formatThaiYmd } from "@rentweb/module-rental/ui";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
 import { PageBody } from "@/components/page-body";
@@ -166,7 +166,7 @@ export default async function StayPage({ params, searchParams }: { params: Param
                 </span>
               )}
               <div className="min-w-0">
-                <p className="font-heading text-step-3 leading-tight font-semibold">{type.name}</p>
+                <RoomName as="p" name={type.name} className="font-heading text-step-3 leading-tight font-semibold" />
                 <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5">
                     <Moon className="size-4" aria-hidden /> {L.nights(stay.nights)}

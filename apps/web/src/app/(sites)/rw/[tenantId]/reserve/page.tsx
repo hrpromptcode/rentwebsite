@@ -93,10 +93,8 @@ export default async function ReservePage({ params, searchParams }: { params: Pa
 
           <aside className="rr-fade-3 lg:col-span-5 xl:col-span-4">
             <div className="grid gap-4 lg:sticky lg:top-[calc(var(--header-h,0px)+1.5rem)]">
-              <div className="relative isolate overflow-hidden rounded-[var(--radius-2xl)] bg-foreground p-6 text-background md:p-7">
-                <div aria-hidden className="absolute -top-24 -right-20 -z-10 size-72 rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--glow)_55%,transparent),transparent_70%)] blur-2xl" />
-                <div aria-hidden className="absolute -bottom-28 -left-16 -z-10 size-64 rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--primary)_45%,transparent),transparent_70%)] blur-2xl" />
-                <p className="font-mono text-[0.6875rem] tracking-[0.1em] uppercase opacity-60">Reservation · {runtime.config.name}</p>
+              <div className="rr-night relative isolate overflow-hidden rounded-[var(--radius-2xl)] p-6 md:p-7">
+                <p className="rr-dim text-sm font-semibold tracking-[0.02em]">{runtime.config.name}</p>
                 <h2 className="mt-3 font-heading text-2xl font-semibold">ข้อมูลการจอง</h2>
                 <ul className="mt-5 grid gap-4 text-sm">
                   <li className="flex items-start gap-3">

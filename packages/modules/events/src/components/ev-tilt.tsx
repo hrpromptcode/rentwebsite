@@ -6,7 +6,8 @@ import { cn } from "@rentweb/ui/lib/utils";
 /**
  * Pointer tilt wrapper for posters and e-tickets: on a fine pointer with motion allowed it writes `--rx --ry` (tilt),
  * `--px --py` (beam / holo position) and `--dx --dy` (image counter-parallax) on its own element — no React state,
- * one rAF per move. Touch, coarse pointers, reduced motion and print get a flat card (QR codes stay flat for scanning).
+ * one rAF per move. Touch, coarse pointers, reduced motion and print get a flat card; pointing at a `[data-tilt-flat]`
+ * region (the e-ticket QR stub) levels the card again, so a QR is never shown at an angle.
  */
 export function EvTilt({ children, className, max = 6, as = "div", style, ...rest }: { children: React.ReactNode; className?: string; max?: number; as?: "div" | "li" | "article"; style?: React.CSSProperties } & Record<`data-${string}`, string | undefined>) {
   const raf = React.useRef(0);
@@ -26,6 +27,12 @@ export function EvTilt({ children, className, max = 6, as = "div", style, ...res
   const onMove = (e: React.PointerEvent<HTMLElement>) => {
     if (!ok.current || e.pointerType !== "mouse") return;
     const el = e.currentTarget;
+    if ((e.target as Element | null)?.closest?.("[data-tilt-flat]")) {
+      cancelAnimationFrame(raf.current);
+      for (const k of ["--rx", "--ry", "--dx", "--dy"]) el.style.removeProperty(k);
+      delete el.dataset.active;
+      return;
+    }
     const { clientX, clientY } = e;
     cancelAnimationFrame(raf.current);
     raf.current = requestAnimationFrame(() => {

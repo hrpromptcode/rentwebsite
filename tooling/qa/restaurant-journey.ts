@@ -536,7 +536,8 @@ async function main() {
       await page.waitForURL(/\/reservations\/RS-\d+\?p=/, { timeout: 30000 });
       const number = page.url().match(/RS-\d+/)![0];
       made.push(number);
-      await expect(page.getByText("จองโต๊ะสำเร็จ")).toBeVisible();
+      // heading role: Next's route announcer (shadow DOM) repeats the new page's h1 text when the streamed title is not in yet
+      await expect(page.getByRole("heading", { level: 1, name: "จองโต๊ะสำเร็จ" })).toBeVisible();
       await expect(page.getByText(number).first()).toBeVisible();
       await expect(page.getByText("4 คน")).toBeVisible();
       await expect(page.getByText("สวน", { exact: true })).toBeVisible();

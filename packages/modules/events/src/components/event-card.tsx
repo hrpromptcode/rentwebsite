@@ -10,6 +10,7 @@ import { bkkParts, formatThaiDateRange, formatThaiSession, formatThaiTime, THAI_
 import type { SaleState } from "../services/catalog";
 import { EvStyles } from "./ev-styles";
 import { EvTilt } from "./ev-tilt";
+import { ThaiWrap } from "./thai-wrap";
 
 /* Server-safe presentational pieces shared by sections and storefront pages (no hooks). */
 
@@ -177,7 +178,7 @@ export function EventCard({ event, stats, variant = "card", className, priority,
         <div className="absolute inset-x-0 bottom-0 p-4 text-white md:p-5">
           {event.category && <p className="ev-mono text-white/70" data-script={scriptOf(event.category)}>{event.category}</p>}
           <h3 className="font-heading mt-1 line-clamp-2 text-lg leading-snug font-semibold md:text-xl" data-script={scriptOf(event.title)}>
-            {event.title}
+            <ThaiWrap text={event.title} />
           </h3>
           <p className="mt-1 text-xs text-white/75">{event.startsAt ? formatThaiDateRange(event.startsAt, event.endsAt) : ""}</p>
         </div>
@@ -200,7 +201,7 @@ export function EventCard({ event, stats, variant = "card", className, priority,
           </div>
           <h3 className="rw-row-title font-heading mt-1.5 text-[clamp(1.35rem,1.05rem+1.2vw,2.25rem)] leading-[1.2] font-bold text-balance" data-script={scriptOf(event.title)}>
             <Link href={href} className="ev-link-stretch focus-visible:outline-none">
-              {event.title}
+              <ThaiWrap text={event.title} />
             </Link>
           </h3>
           <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -244,7 +245,7 @@ export function EventCard({ event, stats, variant = "card", className, priority,
             {event.category && <p className="ev-mono mb-2 inline-flex rounded-full border border-white/25 px-2.5 py-0.5 text-white/85" data-script={scriptOf(event.category)}>{event.category}</p>}
             <h3 className="ev-poster-title text-white" data-script={scriptOf(event.title)}>
               <Link href={href} className="pointer-events-auto rounded-sm">
-                {event.title}
+                <ThaiWrap text={event.title} />
               </Link>
             </h3>
             <p className="mt-2 text-[13px] leading-snug text-white/75">{when.label}</p>

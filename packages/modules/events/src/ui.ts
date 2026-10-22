@@ -8,3 +8,4 @@ export { EventHeroSection } from "./sections/event-hero";
 export { EventGridSection } from "./sections/event-grid";
 export { EventHighlightsSection } from "./sections/event-highlights";
 export { EvStyles } from "./components/ev-styles";
+export { ThaiWrap, thaiTokens } from "./components/thai-wrap";

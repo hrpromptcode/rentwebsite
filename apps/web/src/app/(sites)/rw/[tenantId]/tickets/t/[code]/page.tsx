@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CheckCircle2, ChevronLeft, Info, XCircle } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, CheckCircle2, Info, XCircle } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
-import { Reveal } from "@rentweb/ui/motion";
 import { getTicketByCode, getTicketDetail, isSignedTicketPayload, ticketQrDataUrl, verifyTicketPayload } from "@rentweb/module-events/services";
-import { L, TicketCard, formatThaiDateTime } from "@rentweb/module-events/ui";
+import { EvStyles, L, TicketCard, formatThaiDateTime } from "@rentweb/module-events/ui";
 import { TicketTools } from "@rentweb/module-events/client";
 import { decodeSlug } from "@/lib/slug";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -18,6 +17,7 @@ export const metadata: Metadata = { title: "บัตรเข้างาน", 
 /**
  * /tickets/t/[code] – one ticket by its signed QR payload (RWT1.tenant.ticket.code.hmac) or its unguessable code.
  * Public (shareable with the attendee); shows the holder's first name only and no buyer contact details.
+ * Operational (§5.10 "/tickets/*"): the e-ticket under a static stage glow, CSS tilt + holo, QR always flat.
  */
 export default async function PublicTicketPage({ params }: { params: Params }) {
   const { tenantId, code: raw } = await params;
@@ -41,36 +41,49 @@ export default async function PublicTicketPage({ params }: { params: Params }) {
   const eventHref = `/events/${encodeURIComponent(detail.event.slug)}`;
   const note =
     detail.ticket.status === "checked_in"
-      ? { icon: CheckCircle2, tone: "text-emerald-700 dark:text-emerald-300 bg-emerald-500/10", text: `${L.checkedInAt} ${detail.ticket.checkedInAt ? formatThaiDateTime(detail.ticket.checkedInAt) : ""}` }
+      ? { icon: CheckCircle2, tone: "text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/25", text: `${L.checkedInAt} ${detail.ticket.checkedInAt ? formatThaiDateTime(detail.ticket.checkedInAt) : ""}` }
       : detail.ticket.status === "valid"
-        ? { icon: Info, tone: "text-primary bg-primary-soft", text: L.publicTicketHint }
-        : { icon: XCircle, tone: "text-destructive bg-destructive/10", text: detail.ticket.status === "refunded" ? L.refundedHint : L.ticketNotFoundHint };
+        ? { icon: Info, tone: "text-foreground bg-primary-soft border-[color-mix(in_oklab,var(--primary)_30%,transparent)]", text: L.publicTicketHint }
+        : { icon: XCircle, tone: "text-destructive bg-destructive/10 border-destructive/25", text: detail.ticket.status === "refunded" ? L.refundedHint : L.ticketNotFoundHint };
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
-      <section className="container-x pt-8 pb-16 md:pt-12 md:pb-24">
-        <div className="mx-auto max-w-2xl">
-          <Link href={eventHref} className="inline-flex h-11 items-center gap-1 text-sm text-muted-foreground transition hover:text-foreground print:hidden">
-            <ChevronLeft className="size-4" /> {L.backToEvent}
+      <EvStyles />
+      <section className="container-x relative isolate pt-6 pb-16 md:pt-10 md:pb-24">
+        <div aria-hidden className="ev-spot print:hidden" />
+        <div className="mx-auto max-w-3xl">
+          <Link href={eventHref} className="group inline-flex h-11 items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground print:hidden">
+            <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-1" aria-hidden /> {L.backToEvent}
           </Link>
-          <Reveal className="mt-2">
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">{runtime.config.name}</p>
-            <h1 className="font-heading mt-1 text-3xl font-semibold md:text-4xl">{L.publicTicketTitle}</h1>
-          </Reveal>
-          <Reveal delay={0.05} className={`mt-5 flex items-start gap-2 rounded-[var(--radius-lg)] p-3 text-sm ${note.tone}`} role="status" data-testid="public-ticket-note">
+          <header className="ev-fade mt-3 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+            <div>
+              <p className="ev-mono text-muted-foreground">
+                <span className="text-primary">●</span> {runtime.config.name}
+              </p>
+              <h1 className="font-heading mt-2 text-step-4 leading-tight font-semibold">{L.publicTicketTitle}</h1>
+            </div>
+            <p aria-hidden className="font-mono text-sm font-semibold tracking-[0.18em] text-muted-foreground">
+              {detail.ticket.code}
+            </p>
+          </header>
+          <p className={`ev-fade mt-6 flex items-start gap-2.5 rounded-[var(--radius-lg)] border px-4 py-3 text-sm leading-relaxed ${note.tone}`} style={{ "--d": ".06s" } as React.CSSProperties} role="status" data-testid="public-ticket-note">
             <note.icon className="mt-0.5 size-4 shrink-0" aria-hidden /> <span>{note.text}</span>
-          </Reveal>
-          <Reveal delay={0.1} className="mt-5">
-            <TicketCard ticket={{ id: detail.ticket.id, code: detail.ticket.code, holderName: detail.ticket.holderName, status: detail.ticket.status, typeName: detail.typeName, seatLabel: detail.ticket.seatLabel, checkedInAt: detail.ticket.checkedInAt }} qrDataUrl={qr} event={{ title: detail.event.title, venueName: detail.event.venueName }} session={detail.session} firstNameOnly />
-          </Reveal>
-          {live && (
-            <Reveal delay={0.15} className="mt-5">
-              <TicketTools shareUrl={selfHref} shareTitle={`${detail.event.title} – ${detail.ticket.code}`} />
-            </Reveal>
-          )}
-          <div className="mt-8 print:hidden">
-            <Button asChild variant="outline" size="lg">
-              <Link href={eventHref}>{L.viewEvent}</Link>
+          </p>
+          <div className="ev-fade mt-6" style={{ "--d": ".12s" } as React.CSSProperties}>
+            <TicketCard
+              ticket={{ id: detail.ticket.id, code: detail.ticket.code, holderName: detail.ticket.holderName, status: detail.ticket.status, typeName: detail.typeName, seatLabel: detail.ticket.seatLabel, checkedInAt: detail.ticket.checkedInAt }}
+              qrDataUrl={qr}
+              event={{ title: detail.event.title, venueName: detail.event.venueName, cover: detail.event.cover }}
+              session={detail.session}
+              firstNameOnly
+            />
+          </div>
+          <div className="ev-fade mt-6 flex flex-wrap items-center justify-between gap-3 print:hidden" style={{ "--d": ".18s" } as React.CSSProperties}>
+            {live ? <TicketTools shareUrl={selfHref} shareTitle={`${detail.event.title} – ${detail.ticket.code}`} /> : <span />}
+            <Button asChild variant="ghost" size="lg" className="group h-11 rounded-full">
+              <Link href={eventHref}>
+                {L.viewEvent} <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden />
+              </Link>
             </Button>
           </div>
         </div>

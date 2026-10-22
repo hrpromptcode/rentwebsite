@@ -1,13 +1,28 @@
+/** events agent: debug the hero scene status (live / poster) over time. `pnpm exec tsx qa/redesign/_ev-dbg.ts [width] [url]` */
 import { chromium } from "@playwright/test";
+import { isolateHmr, stableGoto } from "../bughunt/fixes/_dev-stable";
+
+const W = Number(process.argv[2] ?? 1440);
 const b = await chromium.launch({ args: ["--enable-gpu", "--ignore-gpu-blocklist", "--use-angle=d3d11"] });
-const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
-await p.goto("http://demo-events.localhost:3000/", { waitUntil: "load" });
-await p.waitForTimeout(4000);
-console.log(await p.evaluate(() => {
-  const el = document.querySelector('[data-testid="hero-cta"]') as HTMLElement;
-  const out: unknown[] = [];
-  let n: HTMLElement | null = el;
-  while (n && out.length < 8) { const cs = getComputedStyle(n); const r = n.getBoundingClientRect(); out.push([n.tagName, n.className.slice(0, 60), cs.opacity, cs.transform.slice(0, 40), cs.visibility, Math.round(r.top), Math.round(r.height)]); n = n.parentElement; }
-  return JSON.stringify(out, null, 0);
-}));
+const ctx = await b.newContext({ viewport: { width: W, height: W < 768 ? 844 : 900 }, deviceScaleFactor: 1, locale: "th-TH", timezoneId: "Asia/Bangkok" });
+await isolateHmr(ctx);
+const p = await ctx.newPage();
+p.on("console", (m) => {
+  if ((m.type() === "error" || m.type() === "warning") && !/X4122|THREE\.Clock/.test(m.text())) console.log("console", m.type(), m.text().slice(0, 200));
+});
+await p.addInitScript(() => {
+  const t0 = performance.now();
+  (window as unknown as { __log: string[] }).__log = [];
+  new MutationObserver((ms) => {
+    for (const m of ms) if (m.attributeName === "data-scene-status") (window as unknown as { __log: string[] }).__log.push(`${Math.round(performance.now() - t0)}ms ${(m.target as Element).getAttribute("data-scene-status")}`);
+  }).observe(document, { attributes: true, subtree: true, attributeFilter: ["data-scene-status"] });
+});
+const t = Date.now();
+await stableGoto(p, process.argv[3] ?? "http://demo-events.localhost:3000/");
+console.log("stableGoto took", Date.now() - t, "ms");
+for (let i = 0; i < 4; i++) {
+  await p.waitForTimeout(1500);
+  if (i === 1) await p.screenshot({ path: "screenshots/.ev-dbg.png" });
+  console.log(await p.evaluate(() => JSON.stringify({ status: Array.from(document.querySelectorAll("[data-scene-status]")).map((e) => e.getAttribute("data-scene-status")), canvases: document.querySelectorAll("canvas").length, log: (window as unknown as { __log: string[] }).__log })));
+}
 await b.close();

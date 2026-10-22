@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowRight, BedDouble, CalendarSearch, SearchX } from "lucide-react";
 import { Img, PageIntro, StaggerCell, StaggerList, pad2, sized } from "@rentweb/storefront";
 import { isValidYmd, rentalConfig, searchStays, type SearchResult } from "@rentweb/module-rental/services";
-import { AmenityChips, L, Price, PriceFrom, RentalStyles, RoomSpecs, StaySearchBar, formatThaiRange, searchDates } from "@rentweb/module-rental/ui";
+import { AmenityChips, L, Price, PriceFrom, RentalStyles, RoomName, RoomSpecs, StaySearchBar, formatThaiRange, searchDates } from "@rentweb/module-rental/ui";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { buildCtx } from "@/lib/storefront-ctx";
 import { PageBody } from "@/components/page-body";
@@ -56,7 +56,8 @@ export default async function StayPage({ params, searchParams }: { params: Param
                 <span className="mx-auto flex size-16 items-center justify-center rounded-full bg-background text-muted-foreground shadow-sm">
                   <SearchX className="size-7" aria-hidden />
                 </span>
-                <p className="mx-auto mt-5 max-w-xl font-heading text-step-2 font-semibold text-balance">{L.noResults}</p>
+                <p className="mx-auto mt-5 max-w-xl font-heading text-step-3 leading-tight font-semibold text-balance">{L.noResultsTitle}</p>
+                <p className="mx-auto mt-3 max-w-md text-pretty text-muted-foreground">{L.noResultsHint}</p>
                 {others.length > 0 && (
                   <ul className="mx-auto mt-6 flex max-w-2xl flex-wrap justify-center gap-2 text-sm">
                     {others.map((o) => (
@@ -149,7 +150,7 @@ function ResultCard({ r, query, index, priority }: { r: SearchResult; query: str
         <p className="rw-index text-muted-foreground">{pad2(index + 1)}</p>
         <h2 className="mt-2 font-heading text-step-3 leading-tight font-semibold">
           <Link href={href} className="rw-link-line hover:text-primary-ink">
-            {r.type.name}
+            <RoomName name={r.type.name} />
           </Link>
         </h2>
         <RoomSpecs type={r.type} className="mt-3" />

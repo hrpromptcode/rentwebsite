@@ -27,6 +27,10 @@ const CSS = /* css */ `
   .rw-hero-sun { position: absolute; left: 50%; top: 46%; width: min(60vw, 44rem); aspect-ratio: 1; translate: -50% -50%; border-radius: 9999px; z-index: 1; pointer-events: none;
     background: radial-gradient(circle, color-mix(in oklab, var(--glow) 60%, transparent) 0%, color-mix(in oklab, var(--glow) 18%, transparent) 38%, transparent 68%); mix-blend-mode: screen; opacity: .55; }
 
+  /* ---------------- room names (RoomName reveal: mask per space-separated chunk) ---------------- */
+  .rw-name-mask { display: inline-block; vertical-align: top; clip-path: inset(-0.45em -0.25em -0.32em -0.25em); }
+  .rw-name-word { display: inline-block; }
+
   /* ---------------- glass search bar ---------------- */
   .rw-stay-bar { background: color-mix(in oklab, var(--background) 86%, transparent); -webkit-backdrop-filter: blur(22px) saturate(1.4); backdrop-filter: blur(22px) saturate(1.4);
     border: 1px solid color-mix(in oklab, var(--foreground) 12%, transparent); box-shadow: 0 30px 80px -28px color-mix(in oklab, var(--foreground) 45%, transparent), inset 0 1px 0 color-mix(in oklab, white 55%, transparent); color: var(--foreground); }
@@ -124,6 +128,7 @@ const CSS = /* css */ `
   @media (prefers-reduced-motion: no-preference) {
     .rw-hero-photo img { animation: rw-hero-push 2.8s var(--ease-out-expo, ease) both; }
     .rw-hero-in { animation: rw-hero-in 1.2s var(--ease-out-expo, ease) both; animation-delay: var(--d, 0s); }
+    .rw-name-rise .rw-name-word { animation: rw-name-up 1.15s var(--ease-out-expo, ease) both; animation-delay: var(--d, 0s); }
     .rw-rdrift { animation: rw-rdrift 24s ease-in-out infinite alternate; }
     .rw-cal-pop:not([hidden]) { animation: rw-pop-in .42s var(--ease-out-expo, ease) both; }
     .rw-cal-pop[data-dir="up"]:not([hidden]) { transform-origin: 50% 100%; }
@@ -134,8 +139,27 @@ const CSS = /* css */ `
     .rw-scroll-cue::after { content: ""; position: absolute; inset: 0; background: currentColor; animation: rw-cue-r 2.4s var(--ease-in-out-circ, ease-in-out) infinite; }
   }
 }
+/* unlayered on purpose: must win over the section utilities (bg-*) */
+/* ---------------- "a day at the resort" sticky story (§5.9 creative signature) ----------------
+     On pages that carry the rental ocean hero, the sticky-story section's stage light follows the time of day of the
+     active step: 1st = morning (pale sunrise), 2nd = afternoon (sea), 3rd = sunset (glow), last = night (--rw-night,
+     tokens remapped so every text stays AA). Driven by the kit's [data-active] flags (no JS here). Theme tokens only;
+     dark themes get --rw-night = a deepened background. Proper home: a sticky-story prop (see rental.md → shared owners). */
+  body:has(.rw-stay-hero) [data-section="sticky-story"] { --rw-tod: var(--background); background-color: var(--rw-tod); color: var(--foreground); }
+  body:has(.rw-stay-hero) [data-section="sticky-story"]:has([data-story-item]:first-child[data-active="true"]) { --rw-tod: color-mix(in oklab, var(--glow) 20%, var(--background)); }
+  body:has(.rw-stay-hero) [data-section="sticky-story"]:has([data-story-item]:nth-child(2):not(:last-child)[data-active="true"]) { --rw-tod: color-mix(in oklab, var(--accent) 13%, var(--background)); }
+  body:has(.rw-stay-hero) [data-section="sticky-story"]:has([data-story-item]:nth-child(n+3):not(:last-child)[data-active="true"]) { --rw-tod: color-mix(in oklab, var(--glow) 58%, var(--background)); }
+  body:has(.rw-stay-hero) [data-section="sticky-story"]:has([data-story-item]:last-child:not(:first-child)[data-active="true"]) {
+    --rw-tod: var(--rw-night); --foreground: var(--rw-night-fg); --card-foreground: var(--rw-night-fg);
+    --muted-foreground: color-mix(in oklab, var(--rw-night-fg) 74%, var(--rw-night)); --border: color-mix(in oklab, var(--rw-night-fg) 16%, transparent);
+    --muted: color-mix(in oklab, var(--rw-night-fg) 10%, var(--rw-night)); }
+  body:has(.rw-stay-hero) [data-section="sticky-story"]:has([data-story-item]:last-child:not(:first-child)[data-active="true"]) :is([data-story-kicker], .text-primary-ink) { color: color-mix(in oklab, var(--glow) 85%, var(--rw-night-fg)); }
+@media (prefers-reduced-motion: no-preference) {
+  body:has(.rw-stay-hero) [data-section="sticky-story"] { transition: background-color 1.4s var(--ease-out-quart, ease), color .9s var(--ease-out-quart, ease); }
+}
 @keyframes rw-hero-push { from { transform: scale(1.12); } to { transform: scale(1.02); } }
 @keyframes rw-hero-in { from { opacity: 0; transform: translateY(18px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes rw-name-up { from { transform: translateY(118%) rotate(2deg); } to { transform: none; } }
 @keyframes rw-rdrift { from { transform: scale(1.1) translate3d(-2%, 1%, 0); } to { transform: scale(1.1) translate3d(2%, -1.5%, 0); } }
 @keyframes rw-pop-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
 @keyframes rw-flash { from { color: var(--primary); } }

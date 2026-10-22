@@ -3,9 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, BedDouble, Clock, Maximize2, Moon, Phone, ShieldCheck, Users } from "lucide-react";
 import { ParallaxMedia } from "@rentweb/ui/motion";
-import { CtaButton, Eyebrow, Img, RevealHeading, Rise, SectionStyles, StaggerCell, StaggerList, pad2, sized } from "@rentweb/storefront";
+import { CtaButton, Eyebrow, Img, Rise, SectionStyles, StaggerCell, StaggerList, pad2, sized } from "@rentweb/storefront";
 import { fromPrices, getUnitTypeBySlug, isValidYmd, listExtras, listUnitTypes, parseExtrasParam, payOptionsFor, rentalConfig } from "@rentweb/module-rental/services";
-import { L, PriceFrom, RentalStyles, RoomCard, amenityIcon, searchDates } from "@rentweb/module-rental/ui";
+import { L, PriceFrom, RentalStyles, RoomCard, RoomName, amenityIcon, searchDates } from "@rentweb/module-rental/ui";
 import { Filmstrip, StayWidget } from "@rentweb/module-rental/client";
 import { decodeSlug } from "@/lib/slug";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -85,7 +85,7 @@ export default async function RoomPage({ params, searchParams }: { params: Param
                   <span aria-hidden className="h-px w-8 bg-white/50" />
                   <span>{runtime.config.name}</span>
                 </p>
-                <RevealHeading as="h1" text={type.name} trigger="mount" className="font-heading text-step-5 font-semibold text-balance text-white [text-shadow:0_2px_24px_rgb(0_0_0/.25)]" />
+                <RoomName as="h1" name={type.name} reveal delay={0.2} className="font-heading text-step-5 leading-[1.22] font-semibold text-balance text-white [text-shadow:0_2px_24px_rgb(0_0_0/.25)]" />
               </div>
               <div className="flex flex-wrap items-end justify-between gap-4 lg:col-span-4 lg:flex-col lg:items-end">
                 <PriceFrom price={fromPrice} size="lg" tone="inverse" />

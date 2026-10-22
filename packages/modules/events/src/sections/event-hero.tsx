@@ -14,6 +14,7 @@ import { thb } from "@rentweb/core/money";
 import { Countdown } from "../components/countdown";
 import { dotDate, hhmm } from "../components/event-card";
 import { EvStyles } from "../components/ev-styles";
+import { ThaiWrap } from "../components/thai-wrap";
 import { StageTicketScene } from "../components/stage-ticket-scene";
 import { eventCardStats, listPublicEvents } from "../services/catalog";
 import { formatThaiDate, formatThaiSession } from "../services/time";
@@ -82,7 +83,7 @@ export async function EventHeroSection({ ctx, props: p, id, index }: { ctx: Stor
       )}
       {tail && (
         <span className={cn("ev-hero-sub ev-in mt-2 block font-semibold text-balance md:mt-4", dark ? "text-white/90" : "text-foreground/85")} data-script={script(tail)} style={{ "--d": ".3s" } as React.CSSProperties}>
-          {tail}
+          <ThaiWrap text={tail} />
         </span>
       )}
     </h1>

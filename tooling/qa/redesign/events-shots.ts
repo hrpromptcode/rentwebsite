@@ -11,7 +11,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium, type Browser, type BrowserContext, type Page } from "@playwright/test";
-import { and, desc, eq, getAdminDb, ticketOrders, tickets, tenants } from "@rentweb/db";
+import { and, customers, desc, eq, getAdminDb, isNotNull, ticketOrders, tickets, tenants } from "@rentweb/db";
 import { isolateHmr, stableGoto } from "../bughunt/fixes/_dev-stable";
 
 const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
@@ -20,9 +20,12 @@ const WIDTHS = (arg("w") ?? "1440,390").split(",").map(Number);
 const REDUCE = process.argv.includes("--reduce");
 const FULL = process.argv.includes("--full");
 const MAX_FRAMES = Number(arg("frames") ?? 8);
+const WAIT = Number(arg("wait") ?? 1800);
 const TAG = arg("tag") ? `-${arg("tag")}` : "";
 const BASE = "http://demo-events.localhost:3000";
 const OUT = path.resolve(process.cwd(), "screenshots");
+let ownerPhone: string | null = null;
+let authState: Awaited<ReturnType<BrowserContext["storageState"]>> | null = null;
 const testPhone = () => `086${String(Math.floor(Math.random() * 1e7)).padStart(7, "0")}`;
 
 async function orders() {
@@ -33,19 +36,23 @@ async function orders() {
   const pick = (s: string, f?: (r: (typeof rows)[number]) => boolean) => rows.find((r) => r.status === s && (!f || f(r)));
   const paid = pick("paid");
   const [tk] = paid ? await db.select({ code: tickets.code }).from(tickets).where(and(eq(tickets.tenantId, t.id), eq(tickets.orderId, paid.id))).limit(1) : [];
+  // a seeded customer who owns orders → the account pages show real rows
+  const [owner] = await db.select({ phone: customers.phone }).from(ticketOrders).innerJoin(customers, eq(customers.id, ticketOrders.customerId)).where(and(eq(ticketOrders.tenantId, t.id), isNotNull(ticketOrders.customerId), eq(ticketOrders.status, "paid"))).limit(1);
+  ownerPhone = owner?.phone ? owner.phone.replace(/^\+66/, "0").replace(/\D/g, "") : null;
+  console.log("owner phone", ownerPhone);
   return { paid, pending: pick("pending", (r) => r.total > 0), cancelled: pick("cancelled"), refunded: pick("refunded"), code: tk?.code ?? null };
 }
 
 async function shoot(browser: Browser, w: number, pages: Array<{ name: string; path: string; login?: boolean }>) {
-  const ctx: BrowserContext = await browser.newContext({ viewport: { width: w, height: w < 768 ? 844 : 900 }, deviceScaleFactor: 1, locale: "th-TH", timezoneId: "Asia/Bangkok", reducedMotion: REDUCE ? "reduce" : "no-preference" });
+  const ctx: BrowserContext = await browser.newContext({ viewport: { width: w, height: w < 768 ? 844 : 900 }, deviceScaleFactor: 1, locale: "th-TH", timezoneId: "Asia/Bangkok", reducedMotion: REDUCE ? "reduce" : "no-preference", ...(authState ? { storageState: authState } : {}) });
   await isolateHmr(ctx);
-  let loggedIn = false;
+  let loggedIn = !!authState;
   const summary: string[] = [];
   for (const pg of pages) {
     if (pg.login && !loggedIn) {
       const p = await ctx.newPage();
       await stableGoto(p, `${BASE}/account/login?next=%2Faccount`);
-      await p.fill("#otp-target", testPhone());
+      await p.fill("#otp-target", ownerPhone ?? testPhone());
       await p.locator('form button[type="submit"]').click();
       await p.locator("#otp-code").waitFor({ timeout: 60_000 });
       const code = (await p.evaluate(() => document.body.innerText)).match(/รหัสของคุณคือ\s*(\d{6})/)?.[1] ?? "";
@@ -55,6 +62,7 @@ async function shoot(browser: Browser, w: number, pages: Array<{ name: string; p
       await p.waitForURL((u) => u.pathname === "/account", { timeout: 60_000 });
       await p.close();
       loggedIn = true;
+      authState = await ctx.storageState();
     }
     const page: Page = await ctx.newPage();
     const errs: string[] = [];
@@ -66,7 +74,7 @@ async function shoot(browser: Browser, w: number, pages: Array<{ name: string; p
       errs.push(`goto: ${String(e).slice(0, 120)}`);
       return null;
     });
-    await page.waitForTimeout(1800);
+    await page.waitForTimeout(WAIT);
     const suffix = `${w}${REDUCE ? "-reduce" : ""}${TAG}`;
     const files: string[] = [];
     const canv: number[] = [];
@@ -119,6 +127,9 @@ async function main() {
   const k = (r?: { id: string; k: string }) => (r ? `/tickets/${r.id}?k=${encodeURIComponent(r.k)}` : null);
   const all: Array<{ name: string; path: string | null; login?: boolean }> = [
     { name: "home", path: "/" },
+    { name: "venue", path: "/venue" },
+    { name: "about", path: "/about" },
+    { name: "contact", path: "/contact" },
     { name: "events", path: "/events" },
     { name: "events-past", path: "/events?scope=past" },
     { name: "events-empty", path: "/events?q=zzzzqqq" },

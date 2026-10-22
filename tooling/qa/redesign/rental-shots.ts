@@ -76,6 +76,10 @@ async function main() {
   const T = addDays(today, 47);
   const routes: Array<[string, string]> = [
     ["home", "/"],
+    ["facilities", "/facilities"],
+    ["location", "/location"],
+    ["about", "/about"],
+    ["contact", "/contact"],
     ["rooms", "/rooms"],
     ["rooms-q", `/rooms?from=${F}&to=${T}&guests=2`],
     ["room", `/rooms/beachfront-pool-villa`],
@@ -113,7 +117,7 @@ async function main() {
       });
       page.on("pageerror", (e) => errs.push(`pageerror: ${e.message.slice(0, 220)}`));
       try {
-        if (DARK) await page.addInitScript(() => localStorage.setItem("rw-mode", "dark"));
+        if (DARK) await page.addInitScript(() => localStorage.setItem("rw-theme", "dark"));
         const res = await stableGoto(page, `${ORIGIN}${route}`, "load");
         await page.waitForTimeout(1200);
         if (!TOP) await settle(page);

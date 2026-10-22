@@ -111,10 +111,66 @@ const CSS = /* css */ `
   .ev-ticket-edge { box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--foreground) 11%, transparent); }
   .ev-barcode { background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 4px, currentColor 4px 5px, transparent 5px 8px, currentColor 8px 11px, transparent 11px 13px); opacity: .55; }
 
-  /* ---------- e-ticket card ---------- */
-  .ev-eticket-qr { background: #fff; color: #0b0b0f; }
-  .ev-eticket-art { position: relative; overflow: clip; }
-  .ev-eticket[data-dead] .ev-eticket-art { filter: grayscale(1); opacity: .75; }
+  /* ---------- e-ticket card (order + public ticket pages; operational: CSS tilt + holo only, QR always flat) ---------- */
+  .ev-et { position: relative; border-radius: calc(var(--radius, .75rem) * 1.4); }
+  .ev-et-body { position: relative; isolation: isolate; display: grid; overflow: hidden; border-radius: inherit; color: var(--card-foreground);
+    background:
+      radial-gradient(120% 90% at 0% 100%, color-mix(in oklab, var(--primary) 9%, transparent), transparent 60%),
+      radial-gradient(90% 90% at 100% 0%, color-mix(in oklab, var(--accent) 9%, transparent), transparent 60%),
+      var(--card);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--foreground) 11%, transparent), 0 34px 70px -44px rgb(0 0 0 / .75); }
+  @media (min-width: 768px) { .ev-et-body { grid-template-columns: minmax(0, 1fr) 15.5rem; } }
+  .ev-et-art { position: relative; isolation: isolate; min-height: 9.5rem; overflow: clip; background: #0b0b0f; color: #fff; display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem; padding: 1.1rem 1.25rem 1.2rem; }
+  @media (min-width: 768px) { .ev-et-art { min-height: 10.5rem; padding: 1.25rem 1.5rem 1.4rem; } }
+  .ev-et-art > img { position: absolute; inset: -6%; z-index: -2; width: 112%; height: 112%; max-width: none; object-fit: cover; opacity: .72; filter: saturate(.9) contrast(1.06);
+    transform: translate3d(calc(var(--dx, 0) * -12px), calc(var(--dy, 0) * -12px), 0); transition: transform 1s var(--ease-out-expo, cubic-bezier(.16,1,.3,1)); }
+  .ev-et-art::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(100deg, rgb(8 8 12 / .92) 0%, rgb(8 8 12 / .62) 46%, rgb(8 8 12 / .22) 100%), linear-gradient(to top, rgb(8 8 12 / .7), transparent 60%); }
+  .ev-et[data-dead] .ev-et-art > img { filter: grayscale(1) contrast(1.05); opacity: .45; }
+  .ev-et-title { font-family: var(--font-heading); font-weight: 700; font-size: clamp(1.3rem, 1.1rem + .7vw, 1.75rem); line-height: 1.22; text-wrap: balance; text-shadow: 0 2px 24px rgb(0 0 0 / .45); }
+  .ev-et-title[data-script="latin"] { line-height: 1.08; letter-spacing: -.01em; }
+  .ev-et-stub { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .7rem; padding: 1.6rem 1.25rem 1.25rem;
+    border-top: 2px dashed color-mix(in oklab, var(--foreground) 20%, transparent); }
+  @media (min-width: 768px) { .ev-et-stub { border-top: 0; border-left: 2px dashed color-mix(in oklab, var(--foreground) 20%, transparent); padding: 1.5rem 1.25rem; } }
+  /* perforation bites (the card clips the outer half) */
+  .ev-et-stub::before, .ev-et-stub::after { content: ""; position: absolute; width: 26px; height: 26px; border-radius: 50%; background: var(--background);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--foreground) 11%, transparent); top: -14px; }
+  .ev-et-stub::before { left: -13px; }
+  .ev-et-stub::after { right: -13px; }
+  @media (min-width: 768px) {
+    .ev-et-stub::before { left: -14px; top: -13px; }
+    .ev-et-stub::after { right: auto; left: -14px; top: auto; bottom: -13px; }
+  }
+  .ev-et-qr { background: #fff; color: #0b0b0f; padding: .6rem; border-radius: 1rem; box-shadow: 0 0 0 1px rgb(0 0 0 / .06), 0 20px 44px -26px rgb(0 0 0 / .8); }
+  .ev-et-qr > img { display: block; width: min(13.5rem, 62vw); height: auto; aspect-ratio: 1; image-rendering: auto; }
+  @media (min-width: 768px) { .ev-et-qr > img { width: 11.5rem; } }
+  .ev-et-code { font-family: var(--font-mono, ui-monospace, monospace); font-weight: 600; font-size: .9375rem; letter-spacing: .14em; }
+  .ev-et-stamp { position: absolute; z-index: 3; right: 1.25rem; bottom: 1.1rem; rotate: -8deg; pointer-events: none; padding: .35rem 1rem; border: 3px solid currentColor; border-radius: .5rem;
+    font-family: var(--font-accent, var(--font-display)); font-weight: 800; font-size: clamp(1rem, .8rem + 1vw, 1.5rem); letter-spacing: .16em; color: #ff6b6b; opacity: .95; background: rgb(8 8 12 / .55); }
+  .ev-et-stamp[data-tone="ok"] { color: var(--primary); }
+  /* glow behind the card (static stage light; no WebGL on operational routes) */
+  .ev-spot { position: absolute; inset: -12% -6% auto; height: 70%; z-index: -1; pointer-events: none; filter: blur(10px);
+    background: radial-gradient(45% 60% at 30% 0%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 70%), radial-gradient(40% 55% at 75% 10%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 70%); }
+
+  /* ---------- order page ---------- */
+  .ev-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); position: relative; }
+  .ev-steps::before, .ev-steps::after { content: ""; position: absolute; top: 1.05rem; left: calc(100% / 6); height: 2px; border-radius: 2px; }
+  .ev-steps::before { right: calc(100% / 6); background: color-mix(in oklab, var(--foreground) 12%, transparent); }
+  .ev-steps::after { width: calc((100% - 100% / 3) * var(--fill, 0)); background: var(--primary); box-shadow: 0 0 18px -2px var(--primary); }
+  .ev-steps[data-tone="off"]::after { background: color-mix(in oklab, var(--foreground) 35%, transparent); box-shadow: none; }
+  .ev-step { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: .5rem; text-align: center; font-size: .8125rem; color: var(--muted-foreground); }
+  .ev-step > i { display: grid; place-items: center; width: 2.1rem; height: 2.1rem; border-radius: 999px; font-style: normal; background: var(--card); border: 2px solid color-mix(in oklab, var(--foreground) 16%, transparent); }
+  .ev-step[data-state="done"] { color: var(--foreground); }
+  .ev-step[data-state="done"] > i { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground); }
+  .ev-step[data-state="now"] { color: var(--foreground); font-weight: 600; }
+  .ev-step[data-state="now"] > i { border-color: var(--primary); color: var(--primary); box-shadow: 0 0 0 5px color-mix(in oklab, var(--primary) 18%, transparent); }
+  .ev-step[data-state="off"] > i { border-color: color-mix(in oklab, var(--destructive) 60%, transparent); color: var(--destructive); }
+  .ev-receipt { position: relative; isolation: isolate; border-radius: calc(var(--radius, .75rem) * 1.4); background: var(--card); color: var(--card-foreground);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent); }
+  .ev-receipt-zig { height: 10px; background: radial-gradient(circle at 7px -1px, transparent 6px, var(--card) 6.5px) 0 0 / 14px 10px repeat-x; }
+  .ev-orow { transition: transform .5s var(--ease-out-quart, cubic-bezier(.25,1,.5,1)), box-shadow .5s var(--ease-out-quart, ease); }
+  .ev-orow:hover { transform: translateY(-3px); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 50%, transparent), 0 24px 50px -30px color-mix(in oklab, var(--primary) 40%, transparent); }
+  .ev-orow:hover .ev-orow-go { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); rotate: -45deg; }
+  .ev-orow-go { transition: background-color .4s var(--ease-out-quart, ease), color .4s, rotate .5s var(--ease-out-quart, ease); }
 
   /* ---------- ticket tiers (event page) ---------- */
   .ev-tier { transition: transform .5s var(--ease-out-quart, ease), box-shadow .5s var(--ease-out-quart, ease); }
@@ -144,18 +200,29 @@ const CSS = /* css */ `
     .ev-roll-col { transition: transform .5s cubic-bezier(.3,1.25,.4,1); }
     .ev-float { animation: ev-float 6s ease-in-out infinite; }
   }
+  @media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+    .ev-fade { animation: ev-fade .45s var(--ease-out-quart, ease) both; animation-delay: var(--d, 0s); }
+    .ev-steps::after { animation: ev-grow 1.1s var(--ease-out-expo, cubic-bezier(.16,1,.3,1)) .35s both; }
+  }
   @media (prefers-reduced-motion: reduce) {
     .ev-tilt, .ev-tilt[data-active] { transform: none !important; transition: none; }
     .ev-skew { transform: none !important; }
-    .ev-poster-media > img { transition: none; }
+    .ev-poster-media > img, .ev-et-art > img { transition: none; transform: none; }
+    .ev-orow, .ev-orow-go { transition: none; }
+    .ev-orow:hover { transform: none; }
   }
   @media print {
     .ev-tilt { transform: none !important; }
     .ev-holo, .ev-holo-lines { display: none; }
     .ev-ticket, .ev-ticket-x, .ev-poster { -webkit-mask: none; mask: none; }
+    .ev-et-body { box-shadow: none; border: 1px solid #bbb; }
+    .ev-et-stub::before, .ev-et-stub::after, .ev-spot { display: none; }
+    .ev-et-art > img { transform: none; }
   }
 }
 @keyframes ev-in { from { opacity: 0; transform: translate3d(0, 22px, 0); } }
+@keyframes ev-grow { from { width: 0; } }
+@keyframes ev-fade { from { opacity: 0; transform: translate3d(0, 10px, 0); } }
 @keyframes ev-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
 `;
 

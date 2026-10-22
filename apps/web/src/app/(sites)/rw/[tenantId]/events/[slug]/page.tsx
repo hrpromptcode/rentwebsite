@@ -4,19 +4,18 @@ import { notFound } from "next/navigation";
 import { AlertTriangle, ArrowLeft, Clock, DoorOpen, ExternalLink, MapPin, Megaphone, MessageCircle, Phone, Ticket, Users } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
 import { cn } from "@rentweb/ui/lib/utils";
-import { ParallaxMedia, Reveal } from "@rentweb/ui/motion";
+import { LiveClock, ParallaxMedia, Reveal } from "@rentweb/ui/motion";
 import { ScenePoster } from "@rentweb/ui/three";
 import { Eyebrow, Img, Prose, SectionStyles, StaggerCell, StaggerList } from "@rentweb/storefront";
 import type { PaymentMethodOption } from "@rentweb/storefront/payments";
 import { serializeJsonLd } from "@rentweb/core";
 import { thb } from "@rentweb/core/money";
 import { eventsConfig, getPublicEvent, sanitizeHtml, ticketPaymentMethods } from "@rentweb/module-events/services";
-import { DateStamp, EvStyles, EventStatusBadge, L, METHOD_LABELS, PriceFrom, SaleStateBadge, dotDate, formatThaiDate, formatThaiDateRange, formatThaiDateTime, formatThaiSession, formatThaiTime, hhmm } from "@rentweb/module-events/ui";
+import { DateStamp, EvStyles, ThaiWrap, EventStatusBadge, L, METHOD_LABELS, PriceFrom, SaleStateBadge, dotDate, formatThaiDate, formatThaiDateRange, formatThaiDateTime, formatThaiSession, formatThaiTime, hhmm } from "@rentweb/module-events/ui";
 import { Countdown, EvTilt, TicketPicker, type PickerSession } from "@rentweb/module-events/client";
 import { decodeSlug } from "@/lib/slug";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { getCurrentCustomer } from "@/lib/customer";
-import { PageBody } from "@/components/page-body";
 
 type Params = Promise<{ tenantId: string; slug: string }>;
 type Search = Promise<{ session?: string }>;
@@ -34,6 +33,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return { title: e.title, description: e.summary ?? undefined, openGraph: e.cover ? { images: [{ url: e.cover }] } : undefined };
 }
 
+const bkkYear = (d: Date) => Number(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric" }).format(d));
 const finite = (n: number) => (Number.isFinite(n) ? n : null);
 const script = (s: string) => (/[฀-๿]/.test(s) ? (/[A-Za-z]/.test(s) ? "mixed" : "thai") : "latin");
 function splitTitle(t: string): [string, string] {
@@ -99,9 +99,11 @@ export default async function EventPage({ params, searchParams }: { params: Para
   const [head, tail] = splitTitle(event.title);
   const longHead = [...head.replace(/\s+/g, "")].length > 18;
   const multi = openSessions.length > 1;
+  const gallery = event.gallery.slice(0, 9);
 
   return (
-    <PageBody theme={runtime.theme} sections={[]}>
+    <div>
+      {/* the poster hero paints under the (transparent) header itself → no PageBody top padding */}
       <EvStyles />
       <SectionStyles />
       {/* ------------------------------------------------------------------ hero ------------------------------------ */}
@@ -115,20 +117,29 @@ export default async function EventPage({ params, searchParams }: { params: Para
             <ScenePoster variant="stage" grain={0.05} style={{ background: "transparent" }} />
           </div>
         </div>
-        <div className="container-x relative pt-[calc(var(--header-h,72px)+1.5rem)] pb-10 md:pb-14">
-          <Link href="/events" className="group mb-auto inline-flex h-11 items-center gap-2 text-sm text-white/75 transition-colors hover:text-white">
-            <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-1" aria-hidden /> {L.allEvents}
-          </Link>
-          <div className="mt-16 grid gap-8 md:mt-24 lg:grid-cols-12">
+        <div className="absolute inset-x-0 top-0 z-10 pt-[calc(var(--header-h,72px)+0.75rem)] md:pt-[calc(var(--header-h,80px)+1.25rem)]">
+          <div className="container-x flex items-center justify-between gap-6">
+            <Link href="/events" className="group inline-flex h-11 items-center gap-2 text-sm text-white/80 transition-colors hover:text-white">
+              <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-1" aria-hidden /> {L.allEvents}
+            </Link>
+            <span className="ev-mono hidden items-center gap-5 text-white/65 md:flex">
+              {event.category && <span data-script={script(event.category)}>{event.category}</span>}
+              {start && <span>{dotDate(start)}.{String(bkkYear(start)).slice(2)}</span>}
+              <LiveClock label="BKK" />
+            </span>
+          </div>
+        </div>
+        <div className="container-x relative pt-[calc(var(--header-h,72px)+5.5rem)] pb-10 md:pb-14">
+          <div className="grid gap-8 lg:grid-cols-12">
             <div className="lg:col-span-7">
               <Eyebrow text={[event.organizer ?? runtime.config.name, event.category].filter(Boolean).join(" · ")} tone="inherit" className="ev-in mb-5 text-white/80" />
               <h1 className="font-heading" data-testid="event-title" data-script={script(event.title)}>
                 <span className="ev-giant ev-in block text-balance [text-shadow:0_4px_40px_rgba(0,0,0,.35)]" data-script={script(head)} style={{ fontSize: longHead || tail === "" ? "clamp(2.25rem, 1.2rem + 3.8vw, 5rem)" : "clamp(3rem, 1.2rem + 5.4vw, 7rem)", "--d": ".1s" } as React.CSSProperties}>
-                  {head}
+                  <ThaiWrap text={head} />
                 </span>
                 {tail && (
                   <span className="ev-hero-sub ev-in mt-2 block font-semibold text-balance text-white/90 md:mt-3" data-script={script(tail)} style={{ "--d": ".2s" } as React.CSSProperties}>
-                    {tail}
+                    <ThaiWrap text={tail} />
                   </span>
                 )}
               </h1>
@@ -298,8 +309,8 @@ export default async function EventPage({ params, searchParams }: { params: Para
                 <div className="mt-6 overflow-hidden rounded-[calc(var(--radius)*1.4)] border ev-hair bg-card">
                   {mapEmbed && (
                     <div className="relative isolate h-64 md:h-80">
-                      <iframe src={mapEmbed} title={`แผนที่ ${event.venueName ?? ""}`} className="absolute inset-0 size-full grayscale contrast-[1.05]" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />
-                      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[color-mix(in_oklab,var(--primary)_22%,transparent)] mix-blend-multiply dark:mix-blend-color" />
+                      <iframe src={mapEmbed} title={`แผนที่ ${event.venueName ?? ""}`} className="absolute inset-0 size-full grayscale contrast-[1.05] dark:invert-[.9] dark:contrast-[.95]" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />
+                      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[color-mix(in_oklab,var(--primary)_22%,transparent)] mix-blend-multiply dark:bg-[color-mix(in_oklab,var(--primary)_16%,transparent)] dark:mix-blend-soft-light" />
                     </div>
                   )}
                   <div className="flex flex-wrap items-start justify-between gap-4 p-5 md:p-6">
@@ -352,16 +363,16 @@ export default async function EventPage({ params, searchParams }: { params: Para
               </Reveal>
             )}
 
-            {event.gallery.length > 0 && (
+            {gallery.length > 0 && (
               <div className="mt-14 md:mt-20">
                 <Reveal>
                   <h2 className="font-heading text-step-3 font-semibold">{L.gallery}</h2>
                 </Reveal>
-                <StaggerList className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3" stagger={0.06}>
-                  {event.gallery.slice(0, 9).map((url, i) => (
-                    <StaggerCell key={url + i} className={cn(i === 0 && "col-span-2 row-span-2")}>
+                <StaggerList className={cn("mt-6 grid grid-cols-3 gap-2.5 md:gap-3", gallery.length > 4 && "md:grid-cols-4")} stagger={0.06}>
+                  {gallery.map((url, i) => (
+                    <StaggerCell key={url + i} className={cn(i === 0 && cn("col-span-3 md:col-span-2", gallery.length === 4 ? "md:row-span-3" : gallery.length === 3 || gallery.length > 4 ? "md:row-span-2" : ""))}>
                       <div className="group h-full overflow-hidden rounded-[calc(var(--radius)*1.25)] bg-muted">
-                        <Img src={url} alt={`${event.title} ${i + 1}`} className="aspect-square size-full object-cover grayscale-[.4] transition duration-700 group-hover:scale-105 group-hover:grayscale-0" />
+                        <Img src={url} alt={`${event.title} ${i + 1}`} className={cn("size-full object-cover grayscale-[.4] transition duration-700 group-hover:scale-105 group-hover:grayscale-0", i === 0 ? "aspect-[16/10] md:aspect-auto md:h-full" : "aspect-square")} />
                       </div>
                     </StaggerCell>
                   ))}
@@ -379,7 +390,7 @@ export default async function EventPage({ params, searchParams }: { params: Para
 
       {/* phone: ticket-stub buy bar; the widget itself sits after the hero */}
       {live && onSale && (
-        <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-3 lg:hidden print:hidden" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }} data-testid="buy-bar">
+        <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-3 lg:hidden print:hidden" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }} data-testid="buy-bar" data-sticky-bar="lg">
           <div className="ev-ticket-x mx-auto flex max-w-xl items-center justify-between gap-3 rounded-2xl border ev-hair bg-card/95 py-2.5 pr-2.5 pl-5 shadow-float backdrop-blur" style={{ "--at": "50%", "--notch": "9px" } as React.CSSProperties}>
             <div className="min-w-0">
               <p className="truncate text-xs text-muted-foreground">{head}</p>
@@ -394,6 +405,6 @@ export default async function EventPage({ params, searchParams }: { params: Para
         </div>
       )}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
-    </PageBody>
+    </div>
   );
 }

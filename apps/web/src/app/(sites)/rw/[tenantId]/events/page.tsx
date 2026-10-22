@@ -9,7 +9,6 @@ import { countEvents, eventCardStats, listEventCategories, listEvents, listPubli
 import { EvStyles, EventCard, L } from "@rentweb/module-events/ui";
 import { EvPills } from "@rentweb/module-events/client";
 import { getRuntime, tenantTx } from "@/lib/tenant";
-import { PageBody } from "@/components/page-body";
 import { cmsFallback, moduleOrCmsMetadata } from "@/lib/cms-fallback";
 
 type Params = Promise<{ tenantId: string }>;
@@ -63,16 +62,19 @@ export default async function EventsPage({ params, searchParams }: { params: Par
   };
   const filtered = !!(q || category);
   const offset = (i: number) => (events.length >= 3 && i % 3 === 1 ? "lg:translate-y-[9%]" : "");
+  // the stage glow paints under an overlaying header → the page pads itself (same rule as PageBody)
+  const lay = runtime.theme.layout;
+  const overlay = lay.header === "floating" || (lay.headerTransparent && lay.headerSticky);
 
   return (
-    <PageBody theme={runtime.theme} sections={[]}>
+    <div>
       <EvStyles />
       <SectionStyles />
       <section className="relative overflow-x-clip">
         {/* decorative stage glow + outline wordmark behind the intro */}
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[34rem] bg-[radial-gradient(45%_60%_at_85%_0%,color-mix(in_oklab,var(--primary)_16%,transparent),transparent_70%),radial-gradient(35%_50%_at_60%_10%,color-mix(in_oklab,var(--accent)_14%,transparent),transparent_70%)]" />
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[40rem] bg-[radial-gradient(45%_60%_at_85%_0%,color-mix(in_oklab,var(--primary)_16%,transparent),transparent_70%),radial-gradient(35%_50%_at_60%_10%,color-mix(in_oklab,var(--accent)_14%,transparent),transparent_70%)]" />
         <div className="container-x pb-16 md:pb-28">
-          <header data-page-intro="" className="grid gap-8 pt-8 pb-10 md:pt-14 md:pb-12 lg:grid-cols-12 lg:items-end">
+          <header data-page-intro="" className={cn("grid gap-8 pb-10 md:pb-12 lg:grid-cols-12 lg:items-end", overlay ? "pt-28 md:pt-40" : "pt-8 md:pt-14")}>
             <div className="lg:col-span-8">
               <Eyebrow text={runtime.config.name} index={scope === "past" ? "02 / ARCHIVE" : "01 / LINE-UP"} className="mb-5" />
               <RevealHeading as="h1" text={L.eventsTitle} trigger="mount" className="font-heading text-step-6 font-bold text-balance" />
@@ -185,6 +187,6 @@ export default async function EventsPage({ params, searchParams }: { params: Par
           )}
         </div>
       </section>
-    </PageBody>
+    </div>
   );
 }

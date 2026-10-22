@@ -3,3 +3,4 @@ export { EventCard, DateBadge, DateStamp, dotDate, hhmm, weekdayTime, PriceFrom,
 export { TicketCard, type TicketCardData, type TicketCardProps } from "./ticket-card";
 export { OrderLines, type OrderLinesData } from "./order-summary";
 export { EvStyles } from "./ev-styles";
+export { ThaiWrap, thaiTokens } from "./thai-wrap";

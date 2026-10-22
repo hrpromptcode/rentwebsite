@@ -2,17 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { ArrowRight, Lock, Search, UtensilsCrossed } from "lucide-react";
+import { ArrowRight, CalendarCheck, Lock, Receipt, UtensilsCrossed } from "lucide-react";
 import { Button } from "@rentweb/ui/components/button";
 import { Input } from "@rentweb/ui/components/input";
 import { Label } from "@rentweb/ui/components/label";
-import { Reveal } from "@rentweb/ui/motion";
 import { PaymentPanel } from "@rentweb/storefront/payments";
 import { paymentSettings } from "@rentweb/core/payments";
 import { thb } from "@rentweb/core/money";
 import { TABLE_COOKIE, getOrderForCustomer } from "@rentweb/module-restaurant/services";
 import { loadOrderDto } from "@rentweb/module-restaurant/dto";
-import { OrderTracker } from "@rentweb/module-restaurant/components";
+import { AccessGate, OrderTracker } from "@rentweb/module-restaurant/components";
 import { L } from "@rentweb/module-restaurant/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
@@ -70,56 +69,58 @@ export default async function RestaurantOrderPage({ params, searchParams }: { pa
 
   return (
     <PageBody theme={runtime.theme} sections={[]}>
-      <section className="container-x pt-6 pb-16 md:pt-10 md:pb-24">
-        <div className="mx-auto max-w-3xl">
-          <Reveal>
-            <OrderTracker initial={dto} phone={p ?? null} paymentPanel={panel} />
-          </Reveal>
-          <Reveal delay={0.1} className="mt-6 flex flex-wrap gap-3">
-            <Button asChild size="lg">
-              <Link href={dto.type === "dine_in" ? "/menu" : "/order"}>
-                <UtensilsCrossed className="size-5" /> {dto.type === "dine_in" ? L.menu : "สั่งอีกครั้ง"}
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/reserve">{L.reserve}</Link>
-            </Button>
-          </Reveal>
-        </div>
+      <section className="container-x pt-6 pb-20 md:pt-10 md:pb-28">
+        <OrderTracker
+          initial={dto}
+          phone={p ?? null}
+          paymentPanel={panel}
+          shopName={runtime.config.name}
+          actions={
+            <>
+              <Button asChild size="lg" className="h-12">
+                <Link href={dto.type === "dine_in" ? "/menu" : "/order"}>
+                  <UtensilsCrossed className="size-5" /> {dto.type === "dine_in" ? L.menu : "สั่งอีกครั้ง"}
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="h-12">
+                <Link href="/reserve">
+                  <CalendarCheck className="size-5" /> {L.reserve}
+                </Link>
+              </Button>
+            </>
+          }
+        />
       </section>
     </PageBody>
   );
 }
 
 function LookupForm({ theme, number }: { theme: "page" | "locked"; number?: string }) {
+  const locked = theme === "locked";
   return (
-    <section className="container-x pt-6 pb-16 md:pt-10 md:pb-24">
-      <div className="mx-auto max-w-md">
-        <Reveal className="card p-6 md:p-8">
-          <span className="flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary">{theme === "locked" ? <Lock className="size-5" /> : <Search className="size-5" />}</span>
-          <h1 className="font-heading mt-4 text-2xl font-semibold">{L.trackOrder}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{theme === "locked" ? "กรอกเบอร์โทรศัพท์ที่ใช้สั่ง เพื่อเปิดดูออเดอร์นี้" : "กรอกเลขที่ออเดอร์และเบอร์โทรศัพท์ที่ใช้สั่ง"}</p>
-          <form method="get" action={number ? `/orders/r/${encodeURIComponent(number)}` : "/orders/r/lookup"} className="mt-6 grid gap-4">
-            {number ? (
-              <div className="rounded-[var(--radius-lg)] bg-muted/60 px-4 py-3 text-sm">
-                {L.orderNumber}: <span className="font-heading text-base font-semibold tracking-wide">{number}</span>
-              </div>
-            ) : (
-              <div className="grid gap-1.5">
-                <Label htmlFor="lookup-n">{L.orderNumber}</Label>
-                <Input id="lookup-n" name="n" placeholder="R-1001" required className="h-12 uppercase" autoComplete="off" />
-              </div>
-            )}
-            <div className="grid gap-1.5">
-              <Label htmlFor="lookup-p">{L.phone}</Label>
-              <Input id="lookup-p" name="p" type="tel" inputMode="tel" placeholder="08x-xxx-xxxx" required className="h-12" autoComplete="tel" />
-            </div>
-            <Button type="submit" size="lg" className="h-12 w-full">
-              {L.trackOrder} <ArrowRight className="size-4" />
-            </Button>
-          </form>
-        </Reveal>
-      </div>
-    </section>
+    <AccessGate
+      eyebrow={L.pickupShort}
+      icon={locked ? <Lock className="size-4" aria-hidden /> : <Receipt className="size-4" aria-hidden />}
+      title={L.trackOrder}
+      lead={locked ? "กรอกเบอร์โทรศัพท์ที่ใช้สั่ง เพื่อเปิดดูออเดอร์นี้" : "กรอกเลขที่ออเดอร์และเบอร์โทรศัพท์ที่ใช้สั่ง"}
+      badge={number ? { label: L.orderNumber, value: number } : undefined}
+      notes={["เลขที่ออเดอร์อยู่ในหน้ายืนยันหลังสั่ง ขึ้นต้นด้วย R-", "ใช้เบอร์โทรศัพท์เดียวกับตอนสั่ง เพื่อความเป็นส่วนตัวของคุณ", "สถานะอัปเดตเองทุกไม่กี่วินาที ไม่ต้องรีเฟรชหน้า"]}
+    >
+      <form method="get" action={number ? `/orders/r/${encodeURIComponent(number)}` : "/orders/r/lookup"} className="grid gap-5">
+        {!number && (
+          <div className="grid gap-2">
+            <Label htmlFor="lookup-n">{L.orderNumber}</Label>
+            <Input id="lookup-n" name="n" placeholder="R-1001" required className="h-12 font-mono tracking-wider uppercase" autoComplete="off" />
+          </div>
+        )}
+        <div className="grid gap-2">
+          <Label htmlFor="lookup-p">{L.phone}</Label>
+          <Input id="lookup-p" name="p" type="tel" inputMode="tel" placeholder="08x-xxx-xxxx" required className="h-12" autoComplete="tel" />
+        </div>
+        <Button type="submit" size="lg" className="group h-12 w-full">
+          {L.trackOrder} <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
+        </Button>
+      </form>
+    </AccessGate>
   );
 }

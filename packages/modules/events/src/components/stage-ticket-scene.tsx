@@ -8,7 +8,8 @@ import { Scene3D, ScenePoster } from "@rentweb/ui/three";
  * Ticket3D of the featured event, rendered in ONE canvas (max one live WebGL canvas per viewport). The kit's two scene
  * implementations are composed inside a single Scene3D host; the ticket is placed by the box's aspect (right of the
  * copy on desktop, above it on phones). Drag spins the ticket (inertia, snaps to the front), the foil catches the beams.
- * Fallback (SSR / no WebGL / low tier / scene3d=off): the kit's stage poster + a CSS holo ticket.
+ * Fallback (SSR / no WebGL / low tier / scene3d=off / reduced motion — the canvas-drawn ticket face may not be ready in a
+ * single static frame): the kit's stage poster + a CSS holo ticket.
  */
 
 const Lights = React.lazy(() => import("@rentweb/ui/three/impl/stage-lights-scene"));
@@ -77,6 +78,7 @@ export function StageTicketScene({ title, date, venue, price, code, colors = ["p
         className="absolute inset-0"
         fallback={fallback}
         minTier="mid"
+        reducedMotion="poster"
         interactive
         eventSource="self"
         flat

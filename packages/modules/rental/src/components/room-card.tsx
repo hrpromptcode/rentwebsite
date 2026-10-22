@@ -32,6 +32,7 @@ import { Img, sized, pad2 } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
 import { L, STAY_STATUS } from "../labels";
 import { RentalStyles } from "./rental-styles";
+import { RoomName } from "./room-name";
 
 /* Server-safe presentational pieces shared by sections and storefront pages. */
 
@@ -223,7 +224,7 @@ export function RoomCard({
             {label && <span className="rw-index absolute top-6 right-6 z-[2] text-white/85">{label}</span>}
             <div className="absolute inset-x-0 bottom-0 z-[2] flex flex-wrap items-end justify-between gap-5 p-5 text-white md:p-9">
               <div className="min-w-0">
-                <h3 className="font-heading text-step-4 leading-[1.2] font-semibold text-balance">{type.name}</h3>
+                <RoomName as="h3" name={type.name} className="font-heading text-step-4 leading-[1.2] font-semibold text-balance" />
                 <RoomSpecs type={type} tone="inverse" className="mt-3" />
               </div>
               <div className="flex items-center gap-5">
@@ -253,7 +254,7 @@ export function RoomCard({
           {label && <p className="rw-index text-muted-foreground">{label}</p>}
           <h2 className="mt-3 font-heading text-step-4 leading-[1.25] font-semibold text-balance">
             <Link href={href} className="rw-link-line hover:text-primary-ink">
-              {type.name}
+              <RoomName name={type.name} />
             </Link>
           </h2>
           <RoomSpecs type={type} className="mt-4" />
@@ -284,7 +285,7 @@ export function RoomCard({
       <div className="flex flex-1 flex-col p-5 md:p-6">
         <h3 className="font-heading text-step-2 leading-snug font-semibold">
           <Link href={href} className="rw-link-line after:absolute after:inset-0 after:content-[''] hover:text-primary-ink focus-visible:outline-none" data-cursor="view" data-cursor-label="ดูห้อง">
-            {type.name}
+            <RoomName name={type.name} />
           </Link>
         </h3>
         <RoomSpecs type={type} className="mt-2.5" compact />

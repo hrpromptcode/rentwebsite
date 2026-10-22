@@ -10,3 +10,4 @@ export type { DineInResult, PickupState, ReserveState } from "../action-types";
 export { MenuCover, coverDish } from "./menu-cover";
 export { RestaurantStyles } from "./styles";
 export { PickupSteps } from "./pickup-steps";
+export { AccessGate } from "./access-gate";

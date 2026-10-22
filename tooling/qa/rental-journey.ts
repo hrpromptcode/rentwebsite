@@ -344,7 +344,13 @@ async function main() {
     await waitText(d, "แนบสลิปโอนเงิน");
     await d.locator('input[type="file"]').setInputFiles({ name: "slip.png", mimeType: "image/png", buffer: PNG });
     await waitText(d, "ชำระเงินสำเร็จ", 45_000);
-    await d.goto(`${ORIGIN}/stays/${stayId}?k=${encodeURIComponent(stayKey)}`);
+    // the PaymentPanel itself reloads this URL 1.2 s after success; on a busy dev server that reload can abort our goto → retry once
+    const selfUrl = `${ORIGIN}/stays/${stayId}?k=${encodeURIComponent(stayKey)}`;
+    await d.goto(selfUrl).catch(async (e: unknown) => {
+      if (!/ERR_ABORTED|interrupted by another navigation/i.test(String(e))) throw e;
+      await d.waitForLoadState("load");
+      await d.goto(selfUrl);
+    });
     await d.getByTestId("stay-status").waitFor();
     const status = await d.getByTestId("stay-status").innerText();
     assert(status.includes("ยืนยันแล้ว"), `after payment expected ยืนยันแล้ว, got ${status}`);

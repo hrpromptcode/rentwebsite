@@ -11,6 +11,7 @@ import { createStayAction, type CreateStayPayload } from "../actions";
 import { ExtrasPicker, type ExtraOption, type ExtraSelection } from "./extras-picker";
 import { QuoteBreakdown, type QuoteBreakdownData } from "./quote-breakdown";
 import { RentalStyles } from "./rental-styles";
+import { RoomName } from "./room-name";
 import { extrasParam } from "./stay-widget";
 import { L } from "../labels";
 import { formatThaiYmd } from "../services/time";
@@ -152,7 +153,7 @@ export function StayBookForm({ type, checkIn, checkOut, guests, extras, initialE
         <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-5 text-white">
           <p className="text-xs font-semibold tracking-[0.02em] text-white/80">{L.summary}</p>
-          <h2 className="mt-1 font-heading text-step-2 leading-tight font-semibold">{type.name}</h2>
+          <RoomName as="h2" name={type.name} className="mt-1 font-heading text-step-2 leading-tight font-semibold" />
         </div>
       </div>
       <div className="p-5">

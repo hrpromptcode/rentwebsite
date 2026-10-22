@@ -53,16 +53,18 @@ export default async function TablePage({ params }: { params: Params }) {
       {data.settled ? null /* paid table: the panel shows the paid state + "สั่งรอบใหม่", no ordering menu */ : canOrder ? (
         <MenuBrowser menu={data.menu!} mode={{ kind: "dine_in", sessionToken: data.session.token, submit }} serviceChargePercent={cfg.serviceChargePercent} />
       ) : (
-        <section className="container-x py-10">
-          <div className="card flex flex-col items-center gap-3 px-6 py-12 text-center">
-            <Lock className="size-8 text-muted-foreground" />
-            <p className="font-medium">ขณะนี้ยังไม่เปิดรับออเดอร์ผ่านมือถือ</p>
-            <p className="text-sm text-muted-foreground">กรุณาสั่งกับพนักงานที่โต๊ะ หรือดูเมนูได้ที่หน้าเมนู</p>
-            <div className="mt-2 flex flex-wrap justify-center gap-2">
-              <Button asChild variant="outline" size="lg">
+        <section className="container-x py-8 md:py-12">
+          <div className="flex flex-col items-center gap-3 rounded-[var(--radius-2xl)] border border-dashed border-border bg-card px-6 py-14 text-center">
+            <span className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <Lock className="size-6" />
+            </span>
+            <p className="font-heading text-xl font-semibold">ขณะนี้ยังไม่เปิดรับออเดอร์ผ่านมือถือ</p>
+            <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">กรุณาสั่งกับพนักงานที่โต๊ะ หรือดูเมนูได้ที่หน้าเมนู</p>
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              <Button asChild variant="outline" size="lg" className="h-12">
                 <Link href="/menu">{L.menu}</Link>
               </Button>
-              <Button asChild variant="outline" size="lg">
+              <Button asChild variant="outline" size="lg" className="h-12">
                 <Link href="/reserve">
                   <CalendarCheck className="size-4" /> {L.reserve}
                 </Link>

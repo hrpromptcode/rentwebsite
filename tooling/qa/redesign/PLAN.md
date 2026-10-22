@@ -39,3 +39,5 @@ Each agent: follow docs/design/hi-end-direction.md section d for its templates, 
 - 2026-10-22 ~02:40 — phase 2 run wf_43110144-d79 died after ~4 min (session limit, all 7 agents) with only progress notes.
 - 2026-10-22 04:05 — phase 2 relaunched in two waves: Workflow task wpqtetmw7, run id wf_53f7b99d-037,
   script ...\workflows\scripts\rentweb-hiend-phase2b.js (wave A commerce/booking/topup/common, wave B restaurant/rental/events).
+- 2026-10-22 ~06:30 — phase 2 wave A DONE (commerce 46/46, booking 26/26 + course 15/15, topup, common); wave B cut by session limit.
+- 2026-10-22 09:05 — WIP committed a2d3646; phase 2 resumed (task wz5b3lmh6, same run id wf_53f7b99d-037; wave A replays from cache).

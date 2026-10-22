@@ -86,7 +86,7 @@ export async function StaySearchSection({ ctx, props: p, id, index, initial, bar
         {sea && <OceanBand />}
         <div className="rw-hero-scrim" style={{ "--scrim": Math.min(1, 0.35 + p.overlay) } as React.CSSProperties} />
 
-        <div className="container-x relative z-10 flex flex-1 flex-col pt-[calc(var(--header-h,5rem)+clamp(0.5rem,3vh,2.5rem))] pb-5 md:pb-6">
+        <div className="container-x relative z-10 flex flex-1 flex-col pt-[calc(var(--header-h,5rem)+clamp(0.5rem,3vh,2.5rem))] pb-[calc(env(safe-area-inset-bottom,0px)+5.75rem)] md:pb-6">
           <div className="rw-hero-copy mx-auto max-w-[min(100%,82rem)] text-center">
             {p.eyebrow && (
               <p data-script="thai" className="rw-hero-in mb-5 text-sm font-semibold tracking-[0.02em] text-white/85 md:text-base" style={{ "--d": "0.1s" } as React.CSSProperties}>

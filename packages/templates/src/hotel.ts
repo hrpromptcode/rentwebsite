@@ -58,6 +58,8 @@ const IMG = {
   palms: u("1519046904884-53103b34b206", 1400),
   swing: u("1468413253725-0d5181091126", 1200),
   aerial: u("1506929562872-bb421503ef21", 1600),
+  // the same bay mirrored (imgix flip): sand on the left under the copy, turquoise water and boats on the right
+  aerialFlip: u("1506929562872-bb421503ef21", 1600, "&flip=h"),
   sunset: u("1499793983690-e29da59ef1c2", 1400),
 };
 
@@ -163,7 +165,7 @@ export const hotel: TemplateDefinition = {
         }),
         section(text, {
           eyebrow: "ที่บ้านทะเล",
-          body: "21 ห้องพักและพูลวิลล่า บนหาดคึกคักที่เงียบที่สุดของเขาหลัก",
+          body: "21 ห้องพักและพูล\u2060วิลล่า บนหาดคึกคักที่เงียบที่สุดของเขาหลัก",
           align: "center",
           size: "large",
         }),
@@ -234,12 +236,13 @@ export const hotel: TemplateDefinition = {
         // closing moment: the turquoise bay from above, rippling under the pointer (water-ripple scene)
         section(interlude, {
           scene: "water-ripple",
-          heading: "ให้ทะเลเป็นคนปลุกคุณ",
+          heading: "ให้ทะเลเป็น\nคนปลุกคุณ",
           body: "เลือกวันเช็กอิน–เช็กเอาต์ ดูราคาต่อคืนแบบเห็นทุกบรรทัด แล้วยืนยันการจองด้วยมัดจำผ่านพร้อมเพย์ภายในไม่กี่นาที",
           cta: { label: "ค้นหาห้องว่าง", href: "/stay" },
-          image: { url: IMG.aerial, alt: "มุมสูงของรีสอร์ตริมหาด" },
+          image: { url: IMG.aerialFlip, alt: "มุมสูงของอ่าวน้ำใสและหาดทราย" },
           height: "screen",
-          align: "center",
+          // left: the scrim keeps the copy side AA and leaves the turquoise bay visible on the right
+          align: "left",
         }),
       ],
     },
@@ -250,7 +253,7 @@ export const hotel: TemplateDefinition = {
         section(hero, {
           variant: "editorial",
           eyebrow: "สิ่งอำนวยความสะดวก",
-          heading: "ทุกอย่างที่ต้องการ อยู่ห่างแค่สองนาทีเดิน",
+          heading: "ทุกอย่างที่ต้องการ\nอยู่ห่างแค่สองนาทีเดิน",
           subheading: "สระอินฟินิตี้ยาว 30 เมตร ห้องอาหารริมหาด สปา ฟิตเสนต์เปิดโล่ง และบริการที่ทำให้วันหยุดของคุณไม่ต้องวางแผนอะไรเลย",
           primaryCta: { label: "จองห้องพัก", href: "/stay" },
           secondaryCta: { label: "ดูห้องพัก", href: "/rooms" },
@@ -275,7 +278,7 @@ export const hotel: TemplateDefinition = {
         }),
         section(imageText, {
           eyebrow: "บริการเสริม",
-          heading: "เพิ่มได้ตอนจอง ไม่ต้องจำไปขอหน้างาน",
+          heading: "เพิ่มได้ตอนจอง\nไม่ต้องจำไปขอหน้างาน",
           body: "ทุกบริการเสริมเลือกได้ในขั้นตอนจองห้อง ราคาปรากฏในสรุปยอดทันที และทีมงานเตรียมไว้ให้ก่อนคุณมาถึง",
           image: { url: IMG.villaPool, alt: "พูลวิลล่า" },
           imagePosition: "right",
@@ -285,7 +288,7 @@ export const hotel: TemplateDefinition = {
         }),
         section(imageText, {
           eyebrow: "สปา",
-          heading: "หลังวันแดดแรง ให้มือที่ชำนาญดูแลต่อ",
+          heading: "หลังวันแดดแรง\nให้มือที่ชำนาญดูแลต่อ",
           body: "สปาของเราใช้มะพร้าว ขมิ้น และตะไคร้จากสวนในพังงา ทรีตเมนต์หลังอาบแดดช่วยลดอาการแสบร้อนภายในชั่วโมงเดียว จองรอบได้ที่แผนกต้อนรับหรือแจ้งตอนเช็กอิน",
           image: { url: IMG.spa, alt: "ห้องสปา" },
           imagePosition: "left",
