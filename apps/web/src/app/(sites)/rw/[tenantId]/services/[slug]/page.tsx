@@ -4,11 +4,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, Clock, Coins, ShieldCheck, Users, Wallet } from "lucide-react";
 import { cn } from "@rentweb/ui/lib/utils";
-import { ImageReveal, ThaiWrap } from "@rentweb/ui/motion";
+import { ImageReveal } from "@rentweb/ui/motion";
 import { CtaButton, Eyebrow, Prose, RevealHeading, Rise, SectionStyles, StaggerCell, StaggerList } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
 import { bookingConfig, bookingDepositMethods, getServiceBySlug, listServices, listStaffForService } from "@rentweb/module-booking/services";
-import { BookingStyles, ServiceMotifCard, StaffPortraitCard, frameClass, lookOf, servicePriceLabel, titleStep, nameLines } from "@rentweb/module-booking/ui";
+import { BookingStyles, ServiceMotifCard, StaffPortraitCard, frameClass, lookOf, servicePriceLabel, titleStep, nameLines, NameWrap } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
@@ -64,13 +64,13 @@ export default async function ServicePage({ params }: { params: Params }) {
       <BookingStyles />
       <section className="container-x pt-6 pb-20 md:pt-10 md:pb-32">
         <nav aria-label="breadcrumb" className="mb-6 flex flex-wrap items-center text-sm text-muted-foreground md:mb-10">
-          <Link href="/services" className="inline-flex h-11 items-center hover:text-foreground">
+          <Link href="/services" className="inline-flex h-11 min-w-11 items-center hover:text-foreground">
             {L.services}
           </Link>
           {service.categoryName && (
             <>
               <ChevronRight aria-hidden className="mx-1 size-3.5" />
-              <Link href={`/services?category=${encodeURIComponent(service.categorySlug ?? "")}`} className="inline-flex h-11 items-center hover:text-foreground">
+              <Link href={`/services?category=${encodeURIComponent(service.categorySlug ?? "")}`} className="inline-flex h-11 min-w-11 items-center hover:text-foreground">
                 {service.categoryName}
               </Link>
             </>
@@ -101,7 +101,7 @@ export default async function ServicePage({ params }: { params: Params }) {
                       <f.icon className="size-3.5" /> {f.label}
                     </dt>
                     <dd className="mt-1 font-heading text-lg font-semibold tabular-nums md:text-xl">
-                      <ThaiWrap text={f.value} />
+                      <NameWrap text={f.value} />
                     </dd>
                   </div>
                 ))}
@@ -141,7 +141,7 @@ export default async function ServicePage({ params }: { params: Params }) {
                 )}
               </div>
             ) : (
-              <StaggerList className={cn("grid grid-cols-1 gap-x-8 gap-y-14 sm:grid-cols-2", team.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3")} stagger={0.1}>
+              <StaggerList className={cn("grid grid-cols-2 gap-x-4 gap-y-12 sm:gap-x-8 sm:gap-y-14", team.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3")} stagger={0.1}>
                 {team.map((t, i) => (
                   <StaggerCell key={t.id} className="h-full">
                     <StaffPortraitCard s={t} look={look} index={i} bookHref={`${bookHref}&staff=${encodeURIComponent(t.slug)}`} />
@@ -157,9 +157,9 @@ export default async function ServicePage({ params }: { params: Params }) {
             <Rise className="mb-10 md:mb-14">
               <h2 className="font-heading text-step-4 font-semibold">บริการที่เกี่ยวข้อง</h2>
             </Rise>
-            <StaggerList className="grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3" stagger={0.1}>
+            <StaggerList className="bk-rail grid auto-cols-[78%] grid-flow-col gap-4 sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-2 sm:gap-x-8 sm:gap-y-14 lg:grid-cols-3" stagger={0.1}>
               {related.map((s, i) => (
-                <StaggerCell key={s.id} className="h-full">
+                <StaggerCell key={s.id} className="h-full snap-start">
                   <ServiceMotifCard s={s} look={look} index={i} />
                 </StaggerCell>
               ))}

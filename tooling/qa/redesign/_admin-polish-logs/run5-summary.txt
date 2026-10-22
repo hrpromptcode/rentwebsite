@@ -1,0 +1,1 @@
+booking-admin-journey exit=0 pass=19 fail=0 warn=0 458s

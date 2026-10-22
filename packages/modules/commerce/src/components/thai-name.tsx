@@ -3,10 +3,10 @@ import { ThaiWrap } from "@rentweb/ui/motion";
 
 /**
  * Compounds that Node's ICU dictionary splits inside product / category names: "ฝ้ายออร์แกนิก" → "ฝ้า|ยออร์|แก|นิก"
- * (so a card title broke as "ฝ้า⏎ยออร์แกนิก"), "สั่ง|ทำ", "หมวด|หมู่", "ของ|แต่ง|บ้าน". Module-local until the kit's
+ * (so a card title broke as "ฝ้า⏎ยออร์แกนิก"), "สั่ง|ทำ", "หมวด|หมู่", "ของ|แต่ง|บ้าน", "เครื่อง|ดื่ม". Module-local until the kit's
  * THAI_GLUE_WORDS carries them (qa_shared.md, qa-a #1 / #7).
  */
-const GLUE = ["ออร์แกนิก", "สั่งทำ", "หมวดหมู่", "ของแต่งบ้าน", "ทอมือ"] as const;
+const GLUE = ["ออร์แกนิก", "สั่งทำ", "หมวดหมู่", "ของแต่งบ้าน", "ทอมือ", "เครื่องดื่ม", "เครื่องประดับ", "เครื่องสำอาง", "ห้องพัก"] as const;
 const GLUE_RE = new RegExp(`(${GLUE.join("|")})`, "g");
 const THAI_END = /[฀-๿]$/;
 const THAI_START = /^[฀-๿]/;

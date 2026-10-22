@@ -8,7 +8,7 @@ import { cn } from "@rentweb/ui/lib/utils";
 import { CtaButton, Eyebrow, Prose, RevealHeading, Rise, SectionStyles } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
 import { getStaffBySlug } from "@rentweb/module-booking/services";
-import { BookingStyles, Portrait, lookOf, pad2, titleStep, nameLines } from "@rentweb/module-booking/ui";
+import { BookingStyles, Portrait, lookOf, pad2, titleStep, nameLines, NameWrap } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
@@ -42,7 +42,7 @@ export default async function StaffProfilePage({ params }: { params: Params }) {
       <BookingStyles />
       <section className="container-x pt-6 pb-20 md:pt-10 md:pb-32">
         <nav aria-label="breadcrumb" className="mb-6 flex items-center text-sm text-muted-foreground md:mb-10">
-          <Link href="/staff" className="inline-flex h-11 items-center hover:text-foreground">
+          <Link href="/staff" className="inline-flex h-11 min-w-11 items-center hover:text-foreground">
             {L.staff}
           </Link>
           <ChevronRight aria-hidden className="mx-1 size-3.5" />
@@ -88,7 +88,9 @@ export default async function StaffProfilePage({ params }: { params: Params }) {
                             <span className="w-7 font-mono text-xs text-muted-foreground">{pad2(i + 1)}</span>
                           )}
                           <span className="min-w-0">
-                            <span className="bk-row-name block truncate font-heading text-lg font-semibold">{s.name}</span>
+                            <span className="bk-row-name line-clamp-2 block font-heading text-lg leading-snug font-semibold">
+                              <NameWrap text={s.name} />
+                            </span>
                             <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                               <Clock className="size-3" /> {L.minutes(duration)}
                               {s.categoryName && <span>· {s.categoryName}</span>}

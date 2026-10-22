@@ -54,7 +54,7 @@ export async function ReservationCtaSection({ ctx, props: p, id }: { ctx: Storef
                     <span className="rr-res-meta text-white/55">{String(i + 1).padStart(2, "0")}</span>
                     <span className="font-heading text-step-1 font-semibold text-white">{z.zone}</span>
                     <span className="text-sm">
-                      {z.tables} โต๊ะ · สูงสุด {z.maxSeats} ที่
+                      {z.tables} โต๊ะ · สูงสุด {z.maxSeats} ที่นั่ง
                     </span>
                   </li>
                 ))}

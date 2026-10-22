@@ -89,17 +89,18 @@ export function CategoryTiles({ categories, className }: { categories: CategoryW
               <div className="absolute inset-0 bg-gradient-to-br from-primary via-glow to-accent opacity-80" />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
-            <span aria-hidden className="rwc-no absolute top-4 left-4 text-white/80">
+            <span aria-hidden className="rwc-no absolute top-4 left-4 text-white/80 md:top-5 md:left-5">
               {pad2(i + 1)}
             </span>
-            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 md:p-5">
-              <div className="min-w-0">
-                <h3 className="font-heading text-xl leading-tight font-semibold text-white md:text-2xl">{c.name}</h3>
-                <p className="mt-1 text-xs text-white/80 md:text-sm">{label("items", { n: c.productCount })}</p>
-              </div>
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition duration-500 group-hover:rotate-45 group-hover:bg-white group-hover:text-black">
-                <ArrowUpRight className="size-5" />
-              </span>
+            {/* arrow in the top corner: on a 2-up phone tile (≈156 px) it left ~68 px for the name ("เครื่อง⏎ดื่ม") */}
+            <span aria-hidden className="absolute top-2.5 right-2.5 flex size-11 items-center justify-center rounded-full bg-black/30 text-white ring-1 ring-white/25 backdrop-blur transition duration-500 group-hover:rotate-45 group-hover:bg-white group-hover:text-black md:top-4 md:right-4">
+              <ArrowUpRight className="size-5" />
+            </span>
+            <div className="absolute inset-x-0 bottom-0 p-4 md:p-5">
+              <h3 className="font-heading text-xl leading-tight font-semibold text-white [text-wrap:wrap] md:text-2xl">
+                <ThaiName text={c.name} phrases />
+              </h3>
+              <p className="mt-1 text-xs text-white/80 md:text-sm">{label("items", { n: c.productCount })}</p>
             </div>
           </Link>
         </StaggerItem>

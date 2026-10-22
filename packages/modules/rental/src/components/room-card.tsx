@@ -163,6 +163,13 @@ export function StayStatusBadge({ status, className }: { status: string; classNa
 /** Cover + hover photo (gallery[1]) with a slow drift on the cover. */
 function SwapMedia({ type, priority, className, drift = true, w = 900 }: { type: RoomCardType; priority?: boolean; className?: string; drift?: boolean; w?: number }) {
   const [a, b] = type.gallery;
+  // no photo yet (a room type the owner just added): a deliberate tonal "horizon" plate in the theme colours, not a grey box
+  if (!a)
+    return (
+      <div className={cn("rw-room-media rw-room-empty", className)} role="img" aria-label={type.name}>
+        <BedDouble aria-hidden strokeWidth={1.1} className="absolute top-[38%] left-1/2 size-12 -translate-x-1/2 -translate-y-1/2 opacity-60" />
+      </div>
+    );
   return (
     <div className={cn("rw-room-media", className)}>
       <div className="rw-swap-a absolute inset-0">

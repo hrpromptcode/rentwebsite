@@ -297,7 +297,8 @@ async function main() {
     await toast(a, /เติมสำเร็จ 2 รายการ/);
     await expect(a.getByRole("dialog")).toHaveCount(0);
     for (const k of ["C", "D"]) await expect(a.locator("tbody a[href*='/topup/orders/']").filter({ hasText: new RegExp(`^${shared[k]}$`) })).toHaveCount(0, { timeout: 20_000 });
-    await expect(a.getByText(/เลือกแล้ว\s*0/)).toBeVisible();
+    // selection cleared — or, on a demo whose queue held only C + D, the queue is now empty (EmptyState replaces the table)
+    await expect(a.getByText(/เลือกแล้ว\s*0/).or(a.getByText("ไม่มีรายการรอเติม"))).toBeVisible();
     for (const k of ["C", "D"]) assert((await orderId(shared[k]!)).status === "fulfilled", `${k} not fulfilled`);
     await shot(a, "orders-1440");
     return "C + D fulfilled";

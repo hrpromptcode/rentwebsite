@@ -80,13 +80,17 @@ export function SeatMeter({ s, className }: { s: Pick<TimetableSession, "remaini
 }
 
 /** One timetable row (class detail, instructor page): big time, class, instructor, seats + "สมัครเรียน". */
-export function SessionRow({ s, showDate, showPrice, className }: { s: TimetableSession; showDate?: boolean; showPrice?: boolean; className?: string }) {
+/**
+ * One session line (time · class · instructor · seats · สมัครเรียน). `inClass` = rendered on that class's own page: the
+ * class name / level are dropped (same on every row) and the full date becomes the row title instead of repeating it.
+ */
+export function SessionRow({ s, showDate, showPrice, inClass, className }: { s: TimetableSession; showDate?: boolean; showPrice?: boolean; inClass?: boolean; className?: string }) {
   const bookable = s.state === "open";
   const ymd = parseYmd(s.date) ?? { y: 1970, m: 1, d: 1 };
   return (
     <div className={cn("group relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-b border-[color-mix(in_oklab,var(--foreground)_10%,transparent)] py-4 transition-colors", bookable ? "hover:bg-[color-mix(in_oklab,var(--primary-soft)_60%,transparent)]" : "opacity-70", className)}>
       <div className="flex w-[4.5rem] flex-col">
-        {showDate && (
+        {showDate && !inClass && (
           <span className="text-[0.6875rem] font-medium text-muted-foreground">
             {THAI_WEEKDAYS_SHORT[weekdayOf(ymd)]}. {ymd.d}
           </span>
@@ -95,14 +99,18 @@ export function SessionRow({ s, showDate, showPrice, className }: { s: Timetable
         <span className="mt-1 text-[0.6875rem] text-muted-foreground">{L.minutes(s.durationMin)}</span>
       </div>
       <div className="min-w-0">
+        {inClass ? (
+          <p className="font-medium">{formatThaiYmd(s.date, { weekday: true, short: true })}</p>
+        ) : (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <Link href={`/classes/${s.serviceSlug}`} className="-my-2.5 inline-flex min-h-11 items-center font-medium hover:text-primary-ink">
             {s.serviceName}
           </Link>
           <LevelBadge level={s.level} className="py-0.5" />
         </div>
+        )}
         <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          {showDate && <span>{formatThaiYmd(s.date, { weekday: true, short: true })}</span>}
+          {showDate && !inClass && <span>{formatThaiYmd(s.date, { weekday: true, short: true })}</span>}
           {s.instructor && (
             <span className="inline-flex items-center gap-1.5">
               <InstructorAvatar i={s.instructor} size="xs" /> {s.instructor.name}

@@ -6,6 +6,7 @@ import { RollText, TiltCard } from "@rentweb/ui/motion";
 import { cn } from "@rentweb/ui/lib/utils";
 import { L } from "../../labels";
 import { pad2, type Look } from "./look";
+import { NameWrap } from "./name-wrap";
 import { Portrait } from "./portrait";
 
 export interface PersonData {
@@ -47,7 +48,7 @@ export function StaffPortraitCard({
         <Portrait src={s.avatar} name={s.name} color={s.color} look={look} aspect={look === "clinic" ? "aspect-[3/4]" : "aspect-[4/5]"} mono={look !== "studio"}>
           {overlay && (s.title || s.bio) && (
             <span className="bk-glass absolute inset-x-3 bottom-3 rounded-[calc(var(--radius,.75rem)*1.2)] px-4 py-3 text-left text-foreground">
-              <span className="block truncate text-xs font-semibold text-primary-ink">{s.title}</span>
+              <span className="line-clamp-2 block text-xs leading-snug font-semibold text-primary-ink">{s.title}</span>
               {s.bio && (
                 <span className="bk-reveal-body">
                   <span>
@@ -75,7 +76,12 @@ export function StaffPortraitCard({
         <div className="mt-auto pt-4">
           <Button asChild variant="outline" size="sm" className="h-auto min-h-11 max-w-full rounded-full px-4 py-2 text-left whitespace-normal sm:px-5">
             <Link href={bookHref ?? `/book?staff=${encodeURIComponent(s.slug)}`}>
-              <CalendarDays className="size-4" /> {L.bookWith(s.name)}
+              <CalendarDays className="size-4 shrink-0" />
+              <span>
+                {L.bookWith("")}
+                <wbr />
+                <NameWrap text={s.name} mode="name" />
+              </span>
             </Link>
           </Button>
         </div>

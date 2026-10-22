@@ -30,6 +30,19 @@
 - [ ] **(low) HoverPreview `<img>` has no `src` until the first hover** · demo-salon `/` spa menu, demo-course `/` · `motion/hover-preview.tsx:110` ·
   an `<img alt="">` without src is reported as a broken image by audits / Lighthouse. Suggest rendering it only after the first
   pointerenter (or a transparent 1×1 data URI as the initial src).
+- [ ] **clinic hero: the floating glass objects sit on the client's face** · demo-clinic `/` · 1440 (and 390) ·
+  tooling/screenshots/redesign-qa-b-el-chero-1.png, …-v6-clinic-home-1440-p1.png f00: droplets / pill / ring drift across the middle of
+  the arch portrait (eyes, cheek), so the signature reads as objects stuck on the photo. `storefront/src/sections/hero.tsx` renders
+  FloatingObjects over the photo (photoUnder + floating-objects). Suggest `layout="scatter"` with `clearCenter≈0.45` (objects flank
+  the arch, centre stays clear — what I did for the /services intro in booking `ServicesAside`) or an orbit radius larger than the
+  frame's half width.
+- [ ] **headings: a number and its unit split at a line end** · demo-restaurant `/about` h1 · 390 · …-v5-restaurant-about-390.png f00:
+  "บ้านไม้อายุ 70 | ปี". I put a no-break space in the template ("70\u00a0ปี"); for tenant copy the kit word splitter could keep
+  `<number> <short Thai unit>` (ปี, นาที, ครั้ง, คน, วัน, บาท, ชั่วโมง) as one unit, like the ๆ glue.
+- [ ] **(low) testimonials: the decorative open-quote glyph renders as two thin strokes "((" / "' '" on phones** · demo-clinic `/`
+  390 (…-v5-clinic-home-390-p2.png f12) and demo-course `/` 390 (…-v5-course-home-390-p2.png f13) — and the quote text
+  repeats its own “ ” right under it. Suggest one of the two (the big mark, or the inline quotes), and the mark in the display font only
+  when that font has a real “ glyph.
 
 ## qa-c
 (topup / hotel / events visual QA — shared-layer problems; each: where · viewport · what · suggested fix)
@@ -65,7 +78,11 @@
 - [ ] **scene status "lost" after scrolling away from the hero (WebGL hero does not come back)** · demo-events `/` · 1440 ·
   crawl reports `scenes=[lost,live]` on the home page after a full scroll: the hero `StageTicketScene` ends up `data-scene-status="lost"`.
   `scene-3d.tsx` latches `failed` for the life of the page, and `canvas-host.tsx` feeds it from two sources: `ContextLossGuard`
-  (`webglcontextlost`) and `FrameWatch onSlow={onLost}` (the perf watchdog). Probe result: (pending, see below).
+  (`webglcontextlost`) and `FrameWatch onSlow={onLost}` (the perf watchdog). Probe result (19:55, `tooling/qa/redesign/_qac-lost.ts demo-events`, GPU):
+  not reproducible — hero live → poster when scrolled away → loading → live again at the top; no `webglcontextlost`; the fps/normal
+  passes at 16:11 also report `scenes=[poster,live]`. The earlier "lost" came from a run while the dev server was recompiling
+  (FrameWatch onSlow under a stalled main thread). Low: consider letting `onSlow` degrade to the poster for the session but
+  retry once on re-entry instead of latching `failed` for the life of the page.
 - [ ] **floating LINE chat button: the expanded "แชตผ่าน LINE" pill covers copy on phones right after load** · demo-events `/venue`,
   `/contact` · 390×844 · …-events-venue-390-before-1.png f00 (pill over the h1 "ทุกสุดสัปดาห์"), …-events-contact-390-before-1.png f00
   (over the e-mail row). Suggest: show the label only after the first scroll (or only ≥ 768 px), or keep the 56 px icon alone on phones.
@@ -141,3 +158,17 @@
   1440 · …-after-clinic-contact-1440.png f00 — "เบอร์โทรศัพท์" label sits on top of the "08x-xxx-xxxx" placeholder (both visible at rest).
   `packages/storefront/src/sections/contact.tsx`: with a floating label, hide the placeholder until focus (`placeholder:opacity-0
   focus:placeholder:opacity-100`) or drop the placeholder and put the hint under the field.
+8. (qa-a, low) [storefront sticky-story — image width] `sticky-story.tsx:15` always requests `sized(image, 1200)`; under prefers-reduced-motion
+   (static stacked layout) the step photo renders 1360–1650 css px wide → upscaled/soft (demo-shop `/` 1440×900 reduce,
+   cotton-field step, redesign-qa-a-shop-home-1440-rm-sheet.png; same on demo-corporate `/services` features image 1558494949, 1819 px).
+   Suggest `sized(image, 2000)` + `sizes` (or a srcset 960/1400/2000) for the media in sticky-story and the features `image` media.
+9. (qa-a) [storefront cta `wordmark` — phones] the fitted single-line GiantWordmark of a long Thai CTA ("สมัครรับข่าวคอลเลกชันใหม่ก่อนใคร",
+   direction §5.1 #12) shrinks to ~23 px at 390 — the "giant" moment reads smaller than the FAQ questions above it.
+   http://demo-shop.localhost:3000/ 390×844 · tooling/screenshots/_frames/shop-home-390-nogl-f15.png / redesign-qa-a-shop-home-390-nogl-sheet.png f15–f16.
+   Suggest: below md (or when graphemes > ~14) split the heading on spaces/phrases into 2–3 fitted lines (one GiantWordmark per line,
+   each fitted to 100cqw) or fall back to RevealHeading at text-step-5; keep the link/aria-label as is.
+10. (qa-a) [three/storefront curved-gallery — no-WebGL fallback on phones] without WebGL the CSS fallback squeezes all 7 cards into
+   ~80 px slivers on a 3D ring; titles wrap per syllable ("คลัง⏎สินค้า⏎200⏎สาขา"), tags overlap ("HEALTHC…", "LOGIS…").
+   http://demo-corporate.localhost:3000/ 390×844 launched with --disable-3d-apis · tooling/screenshots/_frames/corp-home-390-nogl-f02.png
+   (crawl also reports 7 links 41×367 px). Suggest: below md (or always when the scene is off) render the fallback as a flat
+   horizontal scroll-snap rail of ~72vw cards (same markup as the WebGL card textures), no rotateY ring.

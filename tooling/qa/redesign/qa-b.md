@@ -29,6 +29,9 @@ restaurant routes, packages/templates/src/{clinic,salon,course,restaurant}.ts. S
 - ~15:00 reset-demo all four again + create-admin, provision-neutral 10/10.
 - 15:05 module tests: booking 58/58, restaurant 43/43. booking-journey 24/26 (C6c/C6c2: slip upload spinner while Turbopack "Compiling", screenshot qa-booking-FAIL-C6c.png; rerun later). course-journey 15/15. restaurant-journey run 1 27/34 (call-staff toast, bill sheet, reserve availability: all requests stuck while "Compiling"), run 2 31/34 (different 3: goto/API timeouts) -> every step passed in at least one run; flake = dev server shared with 3 crawling agents. Final rerun at the end.
 - 15:40 v5 crawl 390 every page --login running.
+- 19:05 successor run 2: checkpoint 27aa416 holds every qa-b fix so far (git diff empty for my files). v5 390 crawl had finished clinic + salon (log: Target crashed at salon account) -> resumed salon account pages + course + restaurant (--login) -> scratchpad qab-v5b-390.log.
+- 19:36 v5 390 crawl done for all four sites (every page, logged in) -> fixes batch 4 (NameWrap, frames, session rows, rails, NBSP mai yamok, footers); reset-demo clinic/salon/course/restaurant + create-admin, provision-neutral 10/10. Crawl now skips admin-journey 'RS-QA…' reservations (404 by design).
+- NEXT: v6 1440 crawl every page (all four) -> 390 retakes of changed pages -> reduce + nogl passes -> journeys (booking, course, restaurant) -> typecheck + module tests.
 - (was) NEXT: journeys (booking running, then course, restaurant) -> v5 crawl 390 every page + 1440 retakes (about, gallery, failed pages) + --login account pages + order/reservation status, reduce + nogl passes, module tests.
 - (old) NEXT: after 390 key pages, reduce + nogl passes, journeys (booking rerun, course, restaurant), typecheck, module tests.
 
@@ -82,5 +85,23 @@ restaurant routes, packages/templates/src/{clinic,salon,course,restaurant}.ts. S
 | clinic /gallery 1440 | 8 photos in 3 masonry columns left a ~500 px hole under two columns before the CTA | 9th photo (dental room) | fixed (reset 15:00) |
 | restaurant /menu, /order, /t 1440 | checked after DishName: no split compounds, plates load 256 px thumbs | - | ok |
 | course /classes, /classes/*, /schedule, /instructors, /packages, /start 1440 | checked: no clipping, posters + schedule fine; giant footer wordmark (shared, logged) | - | ok |
+| v5 390 sweep (clinic + salon every page, account pages logged in) | 0 overflow, 0 console/hydration errors, <= 1 live canvas / viewport; audit noise = rail cards off-screen (CLIP), sliding pill text (CON 1.07), footer text links 36x44 | - | ok |
+| clinic/salon/course cards + rows + wizard 390 | tenant names split mid-unit: '120 นาที (2 / ท่าน)', 'หน้าสมุนไพร 60 / นาที', '(HIFU / + Pico + Botox)', service fact '฿4,900 เริ่ม / ต้น' | NameWrap (booking hi/name-wrap.tsx, pure string): number+unit, short parentheticals, '/' '+' glued to the word before, short Thai words whole; used in service cards, spa menu rows, pass tickets, class cards, staff-detail rows, service facts, wizard choices | fixed |
+| clinic /staff, home staff grid, /about 390 | 'จองกับทพญ.พิมพ์ / ชนก ตั้งใจ' (break inside the name); glass title truncated 'แพทย์ผิวหนัง · ผู้อำ…' | button = 'จองกับ' + wbr + name parts kept whole (text unchanged); title line-clamp-2 | fixed |
+| clinic /staff/dr-nicha 390 | service rows truncated 'ปรึกษาแพทย์ + วิเคราะห์…' | line-clamp-2 + NameWrap | fixed |
+| clinic /services 390 + 1440 | intro arch photo = card 01's photo directly below it (consult twice in one screen) | intro visuals lead with featured services beyond the first row (pico, hifu) | fixed |
+| salon/clinic /services/* 390 | 'ให้บริการโดย' = 4 full-width portraits (4 viewports); related services 3 more viewports | team grid 2-up on phones; related services = phone snap rail | fixed |
+| course home + /packages 390 | drop-in ticket: 'เลือกรอบเรียน' button touches the check list (Slot merged mt-auto over mt-6) | button wrapped in mt-auto pt-6 | fixed |
+| clinic /about 390 | h1 'Lumière Clinic / — / ความงาม…' (dash alone on a line) | 'Lumière Clinic —\n…' (dash stays with the brand) | fixed (reset 19:36) |
+| clinic home 390 | staff h2 'แพทย์ผู้ / เชี่ยวชาญของเรา' | U+2060 in the template copy (shared glue item still logged) | fixed (reset 19:36) |
+| clinic + salon footer | about page (doctors / story) not linked anywhere on clinic; salon only in the header | footer + 'เกี่ยวกับเรา' | fixed (reset 19:36) |
+| detail breadcrumbs (services/staff/classes/instructors) | category link 28 px wide | min-w-11 | fixed |
+| course home 390 | 'คลาสยอด / นิยม', 'แค่ / ไหน' | WJ not possible (course-journey M2 reads innerText) -> shared glue item (already in qa_shared) | logged |
+| course /classes 390 (+ every booking card with a portrait photo) | 'Prenatal Yoga', 'Mat Pilates Core' frames ~1:2 instead of 4:3: an aspect-ratio box with overflow:clip grows to its portrait image | .bk-frame min-height:0 (probe _qab-frames.ts: all 8 class frames 0.75, clinic services 1.25, salon staff 1.25) | fixed |
+| course /classes/* 390 | upcoming-session rows repeat the class name + level and the date twice on the class's own page; related classes 3 full viewports | SessionRow inClass (row title = full date, no class link/level); related classes = phone snap rail | fixed |
+| course /classes/* fact 'รอบประจำ' | '· ส. 09:00' line starts with the dot | segments nowrap, dot kept at the end of the line | fixed |
+| course /start, salon, restaurant copy | ' ๆ' at a line start in raw paragraphs ('…อย่างช้า / ๆ ปลอดภัย') | template body/quote/subheading/description copy uses NBSP before ๆ (13 spots incl. 3 neutralText keys, headings untouched — kit splitter already glues) | fixed (reset 19:36) |
+| restaurant home reservation band | zone line '8 โต๊ะ · สูงสุด 4 ที่' reads cut off | 'สูงสุด 4 ที่นั่ง' | fixed |
+| restaurant home/menu/order/reserve 390 | checked: dish names whole, sticky category pills, calm order page, reserve form + dark info card | - | ok |
 
 ## shared issues logged (qa_shared.md ## qa-b)

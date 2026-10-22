@@ -58,7 +58,7 @@ const CASES = [
     summary: "รวมข้อมูลจาก 7 ระบบเป็นหน้าจอเดียว แสดงผลภายใน 2 วินาที ผู้บริหาร 120 คนใช้ทุกเช้า",
   },
   {
-    title: "จองห้องพักตรง",
+    title: "ระบบจองตรง",
     client: "Andaman Resorts",
     category: "Hospitality",
     year: "2023",
@@ -97,7 +97,7 @@ const SERVICES = [
   { icon: "Compass", title: "Discovery & UX Research", description: "สัมภาษณ์ผู้ใช้ ทำ journey map กำหนดขอบเขตและ KPI ก่อนเขียนโค้ดสักบรรทัด", image: u("1581291518857-4e27b48ff24e", 1800) },
   { icon: "PenTool", title: "Product Design", description: "Design system และ prototype ที่ทดสอบกับผู้ใช้จริง ก่อนส่งต่อให้ทีมพัฒนา", image: u("1561070791-2526d30994b5", 1800) },
   { icon: "Code2", title: "Web Application", description: "Next.js / TypeScript / PostgreSQL พร้อม CI/CD ทดสอบอัตโนมัติทุกการเปลี่ยนแปลง", image: u("1461749280684-dccba630e2f6", 1800) },
-  { icon: "Smartphone", title: "Mobile Application", description: "React Native แอปเดียวขึ้นได้ทั้ง App Store และ Google Play", image: u("1512941937669-90a1b58e7e9c", 1800) },
+  { icon: "Smartphone", title: "Mobile Application", description: "React Native แอปเดียวขึ้นได้ทั้ง App Store และ Google Play", image: u("1648279220423-14606cb98f22", 1800) },
   { icon: "Cloud", title: "Cloud & DevOps", description: "AWS / GCP, Terraform, monitoring และการลดค่าใช้จ่าย cloud ที่วัดผลได้", image: u("1558494949-ef010cbdcc31", 1800) },
   { icon: "LifeBuoy", title: "Support & Growth", description: "SLA, on-call และทีมพัฒนาต่อยอดรายเดือน หลังระบบขึ้นใช้งานจริง", image: u("1551434678-e076c223a692", 1800) },
 ];
@@ -287,7 +287,7 @@ export const corporate: TemplateDefinition = {
         ],
       }),
       section(cta, { variant: "card", heading: "ส่งเรซูเม่มาคุยกัน", body: "เปิดรับ Frontend, Backend และ Product Designer", primaryCta: { label: "ส่งเรซูเม่", href: "mailto:jobs@northstar.co.th" } })] },
-    withAboutExtras(aboutPage({ neutral: NEUTRAL_ABOUT.corporate, eyebrow: "เกี่ยวกับเรา", heading: "Northstar — สตูดิโอซอฟต์แวร์ที่เชื่อในงานที่ใช้ได้จริง", body: "ก่อตั้งปี 2017 โดยวิศวกร 3 คนที่เบื่อระบบองค์กรที่ไม่มีใครอยากใช้ เราเติบโตเป็นทีม 35 คน ส่งมอบมากกว่า 120 โปรเจกต์ให้ธุรกิจค้าปลีก การเงิน และสุขภาพ\n\nเราวัดความสำเร็จจากตัวเลขของลูกค้า ไม่ใช่จำนวนฟีเจอร์" })),
+    withAboutExtras(aboutPage({ neutral: NEUTRAL_ABOUT.corporate, eyebrow: "เกี่ยวกับเรา", heading: "Northstar —\nสตูดิโอซอฟต์แวร์ที่เชื่อใน\nงานที่ใช้ได้จริง", body: "ก่อตั้งปี 2017 โดยวิศวกร 3 คนที่เบื่อระบบองค์กรที่ไม่มีใครอยากใช้ เราเติบโตเป็นทีม 35 คน ส่งมอบมากกว่า 120 โปรเจกต์ให้ธุรกิจค้าปลีก การเงิน และสุขภาพ\n\nเราวัดความสำเร็จจากตัวเลขของลูกค้า ไม่ใช่จำนวนฟีเจอร์" })),
     {
       slug: "contact",
       title: "ติดต่อเรา",

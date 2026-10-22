@@ -70,6 +70,10 @@ const CSS = /* css */ `
   /* ---------------- room cards ---------------- */
   .rw-room-media { position: relative; overflow: hidden; isolation: isolate; }
   .rw-room-media img { width: 100%; height: 100%; object-fit: cover; }
+  .rw-room-empty { color: var(--primary-foreground); background:
+    repeating-linear-gradient(0deg, color-mix(in oklab, var(--primary-foreground) 7%, transparent) 0 1px, transparent 1px 18px),
+    radial-gradient(120% 80% at 28% 18%, color-mix(in oklab, var(--primary) 85%, var(--background)), transparent 62%),
+    linear-gradient(170deg, color-mix(in oklab, var(--primary) 80%, var(--foreground)), color-mix(in oklab, var(--foreground) 85%, var(--primary))); }
   .rw-room-media .rw-swap-b { position: absolute; inset: 0; opacity: 0; transition: opacity .8s var(--ease-out-quart, ease), transform 1.4s var(--ease-out-expo, ease); transform: scale(1.06); }
   :is(.group:hover, .group:focus-within) .rw-room-media .rw-swap-b { opacity: 1; transform: scale(1); }
   .rw-room-media .rw-swap-a { transition: transform 1.4s var(--ease-out-expo, ease); }

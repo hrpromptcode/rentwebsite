@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
+import * as React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight, BadgeCheck, CalendarDays, ChevronRight, Clock, Coins, Sparkles, Ticket, Users } from "lucide-react";
 import { cn } from "@rentweb/ui/lib/utils";
-import { ImageReveal, ThaiWrap } from "@rentweb/ui/motion";
+import { ImageReveal } from "@rentweb/ui/motion";
 import { CtaButton, Eyebrow, RevealHeading, Rise, SectionStyles, StaggerCell, StaggerList } from "@rentweb/storefront";
 import { thb } from "@rentweb/core/money";
 import { bookingConfig, getClassBySlug, listClasses, listClinicPackages, packagesEnabled, upcomingSessions, type ClassItem } from "@rentweb/module-booking/services";
-import { BookingStyles, ClassStudioCard, InstructorAvatar, LevelBadge, SessionRow, enrolHref, frameClass, lookOf, titleStep, nameLines, weeklyRhythm } from "@rentweb/module-booking/ui";
+import { BookingStyles, ClassStudioCard, InstructorAvatar, LevelBadge, SessionRow, enrolHref, frameClass, lookOf, titleStep, nameLines, weeklyRhythm, NameWrap } from "@rentweb/module-booking/ui";
 import { L } from "@rentweb/module-booking/labels";
 import { decodeSlug } from "@/lib/slug";
 import { getRuntime, tenantTx } from "@/lib/tenant";
@@ -120,13 +121,13 @@ export default async function ClassPage({ params }: { params: Params }) {
       <BookingStyles />
       <section className="container-x pt-6 pb-20 md:pt-10 md:pb-32">
         <nav aria-label="breadcrumb" className="mb-6 flex flex-wrap items-center text-sm text-muted-foreground md:mb-10">
-          <Link href="/classes" className="inline-flex h-11 items-center hover:text-foreground">
+          <Link href="/classes" className="inline-flex h-11 min-w-11 items-center hover:text-foreground">
             {L.classes}
           </Link>
           {cls.categoryName && (
             <>
               <ChevronRight aria-hidden className="mx-1 size-3.5" />
-              <Link href={`/classes?category=${encodeURIComponent(cls.categorySlug ?? "")}`} className="inline-flex h-11 items-center hover:text-foreground">
+              <Link href={`/classes?category=${encodeURIComponent(cls.categorySlug ?? "")}`} className="inline-flex h-11 min-w-11 items-center hover:text-foreground">
                 {cls.categoryName}
               </Link>
             </>
@@ -163,7 +164,17 @@ export default async function ClassPage({ params }: { params: Params }) {
                       <f.icon className="size-3.5" /> {f.label}
                     </dt>
                     <dd className="mt-1 font-heading text-lg font-semibold">
-                      <ThaiWrap text={f.value} />
+                      {f.value.includes(" · ")
+                        ? f.value.split(" · ").map((seg, j, all) => (
+                            <React.Fragment key={j}>
+                              {j > 0 && " "}
+                              <span className="whitespace-nowrap">
+                                {seg}
+                                {j < all.length - 1 && " ·"}
+                              </span>
+                            </React.Fragment>
+                          ))
+                        : <NameWrap text={f.value} />}
                     </dd>
                   </div>
                 ))}
@@ -221,7 +232,7 @@ export default async function ClassPage({ params }: { params: Params }) {
               <Rise className="mt-4 border-t border-[color-mix(in_oklab,var(--foreground)_10%,transparent)]">
                 <div data-testid="upcoming-sessions">
                   {sessions.map((s) => (
-                    <SessionRow key={s.start} s={s} showDate />
+                    <SessionRow key={s.start} s={s} showDate inClass />
                   ))}
                 </div>
               </Rise>
@@ -234,9 +245,9 @@ export default async function ClassPage({ params }: { params: Params }) {
             <Rise className="mb-10 md:mb-14">
               <h2 className="font-heading text-step-4 font-semibold">คลาสที่คุณอาจชอบ</h2>
             </Rise>
-            <StaggerList className="grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3" stagger={0.1}>
+            <StaggerList className="bk-rail grid auto-cols-[78%] grid-flow-col gap-4 sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-2 sm:gap-x-8 sm:gap-y-14 lg:grid-cols-3" stagger={0.1}>
               {related.map((c, i) => (
-                <StaggerCell key={c.id} className="h-full">
+                <StaggerCell key={c.id} className="h-full snap-start">
                   <ClassStudioCard c={c} look={look} index={i} />
                 </StaggerCell>
               ))}

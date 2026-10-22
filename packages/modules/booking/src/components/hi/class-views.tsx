@@ -9,6 +9,7 @@ import { L } from "../../labels";
 import type { ClassItem } from "../../services/classes";
 import { InstructorAvatar, LevelBadge, weeklyRhythm } from "../class-cards";
 import { frameClass, pad2, type Look } from "./look";
+import { NameWrap } from "./name-wrap";
 
 const sized = (url: string, w: number) => (/images\.unsplash\.com/.test(url) ? (/[?&]w=\d+/.test(url) ? url.replace(/([?&]w=)\d+/, `$1${w}`) : `${url}&w=${w}`) : url);
 
@@ -51,7 +52,7 @@ export function ClassStudioCard({ c, look, index, poster = false, className }: {
         </p>
         <h3 className="mt-2 font-heading text-step-2 font-semibold leading-snug">
           <Link href={href} className="inline-flex min-h-11 items-center underline-offset-[6px] hover:underline focus-visible:underline">
-            {c.name}
+            <span><NameWrap text={c.name} /></span>
           </Link>
         </h3>
         {poster && c.description && <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{c.description.split(/\n/)[0]}</p>}

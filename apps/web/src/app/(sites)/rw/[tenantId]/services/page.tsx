@@ -39,7 +39,9 @@ export default async function ServicesPage({ params, searchParams }: { params: P
   const featured = services.filter((s) => s.featured);
   const look = lookOf(runtime.config);
   const allow3d = (runtime.theme.effects as { scene3d?: string }).scene3d !== "off";
-  const visuals = [...featured, ...services].map((s) => s.image).filter((x): x is string => !!x);
+  // the intro photo must not repeat the cards right under it (first row): lead with featured services further down the list
+  const later = services.slice(3);
+  const visuals = [...new Set([...later.filter((s) => s.featured), ...later, ...featured, ...services].map((s) => s.image).filter((x): x is string => !!x))];
   const spaStill = look === "spa" ? (services.find((s) => s.slug === "foot-60" || /หิน|stone/i.test(s.name))?.image ?? visuals[0]) : null;
 
   return (

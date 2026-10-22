@@ -54,7 +54,10 @@ Tool: tooling/qa/redesign/qa-c-crawl.ts (--site= --mode=normal|reduce|nogl --tag
 | topup/about | text only (statement + contact card) — same gap as hotel/events about | withHud(): outline VelocityMarquee of the games + HUD stat odometers before the CTA; neutral page unchanged | fixed (reset 14:57, 01a1629b…) |
 | topup/topup/status miss 390 | not-found note laid out as 3 flex columns ("ไม่พบ/รายการ" · "TP-/999999" · rest) | icon + one <p> text flow, order number nowrap | fixed |
 | hotel/rooms/[slug] 390 "ห้องพักอื่น" cards | audit: title links 39 px tall | stretched link (after:absolute inset-0) — the whole card is the hit area; false positive | n/a |
-| events/leather-workshop 390 gallery | 2 photos → big image + one lone thumbnail with an empty half row | + IMG.leatherSatchel 1605733513597-a8f8341084e6 (leather satchel, 200 + viewed) → big + 2 thumbs | fixed (reset pending) |
+| events/leather-workshop 390 gallery | 2 photos → big image + one lone thumbnail with an empty half row | + IMG.leatherSatchel 1605733513597-a8f8341084e6 (leather satchel, 200 + viewed) → big + 2 thumbs | fixed (reset 19:04) |
+| hotel/home hero 390 (nogl pass) | sub "…และทีม ⏎ งานที่จำชื่อคุณ…" — ICU splits the compound ทีมงาน; story/breakfast copy "ห้องอาหารริม ⏎ หาด", "หรือริม ⏎ สระวิลล่า" | hotel.ts: U+2060 inside ทีมงาน, พูลวิลล่าริมหาด, ห้องอาหารริมหาด, ริมสระส่วนตัว/วิลล่า (marketing copy only; extras/room names untouched) | fixed (reset 19:4x, verified …-hotel-home-390-after2-1.png f0/f8) |
+| topup/home 390 features bento | "ปลอดภัย ไม่ ⏎ ต้องให้รหัสผ่าน" (negation split from its verb) | topup.ts: "ไม่ต้องให้รหัสผ่าน" joined with U+2060 → breaks only at the space | fixed (reset 19:4x, verified …-topup-home-390-after2-1.png f8) |
+| hotel/home + /rooms (QA data from another agent's admin journey: "QA ดีลักซ์ 1952" without photos) | a room type without photos rendered as a flat grey-beige box under white copy — looks broken | room-card SwapMedia: no photo → tonal "horizon" plate (primary→foreground gradient + hairlines + BedDouble icon, role=img with the room name), theme tokens only | fixed (…-hotel-rooms-empty-1440.png / -390.png, simulated via _qac-emptyroom.ts) |
 | hotel+events home | two h1 (sr-only page title + module hero h1) | shared render.tsx H1_SECTIONS → qa_shared.md | logged |
 
 ## log (cont.)
@@ -87,3 +90,18 @@ Tool: tooling/qa/redesign/qa-c-crawl.ts (--site= --mode=normal|reduce|nogl --tag
 - reduce pass topup (15:11–15:25): 49 page audits, 0 errors except the 10 stale journey order URLs (404 — topup was reset at 14:57;
   re-checked after topup-journey). Home under reduced motion: static fanned card stack poster, no canvas animation
   (…-topup-home-1440-reduce-1.png). Marquee static fallback is a 4-line block → qa_shared.md (low).
+- 19:05 successor (after usage limit): all passes in scratchpad/passes finished 16:11 (reduce + nogl + fps for 3 sites).
+  fps (home scroll, GPU): topup 55/59, hotel 56/56, events 55/60 fps (1440/390), p95 frame 17 ms, ≤ 2 long frames → no jank.
+  reduce/nogl audits: 0 console / hydration errors, 0 overflow, 0 mid-word on all pages; nogl homes show posters (canvasMax 0).
+  Remaining audit flags are false positives of the crawler's contrast heuristic (text over <img> photos measured against
+  body bg: hotel hero/room h1 1.07; active filter-chip text over the sliding indicator span 1.00) → verified on screenshots.
+  nogl-topup-audit crashed (Target crashed after page 1) → re-running. events reset for the leather satchel (19:04) + create-admin.
+- 19:40 nogl-topup re-run: 0 console / hydration errors, 0 overflow / mid-word on all pages; 1440 login timed out (dev server at 10–20 s/page from other agents' load) → logged-in pages verified at 390 (wallet, account, account/topups, game-in) and in the normal/reduce passes. Resetting hotel + topup for the WJ glue.
+- topup-journey 22/22 PASS (after the 19:4x topup reset)
+- rental-journey: run 1 C4 timed out waiting for the widget quote (dev server busy compiling + a concurrent pnpm exec hiccup, 'tsx not found'); quote API 0.4 s afterwards → re-run 12/12 PASS
+- events-journey 17/17 PASS (the one console 404 is E8's deliberate unknown-ticket-code check)
+- 19:50 _qac-lost.ts demo-events: hero live → poster off-screen → live again on return; no context loss → shared entry updated (not reproducible).
+- 20:00 after2 shots (390 home, hotel + topup) confirm the WJ glue; demo data now also contains other agents' QA rows ("QA เกมทดสอบ …" game,
+  orders 1234****/7789****) — not design issues. Added the photo-less room plate (module typecheck green).
+- 20:10 END gates green: typecheck web / module-topup / module-rental / module-events / templates = 0 errors; module tests topup 96/96,
+  rental 35/35, events 20/20; provision-neutral 10/10; journeys topup 22/22, rental 12/12, events 17/17. qa-c DONE.

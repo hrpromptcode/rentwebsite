@@ -159,7 +159,7 @@ export function KitchenDisplay({ slug, initial, canWrite, tenantName }: { slug: 
 
   return (
     <div ref={container} className={cn("dark flex flex-col bg-zinc-950 text-zinc-50", immersive ? "fixed inset-0 z-[100] overflow-y-auto" : "min-h-[70vh] rounded-2xl border border-zinc-800")}>
-      <header className="sticky top-0 z-10 flex flex-wrap items-center gap-2 border-b border-zinc-800 bg-zinc-950/95 px-3 py-2 backdrop-blur sm:px-4">
+      <header className={cn("sticky z-10 flex flex-wrap items-center gap-2 border-b border-zinc-800 bg-zinc-950/95 px-3 py-2 backdrop-blur sm:px-4", immersive ? "top-0" : "top-[var(--topbar-h)] rounded-t-2xl")}>
         {!immersive && (
           <Link href={`/t/${slug}/restaurant/orders`} className="grid size-11 place-items-center rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-zinc-50" aria-label="กลับไปบอร์ดออเดอร์">
             <ArrowLeft className="size-5" aria-hidden />

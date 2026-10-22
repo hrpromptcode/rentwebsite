@@ -185,7 +185,7 @@ export const shop: TemplateDefinition = {
       .returning({ id: categories.id });
 
     const items: Array<{ name: string; slug: string; price: number; compare?: number; cat: string; img: string; img2?: string; desc: string; featured?: boolean; sold: number; opts?: boolean; stock?: number }> = [
-      { name: "เสื้อเชิ้ตลินินแขนยาว สีทราย", slug: "linen-shirt-sand", price: 149000, compare: 179000, cat: apparel!.id, img: u("1713881676551-b16f22ce4719", 1000), img2: u("1586689311267-e88bb0509995", 1000), desc: "ลินินฝรั่งเศส 100% ตัดทรงหลวมสบาย กระดุมเปลือกหอยแท้", featured: true, sold: 320, opts: true },
+      { name: "เสื้อเชิ้ตลินินคอจีน สีทราย", slug: "linen-shirt-sand", price: 149000, compare: 179000, cat: apparel!.id, img: u("1713881587420-113c1c43e28a", 1000), img2: u("1528458909336-e7a0adfed0a5", 1000), desc: "ลินินฝรั่งเศส 100% คอจีน แขนสั้น ทรงหลวมสบาย กระดุมเปลือกหอยแท้", featured: true, sold: 320, opts: true },
       { name: "เดรสฝ้ายทอมือ ย้อมคราม", slug: "indigo-dress", price: 219000, cat: apparel!.id, img: u("1596703343725-7ca01bda9a45", 1000), img2: u("1645485791314-ef2ceb335c98", 1000), desc: "ย้อมครามธรรมชาติจากสันกำแพง ลายทอไม่ซ้ำกันแต่ละชิ้น", featured: true, sold: 210, opts: true },
       { name: "กางเกงขากว้าง ผ้าฝ้ายซักนุ่ม", slug: "wide-pants", price: 129000, cat: apparel!.id, img: u("1789110853687-71692f0e86be", 1000), img2: u("1789110520148-bb52ba37759b", 1000), desc: "เอวยางยืดด้านหลัง ใส่สบายทั้งวัน", sold: 180, opts: true },
       { name: "เสื้อยืดคอกลม ฝ้ายออร์แกนิก", slug: "organic-tee", price: 69000, compare: 79000, cat: apparel!.id, img: u("1521572163474-6864f9cf17ab", 1000), img2: u("1666358084687-14347fbf364c", 1000), desc: "ฝ้ายออร์แกนิก 100% ทรงพอดีตัว เนื้อหนา 200 แกรม", featured: true, sold: 540, opts: true },
@@ -216,7 +216,7 @@ export const shop: TemplateDefinition = {
           stock: it.opts ? 0 : (it.stock ?? 25),
           featured: !!it.featured,
           soldCount: it.sold,
-          ratingAvg: 480,
+          ratingAvg: 490 - (it.sold % 3) * 10,
           ratingCount: Math.round(it.sold / 6),
           weightGrams: 400,
           tags: it.featured ? ["แนะนำ"] : [],

@@ -17,6 +17,7 @@ import { formatBkkTime, formatThaiDate, formatThaiYmd } from "../services/time";
 import { MonthCalendar, type DayInfo } from "./month-calendar";
 import { SlotPicker, type SlotChip } from "./slot-picker";
 import { BookingStyles } from "./hi/styles";
+import { NameWrap } from "./hi/name-wrap";
 
 /* ------------------------------------------------------------------ */
 /* Types shared with the server shell                                   */
@@ -669,7 +670,9 @@ function ServiceStep({ services, selected, onSelect }: { services: WizardService
                     </span>
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block font-medium leading-snug">{s.name}</span>
+                    <span className="block font-medium leading-snug">
+                      <NameWrap text={s.name} />
+                    </span>
                     <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                       <span className="font-semibold text-foreground tabular-nums">{priceLabel(s, 1)}</span>
                       <span className="inline-flex items-center gap-1">
@@ -744,7 +747,9 @@ function StaffStep({ staff, selected, onSelect }: { staff: WizardStaff[]; select
               </span>
             )}
             <span className="min-w-0">
-              <span className="block font-medium">{s.name}</span>
+              <span className="block font-medium">
+                <NameWrap text={s.name} mode="name" />
+              </span>
               {s.title && <span className="block truncate text-xs text-muted-foreground">{s.title}</span>}
             </span>
           </button>

@@ -44,6 +44,17 @@ Shared issues → tooling/qa/redesign/qa_shared.md (## qa-a).
 | corp | /careers | page read thin (PageIntro + 4 benefit cards + CTA) for an agency | + image-text overlap "ชีวิตที่ Northstar" (workshop photo already in corporate.ts) + features list "ตำแหน่งที่เปิดรับ" (3 roles the CTA names) | done (reset 14:51) |
 | shop | product cards (390) | Node ICU splits ฝ้ายออร์แกนิก as ฝ้า/ยออร์/แก/นิก → card title "เสื้อยืดคอกลม ฝ้า⏎ยออร์แกนิก" | commerce components/thai-name.tsx (glue ออร์แกนิก/สั่งทำ/หมวดหมู่/ของแต่งบ้าน before ThaiWrap) in product-card + category-list; kit glue list logged (qa_shared #7) | code, verifying |
 | shop/cafe | product card titles (360–1440) | text-balance + word units broke inside phrases: "กางเกงขากว้าง ผ้า⏎ฝ้ายซักนุ่ม", "เค้กมะพร้าว⏎อ่อน", "เค้กวันเกิด⏎สั่งทำ (เริ่มต้น)", "…1⏎ปอนด์" | ThaiName phrases: phrases that surely fit (≤7.4em est.) are inline-blocks, quantity+unit merged, glue ทอมือ; card h3 [text-wrap:wrap] | done (probe 360/390/1440) |
+| shop | product linen-shirt-sand | photo = short-sleeve pullover with elastic hem, name "แขนยาว", desc "กระดุมเปลือกหอย", img2 = brown buttoned shirt | "เสื้อเชิ้ตลินินคอจีน สีทราย" + band-collar buttoned linen shirt 1713881587420 + beige linen close-up 1528458909336 | done (reset 19:35) |
+| cafe | about h1 (360/390) | "…จากเตาอบใน⏎คอนโด" (forced line 3 = 379 px in a 358 px box) | "Sugar Puff —⏎เริ่มจากเตาอบ⏎ในคอนโดเล็ก ๆ" | done (reset 19:35, widow probe clean 360/390/1440) |
+| corp | about h1 (1440 + 360) | widow "…ที่ใช้ได้⏎จริง" | forced "Northstar —⏎สตูดิโอซอฟต์แวร์ที่เชื่อใน⏎งานที่ใช้ได้จริง" | done (reset 19:35, probe clean) |
+| cafe | about CTA card (360) | "มีคำถาม?⏎ทักเรามาได้⏎เลย" | "มีคำถาม?⏎ทักมาได้เลย" (cafe breakAboutCta) | done (reset 19:35, probe clean) |
+| corp | home case list (360) | "จองห้อง⏎พักตรง" (break inside ห้องพัก) | case title "ระบบจองตรง" | done (reset 19:35) |
+| cafe | /collections tiles (360) | "เครื่อง⏎ดื่ม" mid-word: 44 px arrow chip beside the name left ~68 px | arrow chip moved to the tile's top corner (dark chip, ring), title via ThaiName phrases; glue เครื่องดื่ม/เครื่องประดับ/เครื่องสำอาง/ห้องพัก | done (probe clean) |
+| corp | /services "Mobile Application" | iPhone home screen full of Facebook / Instagram / YouTube / Google logos | unbranded phone-over-wireframes 1648279220423 | done (corp reset pending) |
+| shop/cafe/corp | reduce + nogl passes | all pages 200, 0 console errors, 0 overflow, 0 canvases under nogl, ≤1 live canvas under reduce; "01" contrast = aria-hidden mix-blend numeral on a photo | — | n/a |
+| shop | home CTA wordmark (390) | long Thai CTA fitted to one line → ~23 px "giant" wordmark | shared #9 | logged |
+| corp | home curved gallery, no-WebGL (390) | CSS fallback squeezes 7 cards into ~80 px slivers ("คลัง⏎สินค้า⏎200⏎สาขา") | shared #10 | logged |
+| shop/corp | sticky-story / features media under reduce | sized(…,1200) shown at 1360–1820 px | shared #8 | logged |
 
 ## log
 - 2026-10-22 14:05 successor run: verified reset applied; crawl script → fresh browser per site + per-mode/width report files; re-crawl 1440 + corp 390.
@@ -57,3 +68,14 @@ Shared issues → tooling/qa/redesign/qa_shared.md (## qa-a).
 - 15:30 commerce-journey (shop+cafe) running in parallel with reduce/nogl passes.
 - 15:36 commerce-journey 46/46 PASS (shop+cafe), console errors 0
 - 15:43 line_login-journey 27/27 PASS; reduced-motion canvas check: shop/cafe/corp hero canvases static under reduce (canvas-only clip unchanged after pointer moves; only the custom cursor dot moves)
+- 19:03 successor run #3 (after usage limit): 27aa416 contains all previous qa-a work. nogl 1440 done, nogl 390 crashed at launch
+  (0xC0000142) → re-running key pages; reduce pass report complete (all green; "01" contrast = aria-hidden mix-blend numeral on photo → n/a).
+- 19:20 shop linen shirt: photo = short-sleeve pullover, name said แขนยาว + "กระดุมเปลือกหอย", img2 = brown buttoned shirt → renamed
+  "เสื้อเชิ้ตลินินคอจีน สีทราย", band-collar buttoned linen shirt 1713881587420 + beige linen close-up 1528458909336 (shop reset pending).
+  Shared #8 (sticky-story 1200px media under reduce) and #9 (cta wordmark tiny on phones) logged.
+- 19:35 widow probe (_qa-a-widow.ts, 360+1440): fixed cafe about h1 ("…จากเตาอบใน⏎คอนโด" at 360 → "Sugar Puff —⏎เริ่มจากเตาอบ⏎ในคอนโดเล็ก ๆ"),
+  corp about h1 ("…ที่ใช้ได้⏎จริง" at 1440 AND 360 → forced "Northstar —⏎สตูดิโอซอฟต์แวร์ที่เชื่อใน⏎งานที่ใช้ได้จริง"), cafe about CTA
+  ("ทักเรามาได้⏎เลย" at 360 → "มีคำถาม?⏎ทักมาได้เลย"), corp case "จองห้อง⏎พักตรง" at 360 → "ระบบจองตรง", cafe /collections tile
+  "เครื่อง⏎ดื่ม" at 360 (arrow chip ate 44 px of a 124 px tile) → arrow moved to the top corner + ThaiName + glue เครื่องดื่ม/ห้องพัก/….
+  Reset shop/cafe/corporate 19:35 (linen shirt + these copy changes) + create-admin.
+- 19:54 cafe/shop rating aggregates varied (every cafe card read '4.9 (30)'), corp services Mobile photo unbranded; reset shop/cafe/corporate 19:54 + create-admin; provision-neutral 10/10; web+commerce+templates typecheck green; 390 re-verify crawl green (fps 45–50, 0 errors).

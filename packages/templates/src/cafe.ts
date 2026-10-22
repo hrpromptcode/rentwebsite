@@ -3,9 +3,12 @@ import { categories, products, reviews, shippingMethods } from "@rentweb/db";
 import { section, hero, marquee, productGrid, imageText, gallery, testimonials, features, faq, cta } from "@rentweb/storefront/definitions";
 import { aboutPage, NEUTRAL_ABOUT, contactPage, legalPages, u } from "./shared";
 
-/** About CTA: break after the question ("มีคำถาม? ทัก|เรามาได้เลย" split the phrase at desktop widths). Demo sections only. */
+/**
+ * About CTA: break after the question ("มีคำถาม? ทัก|เรามาได้เลย" split the phrase at desktop widths) and keep the second
+ * line short enough for the 360 px card in the candy display face ("ทักเรามาได้⏎เลย"). Demo sections only.
+ */
 const ABOUT_CTA = "มีคำถาม? ทักเรามาได้เลย";
-const breakAboutCta = (s: TemplatePage["sections"][number]) => (s.type === "cta" && s.props.heading === ABOUT_CTA ? { ...s, props: { ...s.props, heading: ABOUT_CTA.replace(" ", "\n") } } : s);
+const breakAboutCta = (s: TemplatePage["sections"][number]) => (s.type === "cta" && s.props.heading === ABOUT_CTA ? { ...s, props: { ...s.props, heading: "มีคำถาม?\nทักมาได้เลย" } } : s);
 
 /** About page: a masonry of the kitchen between the statement and the CTA (demo only; new shops keep the neutral page). */
 function withKitchenGallery(page: TemplatePage): TemplatePage {
@@ -134,7 +137,7 @@ export const cafe: TemplateDefinition = {
         section(cta, { variant: "card", heading: "พรุ่งนี้เช้าอยากกินอะไร?", body: "สั่งก่อน 18:00 วันนี้ รับได้พรุ่งนี้ตั้งแต่ 8 โมง", primaryCta: { label: "สั่งล่วงหน้า", href: "/products" } }),
       ],
     },
-    withKitchenGallery(aboutPage({ neutral: NEUTRAL_ABOUT.cafe, heading: "Sugar Puff —\nครัวเล็ก ๆ ที่เริ่ม\nจากเตาอบในคอนโด", body: "เริ่มจากการอบคุกกี้ให้เพื่อนในปี 2020 จนมีคนขอซื้อ จึงเปิดร้านเล็ก ๆ ที่เจริญกรุงในปี 2022 เราทำทุกอย่างเองในครัวหลังร้าน ใช้เนยฝรั่งเศสและไข่ไก่อารมณ์ดี และลดน้ำตาลลง 30% เพราะอยากให้กินได้ทุกวัน" })),
+    withKitchenGallery(aboutPage({ neutral: NEUTRAL_ABOUT.cafe, heading: "Sugar Puff —\nเริ่มจากเตาอบ\nในคอนโดเล็ก ๆ", body: "เริ่มจากการอบคุกกี้ให้เพื่อนในปี 2020 จนมีคนขอซื้อ จึงเปิดร้านเล็ก ๆ ที่เจริญกรุงในปี 2022 เราทำทุกอย่างเองในครัวหลังร้าน ใช้เนยฝรั่งเศสและไข่ไก่อารมณ์ดี และลดน้ำตาลลง 30% เพราะอยากให้กินได้ทุกวัน" })),
     contactPage(),
     ...legalPages("Sugar Puff"),
   ],
@@ -172,8 +175,9 @@ export const cafe: TemplateDefinition = {
         stock: it.stock,
         featured: !!it.f,
         soldCount: 100 - i * 7,
-        ratingAvg: 490,
-        ratingCount: 30,
+        // varied, believable aggregates (every card read "4.9 (30)" before)
+        ratingAvg: 490 - ((i * 3) % 4) * 10,
+        ratingCount: Math.round((100 - i * 7) / 2.6),
         sort: i,
         publishedAt: new Date(),
       })),

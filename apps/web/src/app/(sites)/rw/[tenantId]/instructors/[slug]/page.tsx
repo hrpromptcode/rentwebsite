@@ -46,7 +46,7 @@ export default async function InstructorPage({ params }: { params: Params }) {
       <BookingStyles />
       <section className="container-x pt-6 pb-20 md:pt-10 md:pb-32">
         <nav aria-label="breadcrumb" className="mb-6 flex items-center text-sm text-muted-foreground md:mb-10">
-          <Link href="/instructors" className="inline-flex h-11 items-center hover:text-foreground">
+          <Link href="/instructors" className="inline-flex h-11 min-w-11 items-center hover:text-foreground">
             {L.instructors}
           </Link>
           <ChevronRight aria-hidden className="mx-1 size-3.5" />

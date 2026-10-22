@@ -8,7 +8,9 @@ import * as React from "react";
 const CSS = /* css */ `
 @layer components {
   /* ---------- frames (motif per business) ---------- */
-  .bk-frame { position: relative; isolation: isolate; overflow: clip; background: var(--muted); }
+  /* min-height:0: with overflow:clip (not a scroll container) an aspect-ratio box grows to its content, so a portrait photo
+     stretched a 4:3 frame to ~1:2 (course /classes "Prenatal", "Mat Pilates" on phones) */
+  .bk-frame { position: relative; isolation: isolate; overflow: clip; background: var(--muted); min-height: 0; }
   .bk-arch { border-radius: 999px 999px calc(var(--radius, .75rem) * 1.25) calc(var(--radius, .75rem) * 1.25); }
   .bk-soft { border-radius: calc(var(--radius, .75rem) * 2 + .5rem); }
   .bk-round { border-radius: calc(var(--radius, .75rem) * 1.5); }

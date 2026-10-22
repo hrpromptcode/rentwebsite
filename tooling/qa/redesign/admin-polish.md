@@ -54,3 +54,16 @@
   phone date pair padding + 14px picker icon (no clipping); scrolling tables clipped to card radius. Reduced-motion pass
   (5 targets × 2 widths) clean: 0 errors/overflow, odometers show final values. Re-running the 5 non-green journeys (tag run3).
 - run3: admin-journey 31/31, commerce 43/43; restaurant 14/15 (4: KDS item tick pending under 'Compiling'). Found: KDS sticky header (top-0) slides under the admin topbar when not fullscreen → fix after run3 (top-[var(--topbar-h)])
+- run 4 (successor #2, 2026-10-22): run3 topup 16/18 — 10 = REAL BUG from my sticky headers: a page wrapper with its own
+  overflow (topup orders `relative overflow-x-auto` around the shared table) became the sticky scroll container, so
+  `top: var(--topbar-h)` pushed <thead> 64px down over the first row (TP link "not stable/visible"). Fix: TableEnhancer
+  marks data-fit=1 only when no ancestor up to <body> has overflow other than visible/clip. 9 = journey data-dependency
+  (queue held only C+D → EmptyState after batch, no "เลือกแล้ว 0"; page behaviour unchanged since 0247e33) → journey now
+  also accepts "ไม่มีรายการรอเติม". KDS header sticks under the topbar when not fullscreen. events 8 = "Target crashed"
+  (browser), restaurant 4 = pending under 'Compiling' → rerun.
+- run4 launched (all 7, tag run4) after the sticky-trap + KDS fixes; typecheck green; topup orders table verified (no overlap, 0 errors)
+- run4 (all 7): commerce 43/43, restaurant 15/15 (KDS fix ok), events 24/24, rental 24/24 GREEN; topup 14/18 — steps 9 + 10
+  now pass (sticky fix confirmed); 8/11/14 = toast missed while the action sat under 'Rendering' (dev server load), 17 =
+  goto 30 s timeout; admin-journey 27/31 (3 dashboard goto 120 s while Turbopack recompiled 69 s + cache compaction and
+  another agent's broken packages/templates/src/clinic.ts; 4.1–4.3 design editor same window); booking 0 (login
+  waitForURL 60 s while compiling "/"). All env → rerun those 3 (tag run5).

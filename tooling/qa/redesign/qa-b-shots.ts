@@ -36,7 +36,9 @@ async function loadIds() {
     if (site === "restaurant") {
       const [tb] = await db.select({ q: diningTables.qrToken }).from(diningTables).where(eq(diningTables.tenantId, t.id)).limit(1);
       const [or] = await db.select({ n: restaurantOrders.number, p: restaurantOrders.customerPhone }).from(restaurantOrders).where(and(eq(restaurantOrders.tenantId, t.id), eq(restaurantOrders.type, "pickup"))).orderBy(desc(restaurantOrders.createdAt)).limit(1);
-      const [rs] = await db.select({ n: reservations.number, p: reservations.phone }).from(reservations).where(eq(reservations.tenantId, t.id)).orderBy(desc(reservations.createdAt)).limit(1);
+      // admin journeys insert "RS-QA…" rows straight into the DB (not a customer flow): use a real customer reservation
+      const rsList = await db.select({ n: reservations.number, p: reservations.phone }).from(reservations).where(eq(reservations.tenantId, t.id)).orderBy(desc(reservations.createdAt)).limit(20);
+      const rs = rsList.find((x) => /^RS-\d+$/.test(x.n)) ?? rsList[0];
       if (tb) o.table = `/t/${tb.q}`;
       if (or) o.order = `/orders/r/${or.n}?p=${or.p}`;
       if (rs) o.reservation = `/reservations/${rs.n}?p=${rs.p}`;

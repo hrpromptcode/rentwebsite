@@ -97,7 +97,7 @@ function homeSections(neutral: boolean) {
       eyebrow: "ทำไมต้อง GameHub",
       heading: "เติมที่นี่ สบายใจกว่า",
       items: [
-        { icon: "ShieldCheck", title: "ปลอดภัย ไม่ต้องให้รหัสผ่าน", description: "เติมผ่าน UID เท่านั้น ไม่มีการล็อกอินแทน บัญชีไม่โดนแบน", image: u("1538481199705-c710c4e965fc", 1200) },
+        { icon: "ShieldCheck", title: "ปลอดภัย ไม่⁠ต้อง⁠ให้⁠รหัส⁠ผ่าน", description: "เติมผ่าน UID เท่านั้น ไม่มีการล็อกอินแทน บัญชีไม่โดนแบน", image: u("1538481199705-c710c4e965fc", 1200) },
         { icon: "BadgePercent", title: "ราคาสมาชิก 3 ระดับ", description: "ยิ่งเติมสะสมมาก ยิ่งได้ราคาถูก สูงสุดลด 8%", image: u("1511512578047-dfb367046420", 1000) },
         { icon: "RotateCcw", title: "คืนเงิน 100%", description: "ถ้าเติมไม่สำเร็จ ระบบคืนเข้ากระเป๋าทันที" },
         { icon: "Headset", title: "แอดมินตอบไว", description: "LINE ตอบภายใน 5 นาที 09:00–02:00" },

@@ -14,6 +14,19 @@ import { usePathname } from "next/navigation";
  */
 const isHydrated = (el: Element) => Object.keys(el).some((k) => k.startsWith("__reactFiber$"));
 
+/**
+ * A wrapper with its own overflow (a page's `overflow-x-auto` / `overflow-hidden` div around the shared table) becomes
+ * the sticky scroll container: `top: var(--topbar-h)` would then push the header down over the first rows instead of
+ * sticking under the topbar. Such tables keep a plain (non-sticky) header.
+ */
+function isTrapped(el: HTMLElement, stop: Element): boolean {
+  for (let p = el.parentElement; p && p !== stop; p = p.parentElement) {
+    const s = getComputedStyle(p);
+    for (const o of [s.overflowX, s.overflowY]) if (o !== "visible" && o !== "clip") return true;
+  }
+  return false;
+}
+
 export function TableEnhancer() {
   const pathname = usePathname();
   React.useEffect(() => {
@@ -32,7 +45,7 @@ export function TableEnhancer() {
       if (!isHydrated(el)) return false;
       const table = el.querySelector("table");
       if (!table) return true;
-      const fits = table.scrollWidth <= el.clientWidth + 1;
+      const fits = table.scrollWidth <= el.clientWidth + 1 && !isTrapped(el, document.body);
       const v = fits ? "1" : "0";
       if (el.dataset.fit !== v) el.dataset.fit = v;
       return true;

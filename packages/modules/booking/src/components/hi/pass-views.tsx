@@ -9,6 +9,7 @@ import { thb } from "@rentweb/core/money";
 import { L } from "../../labels";
 import type { PackageCardData } from "../cards";
 import { frameClass, pad2, type Look } from "./look";
+import { NameWrap } from "./name-wrap";
 
 const sized = (url: string, w: number) => (/images\.unsplash\.com/.test(url) ? (/[?&]w=\d+/.test(url) ? url.replace(/([?&]w=)\d+/, `$1${w}`) : `${url}&w=${w}`) : url);
 
@@ -74,7 +75,7 @@ export function PassTicket({
       <div className="relative flex flex-1 flex-col px-6 pt-5 pb-6">
         <h3 className="font-heading text-step-2 font-semibold leading-snug">
           <Link href={href} className="inline-flex min-h-11 items-center hover:text-primary-ink">
-            {p.name}
+            <span><NameWrap text={p.name} /></span>
           </Link>
         </h3>
         {p.description && <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{p.description}</p>}
@@ -140,11 +141,13 @@ export function DropInTicket({ price, className }: { price: number; className?: 
           <BadgeCheck className="mt-0.5 size-4 shrink-0 text-primary" /> ยืนยันทันที ยกเลิกได้ตามเงื่อนไข
         </li>
       </ul>
-      <Button asChild variant="outline" size="lg" className="mt-auto rounded-full">
-        <Link href="/schedule" className="mt-6">
-          เลือกรอบเรียน <ArrowRight className="size-4" />
-        </Link>
-      </Button>
+      <div className="mt-auto pt-6">
+        <Button asChild variant="outline" size="lg" className="w-full rounded-full">
+          <Link href="/schedule">
+            เลือกรอบเรียน <ArrowRight className="size-4" />
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 }

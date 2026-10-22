@@ -9,6 +9,7 @@ import { thb } from "@rentweb/core/money";
 import { L } from "../../labels";
 import { servicePriceLabel, type ServiceCardData } from "../cards";
 import { frameClass, pad2, type Look } from "./look";
+import { NameWrap } from "./name-wrap";
 
 export type ServiceViewData = ServiceCardData & { id?: string; categorySlug?: string | null };
 
@@ -44,7 +45,7 @@ export function ServiceMotifCard({ s, look, index, className, priority }: { s: S
         </p>
         <h3 className="mt-2 font-heading text-step-2 font-semibold leading-snug">
           <Link href={href} className="inline-flex min-h-11 items-center rounded-sm underline-offset-[6px] hover:underline focus-visible:underline">
-            {s.name}
+            <span><NameWrap text={s.name} /></span>
           </Link>
         </h3>
         {s.description && <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{s.description}</p>}
@@ -106,7 +107,7 @@ export function ServiceIndex({ services, look, grouped = false, className }: { s
                     <div className="min-w-0">
                       <div className="flex items-baseline gap-4">
                         <Link href={`/services/${s.slug}`} className="bk-stretch bk-row-name min-w-0 font-heading text-lg leading-snug font-semibold md:text-xl xl:text-2xl">
-                          {s.name}
+                          <NameWrap text={s.name} />
                         </Link>
                         <span aria-hidden className="bk-leader hidden md:block" />
                         <span className="hidden shrink-0 font-heading text-lg font-semibold tabular-nums md:inline md:text-xl">{servicePriceLabel(s)}</span>
@@ -150,7 +151,8 @@ function groupBy(list: ServiceViewData[]): Array<readonly [string, ServiceViewDa
 }
 
 /**
- * Intro visual for /services: clinic = arch photo with glass droplets drifting over its edges (FloatingObjects, the
+ * Intro visual for /services: clinic = arch photo with glass droplets drifting along its sides (FloatingObjects scatter
+ * with a clear centre, so no droplet sits on the client's face; the
  * clinic signature), spa = still life under slow water (OceanSurface ripple), other = framed photo. One canvas max.
  */
 export function ServicesAside({ look, images, allow3d, label }: { look: Look; images: string[]; allow3d: boolean; label?: string }) {
@@ -186,7 +188,7 @@ export function ServicesAside({ look, images, allow3d, label }: { look: Look; im
       )}
       {look === "clinic" && allow3d && (
         <div aria-hidden className="pointer-events-none absolute -inset-[14%]">
-          <FloatingObjects set="clinic" material="glass" layout="orbit" interactive="none" count={6} className="absolute inset-0" />
+          <FloatingObjects set="clinic" material="glass" layout="scatter" clearCenter={0.5} interactive="none" count={6} className="absolute inset-0" />
         </div>
       )}
     </div>
