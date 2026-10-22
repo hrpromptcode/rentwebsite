@@ -18,9 +18,11 @@ const CSS = /* css */ `
   .rw-hero-photo img { width: 100%; height: 100%; object-fit: cover; }
   .rw-hero-scrim { position: absolute; inset: 0; z-index: 2; pointer-events: none; --s: var(--scrim, .6);
     background:
-      radial-gradient(ellipse 62% 46% at 50% 36%, rgb(16 11 6 / calc(var(--s) * .62)) 0%, rgb(16 11 6 / calc(var(--s) * .34)) 52%, transparent 82%),
+      /* qa-c: copy pool (heading + sub + badges) — the bright golden-hour sky left the sub at ~2.7:1; now ≥ 4.5:1 at the median */
+      radial-gradient(ellipse 64% 50% at 50% 44%, rgb(16 11 6 / calc(var(--s) * .82)) 0%, rgb(16 11 6 / calc(var(--s) * .62)) 50%, rgb(16 11 6 / calc(var(--s) * .22)) 74%, transparent 92%),
       linear-gradient(to bottom, rgb(16 11 6 / calc(var(--s) * .7)) 0%, transparent 26%, transparent 70%, rgb(16 11 6 / calc(var(--s) * .45)) 100%); }
   .rw-hero-copy { text-shadow: 0 1px 2px rgb(0 0 0 / .22), 0 6px 28px rgb(0 0 0 / .18); }
+  .rw-hero-sub { text-shadow: 0 1px 2px rgb(0 0 0 / .35), 0 0 22px rgb(16 11 6 / .55); }
   .rw-hero-title { font-size: min(var(--step-6), 12.5svh); }
   @media (max-width: 767px) { .rw-hero-title { font-size: min(var(--step-6), 9.5svh); } }
   .rw-hero-meta { color: rgba(255,255,255,.82); }
@@ -138,24 +140,6 @@ const CSS = /* css */ `
     @starting-style { .rw-track-line > i { transform: scaleX(0); } }
     .rw-scroll-cue::after { content: ""; position: absolute; inset: 0; background: currentColor; animation: rw-cue-r 2.4s var(--ease-in-out-circ, ease-in-out) infinite; }
   }
-}
-/* unlayered on purpose: must win over the section utilities (bg-*) */
-/* ---------------- "a day at the resort" sticky story (§5.9 creative signature) ----------------
-     On pages that carry the rental ocean hero, the sticky-story section's stage light follows the time of day of the
-     active step: 1st = morning (pale sunrise), 2nd = afternoon (sea), 3rd = sunset (glow), last = night (--rw-night,
-     tokens remapped so every text stays AA). Driven by the kit's [data-active] flags (no JS here). Theme tokens only;
-     dark themes get --rw-night = a deepened background. Proper home: a sticky-story prop (see rental.md → shared owners). */
-  body:has(.rw-stay-hero) [data-section="sticky-story"] { --rw-tod: var(--background); background-color: var(--rw-tod); color: var(--foreground); }
-  body:has(.rw-stay-hero) [data-section="sticky-story"]:has([data-story-item]:first-child[data-active="true"]) { --rw-tod: color-mix(in oklab, var(--glow) 20%, var(--background)); }
-  body:has(.rw-stay-hero) [data-section="sticky-story"]:has([data-story-item]:nth-child(2):not(:last-child)[data-active="true"]) { --rw-tod: color-mix(in oklab, var(--accent) 13%, var(--background)); }
-  body:has(.rw-stay-hero) [data-section="sticky-story"]:has([data-story-item]:nth-child(n+3):not(:last-child)[data-active="true"]) { --rw-tod: color-mix(in oklab, var(--glow) 58%, var(--background)); }
-  body:has(.rw-stay-hero) [data-section="sticky-story"]:has([data-story-item]:last-child:not(:first-child)[data-active="true"]) {
-    --rw-tod: var(--rw-night); --foreground: var(--rw-night-fg); --card-foreground: var(--rw-night-fg);
-    --muted-foreground: color-mix(in oklab, var(--rw-night-fg) 74%, var(--rw-night)); --border: color-mix(in oklab, var(--rw-night-fg) 16%, transparent);
-    --muted: color-mix(in oklab, var(--rw-night-fg) 10%, var(--rw-night)); }
-  body:has(.rw-stay-hero) [data-section="sticky-story"]:has([data-story-item]:last-child:not(:first-child)[data-active="true"]) :is([data-story-kicker], .text-primary-ink) { color: color-mix(in oklab, var(--glow) 85%, var(--rw-night-fg)); }
-@media (prefers-reduced-motion: no-preference) {
-  body:has(.rw-stay-hero) [data-section="sticky-story"] { transition: background-color 1.4s var(--ease-out-quart, ease), color .9s var(--ease-out-quart, ease); }
 }
 @keyframes rw-hero-push { from { transform: scale(1.12); } to { transform: scale(1.02); } }
 @keyframes rw-hero-in { from { opacity: 0; transform: translateY(18px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }

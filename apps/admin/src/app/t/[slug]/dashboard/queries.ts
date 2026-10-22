@@ -4,6 +4,7 @@ import { paymentSetupStatus } from "@rentweb/core/payments";
 import { daysAgo, startOfTodayBangkok } from "@/lib/format";
 import { tenantTx, type TenantCtx } from "@/lib/tenant";
 import { computeKpis, PAYMENT_MODULES, type Kpis } from "./kpis";
+import { computeTrends, type Trends } from "./trends";
 
 export type { Kpis } from "./kpis";
 
@@ -31,6 +32,8 @@ export interface DashboardData {
   checklist: ChecklistItem[];
   progress: number;
   activity: ActivityItem[];
+  /** 14-day daily series for the KPI sparklines and the revenue bars */
+  trends: Trends;
 }
 
 export async function getDashboardData(ctx: TenantCtx): Promise<DashboardData> {
@@ -45,6 +48,7 @@ export async function getDashboardData(ctx: TenantCtx): Promise<DashboardData> {
   const createdCutoff = new Date(ctx.tenant.createdAt.getTime() + 5 * 60_000);
 
   const kpiPromise = tenantTx(tenantId, (tx) => computeKpis(tx, { tenantId, modules: ctx.modules, today, tomorrow, since7, createdCutoff }));
+  const trendsPromise = tenantTx(tenantId, (tx) => computeTrends(tx, { tenantId, modules: ctx.modules, today }));
   // ADMIN_B2-06: sites without an item module (corporate / CMS-only) complete "content" by publishing their own page
   const hasItemModule = hasCommerce || hasRestaurant || hasBooking || hasTopup;
   const takesPayments = PAYMENT_MODULES.some((m) => ctx.modules.includes(m));
@@ -59,6 +63,7 @@ export async function getDashboardData(ctx: TenantCtx): Promise<DashboardData> {
     db.select().from(eventsOutbox).where(eq(eventsOutbox.tenantId, tenantId)).orderBy(desc(eventsOutbox.createdAt)).limit(8),
   ]);
   const { kpis, realItem } = await kpiPromise;
+  const trends = await trendsPromise;
   const publishedPages = await pagesPromise;
   const homePage = publishedPages.find((p) => p.kind === "home");
   const ownPagePublished = publishedPages.some((p) => !!p.publishedAt && p.publishedAt > createdCutoff);
@@ -107,7 +112,7 @@ export async function getDashboardData(ctx: TenantCtx): Promise<DashboardData> {
     .sort((a, b) => b.at.getTime() - a.at.getTime())
     .slice(0, 10);
 
-  return { kpis, checklist, progress, activity };
+  return { kpis, checklist, progress, activity, trends };
 }
 
 const AUDIT_LABELS: Record<string, string> = {

@@ -11,7 +11,7 @@ export interface FloatingObjectsProps {
   set: FloatingSet;
   /** auto: glass for clinic/resort, chrome for corporate/gaming/events, clay for pastry/food, satin for fashion/spa/yoga */
   material?: FloatingMaterial;
-  /** object count (default by tier: 7–8 high, 5 mid) */
+  /** object count, 1–14 (default by tier: 7 high desktop, 5 otherwise); overrides the tier default */
   count?: number;
   layout?: "orbit" | "scatter" | "stack" | "rain";
   pointerParallax?: boolean;

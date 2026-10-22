@@ -41,22 +41,12 @@ export function HeroSync({ children }: { children: React.ReactNode }) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
-/** WordCycler whose active index is published to the hero context (observed via its data-active attribute). */
+/** WordCycler whose active index is published to the hero context (WordCycler onChange). */
 export function HeroCycler({ className }: { className?: string }) {
   const { setWord } = React.useContext(Ctx);
-  const ref = React.useRef<HTMLSpanElement>(null);
-  React.useEffect(() => {
-    const el = ref.current?.querySelector<HTMLElement>(".rw-cycler");
-    if (!el) return;
-    const read = () => setWord(Number(el.dataset.active ?? 0));
-    read();
-    const mo = new MutationObserver(read);
-    mo.observe(el, { attributes: true, attributeFilter: ["data-active"] });
-    return () => mo.disconnect();
-  }, [setWord]);
   return (
-    <span ref={ref} className="inline-block">
-      <WordCycler words={HERO_WORDS} interval={2600} mode="roll" className={className} />
+    <span className="inline-block">
+      <WordCycler words={HERO_WORDS} interval={2600} mode="roll" className={className} onChange={setWord} />
     </span>
   );
 }

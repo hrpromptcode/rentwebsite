@@ -12,6 +12,8 @@ export interface StoryItem {
   chips?: string[];
   /** stage content for this step (photo, card, scene…); server-rendered */
   media: React.ReactNode;
+  /** free-form tone token rendered as data-tone on the step (lets the page restyle the stage per active step) */
+  tone?: string;
 }
 
 export interface StickyStoryProps {
@@ -67,7 +69,7 @@ export function StickyStory({ items, side = "left", mediaMode = "crossfade", cou
     <section ref={rootRef} className={cn("rw-story", className)} data-side={side} data-media-mode={mediaMode} style={{ "--story-n": items.length } as React.CSSProperties}>
       <div data-story-list="">
         {items.map((it, i) => (
-          <article key={it.key} id={`${prefix}-${i + 1}`} data-story-item="" data-index={i} data-active={i === active ? "true" : "false"}>
+          <article key={it.key} id={`${prefix}-${i + 1}`} data-story-item="" data-index={i} data-tone={it.tone || undefined} data-active={i === active ? "true" : "false"}>
             <Title data-story-heading="">
               <button
                 type="button"

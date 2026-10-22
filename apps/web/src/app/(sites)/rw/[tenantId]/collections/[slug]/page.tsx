@@ -30,14 +30,16 @@ export default async function CollectionPage({ params, searchParams }: Props) {
   const data = await tenantTx(tenantId, async (tx) => {
     const category = await getCategoryBySlug(tx, tenantId, slug);
     if (!category) return null;
-    const [result, categories] = await Promise.all([
+    const [result, categories, allCount] = await Promise.all([
       listProducts(tx, tenantId, { category: slug, q: q.q, sort: q.sort, minPrice: q.min ? q.min * 100 : null, maxPrice: q.max ? q.max * 100 : null, page: q.page, perPage: 24 }),
       listCategories(tx, tenantId),
+      // the "all" chip counts every active product (category sums miss uncategorised ones)
+      listProducts(tx, tenantId, { perPage: 1 }).then((r) => r.total),
     ]);
-    return { category, result, categories };
+    return { category, result, categories, allCount };
   });
   if (!data) notFound();
-  const { category, result, categories } = data;
+  const { category, result, categories, allCount } = data;
   // SS-09: a page past the last one → the last page
   if (result.total > 0 && q.page > result.pages) redirect(catalogHref(`/collections/${encodeURIComponent(slug)}`, { ...q, category: null, page: result.pages }));
 
@@ -53,6 +55,7 @@ export default async function CollectionPage({ params, searchParams }: Props) {
         basePath={`/collections/${encodeURIComponent(slug)}`}
         query={{ ...q, category: null }}
         result={result}
+        allCount={allCount}
         cardStyle={cardStyleForPreset(runtime.theme.preset.key)}
       />
     </PageBody>

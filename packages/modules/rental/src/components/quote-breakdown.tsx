@@ -53,8 +53,8 @@ export function QuoteBreakdown({
         <dd className="rw-price-num font-medium tabular-nums">{thb(quote.roomTotal)}</dd>
       </div>
       {showNights && !sameRate && (
-        <details className="rounded-[var(--radius-md)] bg-muted/60 px-3 py-2">
-          <summary className="min-h-8 cursor-pointer text-xs text-muted-foreground">ราคาต่อคืนตามวันที่</summary>
+        <details className="rounded-[var(--radius-md)] bg-muted/60 px-3 pb-2">
+          <summary className="min-h-11 cursor-pointer py-3.5 text-xs leading-4 text-muted-foreground">ราคาต่อคืนตามวันที่</summary>
           <ul className="mt-2 space-y-1 text-xs">
             {quote.nightly.map((n) => (
               <li key={n.date} className="flex justify-between tabular-nums">

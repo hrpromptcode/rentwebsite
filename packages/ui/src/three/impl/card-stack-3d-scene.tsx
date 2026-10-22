@@ -191,7 +191,7 @@ export default function CardStack3DScene({ items, layout = "fan", autoplay = tru
   }, [items, n]);
   const ptr = usePointer(env.rootRef);
   const group = React.useRef<THREE.Group>(null);
-  const fit = layout === "stack" ? Math.min(1.6, viewport.height / 3.1, viewport.width / 3.2) : layout === "fan" ? Math.min(1.5, viewport.height / 4.0, viewport.width / (viewport.width < viewport.height ? 4.6 : 7.5)) : Math.min(1.25, viewport.height / 4.6, viewport.width / (viewport.width < viewport.height ? 5.2 : 7.5));
+  const fit = layout === "stack" ? Math.min(1.6, viewport.height / 3.1, viewport.width / 3.2) : layout === "fan" ? Math.min(1.5, viewport.height / 4.0, viewport.width / (viewport.width < viewport.height ? 4.6 : 7.5)) : Math.min(1.25, viewport.height / 4.6, viewport.width / 8.4); // orbit: R 2.7 + half a card, perspective + pointer tilt ≈ ±4.1 units
 
   const onOver = (i: number) => (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();

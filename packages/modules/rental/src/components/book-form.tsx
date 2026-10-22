@@ -78,14 +78,16 @@ export function StayBookForm({ type, checkIn, checkOut, guests, extras, initialE
   const [consent, setConsent] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [pending, startTransition] = React.useTransition();
-  const firstRender = React.useRef(true);
+  // the server-rendered quote is for the initial selection; only a changed selection re-quotes. Keyed (not a
+  // "first render" flag) so React StrictMode's double mount effect does not fire a request that dims the summary and
+  // disables the submit button until it returns (qa-c).
+  const quoteKey = `${type.id}|${checkIn}|${checkOut}|${guests}|${extrasParam(sel)}`;
+  const quotedKey = React.useRef(quoteKey);
 
   // re-quote when the add-ons change (the server re-validates everything on submit anyway)
   React.useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
+    if (quoteKey === quotedKey.current) return;
+    quotedKey.current = quoteKey;
     const ctrl = new AbortController();
     setQuoting(true);
     const t = setTimeout(async () => {
@@ -100,14 +102,16 @@ export function StayBookForm({ type, checkIn, checkOut, guests, extras, initialE
       } catch (e) {
         if ((e as Error)?.name !== "AbortError") setError(L.errors.unknown!);
       } finally {
-        setQuoting(false);
+        // an aborted request must not clear the flag of the request that replaced it
+        if (!ctrl.signal.aborted) setQuoting(false);
       }
     }, 200);
     return () => {
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [sel, type.id, checkIn, checkOut, guests]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- quoteKey encodes sel, type, dates and guests
+  }, [quoteKey]);
 
   const cash = method === "cash";
   const due = cash || !payOption ? 0 : payOption === "full" ? quote.total : quote.deposit;

@@ -99,14 +99,15 @@ export const restaurant: TemplateDefinition = {
             { kicker: "11:00", title: "โต๊ะของคุณ", body: "เสิร์ฟร้อน ๆ ถึงโต๊ะ สั่งเพิ่มผ่าน QR ได้ตลอดมื้อ แล้วขอบิลจากมือถือได้เลย", image: u("1679541946014-a47f1ec0dc1a", 1400), chips: ["มีเมนูมังสวิรัติ", "แจ้งไม่ใส่ถั่วได้"], href: "/menu" },
           ],
         }),
+        // bento: the dine-in QR story gets the big photo tile (lamp-lit dining room); pickup / booking tiles carry a faint photo texture
         section(features, {
-          variant: "cards",
+          variant: "bento",
           heading: "สั่งง่าย กินสบาย",
           columns: 3,
           items: [
-            { icon: "QrCode", title: "สแกนสั่งที่โต๊ะ", description: "ไม่ต้องรอพนักงาน สั่งเพิ่มได้ตลอด เรียกพนักงานหรือขอบิลผ่านมือถือ" },
-            { icon: "ShoppingBag", title: "สั่งกลับบ้านล่วงหน้า", description: "เลือกเวลารับ จ่ายผ่าน PromptPay มาถึงรับได้เลย ไม่ต้องรอ" },
-            { icon: "CalendarCheck", title: "จองโต๊ะออนไลน์", description: "เลือกโซนในบ้านหรือสวน ยืนยันทันที เตือนก่อนถึงเวลา" },
+            { icon: "QrCode", title: "สแกนสั่งที่โต๊ะ", description: "ไม่ต้องรอพนักงาน สั่งเพิ่มได้ตลอด เรียกพนักงานหรือขอบิลผ่านมือถือ", image: u("1526234362653-3b75a0c07438", 1600) },
+            { icon: "ShoppingBag", title: "สั่งกลับบ้านล่วงหน้า", description: "เลือกเวลารับ จ่ายผ่าน PromptPay มาถึงรับได้เลย ไม่ต้องรอ", image: u("1652862729869-2f4e80c1849d", 900) },
+            { icon: "CalendarCheck", title: "จองโต๊ะออนไลน์", description: "เลือกโซนในบ้านหรือสวน ยืนยันทันที เตือนก่อนถึงเวลา", image: u("1719026902949-eb848178c349", 900) },
           ],
         }),
         section(gallery, {
@@ -115,12 +116,12 @@ export const restaurant: TemplateDefinition = {
           columns: 3,
           images: [
             { url: u("1675150277436-9c7348972c11", 1000), alt: "สำรับอาหารไทยบนโต๊ะไม้" },
-            { url: u("1517248135467-4c7edcad34c4", 1000), alt: "บรรยากาศในร้านยามค่ำ" },
+            { url: u("1574482211311-45a2169db57c", 1000), alt: "สวนหลังบ้านใต้แสงไฟยามค่ำ" },
             { url: u("1696785129061-6939a4c2a1fe", 1000), alt: "ไฟแรงจากเตาในครัว" },
             { url: u("1722995690313-9ef561d30143", 1000), alt: "สำรับบนใบตอง" },
             { url: u("1551218808-94e220e084d2", 1000), alt: "หั่นสมุนไพรสดในครัว" },
             { url: u("1705056508219-0aa0ceb16820", 1000), alt: "ข้าวเหนียวมะม่วง" },
-            { url: u("1414235077428-338989a2e8c0", 1000), alt: "โต๊ะอาหารพร้อมเสิร์ฟ" },
+            { url: u("1536392706976-e486e2ba97af", 1000), alt: "โต๊ะเลี้ยงยาวจัดดอกไม้และเทียน" },
             { url: u("1646850149335-f15d028036b3", 1000), alt: "สำรับอาหารเหนือ" },
             { url: u("1555939594-58d7cb561ad1", 1000), alt: "ของย่างเตาถ่าน" },
           ],
@@ -134,7 +135,7 @@ export const restaurant: TemplateDefinition = {
             { quote: "จองโต๊ะโซนสวนให้แม่วันเกิด ร้านเตรียมเค้กให้ด้วย ประทับใจ", name: "คุณบอส", role: "Facebook", avatar: avatar("bos"), rating: 5 },
           ],
         }),
-        section(reservationCta, { heading: "จองโต๊ะ\nสำหรับวันพิเศษ", body: "โซนสวนรับได้ 6–12 ที่นั่ง เหมาะกับงานเลี้ยงครอบครัว แจ้งโอกาสพิเศษได้ตอนจอง", image: { url: u("1414235077428-338989a2e8c0", 1200), alt: "" } }),
+        section(reservationCta, { heading: "จองโต๊ะ\nสำหรับวันพิเศษ", body: "โซนสวนรับได้ 6–12 ที่นั่ง เหมาะกับงานเลี้ยงครอบครัว แจ้งโอกาสพิเศษได้ตอนจอง", image: { url: u("1738958047430-c27550e3af79", 1400), alt: "โต๊ะยาวในสวนจุดเทียนยามค่ำ" } }),
         section(stats, { variant: "row", items: [{ value: 70, suffix: " ปี", label: "บ้านไม้หลังเดิม" }, { value: 32, label: "เมนูประจำบ้าน" }, { value: 48000, suffix: "+", label: "จานที่เสิร์ฟปีที่แล้ว" }, { value: 12, label: "โต๊ะในบ้านและในสวน" }] }),
         section(faq, {
           heading: "คำถามที่พบบ่อย",

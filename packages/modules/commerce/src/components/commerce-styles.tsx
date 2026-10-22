@@ -18,6 +18,9 @@ const CSS = /* css */ `
   .rwc-media { position: relative; overflow: hidden; background: var(--muted); isolation: isolate; aspect-ratio: 1 / var(--rwc-r); }
   .rwc-img, .rwc-img2 { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .rwc-img { transition: transform 1.1s var(--rwc-ease), filter .6s var(--rwc-quart); }
+  .rwc-noimg { display: grid; place-items: center; color: color-mix(in oklab, var(--foreground) 22%, transparent);
+    background: radial-gradient(120% 90% at 30% 20%, color-mix(in oklab, var(--primary) 14%, var(--muted)), var(--muted) 62%); }
+  .rwc-noimg > span { font-size: clamp(3rem, 30cqw, 9rem); line-height: 1; }
   .rwc-img2 { clip-path: inset(100% 0 0 0); transform: scale(1.08); transition: clip-path .9s var(--rwc-ease), transform 1.2s var(--rwc-ease); }
   .rwc-card:is(:hover, :focus-within) .rwc-img { transform: scale(1.06); }
   .rwc-card:is(:hover, :focus-within) .rwc-img2 { clip-path: inset(0 0 0 0); transform: scale(1.02); }
@@ -81,9 +84,10 @@ const CSS = /* css */ `
 
   /* ---------------- category index (hover-reveal rows) ---------------- */
   .rwc-index { border-top: 1px solid color-mix(in oklab, var(--foreground) 85%, transparent); }
-  .rwc-index-row { position: relative; display: grid; grid-template-columns: 3rem 1fr auto; align-items: center; gap: clamp(.75rem, 2vw, 2rem); padding-block: clamp(1rem, 2.4vw, 2rem);
+  .rwc-index-row { position: relative; display: grid; grid-template-columns: 2.25rem minmax(0, 1fr) auto; align-items: center; gap: clamp(.75rem, 2vw, 2rem); padding-block: clamp(1rem, 2.4vw, 2rem);
     border-bottom: 1px solid color-mix(in oklab, var(--foreground) 85%, transparent); transition: opacity .5s var(--rwc-quart), color .3s; }
   .rwc-index-name { display: inline-block; transition: transform .8s var(--rwc-ease), color .3s; }
+  @media (min-width: 640px) { .rwc-index-row { grid-template-columns: 3rem minmax(0, 1fr) auto; } }
   .rwc-index-thumb { width: 3.5rem; aspect-ratio: 4 / 5; object-fit: cover; border-radius: var(--radius-md, 6px); }
   @media (hover: hover) and (pointer: fine) {
     .rwc-index:hover .rwc-index-row:not(:hover) { opacity: .28; }

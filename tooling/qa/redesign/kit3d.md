@@ -98,6 +98,7 @@ Dark base → light accents added; light base → tinted. Keep text on it AA (da
   (falls in with a bounce) · yoga = balancing stone stack + rings + soft spheres · resort = sun disc, glass waves, pebbles ·
   events = holo tickets, star bursts, spotlight cones · abstract = mixed.
 - `interactive="none"` → `pointer-events:none` (safe over content); `poke` = tap impulse with springy return; `drag` = grab & throw.
+- `count` overrides the tier default at any tier (e.g. `count={6}` for the clinic glass droplets in a 4:5 media box); clamped to 1–14.
 ```tsx
 <div className="relative h-[70svh]"><FloatingObjects set="pastry" interactive="poke" clearCenter={0.25} /></div>
 ```
@@ -125,6 +126,7 @@ Extruded ticket with perforated stub notches, front/back drawn on canvas with th
 inertia and snaps to the front; pointer tilt. DOM mirror = sr-only text; fallback = CSS ticket.
 
 ### CardStack3D `{ items: { image, title, badge?, href? }[], layout?="fan"|"orbit"|"stack", autoplay?=true, floor?="synthgrid"|"none", rim?="accent", ariaLabel?, className?="relative h-full w-full min-h-[420px]" }`
+- static fan (reduced motion / no WebGL / poster): card width + step scale with the item count (--fan-w/--fan-step/--fan-step-h/--fan-rot set inline), so any count (8 for topup) stays inside the box incl. the hover spread; orbit fits min(vh/4.6, vw/8.4) so the outer cards are never clipped.
 Holographic cards (rim light, foil band): fan opens on hover, orbit circles a swirling portal ring (+ synthwave grid floor),
 stack deals the top card to the back every ~2.6 s. Links live in a DOM mirror (CSS fan fallback); click/Enter navigate.
 

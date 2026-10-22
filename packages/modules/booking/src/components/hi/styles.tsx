@@ -37,6 +37,13 @@ const CSS = /* css */ `
   .bk-count { font-family: var(--font-accent, var(--font-display)); font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -.02em; }
   .bk-draw { transform-origin: left; }
 
+  /* ---------- phone rail (home service cards): horizontal snap scroller that bleeds to the screen edges ---------- */
+  @media (max-width: 639.98px) {
+    .bk-rail { overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none;
+      margin-inline: calc(-1 * clamp(1rem, 4vw, 2.5rem)); padding-inline: clamp(1rem, 4vw, 2.5rem); scroll-padding-inline: clamp(1rem, 4vw, 2.5rem); padding-bottom: .5rem; }
+    .bk-rail::-webkit-scrollbar { display: none; }
+  }
+
   /* ---------- filter pills ---------- */
   .bk-pills { scrollbar-width: none; }
   .bk-pills::-webkit-scrollbar { display: none; }

@@ -101,9 +101,9 @@ const CSS = /* css */ `
 
   /* ---------- testimonials ---------- */
   .rw-quote-mark path { fill: none; stroke: currentColor; stroke-width: 2; }
-  .rw-chat .rw-bubble { position: relative; }
-  .rw-chat .rw-typing { position: absolute; top: 0; display: inline-flex; gap: 4px; padding: .8rem .95rem; border-radius: 1.1rem; background: var(--muted); opacity: 0; pointer-events: none; }
-  .rw-chat .rw-typing i { width: 6px; height: 6px; border-radius: 9999px; background: var(--muted-foreground); }
+  .rw-chat-thread .rw-bubble { position: relative; }
+  .rw-chat-thread .rw-typing { position: absolute; top: 0; display: inline-flex; gap: 4px; padding: .8rem .95rem; border-radius: 1.1rem; background: var(--muted); opacity: 0; pointer-events: none; }
+  .rw-chat-thread .rw-typing i { width: 6px; height: 6px; border-radius: 9999px; background: var(--muted-foreground); }
 
   /* ---------- faq ---------- */
   .rw-plus { position: relative; display: inline-block; width: 1.05rem; height: 1.05rem; transition: transform .5s var(--rw-ease); }
@@ -159,12 +159,12 @@ const CSS = /* css */ `
     .rw-float { animation: rw-float 7s ease-in-out infinite; }
     .rw-push > * { animation: rw-push 2.4s var(--rw-ease) both; }
     .rw-cue-line::after { animation: rw-cue 2.4s var(--ease-in-out-circ, ease-in-out) infinite; }
-    .rw-chat:not([data-state="in"]) .rw-bubble { opacity: 0; transform: translateY(14px) scale(.96); }
-    .rw-chat[data-state="in"] .rw-bubble { animation: rw-pop .6s var(--ease-spring, cubic-bezier(.34,1.56,.64,1)) both; animation-delay: calc(var(--i, 0) * .45s + .55s); }
-    .rw-chat[data-state="in"] .rw-typing { animation: rw-typing .75s linear forwards; animation-delay: calc(var(--i, 0) * .45s - .2s); }
-    .rw-chat[data-state="in"] .rw-typing i { animation: rw-dot 1s ease-in-out infinite; }
-    .rw-chat[data-state="in"] .rw-typing i:nth-child(2) { animation-delay: .15s; }
-    .rw-chat[data-state="in"] .rw-typing i:nth-child(3) { animation-delay: .3s; }
+    .rw-chat-thread:not([data-state="in"]) .rw-bubble { opacity: 0; transform: translateY(14px) scale(.96); }
+    .rw-chat-thread[data-state="in"] .rw-bubble { animation: rw-pop .6s var(--ease-spring, cubic-bezier(.34,1.56,.64,1)) both; animation-delay: calc(var(--i, 0) * .45s + .55s); }
+    .rw-chat-thread[data-state="in"] .rw-typing { animation: rw-typing .75s linear forwards; animation-delay: calc(var(--i, 0) * .45s - .2s); }
+    .rw-chat-thread[data-state="in"] .rw-typing i { animation: rw-dot 1s ease-in-out infinite; }
+    .rw-chat-thread[data-state="in"] .rw-typing i:nth-child(2) { animation-delay: .15s; }
+    .rw-chat-thread[data-state="in"] .rw-typing i:nth-child(3) { animation-delay: .3s; }
     .rw-pulse-ring::after { content: ""; position: absolute; inset: 0; border-radius: inherit; border: 1.5px solid currentColor; animation: rw-ring 2.4s var(--ease-out-quart) infinite; }
     .rw-wobble:hover { animation: rw-wobble .7s var(--ease-spring) both; }
 
@@ -183,6 +183,9 @@ const CSS = /* css */ `
       .rw-tilt-in { animation: rw-tilt-in linear both; animation-timeline: view(); animation-range: entry 0% cover 30%; }
       .rw-unfold { animation: rw-unfold linear both; animation-timeline: --rwrow; animation-range: entry 100% cover 48%; }
     }
+    /* page intros sit above the fold: their rule draws once on mount instead of half-scrubbing with the scroll */
+    .rw-intro > .rw-draw-line { transform-origin: left; animation: rw-scale-x .9s var(--ease-out-quart, cubic-bezier(.25,1,.5,1)) .35s both; animation-timeline: auto; animation-range: normal; }
+    .rw-intro.text-center > .rw-draw-line { transform-origin: center; }
   }
 
   @media (max-width: 767px) { .rw-par-md { animation: none !important; transform: none !important; } }
@@ -191,7 +194,7 @@ const CSS = /* css */ `
   [data-fx="off"] :is(.rw-fade, .rw-float, .rw-push > *, .rw-drift, .rw-darken, .rw-grow, .rw-draw-line, .rw-steps-line, .rw-vline, .rw-rule, .rw-draw-icon svg *, .rw-quote-mark path, .rw-par, .rw-step-node, .rw-big-num, .rw-tilt-in, .rw-unfold, .rw-bubble, .rw-typing) { animation: none !important; }
   [data-fx="off"] .rw-cue-line::after, [data-fx="off"] .rw-pulse-ring::after { animation: none !important; }
   [data-fx="off"] .rw-draw-icon svg *, [data-fx="off"] .rw-quote-mark path { stroke-dasharray: none; stroke-dashoffset: 0; }
-  [data-fx="off"] .rw-chat .rw-bubble { opacity: 1; transform: none; }
+  [data-fx="off"] .rw-chat-thread .rw-bubble { opacity: 1; transform: none; }
 }
 
 @keyframes rw-fade { from { opacity: 0; transform: translateY(8px); } }
@@ -217,6 +220,33 @@ const CSS = /* css */ `
 @keyframes rw-acc-up { from { height: var(--radix-accordion-content-height); } to { height: 0; } }
 @keyframes rw-unfold { from { grid-template-rows: 0fr; opacity: 0; } to { grid-template-rows: 1fr; opacity: 1; } }
 @keyframes rw-rise { from { opacity: 0; transform: translateY(1.2rem); } to { opacity: 1; transform: none; } }
+
+/* ---------- unlayered: contact map tinted to the theme (§5.0) — light: grayscale + primary colour wash; dark presets:
+   the map is inverted into a night map and the wash uses screen, so it never sits as a light block on a dark page ---------- */
+.rw-map-frame { filter: grayscale(.85); transition: filter .7s var(--ease-out-quart, ease); }
+.rw-map-tint { mix-blend-mode: color; opacity: .25; transition: opacity .7s var(--ease-out-quart, ease); }
+.group:hover .rw-map-frame { filter: grayscale(0); }
+.group:hover .rw-map-tint { opacity: 0; }
+:root.dark .rw-map-frame { filter: invert(.9) hue-rotate(180deg) grayscale(.75) brightness(.92) contrast(.95); }
+:root.dark .group:hover .rw-map-frame { filter: invert(.9) hue-rotate(180deg) grayscale(.15) brightness(.95) contrast(.95); }
+:root.dark .rw-map-tint { mix-blend-mode: screen; opacity: .16; }
+:root.dark .group:hover .rw-map-tint { opacity: 0; }
+
+/* ---------- unlayered: sticky-story stage tones follow the active step (theme tokens only; night remaps the text
+   tokens so every text stays AA; dark themes get --rw-night = a deepened background) ---------- */
+.rw-story-toned { --rw-tod: var(--background); background-color: var(--rw-tod); color: var(--foreground); }
+.rw-story-toned:has([data-story-item][data-tone="soft"][data-active="true"]) { --rw-tod: color-mix(in oklab, var(--glow) 20%, var(--background)); }
+.rw-story-toned:has([data-story-item][data-tone="accent"][data-active="true"]) { --rw-tod: color-mix(in oklab, var(--accent) 13%, var(--background)); }
+.rw-story-toned:has([data-story-item][data-tone="glow"][data-active="true"]) { --rw-tod: color-mix(in oklab, var(--glow) 58%, var(--background)); }
+.rw-story-toned:has([data-story-item][data-tone="night"][data-active="true"]) {
+  --rw-tod: var(--rw-night); --background: var(--rw-night); --foreground: var(--rw-night-fg); --card-foreground: var(--rw-night-fg);
+  --muted-foreground: color-mix(in oklab, var(--rw-night-fg) 74%, var(--rw-night)); --border: color-mix(in oklab, var(--rw-night-fg) 16%, transparent);
+  --muted: color-mix(in oklab, var(--rw-night-fg) 10%, var(--rw-night));
+}
+.rw-story-toned:has([data-story-item][data-tone="night"][data-active="true"]) :is([data-story-kicker], .text-primary-ink) { color: color-mix(in oklab, var(--glow) 85%, var(--rw-night-fg)); }
+@media (prefers-reduced-motion: no-preference) {
+  .rw-story-toned { transition: background-color 1.4s var(--ease-out-quart, ease), color .9s var(--ease-out-quart, ease); }
+}
 
 /* ---------- unlayered: must beat Tailwind utilities on the Radix accordion content ---------- */
 @media (prefers-reduced-motion: no-preference) {

@@ -38,7 +38,8 @@ export async function ClassHighlightsSection({ ctx, props: p, id }: { ctx: Store
         <BookingStyles />
         <HorizontalScroll
           label={p.heading || L.classes}
-          header={<div className="container-x pt-[calc(clamp(4.5rem,9vw,9.5rem)*var(--density,1))]">{head}</div>}
+          /* the pinned stage is one viewport tall: lighter top padding + svh-sized posters keep the card titles above the fold */
+          header={<div className="container-x pt-[calc(clamp(3.5rem,6vw,6.5rem)*var(--density,1))]">{head}</div>}
           trackClassName="gap-6 px-[var(--gutter)] md:gap-10 md:pl-[max(var(--gutter),calc((100vw-var(--container,80rem))/2+var(--gutter)))]"
         >
           {classes.map((c, i) => (

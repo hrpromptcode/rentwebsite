@@ -110,13 +110,13 @@ const CSS = /* css */ `
 /* ---------- CardStack3D fallback ---------- */
 .rw3d-stack{position:relative;width:100%;height:100%;min-height:360px}
 .rw3d-stack-fan{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;margin:0;padding:0;list-style:none}
-.rw3d-stack-fan li{position:absolute;width:min(34%,240px);aspect-ratio:3/4;transform:translateX(calc(var(--i) * 46%)) rotate(calc(var(--i) * 7deg)) translateY(calc(var(--a) * 6%));transition:transform 500ms cubic-bezier(.16,1,.3,1)}
+.rw3d-stack-fan li{position:absolute;width:min(34%,240px,var(--fan-w,34%));aspect-ratio:3/4;transform:translateX(calc(var(--i) * var(--fan-step,46%))) rotate(calc(var(--i) * var(--fan-rot,7deg))) translateY(calc(var(--a) * 6%));transition:transform 500ms cubic-bezier(.16,1,.3,1)}
 .rw3d-stack-fan a,.rw3d-stack-fan .rw3d-card{position:relative;display:block;width:100%;height:100%;border-radius:18px;overflow:hidden;background:var(--surface);box-shadow:0 0 0 1px color-mix(in oklab,var(--accent) 50%,transparent),0 30px 60px -20px color-mix(in oklab,var(--accent) 45%,transparent);color:#fff;text-decoration:none;outline-offset:4px}
 .rw3d-stack-fan a:focus-visible{outline:2px solid var(--ring)}
 .rw3d-stack-fan img{width:100%;height:100%;object-fit:cover}
 .rw3d-stack-fan .rw3d-cap{position:absolute;inset:auto 0 0;padding:12px 14px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.75));font-weight:600;line-height:1.35}
 .rw3d-stack-fan .rw3d-badge{position:absolute;top:10px;right:10px;padding:3px 9px;border-radius:999px;font-size:.6875rem;font-weight:700;background:var(--accent);color:var(--accent-foreground,#000)}
-.rw3d-stack-fan:hover li{transform:translateX(calc(var(--i) * 62%)) rotate(calc(var(--i) * 10deg)) translateY(calc(var(--a) * 8%))}
+.rw3d-stack-fan:hover li{transform:translateX(calc(var(--i) * var(--fan-step-h,62%))) rotate(calc(var(--i) * var(--fan-rot,7deg) * 1.35)) translateY(calc(var(--a) * 8%))}
 .rw3d-stack-fan[data-mode=mirror]{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%)!important}
 @media (prefers-reduced-motion: reduce){.rw3d-stack-fan li,.rw3d-strip>li{transition:none}}
 `;

@@ -4,7 +4,7 @@ import * as React from "react";
 import { cn } from "@rentweb/ui/lib/utils";
 
 /**
- * Plays its children's chat-bubble choreography (CSS, `.rw-chat[data-state=in]`) once when it scrolls into view.
+ * Plays its children's chat-bubble choreography (CSS, `.rw-chat-thread[data-state=in]`) once when it scrolls into view.
  * Content is server-rendered and fully visible without JS / with reduced motion (start states are CSS-gated).
  */
 export function ChatThread({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -35,7 +35,7 @@ export function ChatThread({ children, className }: { children: React.ReactNode;
     };
   }, []);
   return (
-    <div ref={ref} className={cn("rw-chat", className)} data-state="idle">
+    <div ref={ref} className={cn("rw-chat-thread", className)} data-state="idle">
       {children}
     </div>
   );

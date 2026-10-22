@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { z } from "zod";
 import { cn } from "@rentweb/ui/lib/utils";
-import { ImageReveal, LiveClock, Odometer, ParallaxMedia } from "@rentweb/ui/motion";
+import { ImageReveal, LiveClock, Odometer, ParallaxMedia, ThaiWrap } from "@rentweb/ui/motion";
 import { DisplayText, Eyebrow, Img, RevealHeading, Rise, allow3d, hasAccentFont, sized } from "@rentweb/storefront";
 import type { StorefrontCtx } from "@rentweb/storefront/ctx";
 import type { staySearch } from "@rentweb/storefront/definitions";
@@ -42,7 +42,9 @@ export async function StaySearchSection({ ctx, props: p, id, index, initial, bar
             )}
             {p.subheading && (
               <Rise delay={0.3}>
-                <p className="mt-6 max-w-xl text-step-1 leading-relaxed text-muted-foreground">{p.subheading}</p>
+                <p className="mt-6 max-w-xl text-step-1 leading-relaxed text-muted-foreground">
+                  <ThaiWrap text={p.subheading} />
+                </p>
               </Rise>
             )}
             <Rise delay={0.4} className="mt-9">
@@ -101,8 +103,9 @@ export async function StaySearchSection({ ctx, props: p, id, index, initial, bar
               <DisplayText as="h1" text={p.heading} accentDigits={accent} className="rw-hero-title font-heading font-semibold text-balance text-white" />
             )}
             {p.subheading && (
-              <p className="rw-hero-in mx-auto mt-5 max-w-3xl text-step-1 leading-relaxed text-pretty text-white/90" style={{ "--d": "0.55s" } as React.CSSProperties}>
-                {p.subheading}
+              <p className="rw-hero-in rw-hero-sub mx-auto mt-5 max-w-3xl text-step-1 leading-relaxed text-pretty text-white" style={{ "--d": "0.55s" } as React.CSSProperties}>
+                {/* qa-c: server-side Thai word breaks (Chromium split "ที|มงาน" at 390) */}
+                <ThaiWrap text={p.subheading} />
               </p>
             )}
             {p.badges.length > 0 && (

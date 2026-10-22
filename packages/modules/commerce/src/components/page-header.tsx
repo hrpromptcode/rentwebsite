@@ -15,7 +15,7 @@ export function Breadcrumbs({ items, className }: { items: Crumb[]; className?: 
         <React.Fragment key={`${c.label}-${i}`}>
           {i > 0 && <ChevronRight className="size-3.5 shrink-0 opacity-60" />}
           {c.href && i < items.length - 1 ? (
-            <Link href={c.href} className="inline-flex min-h-11 shrink-0 items-center transition hover:text-foreground md:min-h-0 md:py-1">
+            <Link href={c.href} className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center transition hover:text-foreground md:min-h-0 md:min-w-0 md:py-1">
               {c.label}
             </Link>
           ) : (

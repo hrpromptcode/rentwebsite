@@ -96,7 +96,7 @@ export function SessionRow({ s, showDate, showPrice, className }: { s: Timetable
       </div>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <Link href={`/classes/${s.serviceSlug}`} className="inline-flex min-h-6 items-center font-medium hover:text-primary-ink">
+          <Link href={`/classes/${s.serviceSlug}`} className="-my-2.5 inline-flex min-h-11 items-center font-medium hover:text-primary-ink">
             {s.serviceName}
           </Link>
           <LevelBadge level={s.level} className="py-0.5" />

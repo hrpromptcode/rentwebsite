@@ -383,9 +383,22 @@ export const stickyStory = defineSection({
     heading: z.string().default(""),
     subheading: z.string().default(""),
     items: z
-      .array(z.object({ title: z.string(), kicker: z.string().default(""), body: z.string().default(""), image: z.string().default(""), chips: z.array(z.string()).default([]), href: z.string().optional() }))
+      .array(
+        z.object({
+          title: z.string(),
+          kicker: z.string().default(""),
+          body: z.string().default(""),
+          image: z.string().default(""),
+          chips: z.array(z.string()).default([]),
+          href: z.string().optional(),
+          /** stage background while this step is active ("auto" = from the section's `tones`) */
+          tone: z.enum(["auto", "base", "soft", "accent", "glow", "night"]).default("auto"),
+        }),
+      )
       .default([]),
     mediaStyle: z.enum(["card", "arch", "full", "device", "plate"]).default("card"),
+    /** stage background per active step: none, or "time-of-day" (morning → afternoon → sunset → night) */
+    tones: z.enum(["none", "time-of-day"]).default("none"),
     side: z.enum(["left", "right"]).default("right"),
     counter: z.boolean().default(true),
     fx,
@@ -474,6 +487,8 @@ export const interlude = defineSection({
     words: z.array(z.string()).default([]),
     height: z.enum(["screen", "tall"]).default("screen"),
     align: z.enum(["center", "left"]).default("center"),
+    /** theme = soft theme-coloured scrim (copy mid-screen) · photo = photo stays vivid: dark bottom gradient, light copy at the bottom */
+    scrim: z.enum(["theme", "photo"]).default("theme"),
     /** photo for water-ripple (and the static poster) */
     image: image.optional(),
     fx,

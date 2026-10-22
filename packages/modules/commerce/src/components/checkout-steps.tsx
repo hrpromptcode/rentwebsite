@@ -30,7 +30,7 @@ export function CheckoutSteps({ current, className }: { current: 0 | 1 | 2; clas
           return (
             <li key={s.label} className="rwc-step flex flex-col items-center" data-state={state} aria-current={state === "current" ? "step" : undefined}>
               {s.href && state === "done" ? (
-                <Link href={s.href} className="flex min-h-11 flex-col items-center gap-2 rounded-md">
+                <Link href={s.href} className="flex min-h-11 min-w-11 flex-col items-center gap-2 rounded-md px-2">
                   {body}
                 </Link>
               ) : (

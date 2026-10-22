@@ -61,19 +61,38 @@ const MODULE_TH: Record<string, string> = {
 
 const RADIUS_PX: Record<string, string> = { none: "0px", sm: "4px", md: "8px", lg: "12px", xl: "16px", "2xl": "20px", full: "9999px" };
 
-export function OnboardingWizard({ templates, presets, rootHost }: { templates: TemplateSummary[]; presets: PresetSummary[]; rootHost: string }) {
+export function OnboardingWizard({
+  templates,
+  presets,
+  rootHost,
+  initialTemplate = null,
+}: {
+  templates: TemplateSummary[];
+  presets: PresetSummary[];
+  rootHost: string;
+  /** preselected from /onboarding?template=<key> ("ใช้เทมเพลตนี้" on the platform site) */
+  initialTemplate?: string | null;
+}) {
   const reduce = useReducedMotion();
   const [step, setStep] = React.useState(0);
   const [dir, setDir] = React.useState(1);
-  const [templateKey, setTemplateKey] = React.useState<string | null>(null);
+  const initial = initialTemplate ? (templates.find((t) => t.key === initialTemplate) ?? null) : null;
+  const [templateKey, setTemplateKey] = React.useState<string | null>(initial?.key ?? null);
   const [name, setName] = React.useState("");
   const [slug, setSlug] = React.useState("");
   const [slugTouched, setSlugTouched] = React.useState(false);
   const [slugState, setSlugState] = React.useState<{ status: "idle" | "checking" | "ok" | "taken"; reason?: string; slug?: string }>({ status: "idle" });
   // what will actually be created (no trailing hyphen); the input keeps the raw typed value
   const slugCandidate = finalizeSlug(slug);
-  const [preset, setPreset] = React.useState<string | null>(null);
+  const [preset, setPreset] = React.useState<string | null>(initial ? (initial.recommendedPresets[0] ?? initial.themePreset) : null);
   const [creating, setCreating] = React.useState(false);
+
+  // a preselected template card is brought into view once (the grid can be taller than the first screen)
+  React.useEffect(() => {
+    if (!initial) return;
+    document.querySelector(`[data-template-card="${initial.key}"]`)?.scrollIntoView({ block: "center", behavior: "instant" as ScrollBehavior });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const template = templates.find((t) => t.key === templateKey) ?? null;
   const presetMap = React.useMemo(() => Object.fromEntries(presets.map((p) => [p.key, p])), [presets]);
@@ -191,6 +210,7 @@ export function OnboardingWizard({ templates, presets, rootHost }: { templates: 
                       type="button"
                       onClick={() => pickTemplate(t.key)}
                       aria-pressed={selected}
+                      data-template-card={t.key}
                       className={cn(
                         "group relative flex flex-col overflow-hidden rounded-2xl border bg-card text-left transition-[transform,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none",
                         selected ? "border-primary shadow-[0_0_0_1px_var(--primary),0_30px_60px_-30px_rgb(255_107_61/0.6)]" : "border-border hover:-translate-y-1 hover:border-[#f3f1ec]/20 hover:shadow-[0_30px_60px_-30px_rgb(0_0_0/0.9)]",

@@ -24,15 +24,24 @@ export function FloatingChatLink({ href, label, hideOnSegments }: { href: string
     const el = ref.current;
     if (!el) return;
     if (!window.matchMedia("(hover: none), (pointer: coarse)").matches) return;
+    let seen = false;
     try {
-      if (sessionStorage.getItem(PEEK_KEY)) return;
-      sessionStorage.setItem(PEEK_KEY, "1");
+      seen = !!sessionStorage.getItem(PEEK_KEY);
+      if (!seen) sessionStorage.setItem(PEEK_KEY, "1");
     } catch {
       /* private mode: peek anyway */
     }
+    // a peek that is still open (StrictMode re-runs this effect after its cleanup) must still get its collapse timer —
+    // otherwise the pill stays expanded over the content for good
+    if (seen && el.getAttribute("data-peek") !== "true") return;
     el.setAttribute("data-peek", "true");
-    const t = setTimeout(() => el.setAttribute("data-peek", "false"), 5200); // 1.2s enter + 4s open
-    return () => clearTimeout(t);
+    const collapse = () => el.setAttribute("data-peek", "false");
+    const t = setTimeout(collapse, 5200); // 1.2s enter + 4s open
+    window.addEventListener("scroll", collapse, { passive: true, once: true }); // the reader moved on: get out of the way
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("scroll", collapse);
+    };
   }, []);
 
   if (segment && hideOnSegments.includes(segment)) return null;

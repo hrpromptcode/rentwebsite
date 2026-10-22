@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@rentweb/ui/lib/utils";
 
 export const SETTINGS_TABS = [
   { key: "general", label: "ทั่วไป", path: "" },
@@ -19,7 +18,7 @@ export function SettingsTabs({ slug }: { slug: string }) {
   const base = `/t/${slug}/settings`;
   return (
     <nav aria-label="หมวดการตั้งค่า" className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-      <ul className="flex min-w-max gap-1 border-b">
+      <ul className="adm-tabs flex min-w-max gap-1">
         {SETTINGS_TABS.map((t) => {
           const href = `${base}${t.path}`;
           const active = t.path === "" ? pathname === base : pathname.startsWith(href);
@@ -28,11 +27,8 @@ export function SettingsTabs({ slug }: { slug: string }) {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={cn(
-                  "inline-flex h-11 items-center border-b-2 px-3 text-sm font-medium transition-colors",
-                  active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
-                  t.key === "danger" && !active && "hover:text-destructive",
-                )}
+                data-danger={t.key === "danger" ? "" : undefined}
+                className="adm-tab"
               >
                 {t.label}
               </Link>

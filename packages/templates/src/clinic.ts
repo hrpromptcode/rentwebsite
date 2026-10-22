@@ -76,7 +76,7 @@ export const clinic: TemplateDefinition = {
           primaryCta: { label: "นัดปรึกษาฟรี", href: "/book" },
           secondaryCta: { label: "ดูบริการทั้งหมด", href: "/services" },
           image: { url: u("1570172619644-dfd03ed5d881", 1400), alt: "คลินิก" },
-          imageSecondary: { url: u("1519823551278-64ac92734fb1", 700), alt: "ผิวสวย" },
+          imageSecondary: { url: u("1600428853876-fb5a850b444f", 700), alt: "ลูกกลิ้งหยกและกัวซาสำหรับดูแลผิว" },
           badges: ["แพทย์ประจำทุกวัน", "เครื่องมือมาตรฐาน FDA", "จองออนไลน์ 24 ชม."],
           // §5.3 signature: glass droplets + pearls drifting over the arch-framed portrait (preset porcelain → floating-objects)
           scene: "auto",
@@ -102,7 +102,7 @@ export const clinic: TemplateDefinition = {
           mediaStyle: "arch",
           side: "right",
           items: [
-            { kicker: "ฟังก่อน ไม่เร่งตัดสินใจ", title: "ปรึกษาแพทย์", body: "พบแพทย์ผู้เชี่ยวชาญแบบตัวต่อตัว ถามได้ทุกข้อสงสัย ไม่มีค่าใช้จ่ายและไม่บังคับซื้อคอร์ส", image: u("1576091160550-2173dba999ef", 1200), chips: ["ฟรี", "30 นาที"], href: "/book?service=consult" },
+            { kicker: "ฟังก่อน ไม่เร่งตัดสินใจ", title: "ปรึกษาแพทย์", body: "พบแพทย์ผู้เชี่ยวชาญแบบตัวต่อตัว ถามได้ทุกข้อสงสัย ไม่มีค่าใช้จ่ายและไม่บังคับซื้อคอร์ส", image: u("1666214277730-e9c7e755e5a3", 1200), chips: ["ฟรี", "30 นาที"], href: "/book?service=consult" },
             { kicker: "เห็นผิวชัดกว่าที่เคย", title: "วิเคราะห์ผิว", body: "สแกนผิวด้วยเครื่อง 3D วัดความชุ่มชื้น เม็ดสี และริ้วรอย เพื่อเลือกการดูแลจากข้อมูลจริง", image: u("1616394584738-fc6e612e71b9", 1200), chips: ["Skin Analyzer 3D"] },
             { kicker: "พอดีกับชีวิตจริง", title: "วางแผนเฉพาะคุณ", body: "แพทย์จัดลำดับการรักษาตามเป้าหมาย งบประมาณ และเวลาพักฟื้นที่คุณมี พร้อมบอกผลที่คาดหวังอย่างตรงไปตรงมา", image: u("1612817288484-6f916006741a", 1200), chips: ["แผนเฉพาะบุคคล", "ไม่บังคับซื้อคอร์ส"] },
             { kicker: "ดูแลจนกว่าจะมั่นใจ", title: "ติดตามผล", body: "ติดตามอาการ 7 วันผ่าน LINE นัดตรวจซ้ำได้ฟรี และเช็กครั้งคงเหลือของคอร์สได้เองในบัญชี", image: u("1617897903246-719242758050", 1200), chips: ["LINE 7 วัน"], href: "/packages" },
@@ -110,7 +110,7 @@ export const clinic: TemplateDefinition = {
         }),
         section(staffGrid, { eyebrow: "ทีมแพทย์", heading: "แพทย์ผู้เชี่ยวชาญของเรา", subheading: "เลือกแพทย์ที่ต้องการได้ตอนจอง" }),
         section(stats, { variant: "row", items: [{ value: 15000, suffix: "+", label: "เคสที่ดูแล" }, { value: 12, suffix: " ปี", label: "ประสบการณ์" }, { value: 4.9, label: "คะแนนรีวิว Google" }, { value: 98, suffix: "%", label: "กลับมาใช้บริการซ้ำ" }] }),
-        section(gallery, { heading: "บรรยากาศคลินิก", layout: "filmstrip", images: [{ url: u("1629909613654-28e377c37b09", 1000), alt: "ห้องตรวจ" }, { url: u("1576091160550-2173dba999ef", 1000), alt: "คลินิก" }, { url: u("1540555700478-4be289fbecef", 1000), alt: "ห้องทรีตเมนต์" }, { url: u("1598300042247-d088f8ab3a91", 1000), alt: "ล็อบบี้" }] }),
+        section(gallery, { heading: "บรรยากาศคลินิก", layout: "filmstrip", images: [{ url: u("1631248055158-edec7a3c072b", 1000), alt: "ล็อบบี้ต้อนรับ แสงธรรมชาติ" }, { url: u("1595871151608-bc7abd1caca3", 1000), alt: "ห้องทรีตเมนต์ส่วนตัว" }, { url: u("1629909615184-74f495363b67", 1000), alt: "ห้องทันตกรรม" }, { url: u("1666214277730-e9c7e755e5a3", 1000), alt: "ห้องปรึกษาแพทย์" }, { url: u("1612817288484-6f916006741a", 1000), alt: "ผลิตภัณฑ์ดูแลผิวหลังทำ" }] }),
         section(testimonials, {
           heading: "ความประทับใจจากลูกค้า",
           variant: "spotlight",
@@ -136,12 +136,12 @@ export const clinic: TemplateDefinition = {
       slug: "gallery",
       title: "ผลงาน",
       sections: [
-        section(gallery, { heading: "บรรยากาศและผลงาน", subheading: "ภาพผลการรักษาได้รับความยินยอมจากผู้รับบริการแล้ว", layout: "masonry", images: [{ url: u("1512290923902-8a9f81dc236c", 1000), alt: "" }, { url: u("1515377905703-c4788e51af15", 1000), alt: "" }, { url: u("1570172619644-dfd03ed5d881", 1000), alt: "" }, { url: u("1544161515-4ab6ce6db874", 1000), alt: "" }, { url: u("1519823551278-64ac92734fb1", 1000), alt: "" }, { url: u("1540555700478-4be289fbecef", 1000), alt: "" }] }),
+        section(gallery, { heading: "บรรยากาศและผลงาน", subheading: "ภาพผลการรักษาได้รับความยินยอมจากผู้รับบริการแล้ว", layout: "masonry", images: [{ url: u("1631248055158-edec7a3c072b", 1000), alt: "ล็อบบี้ต้อนรับของคลินิก" }, { url: u("1512290923902-8a9f81dc236c", 1000), alt: "แพทย์ฉีดโบท็อกซ์ปรับรูปหน้า" }, { url: u("1595871151608-bc7abd1caca3", 1000), alt: "ห้องทรีตเมนต์ส่วนตัว" }, { url: u("1552693673-1bf958298935", 1000), alt: "ทรีตเมนต์ผิวหน้าด้วยเครื่องมือแพทย์" }, { url: u("1616394584738-fc6e612e71b9", 1000), alt: "มาสก์บำรุงหลังทำเลเซอร์" }, { url: u("1606811841689-23dfddce3e95", 1000), alt: "ทันตแพทย์อธิบายผลเอกซเรย์ฟัน" }, { url: u("1570172619644-dfd03ed5d881", 1000), alt: "ทรีตเมนต์มาสก์โคลนบำรุงผิว" }, { url: u("1600428853876-fb5a850b444f", 1000), alt: "ลูกกลิ้งหยกและกัวซาสำหรับดูแลผิว" }] }),
         section(cta, { variant: "card", heading: "อยากได้ผลลัพธ์ที่เป็นธรรมชาติแบบนี้", body: "เริ่มจากการปรึกษาแพทย์ฟรี วิเคราะห์ผิวด้วยเครื่อง 3D ไม่มีข้อผูกมัด", primaryCta: { label: "นัดปรึกษาฟรี", href: "/book" }, secondaryCta: { label: "ดูบริการทั้งหมด", href: "/services" } }),
       ],
     },
     aboutPage({ neutral: NEUTRAL_ABOUT.clinic, heading: "Lumière Clinic — ความงามที่เริ่มจากสุขภาพผิวที่ดี", body: "ก่อตั้งในปี 2014 โดย พญ.ณิชา วรรณกุล แพทย์ผิวหนังที่เชื่อว่าความสวยต้องปลอดภัยและเป็นธรรมชาติ เราไม่ขายคอร์สเกินความจำเป็น และตั้งใจให้ทุกคนที่เดินออกจากคลินิกรู้สึกมั่นใจในตัวเองมากขึ้น" }),
-    contactPage({ heading: "ติดต่อและเดินทาง", body: "คลินิกอยู่ชั้น 3 เอ็มควอเทียร์ ติด BTS พร้อมพงษ์ ทางออก 1 มีที่จอดรถในห้าง" }),
+    contactPage({ heading: "ติดต่อและเดินทาง", body: "คลินิกอยู่ชั้น 3 เอ็มควอเทียร์ ติด BTS พร้อมพงษ์ ทางออก 1 มีที่จอดรถในห้าง", variant: "chips", interests: ["ปรึกษาปัญหาผิว", "Botox / Filler", "เลเซอร์และ HIFU", "ทันตกรรมความงาม", "คอร์สและแพ็กเกจ"] }),
     ...legalPages("Lumière Clinic"),
   ],
   async seed(tx, tenantId) {
@@ -157,13 +157,13 @@ export const clinic: TemplateDefinition = {
     const svc = await tx
       .insert(services)
       .values([
-        { tenantId, categoryId: face!.id, name: "ปรึกษาแพทย์ + วิเคราะห์ผิว", slug: "consult", durationMin: 30, price: 0, priceNote: "ฟรี", image: u("1616394584738-fc6e612e71b9", 800), featured: true, sort: 0, description: "วิเคราะห์สภาพผิวด้วยเครื่อง 3D และวางแผนการดูแลเฉพาะบุคคล" },
+        { tenantId, categoryId: face!.id, name: "ปรึกษาแพทย์ + วิเคราะห์ผิว", slug: "consult", durationMin: 30, price: 0, priceNote: "ฟรี", image: u("1666214277730-e9c7e755e5a3", 800), featured: true, sort: 0, description: "วิเคราะห์สภาพผิวด้วยเครื่อง 3D และวางแผนการดูแลเฉพาะบุคคล" },
         { tenantId, categoryId: face!.id, name: "Botox ลดกราม / ริ้วรอย", slug: "botox", durationMin: 45, price: 490000, priceNote: "เริ่มต้น", depositRequired: true, depositAmount: 50000, image: u("1512290923902-8a9f81dc236c", 800), featured: true, sort: 1, description: "โบท็อกซ์ของแท้ ตรวจสอบรหัสได้ ฉีดโดยแพทย์เท่านั้น" },
-        { tenantId, categoryId: face!.id, name: "Filler ปรับรูปหน้า", slug: "filler", durationMin: 60, price: 1290000, priceNote: "ต่อ 1 cc", depositRequired: true, depositAmount: 100000, image: u("1515377905703-c4788e51af15", 800), sort: 2 },
-        { tenantId, categoryId: laser!.id, name: "เลเซอร์หน้าใส Pico", slug: "pico", durationMin: 45, price: 350000, image: u("1570172619644-dfd03ed5d881", 800), featured: true, sort: 3, description: "ลดฝ้า กระ จุดด่างดำ ผิวกระจ่างใส" },
-        { tenantId, categoryId: laser!.id, name: "HIFU ยกกระชับ", slug: "hifu", durationMin: 90, price: 1590000, depositRequired: true, depositAmount: 100000, image: u("1544161515-4ab6ce6db874", 800), featured: true, sort: 4 },
-        { tenantId, categoryId: laser!.id, name: "ทรีตเมนต์ผิว Aqua Peel", slug: "aqua-peel", durationMin: 60, price: 199000, image: u("1540555700478-4be289fbecef", 800), sort: 5 },
-        { tenantId, categoryId: dental!.id, name: "ขูดหินปูน + ตรวจฟัน", slug: "scaling", durationMin: 45, price: 120000, image: u("1588776814546-1ffcf47267a5", 800), featured: true, sort: 6 },
+        { tenantId, categoryId: face!.id, name: "Filler ปรับรูปหน้า", slug: "filler", durationMin: 60, price: 1290000, priceNote: "ต่อ 1 cc", depositRequired: true, depositAmount: 100000, image: u("1573461160327-b450ce3d8e7f", 800), sort: 2 },
+        { tenantId, categoryId: laser!.id, name: "เลเซอร์หน้าใส Pico", slug: "pico", durationMin: 45, price: 350000, image: u("1552693673-1bf958298935", 800), featured: true, sort: 3, description: "ลดฝ้า กระ จุดด่างดำ ผิวกระจ่างใส" },
+        { tenantId, categoryId: laser!.id, name: "HIFU ยกกระชับ", slug: "hifu", durationMin: 90, price: 1590000, depositRequired: true, depositAmount: 100000, image: u("1595871151608-bc7abd1caca3", 800), featured: true, sort: 4 },
+        { tenantId, categoryId: laser!.id, name: "ทรีตเมนต์ผิว Aqua Peel", slug: "aqua-peel", durationMin: 60, price: 199000, image: u("1616394584738-fc6e612e71b9", 800), sort: 5 },
+        { tenantId, categoryId: dental!.id, name: "ขูดหินปูน + ตรวจฟัน", slug: "scaling", durationMin: 45, price: 120000, image: u("1606811841689-23dfddce3e95", 800), featured: true, sort: 6 },
         { tenantId, categoryId: dental!.id, name: "ฟอกสีฟัน Zoom", slug: "whitening", durationMin: 90, price: 790000, depositRequired: true, depositAmount: 100000, image: u("1629909613654-28e377c37b09", 800), sort: 7 },
       ])
       .returning({ id: services.id, slug: services.slug });
@@ -194,9 +194,9 @@ export const clinic: TemplateDefinition = {
     await tx.insert(availabilityRules).values(rules);
 
     await tx.insert(clinicPackages).values([
-      { tenantId, name: "คอร์ส Pico หน้าใส 5 ครั้ง", description: "ประหยัดกว่าทำครั้งเดียว 25%", serviceId: svc.find((s) => s.slug === "pico")!.id, sessions: 5, price: 1290000, compareAtPrice: 1750000, validityDays: 365, image: u("1570172619644-dfd03ed5d881", 800), sort: 1 },
-      { tenantId, name: "คอร์ส Aqua Peel 10 ครั้ง", description: "ผิวเนียนใสทุก 2 สัปดาห์", serviceId: svc.find((s) => s.slug === "aqua-peel")!.id, sessions: 10, price: 1490000, compareAtPrice: 1990000, validityDays: 365, image: u("1540555700478-4be289fbecef", 800), sort: 2 },
-      { tenantId, name: "แพ็กเกจเจ้าสาว (HIFU + Pico + Botox)", description: "ดูแลล่วงหน้า 3 เดือนก่อนวันสำคัญ", sessions: 3, price: 2990000, compareAtPrice: 3430000, validityDays: 180, image: u("1515377905703-c4788e51af15", 800), sort: 3 },
+      { tenantId, name: "คอร์ส Pico หน้าใส 5 ครั้ง", description: "ประหยัดกว่าทำครั้งเดียว 25%", serviceId: svc.find((s) => s.slug === "pico")!.id, sessions: 5, price: 1290000, compareAtPrice: 1750000, validityDays: 365, image: u("1552693673-1bf958298935", 800), sort: 1 },
+      { tenantId, name: "คอร์ส Aqua Peel 10 ครั้ง", description: "ผิวเนียนใสทุก 2 สัปดาห์", serviceId: svc.find((s) => s.slug === "aqua-peel")!.id, sessions: 10, price: 1490000, compareAtPrice: 1990000, validityDays: 365, image: u("1616394584738-fc6e612e71b9", 800), sort: 2 },
+      { tenantId, name: "แพ็กเกจเจ้าสาว (HIFU + Pico + Botox)", description: "ดูแลล่วงหน้า 3 เดือนก่อนวันสำคัญ", sessions: 3, price: 2990000, compareAtPrice: 3430000, validityDays: 180, image: u("1600428853876-fb5a850b444f", 800), sort: 3 },
     ]);
   },
 };

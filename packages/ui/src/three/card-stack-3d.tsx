@@ -55,14 +55,25 @@ export function CardStack3D({ className = "relative h-full w-full min-h-[420px]"
     };
   }
   if (!items.length) return null;
-  const mid = (items.length - 1) / 2;
+  const n = items.length;
+  const mid = (n - 1) / 2;
+  // Static fan (reduced motion / no WebGL / poster): the cards overlap more as the count grows and the card width is
+  // capped so the hover-spread fan (1 + (n-1)·stepHover card widths) stays inside the box at any count.
+  const step = n <= 5 ? 0.46 : Math.max(0.3, 0.46 - (n - 5) * 0.04);
+  const stepHover = n <= 4 ? 0.62 : step + 0.08;
+  const fanStyle = {
+    ["--fan-step" as string]: `${(step * 100).toFixed(1)}%`,
+    ["--fan-step-h" as string]: `${(stepHover * 100).toFixed(1)}%`,
+    ["--fan-rot" as string]: `${n > 6 ? 5 : 7}deg`,
+    ["--fan-w" as string]: `${(92 / (1 + (n - 1) * stepHover)).toFixed(2)}%`,
+  } as React.CSSProperties;
   return (
     <div ref={rootRef} className={["rw3d-stack", className].filter(Boolean).join(" ")} data-live={live ? "true" : "false"}>
       <KitStyles />
       <Scene3D className="absolute inset-0" fallback={null} reducedMotion="poster" minTier="mid" eventSource="self" camera={{ fov: 38, position: [0, 0.2, 8] }} onStatusChange={setStatus}>
         <Impl {...props} bridge={bridge.current} />
       </Scene3D>
-      <ul ref={listRef} className="rw3d-stack-fan" data-mode={live ? "mirror" : "fan"} aria-label={ariaLabel}>
+      <ul ref={listRef} className="rw3d-stack-fan" data-mode={live ? "mirror" : "fan"} aria-label={ariaLabel} style={fanStyle}>
         {items.map((it, i) => {
           const body = (
             <>

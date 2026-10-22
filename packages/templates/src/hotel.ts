@@ -1,4 +1,4 @@
-import type { TemplateDefinition } from "@rentweb/core/tenant";
+import type { TemplateDefinition, TemplatePage } from "@rentweb/core/tenant";
 import { customers, nextCounter, rentalBlockedDates, rentalExtras, rentalRateRules, rentalStays, rentalUnitTypes } from "@rentweb/db";
 import { section, features, imageText, testimonials, faq, cta, gallery, steps, contact, staySearch, roomGrid, hero, text, stickyStory, interlude } from "@rentweb/storefront/definitions";
 import { aboutPage, legalPages, u, avatar } from "./shared";
@@ -45,14 +45,19 @@ const IMG = {
   beach: u("1507525428034-b723cf961d3e", 1400),
   pool: u("1571896349842-33c89424de2d", 1400),
   poolDusk: u("1566073771259-6a8506099945", 1400),
-  villaPool: u("1559599238-308793637427", 1200),
+  // qa-c: was 1559599238-308793637427 (a city-hotel bedroom, tufted headboard + gilt mirror) under every "พูลวิลล่า" label →
+  // a tropical villa with its own pool, sun beds and shuttered sala (200 + viewed)
+  villaPool: u("1582610116397-edb318620f90", 1200),
+  // qa-c: the pool-access suite led with a city-hotel bedroom → curtained cabanas on an infinity pool at dusk (200 + viewed)
+  suitePool: u("1571003123894-1f0594d2b5d9", 1200),
   garden: u("1582719478250-c89cae4dc85b", 1200),
   seaview: u("1611892440504-42a792e24d32", 1200),
   suite: u("1590490360182-c33d57733427", 1200),
   family: u("1618773928121-c32242e63f39", 1200),
   bedroom: u("1631049307264-da0ec9d70304", 1200),
   bathroom: u("1615460549969-36fa19521a4f", 1200),
-  breakfast: u("1544148103-0773bf10d330", 1400),
+  // qa-c: was 1544148103-0773bf10d330 (a dim city cafe with diners) → an open seaside dining terrace at golden hour (200 + viewed)
+  breakfast: u("1559339352-11d035aa65de", 1400),
   dining: u("1414235077428-338989a2e8c0", 1400),
   spa: u("1544161515-4ab6ce6db874", 1400),
   palms: u("1519046904884-53103b34b206", 1400),
@@ -62,6 +67,28 @@ const IMG = {
   aerialFlip: u("1506929562872-bb421503ef21", 1600, "&flip=h"),
   sunset: u("1499793983690-e29da59ef1c2", 1400),
 };
+
+/**
+ * qa-c: the shared About page is a scroll-lit statement + a contact card (text only) → the demo copy gets a polaroid album
+ * of the bay between the two (photos already used on the site; new shops keep the neutral text-only page).
+ */
+function withAlbum(page: TemplatePage): TemplatePage {
+  const album = section(gallery, {
+    heading: "อัลบั้มบ้านทะเล",
+    subheading: "หาดคึกคักตั้งแต่แสงแรกจนถึงมื้อค่ำ ลากรูปเล่นได้ตามใจ",
+    layout: "polaroid",
+    images: [
+      { url: IMG.beach, alt: "แสงอาทิตย์ยามเย็นบนหาดคึกคัก", caption: "หาดหน้าบ้าน ตอนเย็น" },
+      { url: IMG.villaPool, alt: "ศาลาริมสระของพูลวิลล่า", caption: "ศาลาริมสระ" },
+      { url: IMG.aerial, alt: "มุมสูงของอ่าวน้ำใส", caption: "อ่าวหน้ารีสอร์ตจากมุมสูง" },
+      { url: IMG.breakfast, alt: "ห้องอาหารริมทะเล", caption: "มื้อเช้าริมทะเล" },
+      { url: IMG.swing, alt: "ต้นมะพร้าวริมหาด", caption: "ทางเดินใต้ต้นมะพร้าว" },
+      { url: IMG.poolDusk, alt: "บาร์ริมสระตอนพลบค่ำ", caption: "บาร์ริมสระตอนพลบค่ำ" },
+    ],
+  });
+  const sections = page.sections ?? [];
+  return { ...page, sections: [...sections.slice(0, -1), album, ...sections.slice(-1)] };
+}
 
 export const hotel: TemplateDefinition = {
   key: "hotel",
@@ -182,17 +209,19 @@ export const hotel: TemplateDefinition = {
           subheading: "ทุกอย่างอยู่ห่างกันไม่เกินสองนาทีเดิน ทรายอยู่ปลายเท้า อาหารอยู่ปลายมือ",
           mediaStyle: "full",
           side: "right",
+          // §5.9 creative signature: the stage light follows the time of day of the active step
+          tones: "time-of-day",
           items: [
             { kicker: "เช้า", title: "อาหารเช้าริมทะเล", body: "ตื่นตามใจ แล้วเดินลงหาดที่เงียบที่สุดของวัน อาหารเช้าสั่งทำทีละจานรออยู่ที่ห้องอาหารริมหาด บนระเบียงห้อง หรือริมสระส่วนตัว", image: IMG.swing, chips: ["สั่งทำทีละจาน", "เสิร์ฟถึงระเบียง"] },
             { kicker: "บ่าย", title: "สระและหาดส่วนตัว", body: "หาดส่วนตัว 180 เมตร เตียงอาบแดด ร่ม และผ้าเช็ดตัวจัดไว้ให้ทุกวัน สระอินฟินิตี้หันหน้าออกทะเล และสปาใต้ต้นมะพร้าวหลังวันแดดแรง", image: IMG.heroSecondary, chips: ["สระอินฟินิตี้", "สปา", "Wi-Fi ถึงชายหาด"] },
-            { kicker: "เย็น", title: "พระอาทิตย์ตกที่ท่าเรือ", body: "เดินเลียบหาดไปปลายท่าเรือไม้ตอนแดดเริ่มอ่อน ดูฟ้าเปลี่ยนเป็นสีทองพร้อมเครื่องดื่มเย็น ๆ จากบาร์ริมสระ", image: IMG.poolDusk, chips: ["บาร์ริมสระ"] },
+            { kicker: "เย็น", title: "พระอาทิตย์ตกที่ท่าเรือ", body: "เดินเลียบหาดไปปลายท่าเรือไม้ตอนแดดเริ่มอ่อน ดูฟ้าเปลี่ยนเป็นสีทองพร้อมเครื่องดื่มเย็น\u00a0ๆ จากบาร์ริมสระ", image: IMG.poolDusk, chips: ["บาร์ริมสระ"] },
             { kicker: "ค่ำ", title: "ดินเนอร์ใต้แสงเทียน", body: "ซีฟู้ดจากเรือประมงท้องถิ่นในมื้อเย็น หรือเลือกดินเนอร์ริมหาดใต้แสงเทียนเป็นบริการเสริมตอนจองห้อง", image: IMG.dining, chips: ["ซีฟู้ดท้องถิ่น", "บริการเสริม"], href: "/rooms" },
           ],
         }),
         section(imageText, {
           eyebrow: "อาหารเช้า",
           heading: "อาหารเช้าที่เสิร์ฟตามเวลาของคุณ",
-          body: "ไม่มีบุฟเฟต์ที่ต้องรีบตื่น เลือกจากเมนูอาหารเช้าสั่งทำได้จนถึงสาย ๆ ทั้งข้าวต้มปลา แพนเค้กกล้วยหอม ไข่เบเนดิกต์ และผลไม้จากสวนในพังงา เสิร์ฟที่ห้องอาหารริมหาด บนระเบียงห้องของคุณ หรือริมสระส่วนตัวก็ได้",
+          body: "ไม่มีบุฟเฟต์ที่ต้องรีบตื่น เลือกจากเมนูอาหารเช้าสั่งทำได้จนถึงสาย\u00a0ๆ ทั้งข้าวต้มปลา แพนเค้กกล้วยหอม ไข่เบเนดิกต์ และผลไม้จากสวนในพังงา เสิร์ฟที่ห้องอาหารริมหาด บนระเบียงห้องของคุณ หรือริมสระส่วนตัวก็ได้",
           image: { url: IMG.breakfast, alt: "อาหารเช้าริมทะเล" },
           imagePosition: "left",
           bullets: ["สั่งทำทีละจานจากเมนูกว่า 20 รายการ", "กาแฟดริปจากเมล็ดเชียงรายและชาใบเตยหอมของรีสอร์ต", "เสิร์ฟที่ห้องอาหาร ระเบียงห้อง หรือริมสระวิลล่า"],
@@ -241,8 +270,9 @@ export const hotel: TemplateDefinition = {
           cta: { label: "ค้นหาห้องว่าง", href: "/stay" },
           image: { url: IMG.aerialFlip, alt: "มุมสูงของอ่าวน้ำใสและหาดทราย" },
           height: "screen",
-          // left: the scrim keeps the copy side AA and leaves the turquoise bay visible on the right
-          align: "left",
+          // photo-first scrim: the turquoise bay stays vivid, the statement sits centred at the bottom in light text
+          align: "center",
+          scrim: "photo",
         }),
       ],
     },
@@ -259,6 +289,9 @@ export const hotel: TemplateDefinition = {
           secondaryCta: { label: "ดูห้องพัก", href: "/rooms" },
           image: { url: IMG.pool, alt: "สระอินฟินิตี้ของรีสอร์ต" },
           background: "none",
+          // qa-c: the auto (ocean) scene filled the frame with a pale grey sea and shrank the pool photo to an inset → the
+          // pool photo itself fills the frame and ripples under the pointer (one canvas, lazy; photo only when 3D is off)
+          scene: "water-ripple",
         }),
         section(features, {
           eyebrow: "ในรีสอร์ต",
@@ -310,9 +343,11 @@ export const hotel: TemplateDefinition = {
           secondaryCta: { label: "ติดต่อเรา", href: "/contact" },
           image: { url: IMG.aerial, alt: "มุมสูงของชายหาด" },
           background: "none",
+          // qa-c: the turquoise bay photo leads (the auto ocean scene rendered a pale grey sea with the photo as an inset)
+          scene: "none",
         }),
         section(features, {
-          eyebrow: "ใกล้ ๆ",
+          eyebrow: "ใกล้\u00a0ๆ",
           heading: "จากรีสอร์ตไปได้ง่าย",
           variant: "icons",
           columns: 4,
@@ -336,12 +371,14 @@ export const hotel: TemplateDefinition = {
         section(contact, { heading: "แผนที่และการติดต่อ", body: "ส่งข้อความถึงทีมงานได้ทุกช่องทาง เราตอบกลับภายในหนึ่งชั่วโมงในเวลาทำการ", showForm: false, showMap: true, showHours: true }),
       ],
     },
-    aboutPage({
-      eyebrow: "เรื่องราวของเรา",
-      neutral: { heading: "เกี่ยวกับ {{name}}", body: "{{name}} ตั้งใจให้ทุกการเข้าพักเป็นวันหยุดที่ไม่ต้องรีบ ทีมงานดูแลตั้งแต่ก่อนเดินทางจนถึงวันเช็กเอาต์ จองห้องพักออนไลน์ เห็นราคาต่อคืนทุกบรรทัด และยืนยันได้ทันทีตลอด 24 ชั่วโมง" },
-      heading: "บ้านทะเล — บ้านริมหาดที่เราอยากให้คุณกลับมา",
-      body: "บ้านทะเลเปิดบ้านหลังแรกเมื่อปี 2016 จากบ้านพักตากอากาศของครอบครัวบนหาดคึกคัก ที่เพื่อนของเพื่อนขอมาพักจนต้องสร้างเพิ่มทีละหลัง วันนี้เรามีห้องพักและวิลล่า 21 หลัง แต่ยังรักษาสิ่งที่ทำให้ที่นี่ต่างจากโรงแรมใหญ่ไว้ นั่นคือทีมงานที่จำชื่อคุณได้ตั้งแต่คืนแรก อาหารเช้าที่สั่งทำทีละจาน และหาดที่เงียบพอจะได้ยินเสียงตัวเองคิด\n\nพนักงานกว่าครึ่งเป็นคนในตำบลเดียวกับเรา ปลาในมื้อเย็นมาจากเรือประมงที่จอดอยู่ปลายหาด และเราปลูกต้นไม้ชายฝั่งเพิ่มทุกปีเพื่อให้หาดนี้ยังเป็นหาดเดิมสำหรับแขกที่กลับมา",
-    }),
+    withAlbum(
+      aboutPage({
+        eyebrow: "เรื่องราวของเรา",
+        neutral: { heading: "เกี่ยวกับ {{name}}", body: "{{name}} ตั้งใจให้ทุกการเข้าพักเป็นวันหยุดที่ไม่ต้องรีบ ทีมงานดูแลตั้งแต่ก่อนเดินทางจนถึงวันเช็กเอาต์ จองห้องพักออนไลน์ เห็นราคาต่อคืนทุกบรรทัด และยืนยันได้ทันทีตลอด 24 ชั่วโมง" },
+        heading: "บ้านทะเล — บ้านริมหาดที่เราอยากให้คุณกลับมา",
+        body: "บ้านทะเลเปิดบ้านหลังแรกเมื่อปี 2016 จากบ้านพักตากอากาศของครอบครัวบนหาดคึกคัก ที่เพื่อนของเพื่อนขอมาพักจนต้องสร้างเพิ่มทีละหลัง วันนี้เรามีห้องพักและวิลล่า 21 หลัง แต่ยังรักษาสิ่งที่ทำให้ที่นี่ต่างจากโรงแรมใหญ่ไว้ นั่นคือทีมงานที่จำชื่อคุณได้ตั้งแต่คืนแรก อาหารเช้าที่สั่งทำทีละจาน และหาดที่เงียบพอจะได้ยินเสียงตัวเองคิด\n\nพนักงานกว่าครึ่งเป็นคนในตำบลเดียวกับเรา ปลาในมื้อเย็นมาจากเรือประมงที่จอดอยู่ปลายหาด และเราปลูกต้นไม้ชายฝั่งเพิ่มทุกปีเพื่อให้หาดนี้ยังเป็นหาดเดิมสำหรับแขกที่กลับมา",
+      }),
+    ),
     {
       slug: "contact",
       title: "ติดต่อเรา",
@@ -352,7 +389,7 @@ export const hotel: TemplateDefinition = {
           heading: "ติดต่อและสอบถาม",
           body: "ส่งข้อความถึงทีมงานได้ทุกช่องทาง เราตอบกลับภายในหนึ่งชั่วโมงในเวลาทำการ สำหรับการจองแบบกลุ่มหรืองานแต่งริมหาด แจ้งวันที่และจำนวนแขกเพื่อรับใบเสนอราคา",
           variant: "chips",
-          interests: ["จองห้องพัก", "จองแบบกลุ่ม", "งานแต่งริมหาด", "รถรับส่งสนามบิน", "อื่น ๆ"],
+          interests: ["จองห้องพัก", "จองแบบกลุ่ม", "งานแต่งริมหาด", "รถรับส่งสนามบิน", "อื่น\u00a0ๆ"],
         }),
         section(faq, {
           heading: "คำถามที่พบบ่อย",
@@ -416,7 +453,7 @@ export const hotel: TemplateDefinition = {
           name: "พูลแอคเซส สวีท",
           slug: "pool-access-suite",
           description: "สวีทชั้นล่าง 48 ตร.ม. เปิดประตูระเบียงแล้วก้าวลงสระอินฟินิตี้ได้ทันที มีมุมนั่งเล่นแยกจากห้องนอน เดย์เบดริมสระส่วนตัวของห้อง และมินิบาร์เติมฟรีทุกวัน",
-          gallery: [IMG.suite, IMG.pool, IMG.bedroom, IMG.bathroom],
+          gallery: [IMG.suitePool, IMG.suite, IMG.pool, IMG.bathroom],
           baseGuests: 2,
           maxGuests: 3,
           beds: "เตียงคิงไซส์ 1 เตียง + โซฟาเบด",

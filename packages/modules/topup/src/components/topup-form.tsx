@@ -202,12 +202,15 @@ export function TopupForm({ game, packages, methods, loggedIn, otpRequired = fal
               <PaymentMethodPicker options={methods} value={method} onChange={setMethod} />
             </div>
             {!loggedIn && (
-              <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-                <LogIn className="size-4" />
-                <Link href={loginHref} className="text-primary underline-offset-4 hover:underline">
-                  เข้าสู่ระบบ
-                </Link>
-                เพื่อใช้กระเป๋าเงินและเก็บประวัติการเติม
+              <p className="mt-2 flex items-start gap-2 text-sm text-muted-foreground">
+                <LogIn className="mt-[0.9rem] size-4 shrink-0" />
+                <span className="min-w-0 leading-relaxed">
+                  {/* 44px tall tap target that never wraps inside the word (qa-c) */}
+                  <Link href={loginHref} className="inline-flex min-h-11 items-center font-medium whitespace-nowrap text-primary underline-offset-4 hover:underline">
+                    เข้าสู่ระบบ
+                  </Link>{" "}
+                  เพื่อใช้กระเป๋าเงินและเก็บประวัติการเติม
+                </span>
               </p>
             )}
             {walletShort && (

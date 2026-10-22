@@ -10,13 +10,26 @@ import { ContactForm } from "./contact-form";
 
 type Props = z.output<typeof contact.schema>;
 
-function Row({ icon, label, children, href, external }: { icon: React.ReactNode; label: string; children: React.ReactNode; href?: string; external?: boolean }) {
+/** An e-mail that may break only after "@" (then between domain labels), never mid-word: "contact@⏎northstar.co.th". */
+function Email({ value }: { value: string }) {
+  const at = value.indexOf("@");
+  if (at < 1) return <>{value}</>;
+  return (
+    <>
+      {value.slice(0, at + 1)}
+      <wbr />
+      <span className="whitespace-nowrap">{value.slice(at + 1)}</span>
+    </>
+  );
+}
+
+function Row({ icon, label, children, href, external, valueClassName }: { icon: React.ReactNode; label: string; children: React.ReactNode; href?: string; external?: boolean; valueClassName?: string }) {
   const body = (
     <>
       <span className="flex size-12 shrink-0 items-center justify-center rounded-full border border-border text-primary transition-colors duration-300 group-hover:border-primary group-hover:bg-primary group-hover:text-primary-foreground">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm text-muted-foreground">{label}</span>
-        <span className="mt-0.5 block font-heading text-step-2 leading-snug font-medium break-words">{children}</span>
+        <span className={cn("mt-0.5 block font-heading text-step-2 leading-snug font-medium break-words", valueClassName)}>{children}</span>
       </span>
       {href && <ArrowUpRight aria-hidden className="mt-1 size-5 shrink-0 text-muted-foreground transition-transform duration-500 group-hover:rotate-45 group-hover:text-foreground" />}
     </>
@@ -56,8 +69,9 @@ export function Contact({ ctx, props: p }: { ctx: StorefrontCtx; props: Props })
         </Row>
       )}
       {email && (
-        <Row icon={<Mail className="size-5" />} label="อีเมล" href={`mailto:${email}`}>
-          {email}
+        // long addresses step down a size in the narrow chips column; the domain never breaks mid-word
+        <Row icon={<Mail className="size-5" />} label="อีเมล" href={`mailto:${email}`} valueClassName={email.length > (chips ? 18 : 26) ? "text-step-1" : undefined}>
+          <Email value={email} />
         </Row>
       )}
       {address && (
@@ -100,8 +114,8 @@ export function Contact({ ctx, props: p }: { ctx: StorefrontCtx; props: Props })
   const map =
     p.showMap && mapUrl ? (
       <Rise fx={fx} delay={0.2} className="group relative overflow-hidden rounded-[var(--radius-2xl)] border border-border">
-        <iframe src={mapUrl} title="แผนที่" className="h-72 w-full grayscale-[.85] transition-[filter] duration-700 group-hover:grayscale-0 md:h-96" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />
-        <span aria-hidden className="pointer-events-none absolute inset-0 bg-primary mix-blend-color opacity-25 transition-opacity duration-700 group-hover:opacity-0" />
+        <iframe src={mapUrl} title="แผนที่" className="rw-map-frame h-72 w-full md:h-96" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />
+        <span aria-hidden className="rw-map-tint pointer-events-none absolute inset-0 bg-primary" />
       </Rise>
     ) : null;
 

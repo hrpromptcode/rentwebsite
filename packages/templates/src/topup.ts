@@ -10,16 +10,16 @@ const COVER = {
   "free-fire": "1511512578047-dfb367046420",
   genshin: "1538481199705-c710c4e965fc",
   valorant: "1552820728-8b83bb6b773f",
-  "pubg-mobile": "1593305841991-05c297ba4575",
+  // qa-c: was 1593305841991-05c297ba4575 (a TV showing another game's "WARZONE" logo) → esports players under stage light
+  "pubg-mobile": "1560253023-3ec5d502959f",
   roblox: "1612287230202-1ff1d85d1bdf",
   mlbb: "1580327344181-c1163234e5a0",
   "steam-wallet": "1550745165-9bc0b252726f",
 } as const;
 
 /**
- * Hero card stack (§5.2): demo games orbiting the portal ring, each linking to its top-up page. Six, not eight: the
- * kit's static fan (reduced motion / no WebGL) spreads ~1.43× its box with 8 cards and slid under the hero copy; 6 stay
- * inside the media column + gap (the sold-out Roblox and Mobile Legends stay in the grid right below).
+ * Hero card stack (§5.2): all eight demo games orbiting the portal ring, each linking to its top-up page (the kit's
+ * static fan scales its card width by count, so 8 cards stay inside the media column under reduced motion / no WebGL).
  */
 const HERO_CARDS: Array<{ slug: keyof typeof COVER; title: string; tag: string }> = [
   { slug: "rov", title: "RoV", tag: "MOBILE" },
@@ -27,7 +27,17 @@ const HERO_CARDS: Array<{ slug: keyof typeof COVER; title: string; tag: string }
   { slug: "genshin", title: "Genshin Impact", tag: "MOBILE" },
   { slug: "valorant", title: "Valorant", tag: "PC" },
   { slug: "pubg-mobile", title: "PUBG Mobile", tag: "MOBILE" },
+  { slug: "mlbb", title: "Mobile Legends", tag: "MOBILE" },
+  { slug: "roblox", title: "Roblox", tag: "VOUCHER" },
   { slug: "steam-wallet", title: "Steam Wallet", tag: "CODE" },
+];
+
+/** Player FAQ (home + how-to). */
+const FAQ = [
+  { q: "ต้องให้รหัสผ่านไหม?", a: "ไม่ต้องครับ ใช้แค่ UID (และ Server/Zone สำหรับบางเกม) เราไม่มีการล็อกอินเข้าบัญชีของคุณ" },
+  { q: "ใช้เวลานานแค่ไหน?", a: "แพ็กเกจที่เป็นระบบอัตโนมัติเข้าภายใน 10–60 วินาที แพ็กเกจเติมมือใช้เวลา 5–30 นาที (แสดงไว้ที่แพ็กเกจ)" },
+  { q: "เติมไม่เข้าทำอย่างไร?", a: "ระบบจะคืนเงินเข้ากระเป๋าอัตโนมัติ หากไม่ได้รับภายใน 30 นาที ทัก LINE พร้อมเลขที่รายการ" },
+  { q: "เงินในกระเป๋าถอนได้ไหม?", a: "กระเป๋าเงินใช้สำหรับเติมเกมในเว็บนี้เท่านั้น ไม่สามารถถอนเป็นเงินสดได้" },
 ];
 
 /**
@@ -84,26 +94,20 @@ function homeSections(neutral: boolean) {
     // the HUD odometers inside their cards at every width (a 10-character "1,200,000+" overflowed a quarter column) and
     // the odometer formats integers only, so the decimals ride in the suffix.
     ...(neutral ? [] : [section(stats, { variant: "cards", items: [{ value: 1, suffix: ".2M+", label: "รายการสำเร็จ" }, { value: 48, suffix: " เกม", label: "รองรับ" }, { value: 99, suffix: ".8%", label: "อัตราสำเร็จ" }, { value: 24, suffix: " ชม.", label: "เปิดบริการ" }] })]),
-    // §5.2 asks for variant "chat"; it stays "cards" until the shared `.rw-chat` class clash (shell floating LINE button
-    // vs the testimonials chat thread → the thread becomes position:fixed) is fixed — see tooling/qa/redesign/topup.md
+    // §5.2: player reviews as a chat thread
     section(testimonials, {
       heading: "ผู้เล่นพูดถึงเรา",
-      variant: "cards",
+      variant: "chat",
       items: [
         { quote: "เติม RoV ตอนตี 2 ก็เข้าภายในไม่ถึงนาที ถูกกว่าเติมในเกมด้วย", name: "KaiZen", role: "ผู้เล่น RoV", avatar: avatar("kaizen"), rating: 5 },
-        { quote: "ใช้กระเป๋าเงินได้โบนัสเพิ่ม เติมบ่อย ๆ คุ้มมาก", name: "Mintra", role: "Genshin Impact", avatar: avatar("mintra"), rating: 5 },
+        { quote: "ใช้กระเป๋าเงินได้โบนัสเพิ่ม เติมบ่อย\u00a0ๆ คุ้มมาก", name: "Mintra", role: "Genshin Impact", avatar: avatar("mintra"), rating: 5 },
         { quote: "เคยเติมไม่เข้า 1 ครั้ง ระบบคืนเงินเข้ากระเป๋าเองเลย ไม่ต้องทักแอดมิน", name: "Boss_FF", role: "Free Fire", avatar: avatar("boss"), rating: 5 },
       ],
     }),
     section(faq, {
       heading: "คำถามที่พบบ่อย",
       layout: "two-column",
-      items: [
-        { q: "ต้องให้รหัสผ่านไหม?", a: "ไม่ต้องครับ ใช้แค่ UID (และ Server/Zone สำหรับบางเกม) เราไม่มีการล็อกอินเข้าบัญชีของคุณ" },
-        { q: "ใช้เวลานานแค่ไหน?", a: "แพ็กเกจที่เป็นระบบอัตโนมัติเข้าภายใน 10–60 วินาที แพ็กเกจเติมมือใช้เวลา 5–30 นาที (แสดงไว้ที่แพ็กเกจ)" },
-        { q: "เติมไม่เข้าทำอย่างไร?", a: "ระบบจะคืนเงินเข้ากระเป๋าอัตโนมัติ หากไม่ได้รับภายใน 30 นาที ทัก LINE พร้อมเลขที่รายการ" },
-        { q: "เงินในกระเป๋าถอนได้ไหม?", a: "กระเป๋าเงินใช้สำหรับเติมเกมในเว็บนี้เท่านั้น ไม่สามารถถอนเป็นเงินสดได้" },
-      ],
+      items: FAQ,
     }),
     section(cta, { variant: "glow", heading: "พร้อมแรงค์ขึ้น\nแล้วหรือยัง?", body: "เติมครั้งแรกวันนี้ รับโบนัสกระเป๋าเงิน 2%", primaryCta: { label: "เริ่มเติมเกม", href: "/games" } }),
   ];
@@ -172,6 +176,9 @@ export const topup: TemplateDefinition = {
             { title: "รับของและเช็กประวัติ", description: "ดูสถานะได้ที่หน้า ตรวจสอบสถานะ และในบัญชีของคุณ" },
           ],
         }),
+        // qa-c: the page ended on a bare timeline → answers to the usual questions + a way into the shop
+        section(faq, { heading: "คำถามที่พบบ่อย", layout: "two-column", items: FAQ }),
+        section(cta, { variant: "glow", heading: "เลือกเกม\nแล้วเติมได้เลย", body: "เติมครั้งแรกวันนี้ รับโบนัสกระเป๋าเงิน 2%", primaryCta: { label: "เลือกเกมที่จะเติม", href: "/games" }, secondaryCta: { label: "ตรวจสอบสถานะ", href: "/topup/status" } }),
       ],
     },
     aboutPage({ heading: "GameHub — ร้านเติมเกมที่ผู้เล่นสร้างให้ผู้เล่น", body: "เราเริ่มจากกลุ่มเพื่อนที่เบื่อการเติมเกมช้าและราคาแพง จึงสร้างระบบเติมอัตโนมัติที่เชื่อมกับผู้ให้บริการโดยตรง ปัจจุบันให้บริการมากกว่า 1.2 ล้านรายการ โดยยึดหลัก ไม่ขอรหัสผ่าน คืนเงินทันทีเมื่อไม่สำเร็จ และโปร่งใสทุกรายการ" }),

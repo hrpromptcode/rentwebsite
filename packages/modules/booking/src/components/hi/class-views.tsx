@@ -21,7 +21,7 @@ export function ClassStudioCard({ c, look, index, poster = false, className }: {
   const lead = c.instructors[0] ?? c.sessions.find((s) => s.instructor)?.instructor ?? null;
   return (
     <article className={cn("group relative flex h-full flex-col", className)}>
-      <Link href={href} tabIndex={-1} aria-hidden data-cursor="view" data-cursor-label="ดูคลาส" className={cn("bk-frame bk-zoom block", poster ? "aspect-[3/4]" : "aspect-[4/5]", frameClass(look))}>
+      <Link href={href} tabIndex={-1} aria-hidden data-cursor="view" data-cursor-label="ดูคลาส" className={cn("bk-frame bk-zoom block", poster ? "h-[clamp(15rem,44svh,31rem)] w-full" : "aspect-[4/3] sm:aspect-[4/5]", frameClass(look))}>
         {c.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={sized(c.image, 900)} alt="" loading="lazy" decoding="async" className="bk-cover" />
@@ -50,7 +50,7 @@ export function ClassStudioCard({ c, look, index, poster = false, className }: {
           </span>
         </p>
         <h3 className="mt-2 font-heading text-step-2 font-semibold leading-snug">
-          <Link href={href} className="underline-offset-[6px] hover:underline focus-visible:underline">
+          <Link href={href} className="inline-flex min-h-11 items-center underline-offset-[6px] hover:underline focus-visible:underline">
             {c.name}
           </Link>
         </h3>

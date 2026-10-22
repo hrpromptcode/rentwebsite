@@ -44,9 +44,17 @@ export default async function SiteLayout({ children, params }: { children: React
   // public path from the proxy (x-tenant-path): server-rendered route kind (RouteKind keeps it in sync on client
   // navigation) and the first-visit preloader only on the home page — no inline route script (a 404 is client-rendered
   // from Next's error shell in dev, and React warns about every <script> it has to create there).
-  const path = (await headers()).get("x-tenant-path");
+  const h = await headers();
+  const path = h.get("x-tenant-path");
   const routeKind = path ? routeKindOf(path.split("/")[1] || null) : undefined;
-  const showPreloader = fx.preloader !== "off" && (path == null || path === "/");
+  // only on full document loads: a server action, its redirect render (Next re-fetches the target internally with the
+  // action's headers) or an RSC navigation / router.refresh that re-renders this layout must not add the preloader's
+  // inline <script> on the client (React logs "Encountered a script tag while rendering React component" — e.g. customer
+  // logout → redirect("/")). Next hides its own RSC headers from headers(), so the browser's fetch metadata decides:
+  // Sec-Fetch-Dest "document" (or, without fetch metadata, an HTML Accept header).
+  const dest = h.get("sec-fetch-dest");
+  const docRequest = !h.get("next-action") && (dest ? dest === "document" : (h.get("accept") ?? "").includes("text/html"));
+  const showPreloader = fx.preloader !== "off" && docRequest && (path == null || path === "/");
   const brandName = (theme.brand.logoText ?? runtime.config.name).trim() || runtime.config.name;
 
   return (

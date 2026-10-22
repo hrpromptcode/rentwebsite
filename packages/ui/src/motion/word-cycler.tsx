@@ -12,6 +12,8 @@ export interface WordCyclerProps {
   className?: string;
   /** joiner for the screen-reader list (default ", ") */
   srJoin?: string;
+  /** called with the active word index: 0 once on mount, then on every change (sync other visuals, e.g. a 3D shape) */
+  onChange?: (index: number) => void;
 }
 
 /**
@@ -20,8 +22,15 @@ export interface WordCyclerProps {
  * ("ร้านค้า, คลินิก, …"); the visible words are aria-hidden CSS generated content (no duplicate DOM text for
  * getByText). Pauses off-screen and in hidden tabs; static under reduced motion.
  */
-export function WordCycler({ words, interval = 2200, mode = "roll", className, srJoin = ", " }: WordCyclerProps) {
+export function WordCycler({ words, interval = 2200, mode = "roll", className, srJoin = ", ", onChange }: WordCyclerProps) {
   const rootRef = React.useRef<HTMLSpanElement>(null);
+  const onChangeRef = React.useRef(onChange);
+  React.useEffect(() => {
+    onChangeRef.current = onChange;
+  });
+  React.useEffect(() => {
+    onChangeRef.current?.(0);
+  }, []);
   const [active, setActive] = React.useState(0);
   const [prev, setPrev] = React.useState(-1);
   const widths = React.useRef<number[]>([]);
@@ -70,6 +79,7 @@ export function WordCycler({ words, interval = 2200, mode = "roll", className, s
       setPrev(idx);
       setActive(next);
       idx = next;
+      onChangeRef.current?.(next);
       if (root) {
         root.dataset.active = String(next);
         const w = widths.current[next];

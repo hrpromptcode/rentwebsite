@@ -91,7 +91,7 @@ export default async function ServicePage({ params }: { params: Params }) {
           <div className="lg:col-span-5">
             <div className="lg:sticky lg:top-[calc(var(--header-h,72px)+2rem)]">
               {service.categoryName && <Eyebrow text={service.categoryName} className="mb-5" />}
-              <RevealHeading as="h1" text={service.name} trigger="mount" mode="words" className={cn("font-heading font-semibold text-balance", titleStep(service.name) === "text-step-6" ? "text-step-5" : "text-step-4")} />
+              <RevealHeading as="h1" text={service.name} trigger="mount" mode="words" className={cn("font-heading font-semibold text-pretty", titleStep(service.name) === "text-step-6" ? "text-step-5" : "text-step-4")} />
               {service.description && <Prose text={service.description} className="mt-6 text-step-1 text-muted-foreground" />}
 
               <dl className={cn("mt-8 grid border-t border-[color-mix(in_oklab,var(--foreground)_12%,transparent)]", cols === 3 ? "grid-cols-3" : "grid-cols-2")}>

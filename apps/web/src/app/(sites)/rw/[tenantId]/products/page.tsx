@@ -30,10 +30,12 @@ export default async function ProductsPage({ params, searchParams }: Props) {
       listProducts(tx, tenantId, { category: q.category, q: q.q, sort: q.sort, minPrice: q.min ? q.min * 100 : null, maxPrice: q.max ? q.max * 100 : null, page: q.page, perPage: 24 }),
       listCategories(tx, tenantId),
     ]);
-    return { category, result, categories };
+    // the "all" chip counts every active product (category sums miss uncategorised ones)
+    const allCount = !q.category && !q.q && !q.min && !q.max ? result.total : (await listProducts(tx, tenantId, { perPage: 1 })).total;
+    return { category, result, categories, allCount };
   });
   if (!data) notFound();
-  const { result, categories } = data;
+  const { result, categories, allCount } = data;
   // a page past the last one → the last page
   if (result.total > 0 && q.page > result.pages) redirect(catalogHref("/products", { ...q, page: result.pages }));
   const active = q.category ? (categories.find((c) => c.slug === q.category) ?? data.category) : null;
@@ -49,6 +51,7 @@ export default async function ProductsPage({ params, searchParams }: Props) {
         basePath="/products"
         query={q}
         result={result}
+        allCount={allCount}
         cardStyle={cardStyleForPreset(runtime.theme.preset.key)}
       />
     </PageBody>

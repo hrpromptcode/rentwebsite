@@ -10,6 +10,10 @@ import { CommerceStyles } from "./commerce-styles";
  */
 export function ListingIntro({ eyebrow, title, lead, count, index = "01", className, children }: { eyebrow?: string; title: string; lead?: string | null; count?: string; index?: string; className?: string; children?: React.ReactNode }) {
   const long = [...title.replace(/\s+/g, "")].length > 14;
+  // phones: size by the characters that take width (Thai above/below marks don't), so 2-word titles like
+  // "สินค้าทั้งหมด" / "หมวดหมู่สินค้า" sit on one line instead of breaking inside a compound
+  const w = [...title.replace(/[\s\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, "")].length;
+  const phone = w > 12 ? "max-sm:text-step-4" : w > 8 ? "max-sm:text-step-5" : "";
   return (
     <header className={cn("relative pt-8 pb-7 md:pt-14 md:pb-10", className)}>
       <SectionStyles />
@@ -17,7 +21,7 @@ export function ListingIntro({ eyebrow, title, lead, count, index = "01", classN
       {(eyebrow || index) && <Eyebrow text={eyebrow} index={index} className="mb-5 md:mb-7" />}
       <div className="grid gap-5 lg:grid-cols-12 lg:items-end lg:gap-10">
         <div className={cn("flex items-start gap-2 md:gap-4", lead ? "lg:col-span-8" : "lg:col-span-12")}>
-          <RevealHeading as="h1" text={title} trigger="mount" mode="lines" className={cn("heading-display font-semibold text-balance", long ? "text-step-5" : "text-step-6")} />
+          <RevealHeading as="h1" text={title} trigger="mount" mode="lines" className={cn("heading-display font-semibold text-balance", long ? "text-step-5" : "text-step-6", phone)} />
           {count && (
             <span aria-hidden className="rwc-num mt-[0.6em] shrink-0 text-muted-foreground md:mt-[1.1em] md:text-sm">
               {count}

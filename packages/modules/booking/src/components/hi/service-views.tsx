@@ -43,7 +43,7 @@ export function ServiceMotifCard({ s, look, index, className, priority }: { s: S
           {s.categoryName && <span className="font-semibold text-primary-ink">{s.categoryName}</span>}
         </p>
         <h3 className="mt-2 font-heading text-step-2 font-semibold leading-snug">
-          <Link href={href} className="rounded-sm underline-offset-[6px] hover:underline focus-visible:underline">
+          <Link href={href} className="inline-flex min-h-11 items-center rounded-sm underline-offset-[6px] hover:underline focus-visible:underline">
             {s.name}
           </Link>
         </h3>

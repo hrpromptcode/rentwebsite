@@ -127,15 +127,15 @@ export function InstructorPillCard({
         </h3>
         {i.title && <p className="text-sm text-primary-ink">{i.title}</p>}
         {classes && classes.length > 0 && (
-          <ul className="mt-3 flex flex-wrap justify-center gap-1.5">
+          <ul className="mt-3 flex flex-wrap justify-center gap-2">
             {classes.slice(0, 3).map((c) => (
               <li key={c.slug}>
-                <Link href={`/classes/${c.slug}`} className="inline-flex min-h-9 items-center rounded-full border bk-hairline px-3 text-xs font-medium transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary-ink">
+                <Link href={`/classes/${c.slug}`} className="inline-flex min-h-11 items-center rounded-full border bk-hairline px-3.5 text-xs font-medium transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary-ink">
                   {c.name}
                 </Link>
               </li>
             ))}
-            {classes.length > 3 && <li className="inline-flex min-h-9 items-center text-xs text-muted-foreground">+{classes.length - 3}</li>}
+            {classes.length > 3 && <li className="inline-flex min-h-11 items-center text-xs text-muted-foreground">+{classes.length - 3}</li>}
           </ul>
         )}
         <div className="mt-auto pt-4">

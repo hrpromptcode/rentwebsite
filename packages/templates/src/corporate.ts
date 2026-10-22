@@ -17,7 +17,7 @@ import {
   tunnel,
   giantWordmark,
 } from "@rentweb/storefront/definitions";
-import { aboutPage, NEUTRAL_ABOUT, legalPages, u, avatar } from "./shared";
+import { aboutPage, NEUTRAL_ABOUT, legalPages, u } from "./shared";
 
 /**
  * Case studies (fictional demo clients): one list feeds the home curved gallery, the home project index and the work
@@ -86,10 +86,10 @@ const galleryItems = CASES.map((c) => ({ image: c.image, title: c.title, subtitl
 const projectItems = CASES.map((c) => ({ title: c.title, category: `${c.category} — ${c.client}`, year: c.year, image: c.image, summary: c.summary, href: "/work" }));
 
 const TEAM = [
-  { name: "ธนกร วิริยะ", role: "CEO & Founder", avatar: u("1560250097-0b93528c311a", 800), bio: "อดีตหัวหน้าทีมวิศวกรที่ Agoda" },
-  { name: "พิมพ์มาดา ศรีสุข", role: "Head of Design", avatar: u("1573496359142-b8d87734a5a2", 800), bio: "ออกแบบผลิตภัณฑ์ให้ธนาคารชั้นนำ 3 แห่ง" },
-  { name: "ณัฐพล เกียรติ", role: "CTO", avatar: u("1500648767791-00dcc994a43e", 800), bio: "Cloud architect ประสบการณ์ 14 ปี" },
-  { name: "อรจิรา ทองดี", role: "Head of Delivery", avatar: u("1494790108377-be9c29b29330", 800), bio: "PMP · ดูแลโปรเจกต์กว่า 60 โครงการ" },
+  { name: "ธนกร วิริยะ", role: "CEO & Founder", avatar: u("1720501828093-c792c10e3f0b", 800), bio: "อดีตหัวหน้าทีมวิศวกรที่ Agoda" },
+  { name: "พิมพ์มาดา ศรีสุข", role: "Head of Design", avatar: u("1758600587811-e9a20851cf7d", 800), bio: "ออกแบบผลิตภัณฑ์ให้ธนาคารชั้นนำ 3 แห่ง" },
+  { name: "ณัฐพล เกียรติ", role: "CTO", avatar: u("1622902141397-a89655353bec", 800), bio: "Cloud architect ประสบการณ์ 14 ปี" },
+  { name: "อรจิรา ทองดี", role: "Head of Delivery", avatar: u("1581065178047-8ee15951ede6", 800), bio: "PMP · ดูแลโปรเจกต์กว่า 60 โครงการ" },
 ];
 
 const SERVICES = [
@@ -216,9 +216,9 @@ export const corporate: TemplateDefinition = {
           heading: "ลูกค้าพูดถึงเรา",
           variant: "spotlight",
           items: [
-            { quote: "ทีม Northstar เข้าใจธุรกิจเราเร็วมาก ส่งงานทุก 2 สัปดาห์ตามที่สัญญา และระบบใช้งานจริงใน 200 สาขาโดยไม่มีปัญหาใหญ่", name: "คุณวรรณา ตั้งมั่น", role: "COO, Siam Retail Group", avatar: avatar("wanna"), rating: 5 },
-            { quote: "เอกสารและโค้ดสะอาดจนทีมในของเรารับช่วงต่อได้ทันที", name: "คุณปริญญ์", role: "IT Director, Chao Phraya Logistics", avatar: avatar("prin"), rating: 5 },
-            { quote: "UX ที่ออกแบบให้ลดการโทรเข้า call center ลง 40%", name: "คุณศิริพร", role: "Head of CX, Krungthep Health", avatar: avatar("siriporn"), rating: 5 },
+            { quote: "ทีม Northstar เข้าใจธุรกิจเราเร็วมาก ส่งงานทุก 2 สัปดาห์ตามที่สัญญา และระบบใช้งานจริงใน 200 สาขาโดยไม่มีปัญหาใหญ่", name: "คุณวรรณา ตั้งมั่น", role: "COO, Siam Retail Group", avatar: u("1604904612715-47bf9d9bc670", 160, "&ar=1:1&crop=faces"), rating: 5 },
+            { quote: "เอกสารและโค้ดสะอาดจนทีมในของเรารับช่วงต่อได้ทันที", name: "คุณปริญญ์", role: "IT Director, Chao Phraya Logistics", avatar: u("1543132220-3ec99c6094dc", 160, "&ar=1:1&crop=faces"), rating: 5 },
+            { quote: "UX ที่ออกแบบให้ลดการโทรเข้า call center ลง 40%", name: "คุณศิริพร", role: "Head of CX, Krungthep Health", avatar: u("1758691737605-69a0e78bd193", 160, "&ar=1:1&crop=faces"), rating: 5 },
           ],
         }),
         section(pricing, {
@@ -257,10 +257,10 @@ export const corporate: TemplateDefinition = {
       sections: [
         section(projectList, { eyebrow: "ผลงาน", heading: "งานที่ใช้งานจริง\nไม่ใช่แค่สไลด์สวย", items: CASES.map((c) => ({ title: c.title, category: c.category, year: c.year, image: c.image, summary: `${c.client} — ${c.summary}` })), layout: "grid-staggered", cursorLabel: "ดูโปรเจกต์" }),
         section(curvedGallery, { bigTitle: "ARCHIVE", bigTitleSuffix: "©19—26", heading: "ลากเพื่อดูทุกโปรเจกต์", items: galleryItems.map((it) => ({ ...it, href: undefined })), floor: "reflect", height: "compact" }),
-        section(cta, { variant: "glow", heading: "อยากเห็นผลงานที่ใกล้เคียงธุรกิจของคุณ?", primaryCta: { label: "ขอดูเคสเพิ่มเติม", href: "/contact" } }),
+        section(cta, { variant: "wordmark", heading: "อยากเห็นผลงานที่ใกล้เคียงธุรกิจของคุณ?", primaryCta: { label: "ขอดูเคสเพิ่มเติม", href: "/contact" } }),
       ],
     },
-    { slug: "careers", title: "ร่วมงานกับเรา", sections: [section(features, { variant: "icons", heading: "ทำไมต้องร่วมงานกับ Northstar", items: [{ icon: "Laptop", title: "Hybrid 3 วัน", description: "เข้าออฟฟิศ 2 วัน/สัปดาห์" }, { icon: "GraduationCap", title: "งบเรียนรู้ ฿30,000/ปี", description: "คอร์ส หนังสือ คอนเฟอเรนซ์" }, { icon: "HeartPulse", title: "ประกันสุขภาพกลุ่ม", description: "รวมทันตกรรมและสายตา" }, { icon: "Sun", title: "ลาพักร้อน 15 วัน", description: "เพิ่มตามอายุงาน" }] }), section(cta, { variant: "card", heading: "ส่งเรซูเม่มาคุยกัน", body: "เปิดรับ Frontend, Backend และ Product Designer", primaryCta: { label: "ส่งเรซูเม่", href: "mailto:jobs@northstar.co.th" } })] },
+    { slug: "careers", title: "ร่วมงานกับเรา", sections: [section(features, { variant: "icons", heading: "ทำไมต้องร่วมงานกับ Northstar", columns: 4, items: [{ icon: "Laptop", title: "Hybrid 3 วัน", description: "เข้าออฟฟิศ 2 วัน/สัปดาห์" }, { icon: "GraduationCap", title: "งบเรียนรู้ ฿30,000/ปี", description: "คอร์ส หนังสือ คอนเฟอเรนซ์" }, { icon: "HeartPulse", title: "ประกันสุขภาพกลุ่ม", description: "รวมทันตกรรมและสายตา" }, { icon: "Sun", title: "ลาพักร้อน 15 วัน", description: "เพิ่มตามอายุงาน" }] }), section(cta, { variant: "card", heading: "ส่งเรซูเม่มาคุยกัน", body: "เปิดรับ Frontend, Backend และ Product Designer", primaryCta: { label: "ส่งเรซูเม่", href: "mailto:jobs@northstar.co.th" } })] },
     withAboutExtras(aboutPage({ neutral: NEUTRAL_ABOUT.corporate, eyebrow: "เกี่ยวกับเรา", heading: "Northstar — สตูดิโอซอฟต์แวร์ที่เชื่อในงานที่ใช้ได้จริง", body: "ก่อตั้งปี 2017 โดยวิศวกร 3 คนที่เบื่อระบบองค์กรที่ไม่มีใครอยากใช้ เราเติบโตเป็นทีม 35 คน ส่งมอบมากกว่า 120 โปรเจกต์ให้ธุรกิจค้าปลีก การเงิน และสุขภาพ\n\nเราวัดความสำเร็จจากตัวเลขของลูกค้า ไม่ใช่จำนวนฟีเจอร์" })),
     {
       slug: "contact",

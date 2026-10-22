@@ -73,7 +73,7 @@ export default async function RoomPage({ params, searchParams }: { params: Param
           <ParallaxMedia speed={-0.18} scale={1.14} className="absolute inset-0" innerClassName="h-full">
             <Img src={sized(type.gallery[0] ?? "", 2000)} alt={type.name} priority className="rw-hero-photo-img h-full w-full object-cover" />
           </ParallaxMedia>
-          <div aria-hidden className="absolute inset-0 bg-[linear-gradient(to_bottom,rgb(12_9_5/.5)_0%,transparent_28%,transparent_45%,rgb(12_9_5/.78)_100%)]" />
+          <div aria-hidden className="absolute inset-0 bg-[linear-gradient(to_bottom,rgb(12_9_5/.66)_0%,rgb(12_9_5/.38)_14%,transparent_32%,transparent_45%,rgb(12_9_5/.78)_100%)]" />
           <div className="container-x absolute inset-x-0 bottom-0 pb-8 md:pb-14">
             <Link href={backHref} className="rw-press mb-6 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/30 bg-black/25 px-4 text-sm text-white backdrop-blur-md transition-colors hover:bg-white hover:text-foreground">
               <ArrowLeft className="size-4" aria-hidden /> {from && to ? L.stayTitle : L.allRooms}

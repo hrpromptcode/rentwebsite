@@ -439,6 +439,22 @@ html.lenis {
 .rw-vmarquee[data-state="static"] [data-vm-item] {
   white-space: normal;
 }
+/* reduced motion: giant rows step down so the single static copy wraps into 1–2 lines instead of ~2 viewports of
+   stacked giant words */
+.rw-vmarquee[data-state="static"][data-size="giant"] {
+  font-size: var(--step-5);
+}
+.rw-vmarquee[data-state="static"][data-size="giant"]:is([data-script="thai"], [data-script="mixed"]) {
+  font-size: var(--step-4);
+}
+/* no orphan separators at line ends: the alternating solid / outline words already tell the items apart */
+.rw-vmarquee[data-state="static"][data-size="giant"] [data-vm-sep-wrap] {
+  display: none;
+}
+.rw-vmarquee[data-state="static"][data-size="giant"] [data-vm-group] {
+  column-gap: 0.55em;
+  row-gap: 0.1em;
+}
 
 /* ---------------------------------------------------------------- ImageReveal */
 .rw-img-reveal {

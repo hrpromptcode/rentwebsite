@@ -4,7 +4,7 @@ import * as Icons from "lucide-react";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@rentweb/ui/lib/utils";
 import { Button } from "@rentweb/ui/components/button";
-import { Magnetic, Reveal, RollText, SplitReveal, Stagger, StaggerItem } from "@rentweb/ui/motion";
+import { Magnetic, Reveal, RollText, SplitReveal, Stagger, StaggerItem, ThaiWrap } from "@rentweb/ui/motion";
 import { graphemeCount, scriptOf } from "@rentweb/ui/motion/split";
 import type { StorefrontCtx } from "../ctx";
 import { SectionStyles } from "./_styles";
@@ -175,10 +175,10 @@ export function DisplayText({
                     {r.t}
                   </span>
                 ) : (
-                  <React.Fragment key={ri}>{r.t}</React.Fragment>
+                  <ThaiWrap key={ri} text={r.t} />
                 ),
               )
-            : line}
+            : <ThaiWrap text={line} />}
         </React.Fragment>
       ))}
     </Tag>
@@ -225,7 +225,7 @@ export function RevealHeading({
     const Tag = as;
     return (
       <Tag id={id} style={style} data-script={scriptOf(t)} className={cls}>
-        {t}
+        <ThaiWrap text={t} />
       </Tag>
     );
   }

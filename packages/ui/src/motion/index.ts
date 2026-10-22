@@ -42,5 +42,6 @@ export { BackToTop, type BackToTopProps } from "./back-to-top";
 // helpers
 export { useMotionPrefs, prefersReducedMotion, motionLevel, whenPreloaded, type MotionLevel, type MotionPrefs } from "./prefs";
 export { subscribeScroll, useScrollEffect, requestScrollTick } from "./scroll-loop";
-export { isThai, scriptOf, splitWords, splitGraphemes, segmentText, glueMaiYamok, type Script } from "./split";
+export { isThai, scriptOf, splitWords, splitGraphemes, segmentText, glueMaiYamok, THAI_GLUE_WORDS, type Script, type WordSegment } from "./split";
+export { ThaiWrap } from "./thai-wrap";
 export { mulberry32, seedFromString, seeded } from "./random";

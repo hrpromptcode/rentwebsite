@@ -41,7 +41,11 @@ export function GiantWordmarkClient({ text, parts, script, em, cap, effect, outl
       if (Math.abs(ratio - 1) <= 0.03) {
         t.style.transform = `scaleX(${ratio.toFixed(4)})`;
       } else {
-        k = Math.max(0.4, Math.min(2.5, k * ratio));
+        // solve k from the size actually rendered: when `cap` was the smaller term (wide accent fonts such as
+        // Unbounded at --step-8), scaling the old k would not move the font size at all and the word stayed too wide
+        const fs = parseFloat(getComputedStyle(t).fontSize);
+        const target = fs * ratio;
+        k = fs > 0 && em > 0 ? Math.max(0.2, Math.min(2.5, (target * em) / avail)) : Math.max(0.4, Math.min(2.5, k * ratio));
         w.style.setProperty("--gw-k", k.toFixed(4));
         const after = t.scrollWidth;
         const r2 = after ? avail / after : 1;
@@ -53,7 +57,7 @@ export function GiantWordmarkClient({ text, parts, script, em, cap, effect, outl
     const ro = new ResizeObserver(() => fit());
     ro.observe(w);
     return () => ro.disconnect();
-  }, [effect, text]);
+  }, [effect, text, em]);
 
   const enter = React.useCallback(() => {
     const el = wrap.current;

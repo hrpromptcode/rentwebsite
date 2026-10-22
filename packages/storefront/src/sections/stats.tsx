@@ -10,9 +10,20 @@ import { RevealHeading, Section, StaggerCell, StaggerList, fxOf, hasAccentFont, 
 type Props = z.output<typeof stats.schema>;
 type Item = Props["items"][number];
 
+/** Fraction digits of a stat value (4.9 → 1, 12 → 0), capped at 2 — the odometer otherwise rounds 4.9 to "5". */
+function decimalsOf(value: number): number {
+  if (Number.isInteger(value)) return 0;
+  return Math.min(2, String(value).split(".")[1]?.length ?? 0);
+}
+
+function fmt(value: number): string {
+  const d = decimalsOf(value);
+  return value.toLocaleString("th-TH", { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+
 /** Size step by the longest rendered value, so long numbers (1,250,000+) never overflow their cell. */
 function numSize(items: Item[], base: 4 | 5 | 6 | 7): string {
-  const len = Math.max(...items.map((it) => `${it.prefix}${it.value.toLocaleString("th-TH")}${it.suffix}`.length));
+  const len = Math.max(...items.map((it) => `${it.prefix}${fmt(it.value)}${it.suffix}`.length));
   const step = len <= 4 ? base : len <= 6 ? base - 1 : len <= 8 ? base - 2 : base - 3;
   return ["text-step-3", "text-step-3", "text-step-3", "text-step-3", "text-step-4", "text-step-5", "text-step-6", "text-step-7"][Math.max(3, step)]!;
 }
@@ -23,12 +34,12 @@ function Num({ it, fx, className }: { it: Item; fx: Fx; className?: string }) {
     return (
       <span className={className}>
         {it.prefix}
-        {it.value.toLocaleString("th-TH")}
+        {fmt(it.value)}
         {it.suffix}
       </span>
     );
   }
-  return <Odometer value={it.value} prefix={it.prefix || undefined} suffix={it.suffix || undefined} className={className} />;
+  return <Odometer value={it.value} decimals={decimalsOf(it.value)} prefix={it.prefix || undefined} suffix={it.suffix || undefined} className={className} />;
 }
 
 export function Stats({ ctx, props: p }: { ctx: StorefrontCtx; props: Props }) {

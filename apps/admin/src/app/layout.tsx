@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Toaster } from "@rentweb/ui/components/sonner";
 import { fontClassNames } from "@/fonts";
+import { brandFontClasses } from "@/app/(auth)/_brand/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,15 +13,19 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#ffffff",
+  themeColor: "#f3f1ec",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="th" className={fontClassNames} data-button="rounded" data-card="elevated" data-container="normal" suppressHydrationWarning>
+    <html lang="th" className={`${fontClassNames} ${brandFontClasses}`} data-button="rounded" data-card="elevated" data-container="normal" suppressHydrationWarning>
       <body className="min-h-dvh antialiased">
         {children}
-        <Toaster />
+        <Toaster
+          className="toaster group adm-toaster"
+          richColors={false}
+          style={{ "--normal-bg": "#121419", "--normal-text": "#f3f1ec", "--normal-border": "#262a33", "--border-radius": "0.875rem" } as React.CSSProperties}
+        />
       </body>
     </html>
   );

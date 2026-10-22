@@ -82,7 +82,7 @@ export const salon: TemplateDefinition = {
           eyebrow: "ห้องส่วนตัว",
           heading: "พักในบ้าน ไม่ใช่ในห้าง",
           body: "เราปรับบ้านไม้สองชั้นให้เป็นห้องนวดส่วนตัว 6 ห้อง ล้อมด้วยสวนเล็ก ๆ ทุกห้องมีห้องอาบน้ำในตัว ใช้น้ำมันหอมระเหยออร์แกนิกจากเชียงใหม่",
-          image: { url: u("1544161515-4ab6ce6db874", 1400), alt: "ห้องนวด" },
+          image: { url: u("1507652313519-d4e9174996dd", 1400), alt: "ห้องอาบน้ำส่วนตัวกับอ่างหินและต้นไม้" },
           imagePosition: "left",
           style: "overlap",
         }),
@@ -96,7 +96,7 @@ export const salon: TemplateDefinition = {
           ],
         }),
         section(staffGrid, { eyebrow: "ทีม", heading: "เทอราพิสต์ของเรา", subheading: "ผ่านการรับรองหลักสูตรนวดไทย 150 ชั่วโมงขึ้นไปทุกคน" }),
-        section(gallery, { heading: "บรรยากาศ", layout: "filmstrip", images: [{ url: u("1540555700478-4be289fbecef", 1000), alt: "" }, { url: u("1544161515-4ab6ce6db874", 1000), alt: "" }, { url: u("1570172619644-dfd03ed5d881", 1000), alt: "" }, { url: u("1600334129128-685c5582fd35", 1000), alt: "" }] }),
+        section(gallery, { heading: "บรรยากาศ", layout: "filmstrip", images: [{ url: u("1560750588-73207b1ef5b8", 1000), alt: "สระน้ำในสวนหลังบ้าน" }, { url: u("1620733723572-11c53f73a416", 1000), alt: "เทียนหอมและก้านไม้หอมในห้องนวด" }, { url: u("1583416750470-965b2707b355", 1000), alt: "ห้องอบสมุนไพรบุไม้" }, { url: u("1556760544-74068565f05c", 1000), alt: "น้ำมันหอมระเหยและเทียนบนโต๊ะไม้" }, { url: u("1600334129128-685c5582fd35", 1000), alt: "นวดหินร้อน" }] }),
         section(testimonials, {
           heading: "รีวิวจากลูกค้า",
           variant: "cards",
@@ -123,7 +123,7 @@ export const salon: TemplateDefinition = {
       title: "บรรยากาศ",
       sections: [
         section(text, { eyebrow: "บรรยากาศ", heading: "ความเงียบที่จับต้องได้", body: "แสงจากสวน ผ้าลินินที่ซักด้วยมือ กลิ่นตะไคร้หอมจาง ๆ ทุกมุมของบ้านตั้งใจให้คุณได้ช้าลง ก่อนจะเริ่มนวดเสียอีก", size: "normal" }),
-        section(gallery, { heading: "", layout: "masonry", images: [{ url: u("1540555700478-4be289fbecef", 1000), alt: "" }, { url: u("1544161515-4ab6ce6db874", 1000), alt: "" }, { url: u("1570172619644-dfd03ed5d881", 1000), alt: "" }, { url: u("1600334129128-685c5582fd35", 1000), alt: "" }, { url: u("1522337660859-02fbefca4702", 1000), alt: "" }] }),
+        section(gallery, { heading: "", layout: "masonry", images: [{ url: u("1560750588-73207b1ef5b8", 1000), alt: "สระน้ำในสวนหลังบ้าน" }, { url: u("1507652313519-d4e9174996dd", 1000), alt: "ห้องอาบน้ำส่วนตัว" }, { url: u("1775133262667-316bd4d9e5b5", 1000), alt: "นวดประคบสมุนไพร" }, { url: u("1620733723572-11c53f73a416", 1000), alt: "เทียนหอมในห้องนวด" }, { url: u("1583416750470-965b2707b355", 1000), alt: "ห้องอบสมุนไพร" }, { url: u("1590439471364-192aa70c0b53", 1000), alt: "ผ้าขนหนูและสบู่สมุนไพร" }, { url: u("1600334129128-685c5582fd35", 1000), alt: "นวดหินร้อน" }, { url: u("1556760544-74068565f05c", 1000), alt: "น้ำมันหอมระเหย" }] }),
         section(cta, { variant: "banner", heading: "มาพักด้วยกันสักครั้ง", body: "เลือกทรีตเมนต์และเทอราพิสต์ที่ชอบ ยืนยันคิวได้ทันที", primaryCta: { label: "จองคิว", href: "/book" } }),
       ],
     },
@@ -144,14 +144,14 @@ export const salon: TemplateDefinition = {
     const svc = await tx
       .insert(services)
       .values([
-        { tenantId, categoryId: massage!.id, name: "นวดไทยโบราณ 60 นาที", slug: "thai-60", durationMin: 60, bufferAfterMin: 15, price: 59000, image: u("1544161515-4ab6ce6db874", 800), featured: true, sort: 0 },
-        { tenantId, categoryId: massage!.id, name: "นวดไทยโบราณ 90 นาที", slug: "thai-90", durationMin: 90, bufferAfterMin: 15, price: 85000, image: u("1544161515-4ab6ce6db874", 800), featured: true, sort: 1 },
-        { tenantId, categoryId: massage!.id, name: "นวดเท้าและสครับ 60 นาที", slug: "foot-60", durationMin: 60, bufferAfterMin: 10, price: 49000, image: u("1600334129128-685c5582fd35", 800), sort: 2 },
-        { tenantId, categoryId: aroma!.id, name: "อโรมาเทอราพี 90 นาที", slug: "aroma-90", durationMin: 90, bufferAfterMin: 15, price: 129000, depositRequired: true, depositAmount: 30000, image: u("1540555700478-4be289fbecef", 800), featured: true, sort: 3 },
-        { tenantId, categoryId: aroma!.id, name: "นวดหินร้อน 90 นาที", slug: "hot-stone", durationMin: 90, bufferAfterMin: 20, price: 149000, depositRequired: true, depositAmount: 30000, image: u("1570172619644-dfd03ed5d881", 800), sort: 4 },
-        { tenantId, categoryId: skin!.id, name: "ทรีตเมนต์หน้าสมุนไพร 60 นาที", slug: "facial", durationMin: 60, bufferAfterMin: 15, price: 99000, image: u("1519823551278-64ac92734fb1", 800), sort: 5 },
-        { tenantId, categoryId: skin!.id, name: "สครับผิวทั้งตัว 45 นาที", slug: "scrub", durationMin: 45, bufferAfterMin: 15, price: 79000, image: u("1522337660859-02fbefca4702", 800), sort: 6 },
-        { tenantId, categoryId: aroma!.id, name: "แพ็กเกจคู่รัก 120 นาที (2 ท่าน)", slug: "couple", durationMin: 120, bufferAfterMin: 20, price: 299000, capacity: 2, seatsPerBooking: 2, depositRequired: true, depositAmount: 50000, image: u("1540555700478-4be289fbecef", 800), featured: true, sort: 7 },
+        { tenantId, categoryId: massage!.id, name: "นวดไทยโบราณ 60 นาที", slug: "thai-60", durationMin: 60, bufferAfterMin: 15, price: 59000, image: u("1596178060671-7a80dc8059ea", 800), featured: true, sort: 0 },
+        { tenantId, categoryId: massage!.id, name: "นวดไทยโบราณ 90 นาที", slug: "thai-90", durationMin: 90, bufferAfterMin: 15, price: 85000, image: u("1775133262667-316bd4d9e5b5", 800), featured: true, sort: 1 },
+        { tenantId, categoryId: massage!.id, name: "นวดเท้าและสครับ 60 นาที", slug: "foot-60", durationMin: 60, bufferAfterMin: 10, price: 49000, image: u("1519415510236-718bdfcd89c8", 800), sort: 2 },
+        { tenantId, categoryId: aroma!.id, name: "อโรมาเทอราพี 90 นาที", slug: "aroma-90", durationMin: 90, bufferAfterMin: 15, price: 129000, depositRequired: true, depositAmount: 30000, image: u("1544161515-4ab6ce6db874", 800), featured: true, sort: 3 },
+        { tenantId, categoryId: aroma!.id, name: "นวดหินร้อน 90 นาที", slug: "hot-stone", durationMin: 90, bufferAfterMin: 20, price: 149000, depositRequired: true, depositAmount: 30000, image: u("1696841212541-449ca29397cc", 800), sort: 4 },
+        { tenantId, categoryId: skin!.id, name: "ทรีตเมนต์หน้าสมุนไพร 60 นาที", slug: "facial", durationMin: 60, bufferAfterMin: 15, price: 99000, image: u("1598901986949-f593ff2a31a6", 800), sort: 5 },
+        { tenantId, categoryId: skin!.id, name: "สครับผิวทั้งตัว 45 นาที", slug: "scrub", durationMin: 45, bufferAfterMin: 15, price: 79000, image: u("1590439471364-192aa70c0b53", 800), sort: 6 },
+        { tenantId, categoryId: aroma!.id, name: "แพ็กเกจคู่รัก 120 นาที (2 ท่าน)", slug: "couple", durationMin: 120, bufferAfterMin: 20, price: 299000, capacity: 2, seatsPerBooking: 2, depositRequired: true, depositAmount: 50000, image: u("1560750588-73207b1ef5b8", 800), featured: true, sort: 7 },
       ])
       .returning({ id: services.id, slug: services.slug });
 

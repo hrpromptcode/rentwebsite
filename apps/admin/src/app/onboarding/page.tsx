@@ -8,8 +8,12 @@ import { OnboardingWizard, type PresetSummary, type TemplateSummary } from "./wi
 
 export const metadata: Metadata = { title: "สร้างเว็บไซต์ใหม่" };
 
-export default async function OnboardingPage() {
-  await requireSession("/onboarding");
+export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ template?: string | string[] }> }) {
+  // ?template=<key> ("ใช้เทมเพลตนี้" on the platform site → /signup?next=/onboarding?template=<key>) preselects step 1
+  const raw = (await searchParams).template;
+  const wanted = typeof raw === "string" ? raw : null;
+  const initialTemplate = wanted && listTemplates().some((t) => t.key === wanted) ? wanted : null;
+  await requireSession(initialTemplate ? `/onboarding?template=${encodeURIComponent(initialTemplate)}` : "/onboarding");
 
   // live storefront screenshots served by the platform site (apps/web/public/showcase), Unsplash preview as fallback
   const showcase = `${env().WEB_URL.replace(/\/+$/, "")}/showcase`;
@@ -41,5 +45,5 @@ export default async function OnboardingPage() {
     };
   });
 
-  return <OnboardingWizard templates={templates} presets={presets} rootHost={rootHost()} />;
+  return <OnboardingWizard templates={templates} presets={presets} rootHost={rootHost()} initialTemplate={initialTemplate} />;
 }

@@ -3,16 +3,1266 @@
 @source "../../../../packages/storefront/src";
 @source "../../../../packages/modules";
 
-/* Admin shell tokens: quartz-like light defaults from @rentweb/ui, plus a soft surface for the workspace */
+/* =====================================================================================================================
+   RentWeb admin — "night rail, paper desk" (docs/design/hi-end-direction.md §4.1 platform identity, admin-polish pass).
+   - Paper desk tokens (light chapter of §4.1, AA verified: primary #C2410C 5.2:1 on white, muted-fg #5C5952 6.9:1),
+     the dark rail re-scopes the same token names on `.adm-rail` (sidebar + mobile drawer) — night palette §4.1.
+   - Own components live in @layer components (Tailwind utilities still override them); the few overrides of shared
+     @rentweb/ui pieces (dialog/sheet motion, table header/rows, toasts) are deliberately unlayered.
+   - Every animation sits under prefers-reduced-motion: no-preference; the static state is the designed final state.
+   ===================================================================================================================== */
+
 :root {
   --radius: 0.75rem;
-  --sidebar-width: 17rem;
+  --sidebar-width: 16.75rem;
   --sidebar-width-collapsed: 4.5rem;
-}
+  --topbar-h: 4rem;
 
+  --background: #ffffff;
+  --foreground: #111114;
+  --card: #ffffff;
+  --card-foreground: #111114;
+  --popover: #ffffff;
+  --popover-foreground: #111114;
+  --surface: #f3f1ec;
+  --primary: #c2410c;
+  --primary-foreground: #ffffff;
+  --primary-hover: #a8380a;
+  --primary-soft: rgb(194 65 12 / 0.085);
+  --secondary: #efece6;
+  --secondary-foreground: #111114;
+  --muted: #f2efe9;
+  --muted-foreground: #5c5952;
+  --accent: #8e7dff;
+  --accent-foreground: #0b0b0c;
+  --accent-soft: rgb(142 125 255 / 0.16);
+  --destructive: #c42121;
+  --destructive-foreground: #ffffff;
+  --border: #e5e1d8;
+  --input: #d8d3c8;
+  --ring: #c2410c;
+  --glow: #ffd3bf;
+  --ink: #0b0c10;
+
+  --font-heading: var(--font-rw-anuphan), var(--font-ibm-plex-sans-thai), system-ui, sans-serif;
+  --font-display: var(--font-rw-anuphan), var(--font-ibm-plex-sans-thai), system-ui, sans-serif;
+  --font-body: var(--font-ibm-plex-sans-thai), var(--font-rw-anuphan), system-ui, sans-serif;
+  --font-accent: var(--font-rw-unbounded), var(--font-rw-anuphan), system-ui, sans-serif;
+  --font-mono: var(--font-rw-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, var(--font-ibm-plex-sans-thai), monospace;
+
+  --shadow-float: 0 1px 2px rgb(24 18 8 / 0.05), 0 24px 48px -24px rgb(24 18 8 / 0.28);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+html[data-card] {
+  --card-border: 1px solid var(--border);
+  --card-shadow: 0 1px 0 rgb(24 18 8 / 0.02), 0 1px 3px rgb(24 18 8 / 0.04);
+  --card-bg: var(--card);
+}
 body {
   background: var(--surface);
+  color: var(--foreground);
 }
+::selection {
+  background: color-mix(in oklab, var(--primary) 22%, transparent);
+}
+
+/* ---------------------------------------------------------------- night rail (sidebar + mobile drawer) */
+.adm-rail {
+  --background: #0b0c10;
+  --foreground: #f3f1ec;
+  --card: #121419;
+  --card-foreground: #f3f1ec;
+  --muted: #171a21;
+  --muted-foreground: #a3a099;
+  --secondary: #171a21;
+  --secondary-foreground: #f3f1ec;
+  --border: #1e2129;
+  --input: #2c2f3a;
+  --primary: #ff6b3d;
+  --primary-foreground: #0b0b0c;
+  --primary-hover: #ff825a;
+  --primary-soft: rgb(255 107 61 / 0.13);
+  --accent: #8e7dff;
+  --accent-foreground: #07080b;
+  --accent-soft: rgb(142 125 255 / 0.16);
+  --ring: #ff8a64;
+  color-scheme: dark;
+  color: var(--foreground);
+  background:
+    radial-gradient(130% 50% at 0% 0%, rgb(255 107 61 / 0.075), transparent 62%),
+    radial-gradient(120% 40% at 100% 100%, rgb(142 125 255 / 0.06), transparent 60%),
+    var(--background);
+  border-right: 1px solid #000;
+  transition: width 320ms var(--ease-out-quart);
+}
+
+@layer components {
+  /* ------------------------------------------------------------ brand */
+  .adm-brand {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    border-radius: 0.75rem;
+    outline-offset: 4px;
+  }
+  .adm-brand:focus-visible {
+    outline: 2px solid var(--ring);
+  }
+  .adm-wordmark {
+    display: inline-flex;
+    align-items: baseline;
+    font-family: var(--font-accent);
+    font-weight: 600;
+    font-size: 1.125rem;
+    letter-spacing: -0.045em;
+    color: var(--foreground);
+  }
+  .adm-dot {
+    position: relative;
+    display: inline-block;
+    width: 0.42em;
+    height: 0.42em;
+    margin-left: 0.14em;
+    border-radius: 999px;
+    background: var(--primary);
+    box-shadow: 0 0 0.75em color-mix(in oklab, var(--primary) 75%, transparent);
+  }
+  .adm-dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+  }
+  .adm-brand-tile {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    font-size: 1.25rem;
+    background: #15171d;
+    border: 1px solid var(--border);
+  }
+  .adm-brand-tile .adm-dot {
+    margin: 0;
+  }
+  .adm-mono {
+    font-family: var(--font-mono);
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .adm-kbd {
+    display: inline-flex;
+    align-items: center;
+    height: 1.375rem;
+    padding: 0 0.375rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    background: var(--muted);
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  /* ------------------------------------------------------------ rail navigation + sliding indicator */
+  .adm-nav-group {
+    margin-bottom: 0.375rem;
+    padding: 0 0.75rem;
+    font-size: 11.5px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--muted-foreground);
+  }
+  .adm-nav-link {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    height: 2.75rem;
+    padding: 0 0.75rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: color-mix(in oklab, var(--foreground) 74%, transparent);
+    transition: color 160ms linear;
+  }
+  .adm-nav-link:hover,
+  .adm-nav-link[aria-current="page"] {
+    color: var(--foreground);
+  }
+  .adm-nav-link:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
+  .adm-nav-icon {
+    color: var(--muted-foreground);
+    transition: color 160ms linear, transform 360ms var(--ease-out-expo);
+  }
+  .adm-nav-link:hover .adm-nav-icon {
+    color: var(--foreground);
+  }
+  .adm-nav-link[aria-current="page"] .adm-nav-icon {
+    color: var(--primary);
+  }
+  /* before the first measurement (SSR / no JS) the active link paints its own pill */
+  .adm-nav[data-ind="off"] .adm-nav-link[aria-current="page"] {
+    background: var(--primary-soft);
+  }
+  .adm-nav-ind,
+  .adm-nav-hover {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 0;
+    width: var(--w, 0px);
+    height: var(--h, 0px);
+    border-radius: 0.75rem;
+    transform: translate3d(var(--x, 0px), var(--y, 0px), 0);
+    pointer-events: none;
+    opacity: 0;
+  }
+  .adm-nav-ind[data-on="1"],
+  .adm-nav-hover[data-on="1"] {
+    opacity: 1;
+  }
+  .adm-nav-ind {
+    background: linear-gradient(90deg, rgb(255 107 61 / 0.17), rgb(255 107 61 / 0.05));
+    box-shadow: inset 0 0 0 1px rgb(255 107 61 / 0.14);
+  }
+  .adm-nav-ind::before {
+    content: "";
+    position: absolute;
+    left: -0.75rem;
+    top: 24%;
+    bottom: 24%;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--primary);
+    box-shadow: 0 0 14px var(--primary);
+  }
+  .adm-rail[data-collapsed] .adm-nav-ind::before {
+    left: -0.75rem;
+  }
+  .adm-nav-hover {
+    background: rgb(255 255 255 / 0.045);
+  }
+
+  /* ------------------------------------------------------------ live site status (rail footer) */
+  .adm-site {
+    display: block;
+    padding: 0.75rem 0.875rem;
+    border-radius: 0.875rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    transition: border-color 200ms linear, background-color 200ms linear;
+  }
+  .adm-site:hover {
+    border-color: rgb(255 107 61 / 0.35);
+  }
+  .adm-site:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .adm-live {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--muted-foreground);
+  }
+  [data-live] .adm-live {
+    background: #22c55e;
+    box-shadow: 0 0 10px rgb(34 197 94 / 0.55);
+  }
+  [data-live] .adm-live::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+  }
+
+  /* ------------------------------------------------------------ topbar */
+  .adm-topbar {
+    background: color-mix(in oklab, var(--surface) 84%, transparent);
+    backdrop-filter: blur(16px) saturate(1.35);
+    -webkit-backdrop-filter: blur(16px) saturate(1.35);
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  }
+  .adm-search {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    width: 100%;
+    max-width: 30rem;
+    height: 2.75rem;
+    padding: 0 0.5rem 0 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--background);
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    box-shadow: 0 1px 2px rgb(24 18 8 / 0.04);
+    transition: border-color 160ms linear, box-shadow 240ms var(--ease-out-quart), color 160ms linear;
+    cursor: pointer;
+  }
+  .adm-search:hover {
+    color: var(--foreground);
+    border-color: color-mix(in oklab, var(--foreground) 22%, var(--border));
+    box-shadow: 0 8px 24px -16px rgb(24 18 8 / 0.35);
+  }
+  .adm-search:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .adm-switcher:hover .adm-tenant-tile {
+    transform: rotate(-4deg) scale(1.04);
+  }
+  .adm-tenant-tile {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 1.875rem;
+    height: 1.875rem;
+    border-radius: 0.5625rem;
+    background: var(--foreground);
+    color: var(--background);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    transition: transform 360ms var(--ease-spring);
+  }
+  .adm-tenant-tile.is-current {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+  .adm-avatar {
+    box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px color-mix(in oklab, var(--foreground) 14%, transparent);
+  }
+
+  /* ------------------------------------------------------------ page header + welcome */
+  .adm-eyebrow {
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+  }
+  .adm-title {
+    font-size: clamp(1.625rem, 1.2rem + 1.15vw, 2.25rem);
+    font-weight: 600;
+    line-height: 1.24;
+    letter-spacing: -0.012em;
+    text-wrap: balance;
+    color: var(--foreground);
+  }
+  .adm-hello {
+    font-size: clamp(2.125rem, 1.15rem + 3vw, 3.5rem);
+    font-weight: 600;
+    line-height: 1.16;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    color: var(--foreground);
+  }
+  .adm-link {
+    color: var(--primary);
+    text-decoration-line: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 3px;
+    transition: text-decoration-color 160ms linear;
+  }
+  .adm-link:hover {
+    text-decoration-color: currentColor;
+  }
+  .adm-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 2.75rem;
+    padding: 0 1.05rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 0.875rem;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: border-color 160ms linear, transform 360ms var(--ease-out-expo), box-shadow 360ms var(--ease-out-expo);
+  }
+  .adm-chip svg {
+    color: var(--muted-foreground);
+    transition: color 160ms linear;
+  }
+  .adm-chip:hover {
+    border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px -16px rgb(80 30 6 / 0.4);
+  }
+  .adm-chip:hover svg {
+    color: var(--primary);
+  }
+  .adm-chips {
+    scrollbar-width: none;
+  }
+  .adm-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .adm-chip:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* ------------------------------------------------------------ KPI tiles */
+  .adm-kpi {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 1rem;
+    container-type: inline-size;
+    transition: transform 420ms var(--ease-out-expo), box-shadow 420ms var(--ease-out-expo), border-color 200ms linear;
+  }
+  .adm-kpi.is-link:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-float);
+    border-color: color-mix(in oklab, var(--primary) 30%, var(--border));
+  }
+  .adm-kpi.is-link:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  .adm-kpi-go {
+    transition: transform 320ms var(--ease-out-expo), color 160ms linear;
+  }
+  .adm-kpi.is-link:hover .adm-kpi-go {
+    transform: translate(2px, -2px);
+    color: var(--primary);
+  }
+  .adm-kpi-icon {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.625rem;
+    background: var(--muted);
+    color: var(--foreground);
+  }
+  .adm-kpi-icon[data-tone="primary"] {
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .adm-kpi-icon[data-tone="accent"] {
+    background: var(--accent-soft);
+    color: #4b3bc4;
+  }
+  .adm-kpi-icon[data-tone="success"] {
+    background: rgb(16 185 129 / 0.13);
+    color: #047857;
+  }
+  .adm-kpi-value {
+    font-size: clamp(1.375rem, 12.5cqi, 2rem);
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+  }
+  .adm-kpi-trend {
+    color: color-mix(in oklab, var(--foreground) 32%, transparent);
+  }
+  .adm-kpi-trend[data-tone="primary"] {
+    color: var(--primary);
+  }
+  .adm-kpi-trend[data-tone="accent"] {
+    color: #6d5bea;
+  }
+  .adm-kpi-trend[data-tone="success"] {
+    color: #059669;
+  }
+
+  /* ------------------------------------------------------------ sparkline + 14-day bars */
+  .adm-spark {
+    position: relative;
+    display: block;
+  }
+  .adm-spark svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .adm-spark.is-flat .adm-spark-area {
+    opacity: 0;
+  }
+  .adm-spark-dot {
+    position: absolute;
+    right: -3px;
+    width: 6px;
+    height: 6px;
+    margin-top: -3px;
+    border-radius: 999px;
+    background: currentColor;
+    box-shadow: 0 0 0 3px color-mix(in oklab, currentColor 20%, transparent);
+  }
+  .adm-bars-plot {
+    display: grid;
+    grid-template-columns: repeat(14, minmax(0, 1fr));
+    align-items: end;
+    gap: clamp(3px, 0.7vw, 8px);
+    height: 9.5rem;
+  }
+  .adm-bar-col {
+    display: flex;
+    align-items: flex-end;
+    height: 100%;
+  }
+  .adm-bar {
+    display: block;
+    width: 100%;
+    height: var(--h);
+    border-radius: 6px 6px 3px 3px;
+    background: color-mix(in oklab, var(--primary) 20%, var(--muted));
+    transform-origin: 50% 100%;
+    transition: background-color 160ms linear;
+  }
+  .adm-bar-col:hover .adm-bar {
+    background: color-mix(in oklab, var(--primary) 50%, var(--muted));
+  }
+  .adm-bar-col[data-today] .adm-bar {
+    background: var(--primary);
+    box-shadow: 0 10px 24px -12px var(--primary);
+  }
+  .adm-bars-axis {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.625rem;
+    font-size: 11.5px;
+    color: var(--muted-foreground);
+  }
+
+  /* ------------------------------------------------------------ checklist + progress + timeline */
+  .adm-panel {
+    gap: 1.25rem;
+  }
+  .adm-progress {
+    position: relative;
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--muted);
+  }
+  .adm-progress > span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--p, 0%);
+    border-radius: inherit;
+    background: linear-gradient(90deg, #f59e6b, var(--primary));
+  }
+  .adm-check {
+    transition: background-color 160ms linear;
+  }
+  .adm-check:hover {
+    background: var(--muted);
+  }
+  .adm-check:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
+  .adm-check-mark {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: var(--background);
+    color: var(--muted-foreground);
+  }
+  .adm-check-mark[data-done] {
+    border-color: transparent;
+    background: #059669;
+    color: #ffffff;
+    box-shadow: 0 6px 14px -8px #059669;
+  }
+  .adm-timeline {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1.05rem;
+    padding-left: 1.5rem;
+  }
+  .adm-timeline::before {
+    content: "";
+    position: absolute;
+    left: 0.4375rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 1px;
+    background: linear-gradient(var(--border), color-mix(in oklab, var(--border) 20%, transparent));
+  }
+  .adm-timeline > li {
+    position: relative;
+  }
+  .adm-timeline > li::before {
+    content: "";
+    position: absolute;
+    left: -1.3125rem;
+    top: 0.45rem;
+    width: 0.5625rem;
+    height: 0.5625rem;
+    border-radius: 999px;
+    background: var(--primary);
+    box-shadow: 0 0 0 4px var(--card);
+  }
+  .adm-timeline > li[data-kind="event"]::before {
+    background: var(--accent);
+  }
+
+  /* ------------------------------------------------------------ live site preview (tenant colours only) */
+  .adm-sp-window {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    border-radius: 1.125rem;
+    background: var(--sp-bg);
+    color: var(--sp-fg);
+    border: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
+    box-shadow: 0 1px 2px rgb(24 18 8 / 0.05), 0 34px 70px -36px rgb(24 18 8 / 0.45);
+    transition: transform 700ms var(--ease-out-expo), box-shadow 700ms var(--ease-out-expo);
+  }
+  .adm-sp-window:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 1px 2px rgb(24 18 8 / 0.05), 0 44px 90px -36px rgb(24 18 8 / 0.55);
+  }
+  .adm-sp-window:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  .adm-sp-chrome {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    background: color-mix(in oklab, var(--sp-fg) 6%, var(--sp-bg));
+    border-bottom: 1px solid color-mix(in oklab, var(--sp-fg) 10%, transparent);
+  }
+  .adm-sp-lights {
+    display: flex;
+    gap: 5px;
+  }
+  .adm-sp-lights i {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--sp-fg) 20%, transparent);
+  }
+  .adm-sp-url {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 1.375rem;
+    padding: 0 0.75rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--sp-fg) 7%, var(--sp-bg));
+    color: color-mix(in oklab, var(--sp-fg) 72%, transparent);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    white-space: nowrap;
+  }
+  .adm-sp-lock {
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: #22c55e;
+  }
+  .adm-sp-go {
+    flex-shrink: 0;
+    color: color-mix(in oklab, var(--sp-fg) 55%, transparent);
+    transition: transform 320ms var(--ease-out-expo);
+  }
+  .adm-sp-window:hover .adm-sp-go {
+    transform: translate(2px, -2px);
+  }
+  .adm-sp-page {
+    position: relative;
+    display: block;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background: var(--sp-muted);
+  }
+  .adm-sp-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1.02);
+    transition: transform 1400ms var(--ease-out-expo);
+  }
+  .adm-sp-window:hover .adm-sp-img {
+    transform: scale(1.07);
+  }
+  .adm-sp-img.is-empty {
+    background:
+      radial-gradient(70% 90% at 75% 15%, color-mix(in oklab, var(--sp-primary) 55%, transparent), transparent 70%),
+      radial-gradient(60% 60% at 10% 90%, color-mix(in oklab, var(--sp-primary) 25%, transparent), transparent 70%),
+      var(--sp-muted);
+  }
+  .adm-sp-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--sp-bg) 62%, transparent) 0%,
+      transparent 30%,
+      transparent 42%,
+      color-mix(in oklab, var(--sp-bg) 94%, transparent) 100%
+    );
+  }
+  .adm-sp-nav {
+    position: absolute;
+    inset: 0 0 auto 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 0.875rem;
+  }
+  .adm-sp-name {
+    max-width: 62%;
+    overflow: hidden;
+    color: var(--sp-fg);
+    font-family: var(--font-heading);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .adm-sp-logo {
+    max-width: 45%;
+    height: 22px;
+    width: auto;
+    object-fit: contain;
+  }
+  .adm-sp-links {
+    display: flex;
+    gap: 6px;
+  }
+  .adm-sp-links i {
+    width: 18px;
+    height: 4px;
+    border-radius: 99px;
+    background: color-mix(in oklab, var(--sp-fg) 38%, transparent);
+  }
+  .adm-sp-copy {
+    position: absolute;
+    inset: auto 0 0 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.375rem;
+    padding: 1rem 1.125rem 1.125rem;
+  }
+  .adm-sp-headline {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    padding-top: 0.2em;
+    color: var(--sp-fg);
+    font-family: var(--font-heading);
+    font-size: clamp(1rem, 0.85rem + 0.5vw, 1.25rem);
+    font-weight: 600;
+    line-height: 1.32;
+    text-wrap: balance;
+  }
+  .adm-sp-tagline {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    overflow: hidden;
+    padding-top: 0.15em;
+    color: color-mix(in oklab, var(--sp-fg) 74%, transparent);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .adm-sp-cta i {
+    display: block;
+    width: 4.25rem;
+    height: 1.125rem;
+    margin-top: 0.25rem;
+    border-radius: 999px;
+    background: var(--sp-primary);
+  }
+
+  /* ------------------------------------------------------------ empty state with drawn scene */
+  .adm-empty {
+    border: 1.5px dashed color-mix(in oklab, var(--foreground) 13%, transparent);
+    background:
+      radial-gradient(60% 70% at 50% 0%, color-mix(in oklab, var(--primary) 5%, transparent), transparent 70%),
+      color-mix(in oklab, var(--background) 55%, transparent);
+  }
+  .adm-empty-art {
+    position: relative;
+    width: 10rem;
+    height: 7.5rem;
+  }
+  .adm-empty-art.is-compact {
+    width: 8rem;
+    height: 6rem;
+  }
+  .adm-empty-art svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .adm-empty-art .ea-shadow {
+    fill: var(--foreground);
+    opacity: 0.07;
+  }
+  .adm-empty-art .ea-orbit {
+    fill: none;
+    stroke: color-mix(in oklab, var(--foreground) 16%, transparent);
+    stroke-width: 1.25;
+    stroke-dasharray: 2 6;
+    transform-origin: 80px 58px;
+  }
+  .adm-empty-art .ea-back rect {
+    fill: var(--muted);
+    stroke: var(--border);
+  }
+  .adm-empty-art .ea-front > rect:first-child {
+    fill: var(--card);
+    stroke: var(--border);
+  }
+  .adm-empty-art .ea-line {
+    fill: var(--muted);
+  }
+  .adm-empty-art .ea-line.is-soft {
+    opacity: 0.7;
+  }
+  .adm-empty-art .ea-dot {
+    fill: var(--primary);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .adm-empty-art .ea-dot2 {
+    fill: var(--accent);
+  }
+  .adm-empty-icon {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.875rem;
+    background: var(--foreground);
+    color: var(--background);
+    box-shadow: 0 14px 26px -12px rgb(0 0 0 / 0.5);
+    translate: -50% -50%;
+  }
+
+  /* ------------------------------------------------------------ skeleton (route loading) */
+  .adm-skel {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.625rem;
+    background: color-mix(in oklab, var(--foreground) 6.5%, transparent);
+  }
+
+  /* ------------------------------------------------------------ underline tabs (settings) */
+  .adm-tabs {
+    box-shadow: inset 0 -1px 0 var(--border);
+  }
+  .adm-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 2.75rem;
+    padding: 0 0.875rem;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: color 160ms linear;
+  }
+  .adm-tab:hover,
+  .adm-tab[aria-current="page"] {
+    color: var(--foreground);
+  }
+  .adm-tab[data-danger]:not([aria-current="page"]):hover {
+    color: var(--destructive);
+  }
+  .adm-tab:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -4px;
+    border-radius: 0.625rem;
+  }
+  .adm-tab::after {
+    content: "";
+    position: absolute;
+    left: 0.625rem;
+    right: 0.625rem;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--primary);
+    transform: scaleX(0);
+  }
+  .adm-tab[aria-current="page"]::after {
+    transform: scaleX(1);
+  }
+  .adm-meter {
+    transform-origin: 0 50%;
+  }
+
+  /* ------------------------------------------------------------ command palette */
+  .adm-palette-group {
+    padding: 0.625rem 0.75rem 0.375rem;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--muted-foreground);
+  }
+  .adm-palette-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 2.75rem;
+    padding: 0 0.75rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .adm-palette-item.is-active {
+    background: var(--primary-soft);
+    color: var(--foreground);
+  }
+  .adm-palette-icon {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 1.875rem;
+    height: 1.875rem;
+    border-radius: 0.5625rem;
+    border: 1px solid var(--border);
+    background: var(--background);
+    color: var(--muted-foreground);
+  }
+  .adm-palette-item.is-active .adm-palette-icon {
+    border-color: color-mix(in oklab, var(--primary) 35%, var(--border));
+    color: var(--primary);
+  }
+}
+
+/* ---------------------------------------------------------------- workspace safety + shared component polish */
+.adm-desk {
+  overflow-x: clip;
+}
+.adm-desk .btn-primary {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 8px 18px -10px color-mix(in oklab, var(--primary) 75%, transparent);
+}
+
+/* tables: quiet header, hover rail on the first cell, sticky header when the table fits (TableEnhancer sets data-fit) */
+.adm-main [data-slot="table-container"] > table > thead > tr {
+  border-bottom: 0;
+}
+.adm-main [data-slot="table-container"] > table > thead th {
+  background: var(--card);
+  box-shadow: inset 0 -1px 0 var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.adm-main [data-slot="table-container"] > table > thead th:first-child {
+  border-top-left-radius: calc(var(--radius) * 1.4 - 1px);
+}
+.adm-main [data-slot="table-container"] > table > thead th:last-child {
+  border-top-right-radius: calc(var(--radius) * 1.4 - 1px);
+}
+.adm-main [data-slot="table-container"] > table > tbody > tr {
+  border-color: color-mix(in oklab, var(--border) 75%, transparent);
+  transition: background-color 140ms linear;
+}
+.adm-main [data-slot="table-container"] > table > tbody > tr:hover {
+  background: color-mix(in oklab, var(--primary) 3.5%, var(--card));
+}
+.adm-main [data-slot="table-container"] > table > tbody > tr > td:first-child {
+  transition: box-shadow 140ms linear;
+}
+.adm-main [data-slot="table-container"] > table > tbody > tr:hover > td:first-child {
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+@media (min-width: 768px) {
+  .adm-main [data-slot="table-container"][data-fit="1"] {
+    overflow: visible;
+  }
+  .adm-main [data-slot="table-container"][data-fit="1"] > table > thead th {
+    position: sticky;
+    top: var(--topbar-h);
+    z-index: 3;
+  }
+}
+
+/* dialogs / popovers / menus: deeper shadow, softer overlay */
+[data-slot="dialog-overlay"] {
+  background: rgb(11 12 16 / 0.42);
+  backdrop-filter: blur(6px) saturate(1.1);
+  -webkit-backdrop-filter: blur(6px) saturate(1.1);
+}
+[data-slot="dialog-content"] {
+  border-radius: 1.25rem;
+  border-color: color-mix(in oklab, var(--foreground) 9%, transparent);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.6) inset, 0 44px 100px -36px rgb(20 14 6 / 0.5), 0 14px 32px -16px rgb(20 14 6 / 0.22);
+}
+[data-radix-popper-content-wrapper] [role="menu"],
+[data-radix-popper-content-wrapper] [role="listbox"] {
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 2px rgb(20 14 6 / 0.06), 0 22px 50px -20px rgb(20 14 6 / 0.35);
+}
+
+/* toasts (Toaster gets className="adm-toaster", richColors off): night chips with a coloured status rail */
+.adm-toaster [data-sonner-toast][data-styled="true"] {
+  border-radius: 0.875rem;
+  box-shadow: inset 3px 0 0 var(--adm-toast-tone, #a3a099), 0 18px 40px -16px rgb(0 0 0 / 0.5);
+  font-family: var(--font-body);
+}
+.adm-toaster [data-sonner-toast][data-type="success"] {
+  --adm-toast-tone: #4ade80;
+}
+.adm-toaster [data-sonner-toast][data-type="error"] {
+  --adm-toast-tone: #ff8a80;
+}
+.adm-toaster [data-sonner-toast][data-type="warning"] {
+  --adm-toast-tone: #fbbf24;
+}
+.adm-toaster [data-sonner-toast][data-type="info"] {
+  --adm-toast-tone: #a99bff;
+}
+.adm-toaster [data-sonner-toast][data-styled="true"] [data-icon] {
+  color: var(--adm-toast-tone, currentColor);
+}
+.adm-toaster [data-sonner-toast][data-styled="true"] [data-description] {
+  color: #c9c6bf;
+}
+
+/* inputs: a calm hover before focus (focus ring stays the kit's coral /30) */
+.adm-desk :is([data-slot="input"], [data-slot="textarea"]):hover:not(:focus-visible):not(:disabled) {
+  border-color: color-mix(in oklab, var(--foreground) 24%, var(--input));
+}
+
+/* ---------------------------------------------------------------- motion (no-preference only) */
+@media (prefers-reduced-motion: no-preference) {
+  .adm-rise {
+    animation: adm-rise 640ms var(--ease-out-expo) backwards;
+    animation-delay: var(--d, 0ms);
+  }
+  .adm-dot::after {
+    animation: adm-ping 2.4s var(--ease-out-quart) infinite;
+  }
+  [data-live] .adm-live::after {
+    animation: adm-ping 2.4s var(--ease-out-quart) infinite;
+  }
+  .adm-nav[data-anim="1"] .adm-nav-ind {
+    transition: transform 520ms var(--ease-out-expo), height 520ms var(--ease-out-expo), width 320ms var(--ease-out-quart), opacity 200ms linear;
+  }
+  .adm-nav[data-anim="1"] .adm-nav-hover {
+    transition: transform 280ms var(--ease-out-quart), height 280ms var(--ease-out-quart), width 280ms var(--ease-out-quart), opacity 200ms linear;
+  }
+  .adm-nav-link:active .adm-nav-icon {
+    transform: scale(0.88);
+  }
+  .adm-kpis > * {
+    animation: adm-rise 700ms var(--ease-out-expo) backwards;
+  }
+  .adm-kpis > :nth-child(2) { animation-delay: 60ms; }
+  .adm-kpis > :nth-child(3) { animation-delay: 120ms; }
+  .adm-kpis > :nth-child(4) { animation-delay: 180ms; }
+  .adm-kpis > :nth-child(5) { animation-delay: 240ms; }
+  .adm-kpis > :nth-child(6) { animation-delay: 300ms; }
+  .adm-kpis > :nth-child(n + 7) { animation-delay: 340ms; }
+  .adm-spark svg {
+    animation: adm-wipe 1500ms var(--ease-out-expo) 250ms backwards;
+  }
+  .adm-spark-dot {
+    animation: adm-pop 520ms var(--ease-spring) 1.2s backwards;
+  }
+  .adm-bar {
+    animation: adm-grow 1000ms var(--ease-out-expo) backwards;
+    animation-delay: calc(var(--i, 0) * 40ms + 200ms);
+  }
+  .adm-progress > span {
+    animation: adm-fill 1200ms var(--ease-out-expo) 300ms backwards;
+  }
+  .adm-check-mark[data-done] {
+    animation: adm-pop 560ms var(--ease-spring) backwards;
+    animation-delay: calc(var(--i, 0) * 70ms + 350ms);
+  }
+  .adm-timeline > li {
+    animation: adm-rise 640ms var(--ease-out-expo) backwards;
+    animation-delay: calc(var(--i, 0) * 45ms + 250ms);
+  }
+  .adm-empty-art .ea-orbit {
+    animation: adm-spin 48s linear infinite;
+  }
+  .adm-empty-art .ea-front {
+    animation: adm-float 6.5s ease-in-out infinite;
+  }
+  .adm-empty-icon {
+    animation: adm-float-icon 6.5s ease-in-out infinite;
+  }
+  .adm-empty-art .ea-dot {
+    animation: adm-breathe 2.6s ease-in-out infinite;
+  }
+  .adm-skel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.6), transparent);
+    animation: adm-shimmer 1.6s ease-in-out infinite;
+  }
+  [data-slot="dialog-content"][data-state="open"] {
+    animation: adm-dialog-in 440ms var(--ease-out-expo) backwards;
+  }
+  [data-slot="dialog-content"][data-state="closed"] {
+    animation: adm-dialog-out 170ms var(--ease-out-quart) both;
+  }
+  [data-slot="dialog-overlay"][data-state="open"] {
+    animation: adm-fade-in 320ms linear backwards;
+  }
+  [data-slot="dialog-overlay"][data-state="closed"] {
+    animation: adm-fade-out 170ms linear both;
+  }
+  [data-slot="sheet-content"][data-state="open"] {
+    animation-duration: 520ms;
+    animation-timing-function: var(--ease-out-expo);
+  }
+  [data-slot="sheet-content"][data-state="closed"] {
+    animation-duration: 220ms;
+    animation-timing-function: var(--ease-out-quart);
+  }
+  .adm-palette-item {
+    transition: background-color 120ms linear;
+  }
+  .adm-tab::after {
+    transition: transform 460ms var(--ease-out-expo);
+  }
+  .adm-meter {
+    animation: adm-grow-x 1100ms var(--ease-out-expo) 200ms backwards;
+  }
+}
+
+@keyframes adm-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+}
+@keyframes adm-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.65;
+  }
+  70%,
+  100% {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+@keyframes adm-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes adm-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}
+@keyframes adm-grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes adm-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes adm-fill {
+  from {
+    width: 0;
+  }
+}
+@keyframes adm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes adm-float {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+@keyframes adm-float-icon {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+@keyframes adm-breathe {
+  50% {
+    transform: scale(1.35);
+  }
+}
+@keyframes adm-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes adm-dialog-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale(0.97);
+  }
+}
+@keyframes adm-dialog-out {
+  to {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0) scale(0.985);
+  }
+}
+@keyframes adm-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes adm-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
 
 /* Compact tables on small screens */
 @media (max-width: 640px) {

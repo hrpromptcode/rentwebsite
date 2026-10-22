@@ -369,7 +369,7 @@ export function BookingWizard({ services: allServices, staff, config, today, max
         <SelectionStrip service={service ?? null} staffLabel={group ? instructorName : staffChoice === undefined ? null : chosenStaff ? chosenStaff.name : L.anyStaff} date={date} start={start} className={cn("mt-5", !compact && "lg:hidden")} />
 
         {/* clip only the horizontal step slide: overflow-hidden also cut the tone marks of the step heading (ที่) */}
-        <div className="relative mt-7 min-h-[320px] overflow-x-clip">
+        <div className="relative mt-7 min-h-[320px] overflow-x-clip @container">
           <AnimatePresence mode="wait" initial={false} custom={dir}>
             <motion.div
               key={step}
@@ -403,9 +403,9 @@ export function BookingWizard({ services: allServices, staff, config, today, max
               {step === "staff" && service && <StaffStep staff={eligibleStaff} selected={staffChoice} onSelect={chooseStaff} />}
 
               {step === "date" && (
-                <div className="mt-6 grid gap-8 md:grid-cols-[minmax(0,1fr)_200px]">
+                <div className="mt-6 grid gap-8 @2xl:grid-cols-[minmax(0,1fr)_200px]">
                   <MonthCalendar month={month} onMonthChange={setMonth} selected={date} onSelect={chooseDate} minDate={today} maxDate={maxDate} days={days[daysKey] ?? null} loadingLabel={L.loadingDays} className="max-w-md" />
-                  <div className="text-sm text-muted-foreground md:border-l md:border-[color-mix(in_oklab,var(--foreground)_10%,transparent)] md:pl-6">
+                  <div className="text-sm text-muted-foreground @2xl:border-l @2xl:border-[color-mix(in_oklab,var(--foreground)_10%,transparent)] @2xl:pl-6">
                     <p className="flex items-center gap-2">
                       <span className="inline-block size-1.5 rounded-full bg-primary" /> วันที่มีคิวว่าง
                     </p>
@@ -437,7 +437,7 @@ export function BookingWizard({ services: allServices, staff, config, today, max
 
               {step === "details" && (
                 <form
-                  className="mt-6 grid gap-5 sm:grid-cols-2"
+                  className="mt-6 grid gap-5 @lg:grid-cols-2"
                   onSubmit={(e) => {
                     e.preventDefault();
                     submitDetails();
@@ -451,16 +451,16 @@ export function BookingWizard({ services: allServices, staff, config, today, max
                     <Label htmlFor="bk-phone">{L.phone}</Label>
                     <Input id="bk-phone" type="tel" inputMode="tel" autoComplete="tel" required placeholder="08x-xxx-xxxx" value={details.phone} onChange={(e) => setDetails({ ...details, phone: e.target.value })} className="h-12" />
                   </div>
-                  <div className="grid gap-2 sm:col-span-2">
+                  <div className="grid gap-2 @lg:col-span-2">
                     <Label htmlFor="bk-email">{L.email}</Label>
                     <Input id="bk-email" type="email" inputMode="email" autoComplete="email" value={details.email} onChange={(e) => setDetails({ ...details, email: e.target.value })} className="h-12" />
                   </div>
-                  <div className="grid gap-2 sm:col-span-2">
+                  <div className="grid gap-2 @lg:col-span-2">
                     <Label htmlFor="bk-note">{L.note}</Label>
                     <Textarea id="bk-note" placeholder={L.notePlaceholder} value={details.note} onChange={(e) => setDetails({ ...details, note: e.target.value })} className="min-h-20" />
                   </div>
                   {fieldError && (
-                    <p className="flex items-center gap-2 text-sm text-destructive sm:col-span-2">
+                    <p className="flex items-center gap-2 text-sm text-destructive @lg:col-span-2">
                       <AlertCircle className="size-4" /> {fieldError}
                     </p>
                   )}
@@ -472,7 +472,7 @@ export function BookingWizard({ services: allServices, staff, config, today, max
                 <div className="mt-6 space-y-5">
                   <div className="overflow-hidden rounded-[calc(var(--radius,.75rem)*1.4)] bg-muted/60" style={{ "--bk-notch": "var(--card)" } as React.CSSProperties}>
                     <div className="p-5 sm:p-6">
-                      <dl className="grid gap-4 text-sm sm:grid-cols-2">
+                      <dl className="grid gap-4 text-sm @md:grid-cols-2">
                         <Row label={L.services} value={service.name} />
                         {!group && <Row label={L.staff} value={chosenStaff ? chosenStaff.name : L.anyStaff} />}
                         <Row label="วันและเวลา" value={`${formatThaiDate(start, { weekday: true })} · ${formatBkkTime(start)} น.`} />
@@ -644,7 +644,8 @@ function ServiceStep({ services, selected, onSelect }: { services: WizardService
               <span aria-hidden className="h-px w-6 bg-current opacity-60" /> {cat}
             </p>
           )}
-          <div className="grid gap-2.5 sm:grid-cols-2">
+          {/* container query: two columns only when each choice gets ≥ 17 rem (home widget column is narrow → Thai names wrapped mid-word) */}
+          <div className="grid gap-2.5 @xl:grid-cols-2">
             {list.map((s) => {
               const active = s.id === selected;
               return (
@@ -702,13 +703,13 @@ function ServiceStep({ services, selected, onSelect }: { services: WizardService
 
 function StaffStep({ staff, selected, onSelect }: { staff: WizardStaff[]; selected: string | null | undefined; onSelect: (id: string | null) => void }) {
   return (
-    <div className="mt-6 grid gap-2.5 sm:grid-cols-2">
+    <div className="mt-6 grid gap-2.5 @xl:grid-cols-2">
       <button
         type="button"
         onClick={() => onSelect(null)}
         aria-pressed={selected === null}
         className={cn(
-          "bk-choice bk-pop flex min-h-[76px] items-center gap-3 rounded-[calc(var(--radius,.75rem)*1.2)] border p-3 text-left sm:col-span-2",
+          "bk-choice bk-pop flex min-h-[76px] items-center gap-3 rounded-[calc(var(--radius,.75rem)*1.2)] border p-3 text-left @xl:col-span-2",
           selected === null ? "border-primary bg-primary-soft" : "border-[color-mix(in_oklab,var(--foreground)_10%,transparent)] bg-background hover:border-primary/50",
         )}
       >

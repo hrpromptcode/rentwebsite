@@ -66,8 +66,33 @@ function headingClass(v: View, auto: string) {
   return cn("heading-display font-semibold", size, !thai && "tracking-[-0.035em]");
 }
 
+/**
+ * Forced lines (`\n`) stay one line each: the longest one caps the font size relative to the heading's column
+ * (container query units; Thai ≈ 0.6em per grapheme, Latin ≈ 0.56em per letter, 0.3em per space, +4% safety). The cap
+ * never goes below the next smaller step (phones simply wrap then) nor above the chosen one. null = nothing to fit.
+ */
+function headingFit(heading: string, sizeClass: string): React.CSSProperties | null {
+  const lines = heading.replace("{*}", "").split("\n").map((l) => l.trim()).filter(Boolean);
+  if (lines.length < 2) return null;
+  const step = Number(/text-step-(\d)/.exec(sizeClass)?.[1] ?? 0);
+  if (!step) return null;
+  const em = Math.max(...lines.map((l) => textLen(l) * (isThaiText(l) ? 0.6 : 0.56) + (l.match(/\s+/g) ?? []).length * 0.3));
+  return { fontSize: `clamp(var(--step-${Math.max(3, step - 1)}), calc(100cqi / ${(em * 1.04).toFixed(2)}), var(--step-${step}))` };
+}
+
+/** H1 with its forced lines fitted to the column (see headingFit); the wrapper is the size container (cqi). */
+function HeroHeading(props: { v: View; className: string; align?: "left" | "center" }) {
+  const fit = props.v.p.cycleWords.some(Boolean) ? null : headingFit(props.v.p.heading, props.className);
+  if (!fit) return <HeroHeadingInner {...props} />;
+  return (
+    <div className="[container-type:inline-size]">
+      <HeroHeadingInner {...props} style={fit} />
+    </div>
+  );
+}
+
 /** H1: Thai-safe line reveal on mount; `{*}` / extra line cycles words; an expressive short 2nd line may LetterDrop. */
-function HeroHeading({ v, className, align = "left" }: { v: View; className: string; align?: "left" | "center" }) {
+function HeroHeadingInner({ v, className, align = "left", style }: { v: View; className: string; align?: "left" | "center"; style?: React.CSSProperties }) {
   const { p, fx } = v;
   const words = p.cycleWords.filter(Boolean);
   if (words.length && fx !== "off") {
@@ -87,14 +112,14 @@ function HeroHeading({ v, className, align = "left" }: { v: View; className: str
   const second = lines[1]?.trim() ?? "";
   if (lines.length === 2 && second && graphemeCount(second.replace(/\s+/g, "")) <= 12 && motionOf(v.ctx) === "expressive" && fx === "auto" && p.textReveal) {
     return (
-      <h1 aria-label={p.heading.replace(/\s*\n\s*/g, " ")} className={cn("rw-h whitespace-pre-line", className)} data-script={isThaiText(p.heading) ? "thai" : "latin"}>
+      <h1 aria-label={p.heading.replace(/\s*\n\s*/g, " ")} className={cn("rw-h whitespace-pre-line", className)} style={style} data-script={isThaiText(p.heading) ? "thai" : "latin"}>
         <RevealHeading as="span" text={lines[0]!} trigger="mount" mode="words" fx={fx} accent={v.accent} />
         {"\n"}
         <LetterDrop as="span" text={second} trigger="mount" bounce={0.6} className="text-primary-ink" />
       </h1>
     );
   }
-  return <RevealHeading as="h1" text={p.heading} trigger="mount" mode="lines" fx={p.textReveal ? fx : "off"} accent={v.accent} delay={0.05} className={className} />;
+  return <RevealHeading as="h1" text={p.heading} trigger="mount" mode="lines" fx={p.textReveal ? fx : "off"} accent={v.accent} delay={0.05} className={className} style={style} />;
 }
 
 function Ctas({ v, tone = "default", className }: { v: View; tone?: "default" | "dark"; className?: string }) {

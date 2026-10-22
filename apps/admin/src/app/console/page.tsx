@@ -50,11 +50,11 @@ export default async function ConsoleOverviewPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label="ร้านค้าทั้งหมด" value={fmtNumber(total)} icon={Building2} tone="primary" hint={`ใช้งาน ${fmtNumber(statusCount.active ?? 0)} · ทดลอง ${fmtNumber(statusCount.trialing ?? 0)}`} />
-        <KpiCard label="ร้านใหม่ 7 วัน" value={fmtNumber(Number(new7?.c ?? 0))} icon={CalendarPlus} tone="success" hint={`30 วัน: ${fmtNumber(Number(new30?.c ?? 0))}`} />
-        <KpiCard label="ผู้ใช้ทั้งหมด" value={fmtNumber(Number(users?.c ?? 0))} icon={Users} hint="บัญชีผู้ดูแลร้านบนแพลตฟอร์ม" />
-        <KpiCard label="ต้องติดตาม" value={fmtNumber((statusCount.past_due ?? 0) + (statusCount.suspended ?? 0))} icon={Activity} tone="accent" hint={`ค้างชำระ ${fmtNumber(statusCount.past_due ?? 0)} · ระงับ ${fmtNumber(statusCount.suspended ?? 0)}`} />
+      <div className="adm-kpis grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <KpiCard label="ร้านค้าทั้งหมด" value={fmtNumber(total)} countTo={fmtNumber(total)} icon={Building2} tone="primary" hint={`ใช้งาน ${fmtNumber(statusCount.active ?? 0)} · ทดลอง ${fmtNumber(statusCount.trialing ?? 0)}`} />
+        <KpiCard label="ร้านใหม่ 7 วัน" value={fmtNumber(Number(new7?.c ?? 0))} countTo={fmtNumber(Number(new7?.c ?? 0))} icon={CalendarPlus} tone="success" hint={`30 วัน: ${fmtNumber(Number(new30?.c ?? 0))}`} />
+        <KpiCard label="ผู้ใช้ทั้งหมด" value={fmtNumber(Number(users?.c ?? 0))} countTo={fmtNumber(Number(users?.c ?? 0))} icon={Users} hint="บัญชีผู้ดูแลร้านบนแพลตฟอร์ม" />
+        <KpiCard label="ต้องติดตาม" value={fmtNumber((statusCount.past_due ?? 0) + (statusCount.suspended ?? 0))} countTo={fmtNumber((statusCount.past_due ?? 0) + (statusCount.suspended ?? 0))} icon={Activity} tone="accent" hint={`ค้างชำระ ${fmtNumber(statusCount.past_due ?? 0)} · ระงับ ${fmtNumber(statusCount.suspended ?? 0)}`} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -70,7 +70,7 @@ export default async function ConsoleOverviewPage() {
                 <Link key={s} href={`/console/tenants?status=${s}`} className="grid grid-cols-[7rem_1fr_3rem] items-center gap-3 rounded-lg px-2 py-2 text-sm hover:bg-muted/60">
                   <StatusBadge status={s} />
                   <div className="h-2 overflow-hidden rounded-full bg-muted" aria-hidden>
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                    <div className="adm-meter h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
                   </div>
                   <span className="text-right tabular-nums">{fmtNumber(n)}</span>
                 </Link>
@@ -95,7 +95,7 @@ export default async function ConsoleOverviewPage() {
                   <Link key={r.planKey} href={`/console/tenants?plan=${r.planKey}`} className="grid grid-cols-[7rem_1fr_3rem] items-center gap-3 rounded-lg px-2 py-2 text-sm hover:bg-muted/60">
                     <span className="truncate font-medium">{planName(r.planKey)}</span>
                     <div className="h-2 overflow-hidden rounded-full bg-muted" aria-hidden>
-                      <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
+                      <div className="adm-meter h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
                     </div>
                     <span className="text-right tabular-nums">{fmtNumber(n)}</span>
                   </Link>

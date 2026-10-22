@@ -118,7 +118,7 @@ export default async function ProductPage({ params }: { params: Params }) {
           <div className="md:sticky md:top-[calc(var(--header-h,0px)+1.5rem)] md:col-span-6 md:self-start lg:col-span-5">
             <Reveal delay={0.05}>
               {category && (
-                <Link href={`/collections/${encodeURIComponent(category.slug)}`} className="inline-flex min-h-11 items-center md:min-h-8">
+                <Link href={`/collections/${encodeURIComponent(category.slug)}`} className="inline-flex min-h-11 min-w-11 items-center pr-2 md:min-h-8 md:min-w-0">
                   <Eyebrow text={category.name} index="—" rule={false} />
                 </Link>
               )}

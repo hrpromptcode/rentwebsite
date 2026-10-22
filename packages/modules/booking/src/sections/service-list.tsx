@@ -40,9 +40,10 @@ export async function ServiceListSection({ ctx, props: p, id }: { ctx: Storefron
             <SectionHeading eyebrow={p.eyebrow} heading={p.heading} subheading={p.subheading} />
             {cats.length > 1 && <CategoryTabs tabs={cats} targetId={listId} className="-mt-4 mb-12 md:-mt-6 md:mb-16" />}
             <div id={listId}>
-            <StaggerList className="grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3" stagger={0.1}>
+            {/* phones: a swipeable snap rail (the next card peeks in) instead of a 4 000 px column; sm+: the staggered grid */}
+            <StaggerList className="bk-rail grid auto-cols-[78%] grid-flow-col gap-4 sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-2 sm:gap-x-8 sm:gap-y-14 lg:grid-cols-3" stagger={0.1}>
               {services.map((s, i) => (
-                <StaggerCell key={s.id} className={cn("h-full", i % 3 === 1 && "lg:translate-y-16")}>
+                <StaggerCell key={s.id} className={cn("h-full snap-start", i % 3 === 1 && "lg:translate-y-16")}>
                   <div data-cat={s.categorySlug ?? undefined} data-cat-hide="parent" className="h-full">
                     <ServiceMotifCard s={s} look={look} index={i} />
                   </div>

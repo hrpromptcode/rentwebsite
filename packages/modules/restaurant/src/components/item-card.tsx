@@ -10,6 +10,9 @@ import { SpicyDots, TagBadges } from "./badges";
 
 export type ItemCardVariant = "row" | "card";
 
+/** 80–112 px plates: ask Unsplash for 256 px instead of the 800 px menu photo (faster first paint of long menus) */
+const thumb = (url: string) => (/images\.unsplash\.com/.test(url) ? (/[?&]w=\d+/.test(url) ? url.replace(/([?&]w=)\d+/, "$1256") : `${url}&w=256`) : url);
+
 /**
  * Tap-anywhere menu item (the whole item is the 44px+ target; aria-label = name + price).
  * - `row`: editorial menu-book line for /menu — round plate, name · dotted leader · price, English name, description.
@@ -56,7 +59,7 @@ export function ItemCard({
         )}
       >
         <span className="rr-thumb relative block size-20 shrink-0 overflow-hidden rounded-full bg-muted shadow-[0_14px_28px_-16px_color-mix(in_oklab,var(--foreground)_55%,transparent)] ring-4 ring-card md:size-24">
-          {item.image ? <img src={item.image} alt="" loading="lazy" decoding="async" className={cn("size-full object-cover", soldOut && "grayscale")} /> : null}
+          {item.image ? <img src={thumb(item.image)} alt="" loading="lazy" decoding="async" className={cn("size-full object-cover", soldOut && "grayscale")} /> : null}
           {soldOut && <span className="absolute inset-0 flex items-center justify-center bg-black/55 px-1 text-center text-[11px] font-semibold text-white">{L.soldOut}</span>}
         </span>
         <span className="flex min-w-0 flex-1 flex-col pt-1">
@@ -98,7 +101,7 @@ export function ItemCard({
       )}
     >
       <span className="rr-thumb relative block size-24 shrink-0 overflow-hidden rounded-[var(--radius-lg)] bg-muted md:size-28">
-        {item.image ? <img src={item.image} alt={item.name} loading="lazy" decoding="async" className={cn("size-full object-cover", soldOut && "grayscale")} /> : null}
+        {item.image ? <img src={thumb(item.image)} alt={item.name} loading="lazy" decoding="async" className={cn("size-full object-cover", soldOut && "grayscale")} /> : null}
         {soldOut && <span className="absolute inset-0 flex items-center justify-center bg-black/55 px-2 text-center text-xs font-semibold text-white">{L.soldOut}</span>}
       </span>
       <span className="flex min-w-0 flex-1 flex-col">

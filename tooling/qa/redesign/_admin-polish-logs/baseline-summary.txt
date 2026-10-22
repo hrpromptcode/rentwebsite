@@ -1,0 +1,8 @@
+admin-journey exit=0 pass=31 fail=0 warn=0 155s
+commerce-admin-journey exit=1 pass=42 fail=1 warn=0 517s
+booking-admin-journey exit=1 pass=18 fail=1 warn=0 881s
+restaurant-admin-journey exit=127 pass=3 fail=1 warn=0 145s
+topup-admin-journey exit=1 pass=2 fail=16 warn=0 703s
+events-admin-journey exit=1 pass=0 fail=0 warn=0 11s
+rental-admin-journey exit=1 pass=0 fail=0 warn=0 4s
+DONE baseline

@@ -51,14 +51,15 @@ export function ProjectListSection({ ctx, props: p }: { ctx: StorefrontCtx; prop
                     <ImageReveal src={sized(it.image, 1200)} alt={it.title} aspect={i % 3 === 0 ? "4/5" : "16/11"} from={i % 2 ? "right" : "left"} parallax={0.08} className="rw-zoom rounded-[var(--radius-xl)]" sizes="(min-width: 768px) 50vw, 100vw" />
                   )
                 ) : null}
-                <div className="mt-6 flex items-start justify-between gap-6 border-t border-border pt-5">
+                {/* phones: the meta becomes a mono line above the title, so a long category never squeezes the title */}
+                <div className="mt-6 flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
                   <div className="min-w-0">
                     <h3 className="font-heading text-step-3 leading-tight font-semibold">{fx === "off" ? it.title : <RollText>{it.title}</RollText>}</h3>
                     {it.summary && <p className="mt-2 max-w-md leading-relaxed text-muted-foreground">{it.summary}</p>}
                   </div>
-                  <div className="shrink-0 text-right font-mono text-xs tracking-[0.08em] text-muted-foreground">
+                  <div className="order-first flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs tracking-[0.08em] text-muted-foreground sm:order-none sm:block sm:max-w-[42%] sm:shrink-0 sm:text-right">
                     {it.category && <p>{it.category}</p>}
-                    {it.year && <p className="mt-1">{it.year}</p>}
+                    {it.year && <p className="sm:mt-1">{it.year}</p>}
                   </div>
                 </div>
               </Link>

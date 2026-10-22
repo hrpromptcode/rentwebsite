@@ -41,3 +41,6 @@ Each agent: follow docs/design/hi-end-direction.md section d for its templates, 
   script ...\workflows\scripts\rentweb-hiend-phase2b.js (wave A commerce/booking/topup/common, wave B restaurant/rental/events).
 - 2026-10-22 ~06:30 — phase 2 wave A DONE (commerce 46/46, booking 26/26 + course 15/15, topup, common); wave B cut by session limit.
 - 2026-10-22 09:05 — WIP committed a2d3646; phase 2 resumed (task wz5b3lmh6, same run id wf_53f7b99d-037; wave A replays from cache).
+- 2026-10-22 ~10:30 — phase 2 DONE (7/7), committed + pushed b2e4296 (typecheck 16/16).
+- 2026-10-22 ~10:35 — phase 3 launched: Workflow task wnuxsip6x, run id wf_14cce594-b46,
+  script ...\workflows\scripts\rentweb-hiend-phase3-wf_14cce594-b46.js: shared1 → qa-a/qa-b/qa-c/admin-polish → shared2 → showcase → regression.

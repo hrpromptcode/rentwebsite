@@ -42,16 +42,20 @@ const IMG = {
   heroSecondary: u("1544367567-0f2fcb009e0b", 800),
   hatha: u("1544367567-0f2fcb009e0b", 900),
   vinyasa: u("1575052814086-f385e2e2ad1b", 900),
-  yin: u("1506126613408-eca07ce68773", 900),
-  reformer: u("1603988363607-e1e4a66962c6", 900),
-  reformerFlow: u("1593811167562-9cef47bfc4d7", 900),
+  // yin & sound bath = singing bowl; reformer classes = real reformers (were a backbend and a singing bowl); prenatal = a mother-to-be
+  yin: u("1593811167562-9cef47bfc4d7", 900),
+  reformer: u("1747238415033-b74eec07eb59", 900),
+  reformerFlow: u("1747239069226-55382c570116", 900),
   mat: u("1518611012118-696072aa579a", 900),
-  prenatal: u("1599901860904-17e6ed7083a0", 900),
+  prenatal: u("1710897869539-a48e3d69a8d7", 900),
   breath: u("1474418397713-7ede21d49118", 900),
-  studio: u("1552196563-55cd4e45efb3", 1400),
+  // the oak room in natural light (image-text "ห้องไม้โอ๊ก แสงธรรมชาติ…"); studio3/4 were a dumbbell class and a dead id
+  studio: u("1687783615494-b4a1f1af8b58", 1400),
   studio2: u("1588286840104-8957b019727f", 1000),
-  studio3: u("1518310383802-640c2de311b2", 1000),
-  studio4: u("1573384666979-2b1e9e8ef8df", 1000),
+  studio3: u("1683056255281-e52a141924f0", 1000),
+  studio4: u("1767611102585-baf80e9be291", 1000),
+  reformerRoom: u("1717500252297-b09508db7ceb", 1000),
+  meditation: u("1506126613408-eca07ce68773", 1000),
 };
 
 export const course: TemplateDefinition = {
@@ -72,7 +76,7 @@ export const course: TemplateDefinition = {
     ["สตูดิโออยู่ซอยอารีย์ 1 เดิน 4 นาทีจาก BTS อารีย์ ทางออก 3 มีที่จอดรถ 6 คันหน้าสตูดิโอ (จักรยานจอดฟรี)", "[ที่ตั้งสตูดิโอ · การเดินทาง · ที่จอดรถ]"],
     ["ชั้น 2 ซอยอารีย์ 1 ถนนพหลโยธิน กรุงเทพฯ 10400", "[ที่อยู่สตูดิโอ]"],
     ["โยคะ & พิลาทิส สตูดิโอ · อารีย์ กรุงเทพฯ", "โยคะ & พิลาทิส สตูดิโอ"],
-    ["ห้องไม้โอ๊ก แสงธรรมชาติ และความเงียบกลางอารีย์", "ห้องไม้โอ๊ก แสงธรรมชาติ และความเงียบกลางเมือง"],
+    ["ห้องไม้โอ๊ก แสงธรรมชาติ\nและความเงียบกลางอารีย์", "ห้องไม้โอ๊ก แสงธรรมชาติ\nและความเงียบกลางเมือง"],
     ["Sala Flow เริ่มจากห้องฝึกเล็ก ๆ ของครูแนนในปี 2019 วันนี้เรามีสตูดิโอโยคะ 2 ห้องและห้องรีฟอร์เมอร์ 6 เตียง", "เรามีสตูดิโอโยคะและห้องรีฟอร์เมอร์"],
     ["เปิดสอนที่อารีย์", "เปิดสอน"],
     ["ทัก LINE @salaflow เพื่อขอใบเสนอราคา", "ติดต่อเราเพื่อขอใบเสนอราคา"],
@@ -166,7 +170,7 @@ export const course: TemplateDefinition = {
         section(passPricing, { eyebrow: "คลาสพาส", heading: "เรียนบ่อยแค่ไหน ก็มีพาสที่พอดี", subheading: "ซื้อครั้งเดียว ใช้ได้ทุกคลาส ยิ่งเรียนบ่อยยิ่งคุ้ม เช็กครั้งคงเหลือได้ในบัญชีนักเรียน", limit: 3, showDropIn: true }),
         section(imageText, {
           eyebrow: "สตูดิโอของเรา",
-          heading: "ห้องไม้โอ๊ก แสงธรรมชาติ และความเงียบกลางอารีย์",
+          heading: "ห้องไม้โอ๊ก แสงธรรมชาติ\nและความเงียบกลางอารีย์",
           body: "Sala Flow เริ่มจากห้องฝึกเล็ก ๆ ของครูแนนในปี 2019 วันนี้เรามีสตูดิโอโยคะ 2 ห้องและห้องรีฟอร์เมอร์ 6 เตียง พร้อมอุปกรณ์ครบ ไม่ต้องหอบเสื่อมาเอง มีห้องอาบน้ำ ล็อกเกอร์ และมุมชาสมุนไพรหลังเรียน",
           image: { url: IMG.studio, alt: "สตูดิโอโยคะไม้โอ๊กแสงธรรมชาติ" },
           imagePosition: "left",
@@ -226,7 +230,9 @@ export const course: TemplateDefinition = {
       slug: "gallery",
       title: "บรรยากาศ",
       showInNav: false,
-      sections: [section(gallery, { heading: "บรรยากาศสตูดิโอ", subheading: "ห้องโยคะ 2 ห้อง ห้องรีฟอร์เมอร์ 6 เตียง และมุมชาหลังเรียน", layout: "masonry", images: [{ url: IMG.studio, alt: "ห้องโยคะ" }, { url: IMG.studio2, alt: "ท่าโยคะ" }, { url: IMG.reformer, alt: "ห้องรีฟอร์เมอร์" }, { url: IMG.studio3, alt: "คลาสเย็น" }, { url: IMG.vinyasa, alt: "คลาสกลุ่ม" }, { url: IMG.studio4, alt: "สมาธิ" }] })],
+      sections: [section(gallery, { heading: "บรรยากาศสตูดิโอ", subheading: "ห้องโยคะ 2 ห้อง ห้องรีฟอร์เมอร์ 6 เตียง และมุมชาหลังเรียน", layout: "masonry", images: [{ url: IMG.studio, alt: "ห้องโยคะไม้โอ๊ก" }, { url: IMG.reformerRoom, alt: "ห้องรีฟอร์เมอร์" }, { url: IMG.studio3, alt: "คลาสยืดเหยียดตอนเย็น" }, { url: IMG.reformer, alt: "คลาสรีฟอร์เมอร์กลุ่มเล็ก" }, { url: IMG.vinyasa, alt: "วินยาสะโฟลว์" }, { url: IMG.studio4, alt: "ท่าเด็กพักผ่อนในคลาส Yin" }, { url: IMG.meditation, alt: "สมาธิยามเช้า" }, { url: IMG.studio2, alt: "คลาสกลุ่มรอบค่ำ" }] }),
+        section(cta, { variant: "card", heading: "มาลองคลาสแรกกับเรา", body: "เลือกรอบจากตารางเรียน เสื่อและอุปกรณ์มีให้ครบ แค่มาพร้อมชุดที่ยืดหยุ่น", primaryCta: { label: "ดูตารางเรียน", href: "/schedule" }, secondaryCta: { label: "คลาสสำหรับผู้เริ่มต้น", href: "/classes?level=beginner" } }),
+      ],
     },
     aboutPage({
       neutral: { heading: "เกี่ยวกับ {{name}}", body: "{{name}} ตั้งใจให้ทุกคลาสปลอดภัยและเห็นผลจริง ครูดูแลผู้เรียนทีละคนในกลุ่มเล็ก เลือกรอบจากตารางเรียน สมัครและชำระออนไลน์ได้ตลอด 24 ชั่วโมง" },

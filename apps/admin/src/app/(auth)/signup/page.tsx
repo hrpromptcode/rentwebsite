@@ -21,8 +21,11 @@ async function inviteFor(next: string | null): Promise<SignupInvite | null> {
   return inv ? { email: inv.email, tenantName: inv.tenantName } : null;
 }
 
-export default async function SignupPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
-  const next = sanitizeNext((await searchParams).next);
+export default async function SignupPage({ searchParams }: { searchParams: Promise<{ next?: string; template?: string }> }) {
+  const sp = await searchParams;
+  // /signup?template=<key> is shorthand for /signup?next=/onboarding?template=<key> (onboarding preselects it)
+  const template = typeof sp.template === "string" && /^[a-z0-9-]{2,40}$/.test(sp.template) ? sp.template : null;
+  const next = sanitizeNext(sp.next) ?? (template ? `/onboarding?template=${template}` : null);
   const session = await getSession();
   if (session) redirect(next ?? "/onboarding");
   const invite = await inviteFor(next);

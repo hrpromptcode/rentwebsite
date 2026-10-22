@@ -73,7 +73,7 @@ export function PassTicket({
       )}
       <div className="relative flex flex-1 flex-col px-6 pt-5 pb-6">
         <h3 className="font-heading text-step-2 font-semibold leading-snug">
-          <Link href={href} className="hover:text-primary-ink">
+          <Link href={href} className="inline-flex min-h-11 items-center hover:text-primary-ink">
             {p.name}
           </Link>
         </h3>

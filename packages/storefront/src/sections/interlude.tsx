@@ -18,13 +18,15 @@ export function InterludeSection({ ctx, props: p }: { ctx: StorefrontCtx; props:
   const role = sceneRole(scene);
   const left = p.align === "left";
   const words = p.words.filter(Boolean);
+  // photo-first: the scene / photo stays vivid; the copy sits at the bottom on a dark gradient in light text (AA on any photo)
+  const photo = p.scrim === "photo";
   const box = scene === "breathing-orb" ? "absolute left-1/2 top-1/2 aspect-square w-[min(80vw,62svh)] -translate-x-1/2 -translate-y-1/2" : "absolute inset-0";
   return (
     <Section
       type="interlude"
       fx={fx}
       heavy={scene !== "none"}
-      className={cn("isolate flex flex-col justify-center overflow-clip !py-0", p.height === "tall" ? "min-h-[130svh]" : "min-h-[100svh]")}
+      className={cn("isolate flex flex-col overflow-clip !py-0", photo ? "justify-end text-white" : "justify-center", p.height === "tall" ? "min-h-[130svh]" : "min-h-[100svh]")}
     >
       <div className="absolute inset-0 -z-10">
         {scene === "none" ? (
@@ -37,24 +39,28 @@ export function InterludeSection({ ctx, props: p }: { ctx: StorefrontCtx; props:
             </div>
           </>
         )}
-        <div aria-hidden className={cn("absolute inset-0", left ? "rw-scrim-bottom" : "rw-scrim-radial")} />
+        {photo ? (
+          <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_62%_46%_at_50%_72%,rgba(0,0,0,.42),transparent_72%),linear-gradient(to_top,rgba(0,0,0,.86)_0%,rgba(0,0,0,.62)_38%,rgba(0,0,0,.22)_68%,transparent_88%)]" />
+        ) : (
+          <div aria-hidden className={cn("absolute inset-0", left ? "rw-scrim-bottom" : "rw-scrim-radial")} />
+        )}
       </div>
-      <div className={cn("container-x relative py-24", left ? "text-left" : "text-center")}>
+      <div className={cn("container-x relative", photo ? "pt-24 pb-16 md:pb-24" : "py-24", left ? "text-left" : "text-center", photo && "pointer-events-none [&_a]:pointer-events-auto")}>
         <div className={cn("max-w-4xl", !left && "mx-auto")}>
-          {p.heading && <RevealHeading as="h2" text={p.heading} fx={fx} accent={hasAccentFont(ctx)} className="font-heading text-step-5 font-semibold text-balance" />}
+          {p.heading && <RevealHeading as="h2" text={p.heading} fx={fx} accent={hasAccentFont(ctx)} className={cn("font-heading text-step-5 font-semibold text-balance", photo && "[text-shadow:0_2px_30px_rgba(0,0,0,.35)]")} />}
           {words.length > 0 && fx !== "off" && scene !== "particle-morph" && (
-            <p className="mt-4 font-heading text-step-4 font-semibold text-primary-ink">
+            <p className={cn("mt-4 font-heading text-step-4 font-semibold", photo ? "text-white" : "text-primary-ink")}>
               <WordCycler words={words} mode="blur" />
             </p>
           )}
           {p.body && (
             <Rise fx={fx} delay={0.15}>
-              <Prose text={p.body} className={cn("mt-6 max-w-2xl text-step-1 text-muted-foreground", !left && "mx-auto")} />
+              <Prose text={p.body} className={cn("mt-6 max-w-2xl text-step-1", photo ? "text-white/85" : "text-muted-foreground", !left && "mx-auto")} />
             </Rise>
           )}
           {p.cta?.label && (
             <Rise fx={fx} delay={0.25} className={cn("mt-10 flex", !left && "justify-center")}>
-              <CtaButton href={p.cta.href} label={p.cta.label} fx={fx} />
+              <CtaButton href={p.cta.href} label={p.cta.label} fx={fx} className={cn(photo && "shadow-[0_18px_40px_-16px_rgba(0,0,0,.6)]")} />
             </Rise>
           )}
         </div>

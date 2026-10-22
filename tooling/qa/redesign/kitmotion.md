@@ -40,14 +40,18 @@ Imports: `@rentweb/ui/motion` (barrel), `@rentweb/ui/fx` (barrel), subpaths `@re
 - fx `Grain` S `{ opacity?=0.05 (≤0.12), animated?=true, className? }` (fixed, z 45, replaces the static data-grain texture).
 
 ### text (all Thai-safe; segmentation on the server)
-- `SplitReveal` S `{ text, as?="h2" (h1–h6|p|span|div|blockquote), mode?: "words"|"lines"|"chars"="words", from?: "mask"|"below"|"blur"|"rotate"="mask", trigger?: "inView"|"mount"|"scrub"="inView", delay?(s), stagger?(s; cascade capped 0.9s), duration?(s), className?, id?, style? }` — renders `data-script`; mount waits for the preloader. `TextReveal` = alias (old props kept).
+- `SplitReveal` S `{ text, as?="h2" (h1–h6|p|span|div|blockquote), mode?: "words"|"lines"|"chars"="words", from?: "mask"|"below"|"blur"|"rotate"="mask", trigger?: "inView"|"mount"|"scrub"="inView", delay?(s), stagger?(s; cascade capped 0.9s), duration?(s), className?, id?, style?, segment?: "words"|"spaces"="words" }` — renders `data-script`; mount waits for the preloader. `segment="spaces"` splits only on whitespace (proper names). `TextReveal` = alias (old props kept).
 - `ScrubText` S `{ text, as?="p", className?, start?=0.85, end?=0.3 }` — words 20%→100% opacity with scroll.
 - `RollText` S `{ children: string, mode?: "auto"|"chars"|"word"="auto", underline?, className? }` — rolls on hover/focus of the nearest a / button / [role=button] / label / summary / `.group` / `[data-roll-group]`.
-- `WordCycler` C `{ words, interval?=2200, mode?: "roll"|"blur"|"flip"="roll", srJoin?=", ", className? }`.
+- `WordCycler` C `{ words, interval?=2200, mode?: "roll"|"blur"|"flip"="roll", srJoin?=", ", className?, onChange?(index) }` — onChange: 0 on mount, then every change (sync a 3D shape etc.).
+- `ThaiWrap` S `{ text }` — plain (non-animated) Thai display text: kit word segments as nowrap spans + `<wbr>` between Thai words, so lines only break between real words (server only; used by storefront RevealHeading fx=off + DisplayText).
 - `LetterDrop` S `{ text, as?="h2", bounce?=0.5, trigger?: "inView"|"mount", className? }` (Thai ≤ 12 graphemes per grapheme, else per word).
 - `Odometer` S `{ value: number|string, locale?="th-TH", decimals?, prefix?, suffix?, duration?=1.6, trigger?, className? }` — MARKETING ONLY.
 - `GiantWordmark` S `{ text, effect?: "rise"|"parallax"|"spotlight"|"marquee"|"none"="rise", outline?, image?, as?="p", decorative?=false, cap?, className? }` — container-query fit-to-width, one client refinement; Thai cap 14vw, Latin `--step-8`.
-- split helpers (`@rentweb/ui/motion/split`, pure): `isThai`, `scriptOf` → "thai"|"latin"|"mixed", `graphemes`, `graphemeCount`, `splitWords`, `splitGraphemes(text, maxThai=12)`, `tokenize(text,{chars?,maxThai?})`, `segmentText`, `glueMaiYamok`, `estimateEm`.
+- split helpers (`@rentweb/ui/motion/split`, pure): `isThai`, `scriptOf` → "thai"|"latin"|"mixed", `graphemes`, `graphemeCount`, `splitWords`, `splitGraphemes(text, maxThai=12)`, `tokenize(text,{chars?,maxThai?,segment?})`, `segmentText`, `glueMaiYamok`, `estimateEm`, `THAI_GLUE_WORDS`.
+  Thai word segmentation repairs ICU loanword misses (phase 3): THAI_GLUE_WORDS are never split ("บีชฟรอนต์", "โฟล์ก", "เวิร์กช็อป",
+  "ไอเดีย", "สตูดิโอ" …), a fragment that starts with a combining mark or whose first cluster carries ์ joins the previous word, and
+  U+2060 WORD JOINER is honoured. Add new loanwords to THAI_GLUE_WORDS (avoid short entries that occur across real word boundaries).
 
 ### media / layout
 - `ImageReveal` C `{ src?, alt?, children? (own <img>/<Image>), from?: "bottom"|"top"|"left"|"right"|"center"|"circle", scaleFrom?=1.18, parallax?=0.08 (≤0.12), priority?, sizes?, srcSet?, width?, height?, aspect? ("4/5"), delay?(s), cursor?, cursorLabel?, className?, imgClassName? }` (priority = visible from first paint, only the scale settles).

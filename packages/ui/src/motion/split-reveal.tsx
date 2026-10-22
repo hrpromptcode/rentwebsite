@@ -1,5 +1,5 @@
 import * as React from "react";
-import { scriptOf, tokenize } from "./split";
+import { scriptOf, tokenize, type WordSegment } from "./split";
 import { SplitRevealClient, type SplitFrom, type SplitMode, type SplitTag, type SplitTrigger } from "./split-reveal-client";
 
 export type { SplitFrom, SplitMode, SplitTag, SplitTrigger };
@@ -9,6 +9,8 @@ export interface SplitRevealProps {
   as?: SplitTag;
   /** words (default) · lines (words grouped by rendered line after fonts load) · chars (graphemes; Thai ≤ 12 only) */
   mode?: SplitMode;
+  /** word units: "words" (default, Thai dictionary words with loanwords repaired) · "spaces" (only split on whitespace) */
+  segment?: WordSegment;
   /** mask (rise out of a Thai-safe mask) · below (rise + fade) · blur · rotate */
   from?: SplitFrom;
   /** inView (default, top hits 85% of the viewport, plays once) · mount (hero; waits for the preloader) · scrub */
@@ -29,7 +31,7 @@ export interface SplitRevealProps {
  * once, and the client only animates — Node and Chrome segment Thai differently, so the client never re-segments.
  * Renders `data-script="thai|latin|mixed"`; the accessible name of a heading is its full text (aria-label).
  */
-export function SplitReveal({ text, mode = "words", ...rest }: SplitRevealProps) {
-  const tokens = tokenize(text, { chars: mode === "chars" });
+export function SplitReveal({ text, mode = "words", segment, ...rest }: SplitRevealProps) {
+  const tokens = tokenize(text, { chars: mode === "chars", segment });
   return <SplitRevealClient text={text} tokens={tokens} script={scriptOf(text)} mode={mode} {...rest} />;
 }

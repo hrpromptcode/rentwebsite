@@ -26,6 +26,8 @@ export interface CatalogListingProps {
   result: ProductListResult;
   cardStyle?: CardStyle;
   columns?: 2 | 3 | 4;
+  /** every active product (the "all" chip count; the category sums miss uncategorised products) */
+  allCount?: number;
 }
 
 /**
@@ -75,7 +77,7 @@ const pad2 = (n: number) => String(n).padStart(2, "0");
  * Listing page ("marketing-light", §5.0): PageIntro with a giant split-reveal title + mono count, category chips with a
  * sliding pill, the filter bar, then the FLIP grid in the tenant's card language. Empty states say why.
  */
-export function CatalogListing({ title, eyebrow, description, crumbs, categories, activeSlug, basePath, query, result, cardStyle = "standard" }: CatalogListingProps) {
+export function CatalogListing({ title, eyebrow, description, crumbs, categories, activeSlug, basePath, query, result, cardStyle = "standard", allCount }: CatalogListingProps) {
   const filtered = !!(query.q || query.min || query.max);
   // SS-09: say why the grid is empty — a page past the last one, a filter, an empty category, or a really empty shop
   const pageOut = result.items.length === 0 && result.total > 0;
@@ -97,7 +99,7 @@ export function CatalogListing({ title, eyebrow, description, crumbs, categories
       <ListingIntro eyebrow={eyebrow} title={title} lead={description} count={`(${pad2(result.total)})`} className={crumbs ? "!pt-4 md:!pt-8" : undefined} />
 
       <Rise delay={0.1} className="mb-6 flex flex-col gap-4 md:mb-8 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
-        {categories.length > 0 && <CategoryPills categories={categories} activeSlug={activeSlug} allHref="/products" allLabel={L.allCategories} className="min-w-0 lg:flex-1" />}
+        {categories.length > 0 && <CategoryPills categories={categories} activeSlug={activeSlug} allHref="/products" allLabel={L.allCategories} allCount={allCount} className="min-w-0 lg:flex-1" />}
         <CatalogFilters query={query} action={basePath} clearHref={basePath} hidden={hidden} className="lg:shrink-0" />
       </Rise>
 

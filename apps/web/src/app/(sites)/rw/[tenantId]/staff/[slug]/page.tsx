@@ -13,6 +13,9 @@ import { L } from "@rentweb/module-booking/labels";
 import { getRuntime, tenantTx } from "@/lib/tenant";
 import { PageBody } from "@/components/page-body";
 
+/** 56 px thumbnails: ask Unsplash for 160 px, not the 800 px card image */
+const thumb = (url: string) => (/images\.unsplash\.com/.test(url) ? url.replace(/([?&]w=)\d+/, "$1160") : url);
+
 type Params = Promise<{ tenantId: string; slug: string }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
@@ -80,7 +83,7 @@ export default async function StaffProfilePage({ params }: { params: Params }) {
                         <Link href={`/book?service=${encodeURIComponent(s.slug)}&staff=${encodeURIComponent(person.slug)}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 py-5">
                           {s.image ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={s.image} alt="" loading="lazy" className={cn("size-14 object-cover", look === "spa" ? "bk-pebble" : look === "clinic" ? "bk-arch" : "rounded-[var(--radius-lg)]")} />
+                            <img src={thumb(s.image)} alt="" loading="lazy" decoding="async" className={cn("size-14 object-cover", look === "spa" ? "bk-pebble" : look === "clinic" ? "bk-arch" : "rounded-[var(--radius-lg)]")} />
                           ) : (
                             <span className="w-7 font-mono text-xs text-muted-foreground">{pad2(i + 1)}</span>
                           )}

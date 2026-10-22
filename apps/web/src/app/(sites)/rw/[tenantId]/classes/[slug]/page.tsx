@@ -143,7 +143,7 @@ export default async function ClassPage({ params }: { params: Params }) {
           <div className="lg:col-span-5">
             <div className="lg:sticky lg:top-[calc(var(--header-h,72px)+2rem)]">
               {cls.categoryName && <Eyebrow text={cls.categoryName} className="mb-5" />}
-              <RevealHeading as="h1" text={cls.name} trigger="mount" mode="words" className={cn("font-heading font-semibold text-balance", titleStep(cls.name) === "text-step-6" ? "text-step-5" : "text-step-4")} />
+              <RevealHeading as="h1" text={cls.name} trigger="mount" mode="words" className={cn("font-heading font-semibold text-pretty", titleStep(cls.name) === "text-step-6" ? "text-step-5" : "text-step-4")} />
               {instructors.length > 0 && (
                 <ul className="mt-6 flex flex-wrap gap-2" aria-label={L.instructors}>
                   {instructors.map((i) => (

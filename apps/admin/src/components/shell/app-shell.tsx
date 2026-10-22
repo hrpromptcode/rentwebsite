@@ -3,16 +3,18 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Check, ChevronsUpDown, ExternalLink, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Plus, ShieldCheck, Store } from "lucide-react";
+import { ArrowUpRight, Check, ChevronsUpDown, ExternalLink, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Plus, Search, ShieldCheck, Store } from "lucide-react";
 import { Avatar, AvatarFallback } from "@rentweb/ui/components/avatar";
 import { Button } from "@rentweb/ui/components/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@rentweb/ui/components/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle } from "@rentweb/ui/components/sheet";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@rentweb/ui/components/tooltip";
+import { RouteProgress } from "@rentweb/ui/motion/route-transition";
 import { cn } from "@rentweb/ui/lib/utils";
-import { NavIcon } from "@/lib/icons";
 import type { NavGroup } from "@/lib/nav";
 import { useReturnFocus } from "@/lib/use-return-focus";
+import { CommandPalette, openCommandPalette } from "./command-palette";
+import { NavList } from "./nav-list";
+import { TableEnhancer } from "./table-enhancer";
 
 export interface ShellUser {
   name: string;
@@ -42,6 +44,12 @@ export interface AppShellProps {
 
 const STORAGE_KEY = "rw-admin-sidebar-collapsed";
 
+/**
+ * Admin shell — "night rail, paper desk" (docs/design/hi-end-direction.md §4.1 platform identity): a dark rail with the
+ * RentWeb● wordmark, a sliding active indicator and the live-site status; a light paper workspace with a glass topbar
+ * (shop switcher, ⌘K command palette, storefront link, user menu) and a 2px route-progress line. No 3D, CSS motion
+ * only, everything static under prefers-reduced-motion.
+ */
 export function AppShell({ nav, user, tenants, current, storefrontUrl, mode, banner, children }: AppShellProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = React.useState(false);
@@ -74,90 +82,44 @@ export function AppShell({ nav, user, tenants, current, storefrontUrl, mode, ban
   }
 
   const isActive = (href: string) => pathname === href || (href.split("/").length > 3 && pathname.startsWith(`${href}/`)) || (mode === "console" && href !== "/console" && pathname.startsWith(`${href}/`));
-
-  const navList = (compact: boolean) => (
-    <nav aria-label="เมนูหลัก" className="flex flex-1 flex-col gap-4 overflow-y-auto scroll-thin px-3 py-4">
-      {nav.map((group) => (
-        <div key={group.key}>
-          {group.label && !compact && <p className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{group.label}</p>}
-          {group.label && compact && <div className="mx-3 mb-2 h-px bg-border" />}
-          <ul className="space-y-0.5">
-            {group.items.map((item) => {
-              const active = isActive(item.href);
-              const link = (
-                <Link
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "group flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors",
-                    compact && "justify-center px-0",
-                    active ? "bg-primary-soft text-primary" : "text-foreground/80 hover:bg-muted hover:text-foreground",
-                  )}
-                >
-                  <NavIcon name={item.icon} className={cn("size-[18px] shrink-0", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-                  {!compact && <span className="truncate">{item.label}</span>}
-                  {!compact && item.badge ? <span className="ml-auto rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground">{item.badge}</span> : null}
-                </Link>
-              );
-              return (
-                <li key={item.key}>
-                  {compact ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>{link}</TooltipTrigger>
-                      <TooltipContent side="right">{item.label}</TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    link
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ))}
-    </nav>
-  );
-
-  const brand = (compact: boolean) => (
-    <div className={cn("flex h-16 items-center gap-2 border-b px-4", compact && "justify-center px-0")}>
-      <Link href={mode === "console" ? "/console" : "/"} className="flex min-w-0 items-center gap-2 font-heading font-semibold tracking-tight">
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
-          {mode === "console" ? <ShieldCheck className="size-4" aria-hidden /> : <Store className="size-4" aria-hidden />}
-        </span>
-        {!compact && <span className="truncate">{mode === "console" ? "RentWeb Console" : "RentWeb"}</span>}
-      </Link>
-    </div>
-  );
+  const host = storefrontUrl ? storefrontUrl.replace(/^https?:\/\//, "") : null;
 
   return (
-    <div className="flex min-h-dvh">
-      {/* Desktop sidebar */}
-      <aside
-        className={cn("sticky top-0 hidden h-dvh shrink-0 flex-col border-r bg-background transition-[width] duration-300 ease-theme lg:flex", collapsed ? "w-[var(--sidebar-width-collapsed)]" : "w-[var(--sidebar-width)]")}
-      >
-        {brand(collapsed)}
-        {navList(collapsed)}
-        <div className={cn("border-t p-3", collapsed && "flex justify-center")}>
-          <Button variant="ghost" size={collapsed ? "icon" : "sm"} onClick={toggleCollapsed} aria-label={collapsed ? "ขยายแถบเมนู" : "ย่อแถบเมนู"} className={cn(!collapsed && "w-full justify-start")}>
+    <div className="adm-app flex min-h-dvh">
+      <RouteProgress />
+      <TableEnhancer />
+
+      {/* Desktop rail */}
+      <aside className={cn("adm-rail sticky top-0 hidden h-dvh shrink-0 flex-col lg:flex", collapsed ? "w-[var(--sidebar-width-collapsed)]" : "w-[var(--sidebar-width)]")} data-collapsed={collapsed ? "" : undefined}>
+        <RailBrand compact={collapsed} mode={mode} />
+        <NavList nav={nav} compact={collapsed} isActive={isActive} />
+        <div className={cn("space-y-2 border-t p-3", collapsed && "flex flex-col items-center")}>
+          {mode === "tenant" && host && storefrontUrl && !collapsed && <SiteStatus url={storefrontUrl} host={host} status={current?.status ?? "active"} />}
+          <Button variant="ghost" size={collapsed ? "icon" : "sm"} onClick={toggleCollapsed} aria-label={collapsed ? "ขยายแถบเมนู" : "ย่อแถบเมนู"} className={cn("text-muted-foreground hover:text-foreground", !collapsed && "w-full justify-start")}>
             {collapsed ? <PanelLeftOpen aria-hidden /> : <PanelLeftClose aria-hidden />}
             {!collapsed && "ย่อแถบเมนู"}
           </Button>
         </div>
       </aside>
 
-      {/* Mobile sheet */}
+      {/* Mobile drawer (same night rail) */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-[min(20rem,85vw)] gap-0 p-0 sm:max-w-sm" {...drawerFocus}>
+        <SheetContent side="left" className="adm-rail w-[min(20rem,85vw)] gap-0 border-r-0 p-0 sm:max-w-sm" {...drawerFocus}>
           <SheetTitle className="sr-only">เมนู</SheetTitle>
-          {brand(false)}
-          {navList(false)}
+          <RailBrand compact={false} mode={mode} />
+          <NavList nav={nav} compact={false} isActive={isActive} />
+          {mode === "tenant" && host && storefrontUrl && (
+            <div className="border-t p-3">
+              <SiteStatus url={storefrontUrl} host={host} status={current?.status ?? "active"} />
+            </div>
+          )}
         </SheetContent>
       </Sheet>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="adm-desk flex min-w-0 flex-1 flex-col">
         {banner}
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/90 px-3 backdrop-blur sm:px-6">
-          <Button ref={menuButtonRef} variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="เปิดเมนู" aria-expanded={mobileOpen}>
+        <header className="adm-topbar sticky top-0 z-30 flex h-16 items-center gap-1.5 px-3 sm:gap-2 sm:px-6 lg:px-8">
+          <Button ref={menuButtonRef} variant="ghost" size="icon" className="shrink-0 lg:hidden" onClick={() => setMobileOpen(true)} aria-label="เปิดเมนู" aria-expanded={mobileOpen}>
             <Menu aria-hidden />
           </Button>
 
@@ -169,29 +131,82 @@ export function AppShell({ nav, user, tenants, current, storefrontUrl, mode, ban
             </div>
           )}
 
-          <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+          <div className="hidden min-w-0 flex-1 justify-center px-4 md:flex">
+            <button type="button" onClick={openCommandPalette} className="adm-search" aria-label="ค้นหาเมนูและคำสั่ง" aria-keyshortcuts="Control+K Meta+K">
+              <Search className="size-4 shrink-0" aria-hidden />
+              <span className="min-w-0 flex-1 truncate text-left">ไปที่เมนู สลับร้าน หรือสั่งงาน…</span>
+              <kbd className="adm-kbd">Ctrl K</kbd>
+            </button>
+          </div>
+
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2 md:ml-0">
+            <Button variant="ghost" size="icon" className="md:hidden" onClick={openCommandPalette} aria-label="ค้นหาเมนูและคำสั่ง">
+              <Search aria-hidden />
+            </Button>
             {mode === "tenant" && storefrontUrl && (
-              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
+              <Button asChild variant="outline" size="sm" className="adm-visit hidden sm:inline-flex">
                 <a href={storefrontUrl} target="_blank" rel="noreferrer">
                   <ExternalLink aria-hidden /> ดูหน้าร้าน
-                </a>
-              </Button>
-            )}
-            {mode === "tenant" && storefrontUrl && (
-              <Button asChild variant="outline" size="icon" className="sm:hidden" aria-label="ดูหน้าร้าน">
-                <a href={storefrontUrl} target="_blank" rel="noreferrer">
-                  <ExternalLink aria-hidden />
                 </a>
               </Button>
             )}
             <UserMenu user={user} />
           </div>
         </header>
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <main className="adm-main flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-9">
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
       </div>
+
+      <CommandPalette nav={nav} tenants={tenants} current={current} storefrontUrl={storefrontUrl} isSuperadmin={user.role === "superadmin"} mode={mode} />
     </div>
+  );
+}
+
+function RailBrand({ compact, mode }: { compact: boolean; mode: "tenant" | "console" }) {
+  return (
+    <div className={cn("flex h-16 shrink-0 items-center border-b px-5", compact && "justify-center px-0")}>
+      <Link href={mode === "console" ? "/console" : "/"} className="adm-brand group" aria-label={mode === "console" ? "RentWeb Console" : "RentWeb"}>
+        {compact ? (
+          <span className="adm-brand-tile" aria-hidden>
+            <span className="adm-dot" />
+          </span>
+        ) : (
+          <>
+            <span className="adm-wordmark" aria-hidden>
+              RentWeb<span className="adm-dot" />
+            </span>
+            {mode === "console" && (
+              <span className="adm-mono ml-2 rounded-md border px-1.5 py-0.5 text-[10px] text-muted-foreground" aria-hidden>
+                CONSOLE
+              </span>
+            )}
+          </>
+        )}
+      </Link>
+    </div>
+  );
+}
+
+const SITE_STATUS: Record<string, { label: string; live: boolean }> = {
+  active: { label: "ออนไลน์", live: true },
+  trialing: { label: "ออนไลน์ · ทดลองใช้", live: true },
+  past_due: { label: "ค้างชำระ", live: true },
+  suspended: { label: "ปิดชั่วคราว", live: false },
+  cancelled: { label: "ปิดแล้ว", live: false },
+};
+
+function SiteStatus({ url, host, status }: { url: string; host: string; status: string }) {
+  const s = SITE_STATUS[status] ?? { label: status, live: false };
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="adm-site group" data-live={s.live ? "" : undefined}>
+      <span className="flex items-center gap-2 text-xs font-medium">
+        <span className="adm-live" aria-hidden />
+        {s.label}
+        <ArrowUpRight className="ml-auto size-3.5 text-muted-foreground transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" aria-hidden />
+      </span>
+      <span className="adm-mono mt-1 block truncate text-[11px] text-muted-foreground">{host}</span>
+    </a>
   );
 }
 
@@ -204,9 +219,9 @@ export function TenantSwitcher({ tenants, current, isSuperadmin }: { tenants: Sh
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-11 max-w-[60vw] justify-start gap-2 px-2 sm:max-w-xs">
-          <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-muted text-xs font-semibold">{current ? initials(current.name) : "?"}</span>
-          <span className="truncate font-heading text-sm font-semibold sm:text-base">{current?.name ?? "เลือกร้าน"}</span>
+        <Button variant="ghost" className="adm-switcher h-11 min-w-0 max-w-[calc(100vw-11.5rem)] justify-start gap-2.5 px-2 sm:max-w-xs">
+          <span className="adm-tenant-tile">{current ? initials(current.name) : "?"}</span>
+          <span className="min-w-0 truncate font-heading text-sm font-semibold sm:text-base">{current?.name ?? "เลือกร้าน"}</span>
           <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         </Button>
       </DropdownMenuTrigger>
@@ -215,11 +230,11 @@ export function TenantSwitcher({ tenants, current, isSuperadmin }: { tenants: Sh
         {tenants.length === 0 && <p className="px-2.5 py-2 text-sm text-muted-foreground">ยังไม่มีร้านที่คุณเป็นสมาชิก</p>}
         {tenants.map((t) => (
           <DropdownMenuItem key={t.id} asChild>
-            <Link href={`/t/${t.slug}/dashboard`} className="flex items-center gap-2">
-              <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-muted text-xs font-semibold">{initials(t.name)}</span>
+            <Link href={`/t/${t.slug}/dashboard`} className="flex items-center gap-2.5">
+              <span className={cn("adm-tenant-tile size-8", current?.id === t.id && "is-current")}>{initials(t.name)}</span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate">{t.name}</span>
-                <span className="block truncate text-xs text-muted-foreground">{t.slug}</span>
+                <span className="block truncate font-medium">{t.name}</span>
+                <span className="adm-mono block truncate text-[11px] text-muted-foreground">{t.slug}</span>
               </span>
               {current?.id === t.id && <Check className="size-4 text-primary" aria-hidden />}
             </Link>
@@ -248,8 +263,8 @@ export function UserMenu({ user }: { user: ShellUser }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-full" aria-label="เมนูผู้ใช้">
-          <Avatar className="size-9">
-            <AvatarFallback className="bg-primary-soft text-primary">{initials(user.name)}</AvatarFallback>
+          <Avatar className="adm-avatar size-9">
+            <AvatarFallback className="bg-foreground text-[13px] font-semibold text-background">{initials(user.name)}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>

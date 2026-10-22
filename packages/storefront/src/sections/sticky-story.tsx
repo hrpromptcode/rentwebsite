@@ -57,6 +57,17 @@ function Media({ it, i, n, style }: { it: Item; i: number; n: number; style: Pro
   );
 }
 
+type StageTone = Exclude<Item["tone"], "auto">;
+
+/** "time-of-day": 1st = morning (soft glow), 2nd = afternoon (accent), middle = sunset (glow), last = night. */
+function toneOf(it: Item, i: number, n: number, tones: Props["tones"]): StageTone | undefined {
+  if (it.tone !== "auto") return it.tone;
+  if (tones !== "time-of-day" || n < 2) return undefined;
+  if (i === n - 1) return "night";
+  if (i === 0) return "soft";
+  return i === 1 ? "accent" : "glow";
+}
+
 /** fastwork-style sticky story: titles scroll on one side while the pinned stage morphs per item. */
 export function StickyStorySection({ ctx, props: p }: { ctx: StorefrontCtx; props: Props }) {
   if (!p.items.length) return null;
@@ -100,8 +111,10 @@ export function StickyStorySection({ ctx, props: p }: { ctx: StorefrontCtx; prop
     );
   }
 
+  const tones = p.items.map((it, i) => toneOf(it, i, n, p.tones));
+  const toned = tones.some((t) => t && t !== "base");
   return (
-    <Section type="sticky-story" fx={fx}>
+    <Section type="sticky-story" fx={fx} className={toned ? "rw-story-toned" : undefined}>
       <div className="container-x">
         {head}
         <StickyStory
@@ -115,6 +128,7 @@ export function StickyStorySection({ ctx, props: p }: { ctx: StorefrontCtx; prop
             body: it.body || undefined,
             chips: it.chips.length ? it.chips : undefined,
             media: <Media it={it} i={i} n={n} style={p.mediaStyle} />,
+            tone: toned ? tones[i] : undefined,
           }))}
         />
       </div>

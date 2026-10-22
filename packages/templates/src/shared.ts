@@ -20,25 +20,64 @@ export const NEUTRAL_ABOUT = {
   clinic: { heading: "เกี่ยวกับ {{name}}", body: "{{name}} ให้คำปรึกษาก่อนทุกการรักษา และดูแลผู้รับบริการอย่างใส่ใจในทุกขั้นตอน นัดหมายล่วงหน้าออนไลน์ได้ตลอด 24 ชั่วโมง" },
 } as const;
 
-export function aboutPage(opts: { title?: string; heading: string; body: string; eyebrow?: string; /** About copy for new (non-demo) shops, see NEUTRAL_ABOUT */ neutral?: { heading: string; body: string } }): TemplatePage {
+/**
+ * Forced line break for "Brand — tagline" headings (direction A5): the giant About <h1> breaks after the brand instead of
+ * wherever the browser's Thai line breaker lands ("Sugar Puff —⏎ครัวเล็ก ๆ …"). Headings that already contain a "\n" are kept.
+ */
+export function breakAfterBrand(heading: string): string {
+  if (heading.includes("\n")) return heading;
+  const i = heading.indexOf(" — ");
+  return i > 0 ? `${heading.slice(0, i)} —\n${heading.slice(i + 3)}` : heading;
+}
+
+export function aboutPage(opts: {
+  title?: string;
+  heading: string;
+  body: string;
+  eyebrow?: string;
+  /** About copy for new (non-demo) shops, see NEUTRAL_ABOUT */
+  neutral?: { heading: string; body: string };
+  /** break the heading after "Brand —" (default true; see breakAfterBrand) */
+  lineBreak?: boolean;
+}): TemplatePage {
   const neutral = opts.neutral ?? NEUTRAL_ABOUT.default;
+  const heading = opts.lineBreak === false ? opts.heading : breakAfterBrand(opts.heading);
   const contactCta = () => section(cta, { heading: "มีคำถาม? ทักเรามาได้เลย", body: "ทีมงานพร้อมตอบทุกคำถามผ่าน LINE ภายในไม่กี่นาที", primaryCta: { label: "ติดต่อเรา", href: "/contact" }, variant: "card" });
   return {
     slug: "about",
     title: opts.title ?? "เกี่ยวกับเรา",
     showInNav: false,
-    sections: [section(text, { eyebrow: opts.eyebrow ?? "เกี่ยวกับเรา", heading: opts.heading, body: opts.body, size: "large" }), contactCta()],
+    sections: [section(text, { eyebrow: opts.eyebrow ?? "เกี่ยวกับเรา", heading, body: opts.body, size: "large" }), contactCta()],
     neutralSections: [section(text, { eyebrow: opts.eyebrow ?? "เกี่ยวกับเรา", heading: neutral.heading, body: neutral.body, size: "large" }), contactCta()],
   };
 }
 
-export function contactPage(opts?: { heading?: string; body?: string; faqs?: Array<{ q: string; a: string }> }): TemplatePage {
+export function contactPage(opts?: {
+  heading?: string;
+  body?: string;
+  faqs?: Array<{ q: string; a: string }>;
+  /** "chips" = interest / budget chips that prefill the message (same form) */
+  variant?: "classic" | "chips";
+  interests?: string[];
+  budgets?: string[];
+  showForm?: boolean;
+  showMap?: boolean;
+  showHours?: boolean;
+}): TemplatePage {
+  const extra = {
+    ...(opts?.variant ? { variant: opts.variant } : {}),
+    ...(opts?.interests?.length ? { interests: opts.interests } : {}),
+    ...(opts?.budgets?.length ? { budgets: opts.budgets } : {}),
+    ...(opts?.showForm != null ? { showForm: opts.showForm } : {}),
+    ...(opts?.showMap != null ? { showMap: opts.showMap } : {}),
+    ...(opts?.showHours != null ? { showHours: opts.showHours } : {}),
+  };
   return {
     slug: "contact",
     title: "ติดต่อเรา",
     showInNav: false,
     sections: [
-      section(contact, { heading: opts?.heading ?? "ติดต่อเรา", body: opts?.body ?? "ส่งข้อความหาเราได้ทุกช่องทาง ทีมงานตอบกลับภายใน 24 ชั่วโมง" }),
+      section(contact, { heading: opts?.heading ?? "ติดต่อเรา", body: opts?.body ?? "ส่งข้อความหาเราได้ทุกช่องทาง ทีมงานตอบกลับภายใน 24 ชั่วโมง", ...extra }),
       ...(opts?.faqs?.length ? [section(faq, { heading: "คำถามที่พบบ่อย", items: opts.faqs })] : []),
     ],
   };
