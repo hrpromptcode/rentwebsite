@@ -107,7 +107,7 @@ export default async function FeaturesPage() {
       </section>
 
       {/* payments */}
-      <section data-tone="paper" className="px-[var(--gutter)] py-[var(--section-y)]" aria-labelledby="pay-title">
+      <section data-tone="paper" data-hue="mint" className="px-[var(--gutter)] py-[var(--section-y)]" aria-labelledby="pay-title">
         <div className="grid gap-8 md:grid-cols-12 md:items-end">
           <div className="md:col-span-7">
             <SectionIndex n="03" label="Payments" />
@@ -119,7 +119,7 @@ export default async function FeaturesPage() {
         </div>
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {PAYMENTS.map((p, i) => (
-            <GlowCard key={p.title} className="flex min-h-64 flex-col justify-between rounded-[1.75rem] border border-border bg-card p-7">
+            <GlowCard key={p.title} className="pf-plan flex min-h-64 flex-col justify-between p-7">
               <div className="flex items-center justify-between">
                 <span className="grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
                   <p.icon className="size-6" aria-hidden="true" />
@@ -136,7 +136,7 @@ export default async function FeaturesPage() {
       </section>
 
       {/* LINE */}
-      <section className="relative overflow-hidden px-[var(--gutter)] py-[var(--section-y)]" aria-labelledby="line-title">
+      <section data-hue="peach" className="relative overflow-hidden px-[var(--gutter)] py-[var(--section-y)]" aria-labelledby="line-title">
         <div className="grid items-center gap-14 lg:grid-cols-12">
           <div className="lg:col-span-6">
             <SectionIndex n="04" label="LINE" />
@@ -180,7 +180,7 @@ export default async function FeaturesPage() {
       </section>
 
       {/* security */}
-      <section className="border-y border-border px-[var(--gutter)] py-[var(--section-y)]" aria-labelledby="sec-title">
+      <section data-hue="violet" className="px-[var(--gutter)] py-[var(--section-y)]" aria-labelledby="sec-title">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <SectionIndex n="05" label="Security" />
@@ -192,7 +192,7 @@ export default async function FeaturesPage() {
               { icon: DatabaseBackup, t: "สำรองข้อมูลทุกวัน", d: "ส่งออกข้อมูลร้านได้ตลอดอายุการใช้งาน" },
               { icon: Scale, t: "PDPA", d: "ปฏิบัติตามกฎหมายคุ้มครองข้อมูลส่วนบุคคล" },
             ].map((s) => (
-              <li key={s.t} className="rounded-[1.5rem] border border-border p-6">
+              <li key={s.t} className="pf-plan p-6">
                 <s.icon className="size-6 text-primary" aria-hidden="true" />
                 <h3 className="mt-6 text-step-1 font-semibold">{s.t}</h3>
                 <p className="mt-2 text-sm leading-[1.7] text-muted-foreground">{s.d}</p>
@@ -204,7 +204,7 @@ export default async function FeaturesPage() {
           <div className="mt-16 flex flex-col justify-between gap-6 border-t border-border pt-10 md:flex-row md:items-end">
             <div>
               <Mono className="text-muted-foreground">{`${enterprise?.name ?? "Enterprise"} — UPTIME SLA`}</Mono>
-              <p className="mt-4 font-accent text-[clamp(4rem,2rem+8vw,10rem)] font-semibold leading-[0.85] tracking-[-0.05em]">
+              <p className="pf-odo-grad mt-4 font-accent text-[clamp(4rem,2rem+8vw,10rem)] font-semibold leading-[0.85] tracking-[-0.05em]">
                 <Odometer value={slaValue} suffix="%" />
               </p>
             </div>

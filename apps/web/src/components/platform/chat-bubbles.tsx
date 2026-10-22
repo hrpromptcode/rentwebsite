@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { UserRound } from "lucide-react";
+import { PromptCodeMark } from "./ui";
 
 export interface ChatPair {
   pain: string;
@@ -10,7 +11,7 @@ export interface ChatPair {
 
 /**
  * Pain points as a chat (§4.3 #6): rows join a queue as they scroll into view and play one after another — the
- * owner's complaint pops in, a typing indicator follows, then RentWeb's coral answer. All text is server-rendered
+ * owner's complaint pops in, a typing indicator follows, then RentWeb's ocean-gradient answer. All text is server-rendered
  * and visible without JS / under reduced motion (start states live in platform.css under no-preference + scripting).
  */
 export function ChatBubbles({ pairs, brand = "RentWeb" }: { pairs: ChatPair[]; brand?: string }) {
@@ -63,27 +64,27 @@ export function ChatBubbles({ pairs, brand = "RentWeb" }: { pairs: ChatPair[]; b
       {pairs.map((p, i) => (
         <li key={i} data-chat-row="" className="grid gap-3">
           <div data-bubble="pain" className="pf-bubble flex items-end gap-3" style={{ ["--origin" as string]: "0% 100%" }}>
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground ring-1 ring-border" aria-hidden="true">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#ffe0ea] text-[#d11a63] ring-2 ring-white" aria-hidden="true">
               <UserRound className="size-4.5" />
             </span>
-            <p className="max-w-[30rem] rounded-[1.6rem] rounded-bl-md bg-card px-5 py-3.5 text-step-1 leading-[1.6] shadow-[0_20px_50px_-30px_rgb(0_0_0/0.8)] ring-1 ring-border">
+            <p className="pf-bubble-pain max-w-[30rem] rounded-[1.6rem] rounded-bl-md px-5 py-3.5 text-step-1 leading-[1.6]">
               <span className="sr-only">เจ้าของร้าน: </span>
               {p.pain}
             </p>
           </div>
           <div className="relative flex justify-end">
-            <span data-typing="" className="pf-typing absolute bottom-1 right-14 inline-flex items-center gap-1 rounded-full bg-primary/15 px-4 py-3 text-primary" aria-hidden="true">
+            <span data-typing="" className="pf-typing absolute bottom-1 right-14 inline-flex items-center gap-1.5 rounded-full px-4 py-3" aria-hidden="true">
               <span />
               <span />
               <span />
             </span>
             <div data-bubble="answer" className="pf-bubble flex items-end gap-3" style={{ ["--origin" as string]: "100% 100%" }}>
-              <p className="max-w-[30rem] rounded-[1.6rem] rounded-br-md bg-primary px-5 py-3.5 text-step-1 font-medium leading-[1.6] text-primary-foreground shadow-[0_24px_60px_-28px_rgb(255_107_61/0.7)]">
+              <p className="pf-bubble-answer max-w-[30rem] rounded-[1.6rem] rounded-br-md px-5 py-3.5 text-step-1 font-medium leading-[1.6]">
                 <span className="sr-only">{brand}: </span>
                 {p.answer}
               </p>
-              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground" aria-hidden="true">
-                <span className="pf-dot !bg-primary-foreground !shadow-none" />
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white shadow-[0_10px_24px_-12px_rgb(21_97_183/0.6)] ring-1 ring-border" aria-hidden="true">
+                <PromptCodeMark className="h-5" />
               </span>
             </div>
           </div>

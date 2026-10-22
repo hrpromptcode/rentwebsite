@@ -4,6 +4,7 @@ import { ChatBubbles } from "@/components/platform/chat-bubbles";
 import { FaqList } from "@/components/platform/faq-list";
 import { FeatureBento } from "@/components/platform/feature-bento";
 import { FinalCta } from "@/components/platform/final-cta";
+import { HERO_KEYS } from "@/components/platform/hero-data";
 import { HomeHero } from "@/components/platform/home-hero";
 import { BusinessStory, LaunchTunnel, RealNumbers, TemplateCylinder, ToolsStrip } from "@/components/platform/home-sections";
 import { FAQ, getStats, getTemplates, platformLinks } from "@/components/platform/platform-data";
@@ -23,15 +24,18 @@ export default async function PlatformHome() {
   const links = platformLinks();
   const templates = getTemplates();
   const stats = getStats();
+  const shots = HERO_KEYS.map((k) => templates.find((t) => t.key === k))
+    .filter((t) => t !== undefined)
+    .map((t) => ({ key: t.key, desktop: t.shot.desktop, mobile: t.shot.mobile, brand: t.business.brand }));
   return (
     <>
       <Preloader brand="RentWeb" variant="counter" paths={["/"]} />
-      <HomeHero signup={links.signup} templates={stats.templates} systems={stats.systems} />
+      <HomeHero signup={links.signup} templates={stats.templates} systems={stats.systems} shots={shots} />
       <ToolsStrip />
       <TemplateCylinder templates={templates} />
       <BusinessStory templates={templates} />
 
-      <section className="relative px-[var(--gutter)] py-[var(--section-y)]" aria-labelledby="pains-title">
+      <section data-hue="blush" className="relative px-[var(--gutter)] py-[var(--section-y)]" aria-labelledby="pains-title">
         <div className="grid gap-14 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <div className="lg:sticky lg:top-[calc(var(--header-h)+10vh)]">
@@ -51,7 +55,7 @@ export default async function PlatformHome() {
       <FeatureBento fontClassNames={fontClassNames} thaiFonts={stats.thaiFonts} previewImage="https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=600&q=75" />
       <PricingSection />
 
-      <section className="relative px-[var(--gutter)] py-[var(--section-y)]" aria-labelledby="faq-title">
+      <section data-hue="mint" className="relative px-[var(--gutter)] py-[var(--section-y)]" aria-labelledby="faq-title">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-4">
             <SectionIndex n="09" label="FAQ" />

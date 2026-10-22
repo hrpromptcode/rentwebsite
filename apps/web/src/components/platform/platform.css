@@ -1,90 +1,257 @@
-/* RentWeb platform showcase — identity "เปิดไฟหน้าร้าน" (docs/design/hi-end-direction.md §4.1).
-   Plain CSS (no Tailwind directives) imported by (platform)/layout.tsx after the app globals. Tokens are scoped to
-   html[data-site="platform"] so tenant themes never leak in; light "paper" chapters use [data-tone="paper"]. */
+/* RentWeb platform showcase — a PromptCode product. Light identity in the PromptCode brand colours (owner request
+   2026-10-22, see tooling/qa/redesign/platform-light.md): cool "ocean" cyan→blue + warm "sunrise" orange→pink, like the
+   PromptCode mark, on a cool near-white page. Plain CSS (no Tailwind directives) imported by (platform)/layout.tsx after the
+   app globals. Tokens are scoped to html:has(.pf-root) so tenant themes never leak in; [data-tone="paper"] chapters are
+   the calmer, cooler-white chapters (story, pricing). */
 
 html:has(.pf-root) {
-  --background: #07080b;
-  --foreground: #f3f1ec;
-  --card: #111319;
-  --card-foreground: #f3f1ec;
-  --popover: #111319;
-  --popover-foreground: #f3f1ec;
-  --surface: #0e1015;
-  --primary: #ff6b3d;
-  --primary-foreground: #0b0b0c;
-  --primary-hover: #ff825a;
-  --primary-soft: rgb(255 107 61 / 0.14);
-  --secondary: #14161d;
-  --secondary-foreground: #f3f1ec;
-  --accent: #8e7dff;
-  --accent-foreground: #07080b;
-  --accent-soft: rgb(142 125 255 / 0.16);
-  --muted: #14161d;
-  --muted-foreground: #a3a099;
-  --glow: #ffb38a;
-  --border: #23262f;
-  --input: #23262f;
-  --ring: #ff8a64;
-  --destructive: #ff5a5a;
-  --destructive-foreground: #07080b;
+  --background: #f6f8fc;
+  --foreground: #1b2233;
+  --card: #ffffff;
+  --card-foreground: #1b2233;
+  --popover: #ffffff;
+  --popover-foreground: #1b2233;
+  --surface: #edf2fa;
+  --primary: #1561b7;
+  --primary-foreground: #ffffff;
+  --primary-hover: #0f4f99;
+  --primary-soft: rgb(21 97 183 / 0.1);
+  --secondary: #edf2fa;
+  --secondary-foreground: #1b2233;
+  --accent: #ff2e7e;
+  --accent-foreground: #1b2233;
+  --accent-soft: rgb(255 46 126 / 0.12);
+  --muted: #edf2fa;
+  --muted-foreground: #5b6477;
+  --glow: #fb8464;
+  --border: #dfe6f1;
+  --input: #dfe6f1;
+  --ring: #1561b7;
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
   --radius: 1rem;
   --header-h: 72px;
   --font-display: var(--font-anuphan), var(--font-ibm-plex-sans-thai), system-ui, sans-serif;
   --font-heading: var(--font-anuphan), var(--font-ibm-plex-sans-thai), system-ui, sans-serif;
   --font-body: var(--font-ibm-plex-sans-thai), var(--font-anuphan), system-ui, sans-serif;
-  --font-accent: var(--font-pf-unbounded), var(--font-anuphan), system-ui, sans-serif;
+  --font-accent: var(--font-pf-manrope), var(--font-anuphan), system-ui, sans-serif;
   --font-mono: var(--font-pf-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, var(--font-ibm-plex-sans-thai), monospace;
   --leading-thai-display: 1.2;
   --pf-ease: cubic-bezier(0.16, 1, 0.3, 1);
-  color-scheme: dark;
+  --pf-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* PromptCode palette (sampled from the logo) */
+  --pf-blue: #1561b7;
+  --pf-cyan: #0ec0dc;
+  --pf-pink: #ff2e7e;
+  --pf-pink-ink: #d11a63; /* small pink text (4.9:1 on the page) */
+  --pf-orange: #fb8464;
+  --pf-peach: #ff9f5a;
+  /* cool "ocean" (decor: progress, rings, floor tint) */
+  --pf-ocean: linear-gradient(120deg, #0ec0dc 0%, #1e8fd8 45%, #1561b7 75%, #194fa9 100%);
+  /* warm "sunrise" (decor: logo dot, chips, sparkles, recommended border) */
+  --pf-sunrise: linear-gradient(120deg, #ff9f5a 0%, #fb8464 30%, #ff5470 65%, #ff2e7e 100%);
+  /* both, like the mark (giant wordmark, underline, accent bars) */
+  --pf-brand: linear-gradient(100deg, #0ec0dc 0%, #1e8fd8 25%, #1561b7 47%, #fb8464 55%, #ff5470 78%, #ff2e7e 100%);
+  /* gradient TEXT on the light page (every stop ≥ 3:1 for large text) */
+  --pf-sunrise-ink: linear-gradient(100deg, #e8632e 0%, #ef4f52 45%, #e0246c 100%);
+  --pf-ocean-ink: linear-gradient(100deg, #0a7fb0 0%, #1670c4 45%, #194fa9 100%);
+  /* fills that carry white text (every stop ≥ 4.4:1 with #fff) */
+  --pf-ocean-deep: linear-gradient(120deg, #0b78b4 0%, #1670c4 38%, #1561b7 68%, #194fa9 100%);
+  --pf-sunrise-deep: linear-gradient(120deg, #e0246c 0%, #d11a63 100%);
+  --pf-glass: rgb(255 255 255 / 0.7);
+  --pf-glass-strong: rgb(255 255 255 / 0.86);
+  --pf-shadow: 0 30px 60px -30px rgb(21 97 183 / 0.35);
+  --pf-shadow-lg: 0 50px 100px -45px rgb(21 97 183 / 0.45), 0 18px 40px -28px rgb(27 34 51 / 0.18);
+  --pf-shadow-sm: 0 14px 30px -20px rgb(21 97 183 / 0.4), 0 2px 6px -2px rgb(27 34 51 / 0.06);
+
+  color-scheme: light;
   background: var(--background);
 }
 html:has(.pf-root) body {
-  background: var(--background);
+  /* transparent so the fixed mesh (z-index −1 in the root stacking context) shows; the html element paints the base */
+  background: transparent;
   color: var(--foreground);
   font-family: var(--font-body);
   overflow-x: clip;
 }
 html:has(.pf-root) ::selection {
-  background: var(--primary);
-  color: var(--primary-foreground);
-}
-
-/* light chapters (sticky story, pricing) */
-[data-tone="paper"] {
-  --background: #f3f1ec;
-  --foreground: #0b0b0c;
-  --card: #ffffff;
-  --card-foreground: #0b0b0c;
-  --popover: #ffffff;
-  --popover-foreground: #0b0b0c;
-  --surface: #eae7e0;
-  --primary: #c2410c;
-  --primary-foreground: #ffffff;
-  --primary-hover: #a3360a;
-  --primary-soft: rgb(194 65 12 / 0.1);
-  --accent: #5b47e0;
-  --accent-foreground: #ffffff;
-  --muted: #eae7e0;
-  --muted-foreground: #57544e;
-  --glow: #ffd3bf;
-  --border: #d6d2c8;
-  --input: #d6d2c8;
-  --ring: #c2410c;
-  color-scheme: light;
-  background: var(--background);
+  background: #cfe3f8;
   color: var(--foreground);
 }
 
-/* ------------------------------------------------------------------ logo: wordmark + "online" dot */
+/* calmer chapters (sticky story, pricing, template design system) */
+[data-tone="paper"] {
+  --background: #f6f8fc;
+  --foreground: #1b2233;
+  --card: #ffffff;
+  --card-foreground: #1b2233;
+  --popover: #ffffff;
+  --popover-foreground: #1b2233;
+  --surface: #edf2fa;
+  --primary: #1561b7;
+  --primary-foreground: #ffffff;
+  --primary-hover: #0f4f99;
+  --primary-soft: rgb(21 97 183 / 0.1);
+  --accent: #ff2e7e;
+  --accent-foreground: #1b2233;
+  --muted: #edf2fa;
+  --muted-foreground: #545d70;
+  --glow: #ffd6e5;
+  --border: #dfe6f1;
+  --input: #dfe6f1;
+  --ring: #1561b7;
+  color-scheme: light;
+  color: var(--foreground);
+}
+
+/* ------------------------------------------------------------------ shared helpers */
+.pf-grad-text {
+  background-image: var(--pf-sunrise-ink);
+  background-size: 200% 100%;
+  background-position: 0% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  /* Thai marks above / below the line box stay inside the painted area */
+  padding-block: 0.16em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+/* cool variant (giant Latin titles) */
+.pf-grad-text.pf-grad-ocean {
+  background-image: linear-gradient(100deg, #0a7fb0 0%, #1670c4 40%, #194fa9 70%, #0a7fb0 100%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pf-shimmer {
+    animation: pf-shimmer 6s ease-in-out infinite alternate;
+  }
+}
+@keyframes pf-shimmer {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+.pf-glass {
+  background: var(--pf-glass);
+  border: 1px solid var(--border);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+}
+/* static soft gradient hairline border (cards) */
+.pf-gb {
+  position: relative;
+}
+.pf-gb::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  padding: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(140deg, rgb(21 97 183 / 0.45), rgb(255 46 126 / 0.18) 40%, rgb(223 230 241 / 0.6) 60%, rgb(255 159 90 / 0.35));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.pf-gb > * {
+  position: relative;
+}
+.pf-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.25rem;
+  padding: 0.3rem 0.9rem 0.3rem 0.35rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+  background: var(--pf-glass-strong);
+  border: 1px solid var(--border);
+  box-shadow: var(--pf-shadow-sm);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+}
+.pf-pill__tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.6rem;
+  padding: 0 0.6rem;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--pf-sunrise-deep);
+}
+
+/* ------------------------------------------------------------------ mesh backdrop (fixed, behind every chapter) */
+@property --pf-b1 { syntax: "<color>"; inherits: true; initial-value: #cdeff7; }
+@property --pf-b2 { syntax: "<color>"; inherits: true; initial-value: #ffd6e5; }
+@property --pf-b3 { syntax: "<color>"; inherits: true; initial-value: #ffe2d3; }
+@property --pf-b4 { syntax: "<color>"; inherits: true; initial-value: #d6e4fa; }
+@property --pf-b5 { syntax: "<color>"; inherits: true; initial-value: #e8f6fb; }
+.pf-mesh {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--background);
+  --pf-b1: #cdeff7;
+  --pf-b2: #ffd6e5;
+  --pf-b3: #ffe2d3;
+  --pf-b4: #d6e4fa;
+  --pf-b5: #e8f6fb;
+  transition: --pf-b1 1.8s ease, --pf-b2 1.8s ease, --pf-b3 1.8s ease, --pf-b4 1.8s ease, --pf-b5 1.8s ease;
+}
+.pf-mesh > i {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--s);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--c) 0%, color-mix(in oklab, var(--c) 62%, transparent) 42%, transparent 100%);
+  translate: calc(var(--pf-px, 0) * var(--k) * 1px) calc(var(--pf-py, 0) * var(--k) * 1px);
+  will-change: transform;
+}
+.pf-mesh > i:nth-child(1) { --c: var(--pf-b1); --s: 74vmax; --x: -22vmax; --y: -26vmax; --k: 26; --dx: 9vmax; --dy: 7vmax; --t: 28s; }
+.pf-mesh > i:nth-child(2) { --c: var(--pf-b2); --s: 62vmax; --x: 58vw; --y: -18vmax; --k: -34; --dx: -8vmax; --dy: 10vmax; --t: 34s; }
+.pf-mesh > i:nth-child(3) { --c: var(--pf-b3); --s: 58vmax; --x: 62vw; --y: 52vh; --k: 22; --dx: -12vmax; --dy: -6vmax; --t: 31s; }
+.pf-mesh > i:nth-child(4) { --c: var(--pf-b4); --s: 56vmax; --x: -16vmax; --y: 48vh; --k: -24; --dx: 10vmax; --dy: -9vmax; --t: 37s; }
+.pf-mesh > i:nth-child(5) { --c: var(--pf-b5); --s: 40vmax; --x: 30vw; --y: 18vh; --k: 40; --dx: 7vmax; --dy: 8vmax; --t: 24s; }
+@media (prefers-reduced-motion: no-preference) {
+  .pf-mesh > i {
+    animation: pf-drift var(--t) ease-in-out infinite alternate;
+  }
+  .pf-mesh > i:nth-child(even) {
+    animation-delay: -9s;
+  }
+}
+@keyframes pf-drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(var(--dx), var(--dy), 0) scale(1.14); }
+}
+/* chapter hues — names are historical: lilac = brand default (cyan/pink/peach/blue), violet = ocean, mint = aqua
+   (set by MeshBackdrop from the [data-hue] chapter crossing the viewport centre) */
+.pf-mesh[data-hue="sky"] { --pf-b1: #cdeff7; --pf-b2: #d6e4fa; --pf-b3: #dff5fa; --pf-b4: #e6eefb; --pf-b5: #ffe2d3; }
+.pf-mesh[data-hue="peach"] { --pf-b1: #ffe2d3; --pf-b2: #ffd6e5; --pf-b3: #fff0e3; --pf-b4: #d6e4fa; --pf-b5: #ffe9de; }
+.pf-mesh[data-hue="blush"] { --pf-b1: #ffd6e5; --pf-b2: #d6e4fa; --pf-b3: #ffe2d3; --pf-b4: #ffe7ef; --pf-b5: #cdeff7; }
+.pf-mesh[data-hue="violet"] { --pf-b1: #c8def8; --pf-b2: #cdeff7; --pf-b3: #ffd6e5; --pf-b4: #d6e4fa; --pf-b5: #dceafb; }
+.pf-mesh[data-hue="mint"] { --pf-b1: #cdeff7; --pf-b2: #d6e4fa; --pf-b3: #dcf5f3; --pf-b4: #ffe2d3; --pf-b5: #e9f3fd; }
+.pf-mesh[data-hue="dawn"] { --pf-b1: #ffd6e5; --pf-b2: #ffe2d3; --pf-b3: #cdeff7; --pf-b4: #fff0e0; --pf-b5: #d6e4fa; }
+
+/* ------------------------------------------------------------------ logo: wordmark + daybreak "online" dot */
 .pf-dot {
   position: relative;
   display: inline-block;
   width: 0.42em;
   height: 0.42em;
   border-radius: 999px;
-  background: var(--primary);
-  box-shadow: 0 0 0.6em color-mix(in oklab, var(--primary) 70%, transparent);
+  background: var(--pf-sunrise);
+  box-shadow: 0 0 0.7em rgb(255 46 126 / 0.45);
 }
 .pf-dot::after {
   content: "";
@@ -103,19 +270,21 @@ html:has(.pf-root) ::selection {
   70%, 100% { transform: scale(3.2); opacity: 0; }
 }
 
-/* ------------------------------------------------------------------ header */
+/* ------------------------------------------------------------------ header: transparent → white glass */
 .pf-header {
   transition:
     background-color var(--dur-ui, 320ms) var(--ease-out-quart, ease),
     border-color var(--dur-ui, 320ms) var(--ease-out-quart, ease),
+    box-shadow var(--dur-ui, 320ms) var(--ease-out-quart, ease),
     transform 500ms var(--pf-ease);
   border-bottom: 1px solid transparent;
 }
 .pf-header[data-scrolled="true"] {
-  background: color-mix(in oklab, var(--background) 62%, transparent);
-  backdrop-filter: blur(18px) saturate(1.4);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
-  border-bottom-color: color-mix(in oklab, var(--foreground) 8%, transparent);
+  background: rgb(255 255 255 / 0.72);
+  -webkit-backdrop-filter: blur(18px) saturate(1.8);
+  backdrop-filter: blur(18px) saturate(1.8);
+  border-bottom-color: rgb(223 230 241 / 0.9);
+  box-shadow: 0 14px 34px -26px rgb(21 97 183 / 0.4);
 }
 .pf-header nav a[aria-current="page"],
 .pf-menu nav a[aria-current="page"] {
@@ -124,18 +293,28 @@ html:has(.pf-root) ::selection {
 .pf-header[data-hidden="true"] {
   transform: translateY(-100%);
 }
-.pf-menu[data-open="false"] {
-  visibility: hidden;
-  pointer-events: none;
-  clip-path: inset(0 0 100% 0);
+.pf-menu-btn {
+  background: rgb(255 255 255 / 0.7);
+  border: 1px solid var(--border);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--pf-shadow-sm);
 }
 .pf-menu {
   clip-path: inset(0 0 0 0);
+  background:
+    radial-gradient(70% 45% at 100% 0%, #ffd6e5 0%, transparent 70%),
+    radial-gradient(80% 55% at 0% 100%, #d6e4fa 0%, transparent 70%),
+    radial-gradient(60% 40% at 90% 85%, #ffe2d3 0%, transparent 70%),
+    var(--background);
   transition:
     clip-path 700ms var(--ease-in-out-circ, ease),
     visibility 0s linear 0s;
 }
 .pf-menu[data-open="false"] {
+  visibility: hidden;
+  pointer-events: none;
+  clip-path: inset(0 0 100% 0);
   transition:
     clip-path 600ms var(--ease-in-out-circ, ease),
     visibility 0s linear 600ms;
@@ -176,6 +355,8 @@ html:has(.pf-root) ::selection {
   transition:
     transform var(--dur-micro, 160ms) var(--ease-out-quart, ease),
     background-color var(--dur-ui, 320ms) var(--ease-out-quart, ease),
+    background-position 800ms var(--pf-ease),
+    box-shadow var(--dur-ui, 320ms) var(--ease-out-quart, ease),
     color var(--dur-ui, 320ms) var(--ease-out-quart, ease),
     border-color var(--dur-ui, 320ms) var(--ease-out-quart, ease);
 }
@@ -183,35 +364,51 @@ html:has(.pf-root) ::selection {
   transform: scale(0.97);
 }
 .pf-btn[data-variant="primary"] {
-  background: var(--primary);
-  color: var(--primary-foreground);
+  color: #ffffff;
+  background-image: var(--pf-ocean-deep);
+  background-size: 190% 100%;
+  background-position: 0% 50%;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    0 16px 32px -16px rgb(21 97 183 / 0.75),
+    0 10px 28px -18px rgb(255 46 126 / 0.7);
 }
+/* shine sweep */
 .pf-btn[data-variant="primary"]::before {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: -10% 0;
   z-index: -1;
-  border-radius: inherit;
-  background: var(--foreground);
-  transform: translateY(101%);
-  transition: transform 520ms var(--pf-ease);
-}
-.pf-btn[data-variant="primary"]:hover::before,
-.pf-btn[data-variant="primary"]:focus-visible::before {
-  transform: none;
+  background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.5) 48%, rgb(255 236 214 / 0.35) 54%, transparent 70%);
+  transform: translateX(-130%) skewX(-14deg);
+  transition: transform 900ms var(--pf-ease);
 }
 .pf-btn[data-variant="primary"]:hover,
 .pf-btn[data-variant="primary"]:focus-visible {
-  color: var(--background);
+  background-position: 100% 50%;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.3),
+    0 22px 40px -16px rgb(21 97 183 / 0.8),
+    0 14px 34px -16px rgb(255 46 126 / 0.75);
+}
+.pf-btn[data-variant="primary"]:hover::before,
+.pf-btn[data-variant="primary"]:focus-visible::before {
+  transform: translateX(130%) skewX(-14deg);
 }
 .pf-btn[data-variant="ghost"] {
-  border: 1px solid color-mix(in oklab, var(--foreground) 22%, transparent);
   color: var(--foreground);
+  background: rgb(255 255 255 / 0.62);
+  border: 1px solid var(--border);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  box-shadow: 0 10px 26px -20px rgb(27 34 51 / 0.3);
 }
 .pf-btn[data-variant="ghost"]:hover,
 .pf-btn[data-variant="ghost"]:focus-visible {
-  border-color: var(--foreground);
-  background: color-mix(in oklab, var(--foreground) 6%, transparent);
+  color: var(--primary);
+  background: #ffffff;
+  border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
+  box-shadow: 0 14px 30px -18px rgb(21 97 183 / 0.45);
 }
 .pf-btn[data-size="sm"] {
   min-height: 2.75rem;
@@ -257,7 +454,7 @@ html:has(.pf-root) ::selection {
   transform: translate(120%, -120%);
 }
 
-/* round magnetic CTA (final CTA, 404) */
+/* round magnetic CTA (final CTA panel): white disc, daybreak fill on hover */
 .pf-orb-btn {
   position: relative;
   display: inline-grid;
@@ -265,9 +462,9 @@ html:has(.pf-root) ::selection {
   width: clamp(9rem, 14vw, 11.5rem);
   aspect-ratio: 1;
   border-radius: 999px;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  font-weight: 600;
+  background: #ffffff;
+  color: #1561b7;
+  font-weight: 700;
   font-size: var(--step-1);
   text-align: center;
   line-height: 1.3;
@@ -275,10 +472,12 @@ html:has(.pf-root) ::selection {
   isolation: isolate;
   overflow: hidden;
   box-shadow:
-    0 0 0 10px rgb(7 8 11 / 0.32),
-    0 0 0 11px rgb(243 241 236 / 0.14),
-    0 30px 80px -30px color-mix(in oklab, var(--primary) 80%, transparent);
-  transition: transform var(--dur-micro, 160ms) var(--ease-out-quart, ease);
+    0 0 0 10px rgb(255 255 255 / 0.16),
+    0 0 0 11px rgb(255 255 255 / 0.4),
+    0 34px 70px -24px rgb(12 40 96 / 0.55);
+  transition:
+    transform var(--dur-micro, 160ms) var(--ease-out-quart, ease),
+    color 400ms var(--ease-out-quart, ease);
 }
 .pf-orb-btn::before {
   content: "";
@@ -286,7 +485,7 @@ html:has(.pf-root) ::selection {
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background: var(--foreground);
+  background: var(--pf-ocean-deep);
   transform: scale(0);
   transition: transform 600ms var(--pf-ease);
 }
@@ -296,7 +495,7 @@ html:has(.pf-root) ::selection {
 }
 .pf-orb-btn:hover,
 .pf-orb-btn:focus-visible {
-  color: var(--background);
+  color: #ffffff;
 }
 .pf-orb-btn:active {
   transform: scale(0.97);
@@ -305,10 +504,13 @@ html:has(.pf-root) ::selection {
 /* ------------------------------------------------------------------ type helpers */
 .pf-giant {
   font-family: var(--font-accent);
-  font-weight: 600;
-  line-height: 0.86;
+  font-weight: 800;
+  line-height: 0.9;
   letter-spacing: -0.045em;
   text-transform: uppercase;
+}
+.pf-giant.pf-grad-text {
+  padding-block: 0.06em 0.1em;
 }
 .pf-sup {
   font-family: var(--font-accent);
@@ -318,34 +520,455 @@ html:has(.pf-root) ::selection {
   position: relative;
   top: 0.35em;
   margin-left: 0.15em;
-  color: var(--primary);
+  color: var(--pf-pink-ink);
+  -webkit-text-fill-color: var(--pf-pink-ink);
 }
 .pf-outline {
   color: transparent;
-  -webkit-text-stroke: 1px color-mix(in oklab, var(--foreground) 55%, transparent);
+  -webkit-text-stroke: 1px color-mix(in oklab, var(--foreground) 40%, transparent);
 }
 
 /* ------------------------------------------------------------------ hero */
 .pf-hero-glow {
   background:
-    radial-gradient(60% 55% at 70% 45%, color-mix(in oklab, var(--primary) 26%, transparent), transparent 70%),
-    radial-gradient(45% 50% at 88% 70%, color-mix(in oklab, var(--accent) 24%, transparent), transparent 70%);
+    radial-gradient(60% 55% at 72% 40%, rgb(30 143 216 / 0.16), transparent 70%),
+    radial-gradient(45% 50% at 90% 75%, rgb(255 46 126 / 0.14), transparent 70%),
+    radial-gradient(40% 40% at 10% 20%, rgb(14 192 220 / 0.12), transparent 70%);
 }
 .pf-hero-grid {
   background-image:
-    linear-gradient(to right, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px);
-  background-size: 96px 96px;
-  mask-image: radial-gradient(70% 60% at 60% 40%, #000 30%, transparent 75%);
+    linear-gradient(to right, rgb(21 97 183 / 0.075) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(21 97 183 / 0.075) 1px, transparent 1px);
+  background-size: 88px 88px;
+  -webkit-mask-image: radial-gradient(75% 65% at 60% 40%, #000 25%, transparent 78%);
+  mask-image: radial-gradient(75% 65% at 60% 40%, #000 25%, transparent 78%);
+}
+/* pointer-follow light (hero) — position written by HeroStage as --hx / --hy on the section */
+.pf-hero-light {
+  background:
+    radial-gradient(520px circle at var(--hx, 72%) var(--hy, 42%), rgb(255 255 255 / 0.85), rgb(255 255 255 / 0.25) 38%, transparent 66%),
+    radial-gradient(300px circle at var(--hx, 72%) var(--hy, 42%), rgb(30 143 216 / 0.1), transparent 70%);
+  transition: opacity 600ms;
 }
 
-/* ------------------------------------------------------------------ marquee words */
-.pf-tool-word[data-alt="true"] {
+/* faint giant outlined wordmark + sparkle doodles behind the hero */
+.pf-hero-ghost {
+  margin: 0;
+  font-family: var(--font-accent);
+  font-weight: 800;
+  font-size: 21vw;
+  line-height: 0.82;
+  letter-spacing: -0.05em;
+  white-space: nowrap;
   color: transparent;
-  -webkit-text-stroke: 1px color-mix(in oklab, var(--foreground) 60%, transparent);
+  -webkit-text-stroke: 1.5px rgb(21 97 183 / 0.11);
+}
+.pf-doodle {
+  width: var(--s, 16px);
+  height: var(--s, 16px);
+  background: var(--pf-sunrise);
+  clip-path: polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%);
+  filter: drop-shadow(0 4px 8px rgb(255 46 126 / 0.25));
+}
+.pf-doodle[data-tone="cool"] {
+  background: var(--pf-ocean);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pf-doodle {
+    animation: pf-twinkle 5.5s ease-in-out infinite;
+    animation-delay: var(--d, 0s);
+  }
+}
+@keyframes pf-twinkle {
+  0%, 100% { transform: translateY(0) rotate(0deg) scale(1); opacity: 0.9; }
+  50% { transform: translateY(-10px) rotate(45deg) scale(0.75); opacity: 0.55; }
 }
 
-/* ------------------------------------------------------------------ devices (CSS 3D) */
+/* hero headline: lines rise out of a mask once (CSS transitions; the 2nd line carries the shimmering phrase) */
+.pf-h1 {
+  margin: 0;
+  line-height: var(--leading-thai-display, 1.2);
+}
+.pf-h1__line {
+  display: block;
+  clip-path: inset(-0.45em -0.2em -0.32em -0.2em);
+}
+.pf-h1__in {
+  display: inline-block;
+  transition: transform 1.15s var(--pf-ease) calc(var(--i, 0) * 110ms);
+}
+.pf-h1 .pf-grad-text {
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  .pf-h1[data-state="idle"] .pf-h1__in {
+    transform: translate3d(0, 46%, 0);
+  }
+}
+
+/* word cycler with a daybreak underline that follows the slot width */
+.pf-cycle {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.08em;
+}
+.pf-cycle::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.02em;
+  height: 0.13em;
+  border-radius: 999px;
+  background-image: var(--pf-brand);
+  background-size: 400% 100%;
+  background-position: calc(var(--w, 0) * 11%) 50%;
+  transform-origin: 0 50%;
+  transition: background-position 900ms var(--pf-ease);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pf-cycle[data-par="0"]::after { animation: pf-ul-a 900ms var(--pf-ease); }
+  .pf-cycle[data-par="1"]::after { animation: pf-ul-b 900ms var(--pf-ease); }
+}
+@keyframes pf-ul-a { from { transform: scaleX(0.15); opacity: 0.4; } to { transform: none; opacity: 1; } }
+@keyframes pf-ul-b { from { transform: scaleX(0.15); opacity: 0.4; } to { transform: none; opacity: 1; } }
+
+/* live 3D device stack */
+.pf-stage {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  perspective: 1800px;
+  perspective-origin: 50% 45%;
+  --px: 0;
+  --py: 0;
+}
+.pf-stage:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 6px;
+  border-radius: 28px;
+}
+.pf-stage__rig {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(calc(9deg - var(--py) * 7deg)) rotateY(calc(-17deg + var(--px) * 12deg)) rotateZ(-1.2deg);
+}
+.pf-stage__halo {
+  position: absolute;
+  left: 4%;
+  top: 6%;
+  width: 92%;
+  height: 86%;
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side at 32% 42%, rgb(14 192 220 / 0.38), transparent),
+    radial-gradient(closest-side at 70% 66%, rgb(255 46 126 / 0.26), transparent),
+    radial-gradient(closest-side at 64% 22%, rgb(255 159 90 / 0.3), transparent);
+  filter: blur(30px);
+  transform: translateZ(-180px) scale(1.15);
+}
+.pf-browser {
+  position: absolute;
+  left: 0;
+  top: 7%;
+  width: 84%;
+  border-radius: 18px;
+  background: rgb(255 255 255 / 0.9);
+  border: 1px solid rgb(255 255 255 / 0.9);
+  box-shadow:
+    0 0 0 1px rgb(21 97 183 / 0.08),
+    0 60px 110px -50px rgb(21 97 183 / 0.65),
+    0 30px 60px -36px rgb(27 34 51 / 0.35);
+  overflow: hidden;
+  transform: translateZ(0);
+}
+.pf-browser__bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #ffffff, #f4f7fc);
+}
+.pf-browser__bar > i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #ff6b8b;
+}
+.pf-browser__bar > i:nth-child(2) { background: #ffc85a; }
+.pf-browser__bar > i:nth-child(3) { background: #34d399; }
+.pf-browser__url {
+  margin-inline: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 62%;
+  padding: 3px 14px;
+  border-radius: 999px;
+  background: #eaf1fb;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pf-browser__screen,
+.pf-phone2__screen {
+  position: relative;
+  overflow: hidden;
+  background: #edf2fa;
+}
+.pf-browser__screen {
+  aspect-ratio: 16 / 10;
+}
+.pf-browser__screen img,
+.pf-phone2__screen img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  clip-path: inset(100% 0 0 0);
+  transform: scale(1.06);
+  transition:
+    clip-path 1s var(--pf-ease) var(--dl, 0ms),
+    transform 1.4s var(--pf-ease) var(--dl, 0ms);
+}
+.pf-browser__screen img[data-state="out"],
+.pf-phone2__screen img[data-state="out"] {
+  clip-path: inset(0 0 0 0);
+  transform: none;
+  z-index: 0;
+  transition: none;
+}
+.pf-browser__screen img[data-state="in"],
+.pf-phone2__screen img[data-state="in"] {
+  clip-path: inset(0 0 0 0);
+  transform: none;
+  z-index: 1;
+}
+.pf-phone2 {
+  position: absolute;
+  right: 1%;
+  bottom: 3%;
+  width: 25%;
+  aspect-ratio: 390 / 844;
+  padding: 2.2%;
+  border-radius: 14% / 6.5%;
+  background: linear-gradient(150deg, #2b3448, #111725 60%);
+  box-shadow:
+    0 0 0 1.5px rgb(255 255 255 / 0.65),
+    inset 0 0 0 1px rgb(255 255 255 / 0.12),
+    0 50px 90px -34px rgb(21 97 183 / 0.7),
+    0 30px 50px -30px rgb(27 34 51 / 0.45);
+  transform: translateZ(120px);
+}
+.pf-phone2__screen {
+  width: 100%;
+  height: 100%;
+  border-radius: 11% / 5%;
+}
+.pf-phone2__screen::before {
+  content: "";
+  position: absolute;
+  top: 2.2%;
+  left: 50%;
+  z-index: 3;
+  width: 30%;
+  height: 2.6%;
+  border-radius: 999px;
+  background: #0b0f19;
+  transform: translateX(-50%);
+}
+.pf-phone2 img {
+  --dl: 140ms;
+}
+/* glass notification chips: pop in on a loop (individual transform properties; `transform` keeps the 3D depth) */
+.pf-chip {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px 9px 9px;
+  border-radius: 16px;
+  white-space: nowrap;
+  color: var(--foreground);
+  background: rgb(255 255 255 / 0.82);
+  border: 1px solid rgb(255 255 255 / 0.95);
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  backdrop-filter: blur(14px) saturate(1.6);
+  box-shadow:
+    0 0 0 1px rgb(21 97 183 / 0.08),
+    0 22px 40px -22px rgb(21 97 183 / 0.55),
+    0 8px 16px -10px rgb(27 34 51 / 0.18);
+  /* depth layer, counter-rotated against the rig's resting tilt so the copy faces the viewer */
+  transform: translateZ(var(--z, 160px)) rotateZ(1.2deg) rotateY(17deg) rotateX(-9deg);
+  transform-origin: var(--o, 0% 100%);
+}
+@media (max-width: 1023px) {
+  .pf-chip[data-m="off"] {
+    display: none;
+  }
+  .pf-chip {
+    gap: 8px;
+    padding: 7px 11px 7px 7px;
+    border-radius: 14px;
+  }
+  .pf-chip__icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+  }
+  .pf-chip__t { font-size: 12px; }
+  .pf-chip__d { font-size: 10.5px; }
+  .pf-chip[data-side="l"] { left: 5% !important; }
+  .pf-chip[data-side="r"] { right: 3% !important; }
+}
+@media (max-width: 480px) {
+  .pf-hero .pf-btn[data-size="lg"] {
+    min-height: 3.25rem;
+    padding: 0 1.2rem;
+    gap: 0.5rem;
+    font-size: 1rem;
+  }
+}
+.pf-chip__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  color: #fff;
+  background: var(--chip-bg, var(--pf-ocean-deep));
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.pf-chip__icon svg {
+  width: 17px;
+  height: 17px;
+}
+.pf-chip__t {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.pf-chip__d {
+  display: block;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--muted-foreground);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pf-chip {
+    animation: pf-chip 12.5s linear infinite;
+    animation-delay: calc(var(--i, 0) * -2.5s);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-chip[data-still="false"] {
+    display: none;
+  }
+}
+@keyframes pf-chip {
+  0% { opacity: 0; scale: 0.55; translate: 0 14px; animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
+  6% { opacity: 1; scale: 1; translate: 0 0; animation-timing-function: ease-in-out; }
+  50% { opacity: 1; scale: 1; translate: 0 -6px; animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0); }
+  56% { opacity: 0; scale: 0.9; translate: 0 -16px; }
+  100% { opacity: 0; scale: 0.55; translate: 0 14px; }
+}
+
+/* hero reassurance ticks */
+.pf-tick {
+  display: inline-grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--pf-ocean);
+}
+
+/* ------------------------------------------------------------------ tools strip: glass pills */
+.pf-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 0.45em 1.1em 0.45em 0.5em;
+  border-radius: 999px;
+  font-size: 1.12em;
+  font-weight: 600;
+  color: var(--foreground);
+  background: rgb(255 255 255 / 0.72);
+  border: 1px solid var(--border);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 34px -24px rgb(21 97 183 / 0.55);
+}
+.pf-tool__icon {
+  display: grid;
+  place-items: center;
+  width: 2.1em;
+  height: 2.1em;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--tool-bg, var(--pf-ocean-deep));
+  font-size: 0.9em;
+}
+.pf-tool__icon svg {
+  width: 1.05em;
+  height: 1.05em;
+}
+.pf-tool__icon[data-line] {
+  font-size: 0.5em;
+  font-weight: 800;
+}
+.pf-spark {
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  margin-inline: 0.9em;
+  vertical-align: middle;
+  background: var(--pf-sunrise);
+  clip-path: polygon(50% 0%, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0% 50%, 39% 39%);
+}
+
+/* ------------------------------------------------------------------ template gallery on a light stage */
+.pf-gallery-stage {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 22%, #000 72%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 22%, #000 72%, transparent 100%);
+  background:
+    radial-gradient(60% 42% at 50% 78%, rgb(255 255 255 / 0.95), transparent 70%),
+    radial-gradient(90% 55% at 50% 100%, rgb(214 228 250 / 0.85), transparent 75%),
+    linear-gradient(to bottom, transparent 35%, rgb(232 237 245 / 0.7) 100%);
+}
+.pf-gallery .rw3d-gallery-label {
+  color: var(--foreground);
+  background: rgb(255 255 255 / 0.82);
+  border: 1px solid rgb(255 255 255 / 0.95);
+  box-shadow: 0 24px 48px -26px rgb(21 97 183 / 0.6), 0 0 0 1px rgb(21 97 183 / 0.1);
+  border-radius: 999px;
+  padding: 10px 22px;
+}
+.pf-gallery .rw3d-gallery-label [data-k="tag"] {
+  color: var(--primary);
+  opacity: 1;
+}
+.pf-gallery .rw3d-gallery-label span {
+  color: var(--muted-foreground);
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------------ devices (CSS 3D laptop + phone) */
 .pf-devices {
   position: relative;
   width: 100%;
@@ -369,19 +992,20 @@ html:has(.pf-root) ::selection {
 .pf-laptop__lid {
   position: relative;
   padding: 1.6%;
-  border-radius: 14px 14px 6px 6px;
-  background: linear-gradient(160deg, #2a2d36, #121318);
+  border-radius: 16px 16px 6px 6px;
+  background: linear-gradient(160deg, #2a3346, #111725);
   box-shadow:
-    0 0 0 1px rgb(255 255 255 / 0.08) inset,
-    0 40px 90px -30px color-mix(in oklab, var(--dev-glow, var(--primary)) 65%, transparent),
-    0 60px 120px -40px rgb(0 0 0 / 0.6);
+    0 0 0 1.5px #d5dce8,
+    0 0 0 1px rgb(255 255 255 / 0.1) inset,
+    0 50px 90px -40px color-mix(in oklab, var(--dev-glow, var(--primary)) 70%, transparent),
+    0 40px 80px -46px rgb(27 34 51 / 0.45);
 }
 .pf-laptop__screen {
   position: relative;
   aspect-ratio: 16 / 10;
   overflow: hidden;
   border-radius: 6px;
-  background: #0b0c10;
+  background: #edf2fa;
 }
 .pf-laptop__screen img {
   width: 100%;
@@ -395,10 +1019,10 @@ html:has(.pf-root) ::selection {
   height: 0;
   padding-bottom: 3.2%;
   border-radius: 0 0 18px 18px;
-  background: linear-gradient(180deg, #3a3d47, #17181d 70%);
+  background: linear-gradient(180deg, #f3f5f9, #c3cad8 75%);
   transform-origin: top;
   transform: rotateX(62deg);
-  box-shadow: 0 30px 40px -20px rgb(0 0 0 / 0.55);
+  box-shadow: 0 30px 40px -24px rgb(30 60 120 / 0.35);
 }
 .pf-phone {
   position: absolute;
@@ -408,11 +1032,12 @@ html:has(.pf-root) ::selection {
   aspect-ratio: 390 / 844;
   padding: 2.2%;
   border-radius: 13% / 6%;
-  background: linear-gradient(160deg, #2f323b, #111216);
+  background: linear-gradient(160deg, #2b3448, #111725);
   box-shadow:
-    0 0 0 1px rgb(255 255 255 / 0.1) inset,
-    0 40px 80px -24px color-mix(in oklab, var(--dev-glow, var(--primary)) 55%, transparent),
-    0 30px 60px -20px rgb(0 0 0 / 0.6);
+    0 0 0 1.5px #d8dfea,
+    0 0 0 1px rgb(255 255 255 / 0.12) inset,
+    0 40px 80px -24px color-mix(in oklab, var(--dev-glow, var(--primary)) 60%, transparent),
+    0 30px 60px -30px rgb(27 34 51 / 0.4);
   transform: translateZ(80px);
 }
 .pf-phone__screen {
@@ -421,7 +1046,7 @@ html:has(.pf-root) ::selection {
   height: 100%;
   overflow: hidden;
   border-radius: 10% / 4.6%;
-  background: #0b0c10;
+  background: #edf2fa;
 }
 .pf-phone__screen img {
   width: 100%;
@@ -437,7 +1062,7 @@ html:has(.pf-root) ::selection {
   height: 2.6%;
   transform: translateX(-50%);
   border-radius: 999px;
-  background: #050506;
+  background: #0b0f19;
   z-index: 2;
 }
 .pf-devices__floor {
@@ -447,9 +1072,9 @@ html:has(.pf-root) ::selection {
   bottom: 2%;
   height: 22%;
   border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in oklab, var(--dev-glow, var(--primary)) 40%, transparent), transparent);
-  filter: blur(18px);
-  opacity: 0.8;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--dev-glow, var(--primary)) 38%, transparent), transparent);
+  filter: blur(22px);
+  opacity: 0.85;
 }
 /* long screenshot auto-scroll inside a screen (template detail / grid hover) */
 .pf-autoscroll img {
@@ -476,7 +1101,7 @@ html:has(.pf-root) ::selection {
   92%, 100% { object-position: 50% 100%; }
 }
 
-/* ------------------------------------------------------------------ sticky story (paper) */
+/* ------------------------------------------------------------------ sticky story (per-business colour washes) */
 /* the rotated device rig projects past the right edge when the story stacks (mobile / reduced motion); clip (not
    hidden) keeps position: sticky working */
 .pf-story {
@@ -496,10 +1121,50 @@ html:has(.pf-root) ::selection {
   bottom: 0;
   right: 0;
 }
+.pf-story .rw-story [data-story-chips] li {
+  background: rgb(255 255 255 / 0.75);
+  border-color: var(--border);
+}
+.pf-washes {
+  position: sticky;
+  top: 0;
+  z-index: -1;
+  height: 100svh;
+  margin-bottom: -100svh;
+  pointer-events: none;
+}
+.pf-washes > i {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background:
+    radial-gradient(55% 60% at 74% 52%, color-mix(in oklab, var(--c1) 26%, transparent), transparent 72%),
+    radial-gradient(40% 45% at 18% 85%, color-mix(in oklab, var(--c2) 18%, transparent), transparent 72%);
+  transition: opacity 1.1s var(--pf-ease);
+}
+.pf-washes > i[data-i="0"] {
+  opacity: 1;
+}
 
 /* ------------------------------------------------------------------ chat bubbles */
 .pf-bubble {
   transform-origin: var(--origin, 0% 100%);
+}
+.pf-bubble-pain {
+  color: var(--foreground);
+  background: rgb(255 246 249 / 0.9);
+  border: 1px solid #fadbe5;
+  box-shadow: 0 20px 40px -28px rgb(209 26 99 / 0.4);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.pf-bubble-answer {
+  color: #ffffff;
+  background-image: linear-gradient(120deg, #0b78b4 0%, #1561b7 55%, #194fa9 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    0 24px 50px -24px rgb(21 97 183 / 0.7),
+    0 16px 36px -24px rgb(255 46 126 / 0.6);
 }
 @media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
   .pf-chat [data-bubble] {
@@ -511,25 +1176,30 @@ html:has(.pf-root) ::selection {
     transform: none;
     transition:
       opacity 300ms var(--ease-out-quart),
-      transform 700ms var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+      transform 700ms var(--pf-spring);
   }
   .pf-chat [data-typing] {
     opacity: 0;
     transform: scale(0.7);
-    transition: opacity 200ms, transform 300ms var(--ease-spring);
+    transition: opacity 200ms, transform 300ms var(--pf-spring);
   }
   .pf-chat [data-typing][data-shown="true"] {
     opacity: 1;
     transform: none;
   }
 }
+.pf-typing {
+  background: rgb(255 255 255 / 0.85);
+  border: 1px solid var(--border);
+  box-shadow: var(--pf-shadow-sm);
+}
 .pf-typing span {
   display: inline-block;
   width: 7px;
   height: 7px;
   border-radius: 999px;
-  background: currentColor;
-  opacity: 0.4;
+  background: var(--pf-ocean);
+  opacity: 0.5;
 }
 @media (prefers-reduced-motion: no-preference) {
   .pf-typing span {
@@ -539,18 +1209,220 @@ html:has(.pf-root) ::selection {
   .pf-typing span:nth-child(3) { animation-delay: 0.3s; }
 }
 @keyframes pf-typing {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
   30% { transform: translateY(-5px); opacity: 1; }
 }
 
+/* ------------------------------------------------------------------ launch journey (light, scroll-driven) */
+.pf-journey {
+  position: relative;
+}
+.pf-journey__stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  min-height: 560px;
+  overflow: hidden;
+  perspective: 1100px;
+  perspective-origin: 50% 46%;
+  isolation: isolate;
+}
+.pf-journey__rings {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+.pf-journey__rings > i {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: min(118vw, 1500px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border-width: 3px;
+  transform: translate(-50%, -50%) translateZ(-4000px);
+  will-change: transform, opacity;
+}
+.pf-journey__spark {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  border-radius: 999px;
+  will-change: transform, opacity;
+}
+.pf-journey__shot {
+  position: absolute;
+  will-change: transform, opacity;
+  width: min(340px, 30vw);
+  aspect-ratio: 16 / 10;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  border: 4px solid #fff;
+  box-shadow: 0 40px 80px -40px rgb(21 97 183 / 0.6), 0 0 0 1px rgb(21 97 183 / 0.1);
+}
+.pf-journey__shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+.pf-journey__copy {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 0 var(--gutter);
+  text-align: center;
+  pointer-events: none;
+}
+.pf-journey__step {
+  grid-area: 1 / 1;
+  max-width: min(620px, 92vw);
+  opacity: 0;
+  transform: translateY(26px) scale(0.98);
+  filter: blur(6px);
+  transition:
+    opacity 600ms var(--pf-ease),
+    transform 900ms var(--pf-ease),
+    filter 600ms var(--pf-ease);
+}
+.pf-journey__step[data-active="true"] {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+.pf-journey__num {
+  font-family: var(--font-accent);
+  font-weight: 600;
+  font-size: clamp(4.5rem, 3rem + 7vw, 10rem);
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+}
+.pf-journey__glass {
+  margin-top: 1.25rem;
+  padding: clamp(1.25rem, 1rem + 1.5vw, 2.25rem) clamp(1.25rem, 1rem + 2vw, 2.75rem);
+  border-radius: 28px;
+  background: rgb(255 255 255 / 0.74);
+  border: 1px solid rgb(255 255 255 / 0.95);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+  box-shadow: 0 40px 80px -46px rgb(21 97 183 / 0.65), 0 0 0 1px rgb(21 97 183 / 0.08);
+}
+.pf-journey__progress {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(18px, 4vh, 40px);
+  z-index: 3;
+  display: flex;
+  gap: 8px;
+  transform: translateX(-50%);
+}
+.pf-journey__progress > b {
+  width: 34px;
+  height: 4px;
+  border-radius: 99px;
+  background: rgb(21 97 183 / 0.16);
+  overflow: hidden;
+  position: relative;
+}
+.pf-journey__progress > b::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--pf-ocean);
+  transform: scaleX(var(--f, 0));
+  transform-origin: 0 50%;
+}
+/* reduced motion / no JS: a numbered glass list */
+.pf-journey[data-mode="static"] {
+  height: auto !important;
+}
+.pf-journey[data-mode="static"] .pf-journey__stage {
+  display: none;
+}
+.pf-journey__list {
+  display: none;
+}
+.pf-journey[data-mode="static"] .pf-journey__list {
+  display: grid;
+}
+
+/* ------------------------------------------------------------------ real numbers: gradient odometers on glass */
+.pf-num-tile {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 28px;
+  background: rgb(255 255 255 / 0.68);
+  border: 1px solid rgb(255 255 255 / 0.95);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+  box-shadow: 0 40px 80px -50px rgb(21 97 183 / 0.55), 0 0 0 1px rgb(21 97 183 / 0.07);
+}
+.pf-odo-grad .rw-odo [data-odo-strip],
+.pf-odo-grad .rw-odo [data-odo-fix],
+.pf-odo-grad .rw-odo [data-odo-sep] {
+  background-image: linear-gradient(90deg, #0a7fb0 0%, #1670c4 50%, #194fa9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.pf-num-tile::before {
+  content: "";
+  position: absolute;
+  right: -30%;
+  bottom: -45%;
+  z-index: -1;
+  width: 85%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--tc, #1561b7) 24%, transparent), transparent);
+  transition: transform 900ms var(--pf-ease);
+}
+.pf-num-tile:hover::before {
+  transform: translate(-12%, -10%) scale(1.15);
+}
+/* each digit column shows its own slice of one continuous horizontal gradient */
+.pf-odo-grad .rw-odo [data-odo-col] [data-odo-strip] {
+  background-size: calc(var(--odo-n, 1) * 100%) 100%;
+  background-position: calc(var(--i, 0) / max(var(--odo-n, 1) - 1, 1) * 100%) 0;
+}
+
 /* ------------------------------------------------------------------ bento micro-demos */
+.pf-tile {
+  border-radius: 28px;
+  background: rgb(255 255 255 / 0.72);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+  box-shadow: 0 40px 80px -56px rgb(21 97 183 / 0.6);
+  --glow: #a9d8f2;
+}
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  .pf-tile[data-tile] {
+    transition:
+      opacity 800ms var(--pf-ease),
+      transform 1100ms var(--pf-ease);
+  }
+  .pf-tile[data-tile]:nth-child(2) { transition-delay: 90ms; }
+  .pf-tile[data-tile]:nth-child(3) { transition-delay: 180ms; }
+  .pf-tile[data-tile]:nth-child(5) { transition-delay: 90ms; }
+  .pf-tile[data-tile]:nth-child(6) { transition-delay: 180ms; }
+  .pf-tile[data-tile]:not([data-seen="true"]) {
+    opacity: 0;
+    transform: translate3d(0, 48px, 0) scale(0.97);
+  }
+}
 .pf-scan {
   position: absolute;
   inset-inline: 8%;
   height: 2px;
   top: 10%;
-  background: linear-gradient(90deg, transparent, var(--primary), transparent);
-  box-shadow: 0 0 18px 4px color-mix(in oklab, var(--primary) 50%, transparent);
+  background: linear-gradient(90deg, transparent, var(--primary), var(--pf-pink), transparent);
+  box-shadow: 0 0 18px 4px rgb(30 143 216 / 0.35);
 }
 @media (prefers-reduced-motion: no-preference) {
   .pf-scan {
@@ -570,7 +1442,7 @@ html:has(.pf-root) ::selection {
     opacity: 0;
   }
   [data-tile][data-seen="true"] .pf-stamp {
-    transition: transform 600ms var(--ease-spring, ease) 500ms, opacity 200ms 500ms;
+    transition: transform 600ms var(--pf-spring) 500ms, opacity 200ms 500ms;
   }
   [data-tile]:not([data-seen="true"]) [data-notif] {
     transform: translateY(-120%);
@@ -599,11 +1471,83 @@ html:has(.pf-root) ::selection {
   50% { opacity: 0; }
 }
 
+/* ------------------------------------------------------------------ pricing */
+.pf-plan {
+  border-radius: 28px;
+  background: rgb(255 255 255 / 0.74);
+  border: 1px solid rgb(255 255 255 / 0.95);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+  box-shadow: 0 40px 80px -56px rgb(21 97 183 / 0.55), 0 0 0 1px rgb(21 97 183 / 0.07);
+  --glow: #a9d8f2;
+}
+.pf-plan[data-hot="true"] {
+  background: rgb(255 255 255 / 0.92);
+  border-color: transparent;
+  box-shadow: 0 50px 100px -40px rgb(21 97 183 / 0.55), 0 30px 60px -40px rgb(255 46 126 / 0.45);
+}
+.pf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--pf-sunrise-deep);
+  box-shadow: 0 10px 20px -10px rgb(255 46 126 / 0.6);
+}
+.pf-toggle {
+  background: rgb(255 255 255 / 0.75);
+  border: 1px solid var(--border);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--pf-shadow-sm);
+}
+.pf-toggle__pill {
+  background: var(--pf-ocean-deep);
+  box-shadow: 0 10px 22px -10px rgb(21 97 183 / 0.7);
+}
+.pf-check {
+  background: linear-gradient(135deg, rgb(21 97 183 / 0.14), rgb(255 46 126 / 0.14));
+  color: var(--primary);
+}
+
 /* ------------------------------------------------------------------ FAQ */
+.pf-faq > li {
+  border-radius: 24px;
+  background: rgb(255 255 255 / 0.5);
+  border: 1px solid var(--border);
+  transition:
+    background-color 400ms var(--pf-ease),
+    box-shadow 400ms var(--pf-ease),
+    border-color 400ms var(--pf-ease);
+}
+.pf-faq > li[data-open="true"] {
+  background: rgb(255 255 255 / 0.9);
+  border-color: rgb(255 255 255 / 0.95);
+  box-shadow: 0 34px 70px -48px rgb(21 97 183 / 0.6), 0 0 0 1px rgb(21 97 183 / 0.08);
+}
+.pf-faq > li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 22px;
+  bottom: 22px;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--pf-brand);
+  transform: scaleY(0);
+  transition: transform 600ms var(--pf-ease);
+}
+.pf-faq > li[data-open="true"]::before {
+  transform: none;
+}
 .pf-faq [data-faq-panel] {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 650ms var(--ease-spring, ease);
+  transition: grid-template-rows 650ms var(--pf-spring);
 }
 .pf-faq [data-open="true"] [data-faq-panel] {
   grid-template-rows: 1fr;
@@ -612,17 +1556,112 @@ html:has(.pf-root) ::selection {
   overflow: hidden;
   min-height: 0;
 }
+.pf-faq [data-faq-btn] {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  transition:
+    color 400ms var(--pf-ease),
+    border-color 400ms var(--pf-ease);
+}
+.pf-faq [data-faq-btn]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--pf-ocean-deep);
+  transform: scale(0);
+  transition: transform 500ms var(--pf-ease);
+}
+.pf-faq [data-open="true"] [data-faq-btn] {
+  color: #ffffff;
+  border-color: transparent;
+}
+.pf-faq [data-open="true"] [data-faq-btn]::before {
+  transform: scale(1.05);
+}
 .pf-faq [data-faq-icon] {
   transition: transform 500ms var(--pf-ease);
 }
 .pf-faq [data-open="true"] [data-faq-icon] {
-  transform: rotate(45deg);
+  transform: rotate(135deg);
 }
 @media (prefers-reduced-motion: reduce) {
   .pf-faq [data-faq-panel],
-  .pf-faq [data-faq-icon] {
+  .pf-faq [data-faq-icon],
+  .pf-faq > li::before,
+  .pf-faq [data-faq-btn]::before {
     transition: none;
   }
+}
+
+/* ------------------------------------------------------------------ final CTA: vivid daybreak panel */
+.pf-cta-panel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: clamp(28px, 3vw, 44px);
+  color: #ffffff;
+  background:
+    radial-gradient(42% 58% at 97% 100%, rgb(255 46 126 / 0.62), transparent 70%),
+    radial-gradient(36% 50% at 84% 0%, rgb(255 159 90 / 0.5), transparent 70%),
+    radial-gradient(44% 62% at 0% 0%, rgb(14 192 220 / 0.75), transparent 70%),
+    linear-gradient(120deg, #0b6fb3 0%, #1561b7 38%, #194fa9 70%, #123f8c 100%);
+  box-shadow: 0 60px 120px -60px rgb(21 97 183 / 0.75), 0 40px 90px -60px rgb(255 46 126 / 0.45);
+}
+.pf-cta-panel::after {
+  /* soft deep-blue scrim behind the copy keeps white text ≥ 4.5:1 */
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(42% 46% at 50% 52%, rgb(10 40 100 / 0.32), transparent 75%);
+  pointer-events: none;
+}
+.pf-float {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: var(--r, 50%);
+  background: rgb(255 255 255 / 0.16);
+  border: 1px solid rgb(255 255 255 / 0.45);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), 0 30px 60px -30px rgb(12 40 96 / 0.45);
+}
+.pf-float[data-k="blob"] {
+  border: 0;
+  background: var(--c, #ffc477);
+  filter: blur(40px);
+  opacity: 0.55;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pf-float {
+    animation: pf-bob var(--t, 9s) ease-in-out infinite alternate;
+    animation-delay: var(--d, 0s);
+  }
+}
+@keyframes pf-bob {
+  from { transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)); }
+  to { transform: translate3d(var(--fx, 12px), var(--fy, -26px), 0) rotate(calc(var(--rot, 0deg) + 14deg)); }
+}
+
+/* ------------------------------------------------------------------ footer: giant gradient wordmark */
+.pf-footer .rw-wordmark[data-wordmark="spotlight"] [data-gw-text] {
+  background-image:
+    radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgb(255 255 255 / 0.75) 0, rgb(255 255 255 / 0) 22%),
+    /* "Rent" in the cool ocean family, "Web" in the warm sunrise family — like the two halves of the mark */
+    linear-gradient(90deg, #0ec0dc 0%, #1e8fd8 24%, #1561b7 50.5%, #fb8464 52%, #ff5470 76%, #ff2e7e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 /* ------------------------------------------------------------------ templates grid */
@@ -649,7 +1688,7 @@ html:has(.pf-root) ::selection {
   100% { transform: translateY(60%); opacity: 0; }
 }
 
-/* noscript / reduced-motion: the 404 glitch digits stay still */
+/* noscript / reduced-motion: the 404 digits stay still */
 @media (prefers-reduced-motion: no-preference) {
   .pf-404-digit {
     animation: pf-float 6s ease-in-out infinite;
@@ -664,7 +1703,7 @@ html:has(.pf-root) ::selection {
 /* ------------------------------------------------------------------ 404: a shop sign that never quite switches on */
 .pf-neon {
   color: transparent;
-  -webkit-text-stroke: 2px color-mix(in oklab, var(--primary) 55%, transparent);
+  -webkit-text-stroke: 2px rgb(21 97 183 / 0.4);
   text-shadow: none;
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -675,21 +1714,42 @@ html:has(.pf-root) ::selection {
 }
 @keyframes pf-flicker {
   0%, 18%, 22%, 25%, 53%, 57%, 100% {
-    color: var(--primary);
-    -webkit-text-stroke-color: var(--primary);
-    text-shadow: 0 0 18px color-mix(in oklab, var(--primary) 70%, transparent), 0 0 60px color-mix(in oklab, var(--primary) 45%, transparent);
+    color: #1561b7;
+    -webkit-text-stroke-color: #1e8fd8;
+    text-shadow: 0 0 22px rgb(30 143 216 / 0.55), 0 0 70px rgb(255 46 126 / 0.4);
   }
   20%, 24%, 55% {
     color: transparent;
-    -webkit-text-stroke-color: color-mix(in oklab, var(--primary) 40%, transparent);
+    -webkit-text-stroke-color: rgb(21 97 183 / 0.35);
     text-shadow: none;
   }
 }
 
-/* LCP: the hero headline starts already 60% risen (painted at first paint → an early LCP candidate) and settles on
-   mount, instead of the kit's fully hidden start state */
+/* LCP: kit SplitReveal hero headlines (other pages) start already 60% risen */
 @media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
   .pf-hero-title.rw-split[data-split-state="idle"][data-split-from="mask"] [data-split-unit] {
     transform: translate3d(0, 40%, 0);
   }
+}
+
+/* ------------------------------------------------------------------ kit chrome retinted for Daybreak */
+html:has(.pf-root) .rw-scroll-bar {
+  height: 3px;
+  background: var(--pf-ocean);
+  box-shadow: 0 0 12px rgb(255 46 126 / 0.45);
+}
+html:has(.pf-root) .rw-cursor {
+  --cursor-fg: #1561b7;
+  --cursor-bg: linear-gradient(120deg, #0b78b4, #1561b7 55%, #194fa9);
+  --cursor-on: #ffffff;
+}
+html:has(.pf-root) .rw-cursor:is([data-kind="view"], [data-kind="drag"], [data-kind="play"]) [data-cursor-shape] {
+  box-shadow: 0 16px 34px -12px rgb(21 97 183 / 0.65);
+}
+html:has(.pf-root) .rw-preloader {
+  --pl-bg: linear-gradient(120deg, #0b78b4 0%, #1561b7 45%, #194fa9 100%);
+  --pl-fg: #ffffff;
+}
+html:has(.pf-root) .rw-grain {
+  mix-blend-mode: multiply;
 }

@@ -212,7 +212,7 @@ export interface TemplateView {
   business: BusinessCopy;
   preset: PresetView;
   recommended: PresetView[];
-  /** coral-safe ink of the preset primary on the paper chapter / on the night background */
+  /** legible ink of the preset primary on the light page / on a dark background */
   inkPaper: string;
   inkNight: string;
   shot: { desktop: string; mobile: string; long: string };
@@ -239,7 +239,7 @@ export const getTemplates = cache(function getTemplates(): TemplateView[] {
       })(),
       preset,
       recommended: (t.recommendedPresets ?? [t.themePreset]).filter((k) => PRESETS[k]).map(presetView),
-      inkPaper: inkOn(light.primary, "#F3F1EC", 3.4),
+      inkPaper: inkOn(light.primary, "#f6f8fc", 3.4),
       inkNight: inkOn(preset.mode === "dark" ? preset.primary : getPreset(t.themePreset).dark.primary, "#07080B", 4.5),
       shot: { desktop: shot(""), mobile: shot("-m"), long: shot("-long") },
       demoUrl: links.demo(t.key),

@@ -50,7 +50,7 @@ export default async function PricingPage() {
 
   return (
     <>
-      <section className="relative overflow-hidden px-[var(--gutter)] pb-20 pt-[calc(var(--header-h)+10vh)]" aria-labelledby="pricing-h1">
+      <section data-hue="mint" className="relative overflow-hidden px-[var(--gutter)] pb-20 pt-[calc(var(--header-h)+10vh)]" aria-labelledby="pricing-h1">
         <div className="pf-hero-glow pointer-events-none absolute inset-0 -z-10 opacity-70" aria-hidden="true" />
         <SectionIndex n="01" label="Pricing" />
         <div className="mt-8 grid gap-10 lg:grid-cols-12 lg:items-end">
@@ -58,7 +58,7 @@ export default async function PricingPage() {
           {cheapest ? (
             <div className="lg:col-span-3 lg:justify-self-end">
               <Mono className="text-muted-foreground">STARTS AT / MONTH</Mono>
-              <p className="mt-3 font-accent text-[clamp(4rem,2.4rem+6vw,8.5rem)] font-semibold leading-[0.9] tracking-[-0.05em] text-primary">
+              <p className="pf-odo-grad mt-3 font-accent text-[clamp(4rem,2.4rem+6vw,8.5rem)] font-semibold leading-[0.9] tracking-[-0.05em]">
                 <Odometer value={bahtNumber(cheapest.monthly)} prefix="฿" trigger="mount" duration={1.6} />
               </p>
               <p className="mt-3 text-muted-foreground">{tg("ทดลองฟรี 14 วัน {ไม่ต้อง}ใส่บัตร ยกเลิกได้ทุกเมื่อ")}</p>

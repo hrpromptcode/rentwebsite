@@ -4,7 +4,7 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 
 /**
- * Client shell of the platform header: transparent over the hero, glass after 24px, hides while scrolling down past
+ * Client shell of the platform header: transparent over the hero, white glass after 24px, hides while scrolling down past
  * the first screen and returns on scroll-up; owns the full-screen mobile menu (focus, Escape, scroll lock).
  * All visible content (links, CTA, menu) is server-rendered and passed in as nodes.
  */
@@ -99,7 +99,7 @@ export function HeaderShell({ bar, menu, menuLabel = "เมนู", closeLabel 
         <button
           ref={btnRef}
           type="button"
-          className="group relative inline-flex min-h-11 min-w-11 items-center justify-center gap-3 rounded-full border border-foreground/20 px-4 text-sm font-semibold md:hidden"
+          className="pf-menu-btn group relative inline-flex min-h-11 min-w-11 items-center justify-center gap-3 rounded-full px-4 text-sm font-semibold md:hidden"
           aria-expanded={open}
           aria-controls="pf-mobile-menu"
           onClick={() => setOpen((o) => !o)}
@@ -116,7 +116,7 @@ export function HeaderShell({ bar, menu, menuLabel = "เมนู", closeLabel 
       <div
         ref={menuRef}
         id="pf-mobile-menu"
-        className="pf-menu fixed inset-0 z-40 flex flex-col overflow-y-auto bg-background pt-[var(--header-h)] md:hidden"
+        className="pf-menu fixed inset-0 z-40 flex flex-col overflow-y-auto pt-[var(--header-h)] md:hidden"
         data-lenis-prevent=""
         data-open={open ? "true" : "false"}
         aria-hidden={!open}

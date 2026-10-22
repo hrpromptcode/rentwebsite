@@ -17,6 +17,9 @@ const ONLY = new Set((process.argv.find((a) => a.startsWith("--only="))?.slice(7
 const SKIP_LONG = process.argv.includes("--skip-long");
 const SKIP_M = process.argv.includes("--skip-m");
 const OUT = path.resolve(process.cwd(), "../apps/web/public/showcase");
+/** storefronts with pinned (sticky) horizontal sections leave tall blank bands in a full-page capture → their LONG shot is
+ *  taken under prefers-reduced-motion, where the kit lays those sections out statically */
+const LONG_REDUCE = new Set(["hotel"]);
 fs.mkdirSync(OUT, { recursive: true });
 
 // sharp ships with next (pnpm store); resolve it from the web app so tooling needs no extra dependency
@@ -72,7 +75,17 @@ try {
       const shot = await page.screenshot({ type: "png" });
       const r = await save(shot, path.join(OUT, `${key}.webp`), { quality: 80, budget: 180 * 1024 });
       console.log(`${key}.webp ${r.kb} KB q${r.q}`);
-      if (!SKIP_LONG) {
+      if (!SKIP_LONG && LONG_REDUCE.has(key)) {
+        const rctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, reducedMotion: "reduce" });
+        await isolateHmr(rctx);
+        const rpage = await rctx.newPage();
+        await stableGoto(rpage, url, "load");
+        await settle(rpage);
+        const full = await rpage.screenshot({ type: "png", fullPage: true });
+        const r2 = await save(full, path.join(OUT, `${key}-long.webp`), { width: 960, maxHeight: 4800, quality: 72, budget: 400 * 1024 });
+        console.log(`${key}-long.webp ${r2.kb} KB q${r2.q} (reduced motion)`);
+        await rctx.close();
+      } else if (!SKIP_LONG) {
         const full = await page.screenshot({ type: "png", fullPage: true });
         const r2 = await save(full, path.join(OUT, `${key}-long.webp`), { width: 960, maxHeight: 4800, quality: 72, budget: 400 * 1024 });
         console.log(`${key}-long.webp ${r2.kb} KB q${r2.q}`);

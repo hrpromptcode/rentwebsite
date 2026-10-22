@@ -7,12 +7,12 @@ import { cn } from "@rentweb/ui/lib/utils";
 export function AnnotatedShot({ src, alt, url, notes, className }: { src: string; alt: string; url: string; notes: { x: number; y: number; label: string }[]; className?: string }) {
   return (
     <div className={cn("relative size-full p-[4%]", className)}>
-      <div className="relative flex size-full flex-col overflow-hidden rounded-[1.1rem] bg-card shadow-[0_40px_100px_-40px_rgb(0_0_0/0.9)] ring-1 ring-white/10">
-        <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2.5" aria-hidden="true">
+      <div className="relative flex size-full flex-col overflow-hidden rounded-[1.1rem] bg-card shadow-[0_50px_100px_-46px_rgb(21_97_183/0.6),0_24px_50px_-34px_rgb(27_34_51/0.3)] ring-1 ring-[#dfe6f1]">
+        <div className="flex items-center gap-2 border-b border-border bg-[linear-gradient(180deg,#fff,#f4f7fc)] px-4 py-2.5" aria-hidden="true">
           <span className="size-2.5 rounded-full bg-[#ff5f57]" />
           <span className="size-2.5 rounded-full bg-[#febc2e]" />
           <span className="size-2.5 rounded-full bg-[#28c840]" />
-          <span className="mx-auto truncate rounded-full bg-background/70 px-4 py-1 font-mono text-[0.7rem] text-muted-foreground">{url}</span>
+          <span className="mx-auto truncate rounded-full bg-[#eaf1fb] px-4 py-1 font-mono text-[0.7rem] text-muted-foreground">{url}</span>
         </div>
         <div className="relative min-h-0 flex-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}

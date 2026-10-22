@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { fonts } from "@/fonts";
-import { jetbrainsMono, unbounded } from "@/components/platform/fonts";
+import { jetbrainsMono, manrope } from "@/components/platform/fonts";
 import { platformLinks } from "@/components/platform/platform-data";
 import "../globals.css";
 import "@/components/platform/platform.css";
@@ -11,9 +11,11 @@ export function generateMetadata(): Metadata {
   const { origin } = platformLinks();
   return {
     metadataBase: new URL(origin),
-    title: { default: "RentWeb — เว็บไซต์สำเร็จรูประดับสตูดิโอ สำหรับทุกธุรกิจ", template: "%s · RentWeb" },
+    title: { default: "RentWeb by PromptCode — เว็บไซต์สำเร็จรูประดับสตูดิโอ สำหรับทุกธุรกิจ", template: "%s · RentWeb" },
     description: DESCRIPTION,
     applicationName: "RentWeb",
+    creator: "PromptCode",
+    publisher: "PromptCode",
     openGraph: {
       type: "website",
       locale: "th_TH",
@@ -27,14 +29,14 @@ export function generateMetadata(): Metadata {
   };
 }
 
-export const viewport: Viewport = { themeColor: "#07080B", colorScheme: "dark" }; // platform brand night
+export const viewport: Viewport = { themeColor: "#F6F8FC", colorScheme: "light" }; // PromptCode light
 
 /**
  * Root layout of the platform host (marketing site, site-status pages, kit labs). Brand tokens are scoped to
  * html:has(.pf-root) in platform.css so the kit labs keep their own themes; chrome lives in (site)/layout.tsx.
  */
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
-  const fontVars = [fonts.prompt, fonts.anuphan, fonts["ibm-plex-sans-thai"], unbounded, jetbrainsMono].map((f) => f.variable).join(" ");
+  const fontVars = [fonts.prompt, fonts.anuphan, fonts["ibm-plex-sans-thai"], manrope, jetbrainsMono].map((f) => f.variable).join(" ");
   return (
     <html lang="th" className={fontVars} data-motion="expressive" data-button="rounded" data-card="elevated" data-container="normal" data-scroll-behavior="smooth">
       <body className="min-h-dvh antialiased">{children}</body>

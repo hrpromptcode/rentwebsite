@@ -1,1 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#07080B"/><circle cx="32" cy="32" r="16" fill="#FF6B3D" opacity="0.22"/><circle cx="32" cy="32" r="10" fill="#FF6B3D"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="350 222 306 342" width="306" height="342">
+  <title>PromptCode</title>
+  <defs>
+    <linearGradient id="pc-l" gradientUnits="userSpaceOnUse" x1="404" y1="262" x2="404" y2="512"><stop offset="0" stop-color="#0EC0DC"/><stop offset="1" stop-color="#1561B7"/></linearGradient>
+    <linearGradient id="pc-lf" gradientUnits="userSpaceOnUse" x1="367" y1="440" x2="441" y2="510"><stop offset="0" stop-color="#1A55B0"/><stop offset="1" stop-color="#194FA9"/></linearGradient>
+    <linearGradient id="pc-t" gradientUnits="userSpaceOnUse" x1="520" y1="234" x2="540" y2="414"><stop offset="0" stop-color="#FB8F5E"/><stop offset=".55" stop-color="#FF5470"/><stop offset="1" stop-color="#FF2E7E"/></linearGradient>
+    <linearGradient id="pc-b" gradientUnits="userSpaceOnUse" x1="490" y1="548" x2="600" y2="380"><stop offset="0" stop-color="#1561B7"/><stop offset="1" stop-color="#1E8FD8"/></linearGradient>
+    <linearGradient id="pc-bf" gradientUnits="userSpaceOnUse" x1="560" y1="470" x2="640" y2="360"><stop offset="0" stop-color="#0BB8D9"/><stop offset="1" stop-color="#13C4DE"/></linearGradient>
+  </defs>
+  <g stroke-linejoin="round" stroke-width="9">
+    <path d="M367 320 L441 269 L441 509 L367 460 Z" fill="url(#pc-l)" stroke="url(#pc-l)"/>
+    <path d="M367 460 L441 413 L441 509 Z" fill="url(#pc-lf)" stroke="url(#pc-lf)"/>
+    <path d="M495 238 L637 324 L495 410 Z" fill="url(#pc-t)" stroke="url(#pc-t)"/>
+    <path d="M488 460 L639 361 L639 459 L490 547 Z" fill="url(#pc-b)" stroke="url(#pc-b)"/>
+    <path d="M521 438 L639 361 L639 459 L615 473 Z" fill="url(#pc-bf)" stroke="url(#pc-bf)"/>
+  </g>
+</svg>

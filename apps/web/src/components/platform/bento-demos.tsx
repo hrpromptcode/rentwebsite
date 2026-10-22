@@ -108,7 +108,7 @@ export function ThemeDemo({ sets, image }: { sets: SwatchSet[]; image: string })
             role="radio"
             aria-checked={k === i}
             onClick={() => setI(k)}
-            className="group inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-3 text-sm transition-colors aria-checked:border-foreground aria-checked:bg-foreground/5"
+            className="group inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-white/60 px-3 text-sm transition-[color,background-color,border-color,box-shadow] duration-300 hover:border-primary/40 aria-checked:border-primary/60 aria-checked:bg-white aria-checked:text-primary aria-checked:shadow-[0_10px_24px_-14px_rgb(21_97_183/0.7)]"
           >
             <span className="flex -space-x-1.5" aria-hidden="true">
               {[set.background, set.primary, set.accent].map((c, j) => (
@@ -148,7 +148,7 @@ export function FontCycler({ fonts, word = "สวัสดี" }: { fonts: { ke
   const f = fonts[i] ?? fonts[0]!;
   return (
     <div ref={ref} className="flex h-full flex-col justify-between gap-6">
-      <p className="text-[clamp(3.4rem,2rem+4vw,5.6rem)] leading-[1.3]" style={{ fontFamily: `var(--font-${f.key}), var(--font-display)` }} aria-hidden="true">
+      <p className="pf-grad-text pf-shimmer w-fit text-[clamp(3.4rem,2rem+4vw,5.6rem)] leading-[1.3]" style={{ fontFamily: `var(--font-${f.key}), var(--font-display)` }} aria-hidden="true">
         {word}
       </p>
       <p className="mono-label flex items-center justify-between text-muted-foreground" data-script="latin" aria-hidden="true">
@@ -191,8 +191,8 @@ export function DomainTyper({ domain = "yourshop.co.th" }: { domain?: string }) 
   }, [domain]);
   const done = n >= domain.length;
   return (
-    <div ref={ref} className="flex items-center gap-3 rounded-full border border-border bg-background/60 px-4 py-3 font-mono text-[0.95rem]">
-      <span className={`grid size-7 place-items-center rounded-full transition-all duration-500 ${done ? "scale-100 bg-emerald-400/15 text-emerald-300" : "scale-75 bg-muted text-muted-foreground"}`} aria-hidden="true">
+    <div ref={ref} className="flex items-center gap-3 rounded-full border border-border bg-white/80 px-4 py-3 font-mono text-[0.95rem] shadow-[0_14px_30px_-22px_rgb(21_97_183/0.5)]">
+      <span className={`grid size-7 place-items-center rounded-full transition-all duration-500 ${done ? "scale-100 bg-emerald-100 text-emerald-700" : "scale-75 bg-muted text-muted-foreground"}`} aria-hidden="true">
         <Lock className="size-3.5" />
       </span>
       <span className="text-muted-foreground" aria-hidden="true">

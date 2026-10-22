@@ -31,13 +31,13 @@ export default function TemplatesPage() {
 
   return (
     <>
-      <section className="relative overflow-hidden px-[var(--gutter)] pb-16 pt-[calc(var(--header-h)+8vh)]" aria-labelledby="templates-h1">
+      <section data-hue="sky" className="relative overflow-hidden px-[var(--gutter)] pb-16 pt-[calc(var(--header-h)+8vh)]" aria-labelledby="templates-h1">
         <div className="pf-hero-glow pointer-events-none absolute inset-0 -z-10 opacity-60" aria-hidden="true" />
         <div className="flex items-center justify-between">
           <SectionIndex n="01" label="Templates — ทุกธุรกิจ ทุกบุคลิก" />
           <Mono className="hidden text-muted-foreground md:inline">{`${templates.length} LIVE DEMOS`}</Mono>
         </div>
-        <h1 id="templates-h1" className="pf-giant mt-8 text-[clamp(2.6rem,11.2vw,14.5rem)]">
+        <h1 id="templates-h1" className="pf-giant pf-grad-text pf-grad-ocean pf-shimmer mt-8 w-fit text-[clamp(2.6rem,11.2vw,14.5rem)]">
           <span aria-hidden="true">
             Templates<span className="pf-sup">©{templates.length}</span>
           </span>

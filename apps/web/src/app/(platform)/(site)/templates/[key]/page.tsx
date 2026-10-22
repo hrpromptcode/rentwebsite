@@ -51,8 +51,13 @@ export default async function TemplatePage({ params }: { params: Promise<{ key: 
     <>
       {/* 1 — hero over a mesh shader tinted with this template's preset */}
       <section className="relative isolate flex min-h-[86svh] flex-col justify-end overflow-hidden px-[var(--gutter)] pb-14 pt-[calc(var(--header-h)+10vh)]" aria-labelledby="tpl-title">
-        <ShaderBackdrop variant="mesh" colors={[t.preset.primary, t.preset.accent, t.preset.glow, "#07080B"]} intensity={0.85} className="absolute inset-0 -z-10" />
-        <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,rgb(7_8_11/0.55),rgb(7_8_11/0.35)_40%,rgb(7_8_11/0.92))]" aria-hidden="true" />
+        <ShaderBackdrop
+          variant="mesh"
+          colors={[`color-mix(in oklab, ${t.preset.primary} 55%, white)`, `color-mix(in oklab, ${t.preset.accent} 50%, white)`, `color-mix(in oklab, ${t.preset.glow} 45%, white)`, "#f6f8fc"]}
+          intensity={0.75}
+          className="absolute inset-0 -z-10 [mask-image:linear-gradient(to_bottom,#000_55%,transparent)]"
+        />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,rgb(246_248_252/0.5),rgb(246_248_252/0.28)_40%,rgb(246_248_252/0.55)_78%,transparent)]" aria-hidden="true" />
         <p className="pf-outline pointer-events-none absolute inset-x-[var(--gutter)] top-[calc(var(--header-h)+4vh)] select-none whitespace-nowrap font-accent font-semibold leading-[1.1] tracking-[-0.05em]"
           style={{ fontSize: `min(13rem, calc((100vw - 2 * var(--gutter)) / ${(Math.max(6, t.business.brand.length) * 0.74).toFixed(2)}))` }}
           aria-hidden="true"
@@ -68,7 +73,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ key: 
         </div>
         <div className="mt-10 grid gap-10 lg:grid-cols-12 lg:items-end">
           <div className="lg:col-span-8">
-            <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-background/40 px-3.5 py-1.5 text-sm backdrop-blur ring-1 ring-foreground/15">
+            <p className="pf-pill mb-5 pl-3.5">
               <span className="flex -space-x-1" aria-hidden="true">
                 {[t.preset.primary, t.preset.accent].map((c) => (
                   <span key={c} className="size-3.5 rounded-full ring-2 ring-background/60" style={{ background: c }} />

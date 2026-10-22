@@ -61,13 +61,13 @@ const SPECIMEN_FONTS = [
   { key: "srisakdi", name: "Srisakdi" },
 ];
 
-const tile = "relative flex flex-col overflow-hidden rounded-[1.75rem] border border-border bg-card p-6 md:p-8";
+const tile = "pf-tile pf-gb relative flex flex-col overflow-hidden p-6 md:p-8";
 
 /** Home §4.3 #9 — "ทุกอย่างที่ร้านต้องมี": six tiles, each with a live DOM/CSS micro-demo (no canvas). */
 export function FeatureBento({ fontClassNames, thaiFonts, previewImage, index = "07" }: { fontClassNames: string; thaiFonts: number; previewImage: string; index?: string }) {
   const sets = ["aurora", "neon", "porcelain", "ember", "candy"].map(swatch);
   return (
-    <section className="relative px-[var(--gutter)] py-[var(--section-y)]" aria-labelledby="bento-title">
+    <section data-hue="lilac" className="relative px-[var(--gutter)] py-[var(--section-y)]" aria-labelledby="bento-title">
       <div className="grid gap-8 md:grid-cols-12 md:items-end">
         <div className="md:col-span-7">
           <SectionIndex n={index} label="Everything a shop needs" />
@@ -80,45 +80,45 @@ export function FeatureBento({ fontClassNames, thaiFonts, previewImage, index = 
 
       <SeenScope className="mt-14 grid gap-4 md:grid-cols-6 lg:grid-cols-12">
         {/* ปรับธีมเอง — interactive */}
-        <GlowCard data-tile="" className={`${tile} md:col-span-6 lg:col-span-7 lg:row-span-2`}>
+        <GlowCard data-tile="" border={false} className={`${tile} md:col-span-6 lg:col-span-7 lg:row-span-2`}>
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
               <h3 className="text-step-2 font-semibold">ปรับธีมเอง</h3>
               <p className="mt-1 text-muted-foreground">ลองกดสีด้านล่าง หน้าร้านเปลี่ยนตามทันที เหมือนในหลังบ้านจริง</p>
             </div>
-            <Mono className="shrink-0 text-primary">LIVE</Mono>
+            <Mono className="shrink-0 rounded-full bg-[#e9fbf3] px-2.5 py-1 text-[#047857]">● LIVE</Mono>
           </div>
           <ThemeDemo sets={sets} image={previewImage} />
         </GlowCard>
 
         {/* PromptPay QR */}
-        <GlowCard data-tile="" className={`${tile} md:col-span-3 lg:col-span-5`}>
+        <GlowCard data-tile="" border={false} className={`${tile} md:col-span-3 lg:col-span-5`}>
           <div className="grid flex-1 grid-cols-[1fr_auto] items-start gap-6">
             <div>
               <h3 className="text-step-2 font-semibold">PromptPay QR</h3>
               <p className="mt-1 text-muted-foreground">สร้าง QR ตามยอดสั่งซื้อให้อัตโนมัติ เงินเข้าบัญชีคุณโดยตรง</p>
             </div>
-            <div className="relative size-28 rounded-2xl bg-white p-2.5 text-[#0B0B0C] shadow-[0_20px_50px_-20px_rgb(255_107_61/0.6)] md:size-36">
+            <div className="relative size-28 rounded-2xl bg-white p-2.5 text-[#0B0B0C] shadow-[0_24px_50px_-20px_rgb(21_97_183/0.55)] ring-1 ring-[#e4ebf5] md:size-36">
               <QrArt />
               <span className="pf-scan" aria-hidden="true" />
             </div>
           </div>
-          <div className="mt-8 flex items-center justify-between gap-4 rounded-2xl bg-background/60 px-4 py-3 ring-1 ring-border">
+          <div className="mt-8 flex items-center justify-between gap-4 rounded-2xl bg-white/80 px-4 py-3 ring-1 ring-border">
             <span className="text-sm text-muted-foreground">ยอดชำระ</span>
-            <span className="font-accent text-lg font-semibold">฿1,290.00</span>
+            <span className="pf-grad-text font-accent text-lg font-semibold">฿1,290.00</span>
             <span className="text-sm text-muted-foreground">→ บัญชีร้านคุณ</span>
           </div>
           <Mono className="mt-4 text-muted-foreground">SCAN · PAY · DONE</Mono>
         </GlowCard>
 
         {/* ตรวจสลิป */}
-        <GlowCard data-tile="" className={`${tile} md:col-span-3 lg:col-span-5`}>
+        <GlowCard data-tile="" border={false} className={`${tile} md:col-span-3 lg:col-span-5`}>
           <div className="grid flex-1 grid-cols-[1fr_auto] items-start gap-6">
             <div>
               <h3 className="text-step-2 font-semibold">ตรวจสลิปอัตโนมัติ</h3>
               <p className="mt-1 text-muted-foreground">ลูกค้าแนบสลิป ระบบเช็กยอดและบัญชีปลายทางให้ ไม่ต้องนั่งไล่ดูเอง</p>
             </div>
-            <div className="relative w-32 rotate-3 rounded-xl bg-white p-3 text-[#0B0B0C] shadow-xl md:w-36" aria-hidden="true">
+            <div className="relative w-32 rotate-3 rounded-xl bg-white p-3 text-[#1b2233] shadow-[0_24px_50px_-22px_rgb(21_97_183/0.55)] ring-1 ring-[#e4ebf5] md:w-36" aria-hidden="true">
               <div className="h-2 w-12 rounded-full bg-black/15" />
               <div className="mt-3 text-[0.62rem] text-black/50">โอนเงินสำเร็จ</div>
               <div className="font-accent text-lg font-semibold">฿1,290.00</div>
@@ -138,7 +138,7 @@ export function FeatureBento({ fontClassNames, thaiFonts, previewImage, index = 
         </GlowCard>
 
         {/* LINE แจ้งเตือน */}
-        <GlowCard data-tile="" className={`${tile} md:col-span-3 lg:col-span-4`}>
+        <GlowCard data-tile="" border={false} className={`${tile} md:col-span-3 lg:col-span-4`}>
           <h3 className="text-step-2 font-semibold">LINE แจ้งเตือน</h3>
           <p className="mt-1 text-muted-foreground">ออเดอร์ใหม่ การจอง และสลิปที่ผ่านการตรวจ เด้งเข้า LINE ทันที</p>
           <ul className="mt-6 grid gap-2.5" aria-label="ตัวอย่างการแจ้งเตือน">
@@ -147,7 +147,7 @@ export function FeatureBento({ fontClassNames, thaiFonts, previewImage, index = 
               { t: "จองคิว 14:30 น.", d: "นวดไทย 90 นาที" },
               { t: "สลิปผ่านการตรวจ", d: "ยอดตรง บัญชีถูกต้อง" },
             ].map((n, i) => (
-              <li key={n.t} data-notif="" style={{ ["--i" as string]: i }} className="flex items-center gap-3 rounded-2xl bg-background/70 p-3 ring-1 ring-border">
+              <li key={n.t} data-notif="" style={{ ["--i" as string]: i }} className="flex items-center gap-3 rounded-2xl bg-white/85 p-3 shadow-[0_14px_30px_-22px_rgb(21_97_183/0.5)] ring-1 ring-border">
                 <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#06C755] text-[0.62rem] font-bold text-white" aria-hidden="true">
                   LINE
                 </span>
@@ -161,7 +161,7 @@ export function FeatureBento({ fontClassNames, thaiFonts, previewImage, index = 
         </GlowCard>
 
         {/* ฟอนต์ไทย */}
-        <GlowCard data-tile="" className={`${tile} md:col-span-3 lg:col-span-4 ${fontClassNames}`}>
+        <GlowCard data-tile="" border={false} className={`${tile} md:col-span-3 lg:col-span-4 ${fontClassNames}`}>
           <h3 className="text-step-2 font-semibold">ฟอนต์ไทย {thaiFonts} แบบ</h3>
           <p className="mt-1 text-muted-foreground">ทุกฟอนต์อ่านง่าย สระและวรรณยุกต์ไม่ขาด ไม่ล้น</p>
           <div className="mt-6 flex-1">
@@ -170,7 +170,7 @@ export function FeatureBento({ fontClassNames, thaiFonts, previewImage, index = 
         </GlowCard>
 
         {/* โดเมน */}
-        <GlowCard data-tile="" className={`${tile} md:col-span-6 lg:col-span-4`}>
+        <GlowCard data-tile="" border={false} className={`${tile} md:col-span-6 lg:col-span-4`}>
           <h3 className="text-step-2 font-semibold">โดเมนของคุณเอง</h3>
           <p className="mt-1 text-muted-foreground">เริ่มด้วย subdomain ฟรี หรือชี้โดเมนของร้านมาที่เรา ระบบออก SSL ให้อัตโนมัติ (ตั้งแต่ Pro)</p>
           <div className="mt-auto pt-8">

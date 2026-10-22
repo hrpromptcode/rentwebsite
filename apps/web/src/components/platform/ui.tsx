@@ -5,12 +5,30 @@ import { scriptOf } from "@rentweb/ui/motion/split";
 export { tg } from "./thai";
 import { cn } from "@rentweb/ui/lib/utils";
 
-/** Wordmark "RentWeb●" — Unbounded 600 + the coral "online" dot (§4.1). */
-export function Logo({ className, label = true }: { className?: string; label?: boolean }) {
+/** PromptCode mark (transparent PNG cut from the brand logo; public/brand/promptcode-mark.*) */
+export function PromptCodeMark({ className }: { className?: string }) {
   return (
-    <span className={cn("inline-flex items-baseline gap-[0.14em] font-accent font-semibold tracking-[-0.04em]", className)} aria-label={label ? "RentWeb" : undefined} role={label ? "img" : undefined}>
-      <span aria-hidden={label ? true : undefined}>RentWeb</span>
-      <span className="pf-dot" aria-hidden="true" />
+    <picture className={cn("inline-flex shrink-0", className)}>
+      <source srcSet="/brand/promptcode-mark.webp" type="image/webp" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/promptcode-mark.png" alt="" width={455} height={512} className="h-full w-auto" draggable={false} />
+    </picture>
+  );
+}
+
+/** "RentWeb" product wordmark with the PromptCode mark (Manrope 800); `byline` adds a small "by PromptCode" (desktop). */
+export function Logo({ className, label = true, byline = false }: { className?: string; label?: boolean; byline?: boolean }) {
+  return (
+    <span className={cn("inline-flex items-center gap-[0.38em]", className)} aria-label={label ? "RentWeb by PromptCode" : undefined} role={label ? "img" : undefined}>
+      <PromptCodeMark className="h-[1.3em]" />
+      <span className="flex flex-col" aria-hidden={label ? true : undefined}>
+        <span className="font-accent text-[1em] font-extrabold leading-none tracking-[-0.035em]">RentWeb</span>
+        {byline ? (
+          <span className="mt-[0.28em] hidden font-accent text-[0.4em] font-bold uppercase leading-none tracking-[0.14em] text-muted-foreground md:block" data-script="latin">
+            by PromptCode
+          </span>
+        ) : null}
+      </span>
     </span>
   );
 }

@@ -15,8 +15,8 @@ export function SiteHeader() {
   const links = platformLinks();
   const bar = (
     <>
-      <Link href="/" className="relative inline-flex min-h-11 items-center text-[1.35rem] md:text-[1.45rem]" aria-label="RentWeb หน้าแรก">
-        <Logo label={false} />
+      <Link href="/" className="relative inline-flex min-h-11 items-center text-[1.35rem] md:text-[1.45rem]" aria-label="RentWeb by PromptCode หน้าแรก">
+        <Logo label={false} byline />
       </Link>
       <nav aria-label="เมนูหลัก" className="hidden items-center gap-8 text-[0.95rem] font-medium md:flex">
         {NAV.map((n) => (
@@ -42,10 +42,10 @@ export function SiteHeader() {
       <nav aria-label="เมนูมือถือ">
         <ul className="grid gap-1">
           {[{ href: "/", label: "หน้าแรก", en: "Home" }, ...NAV].map((n, i) => (
-            <li key={n.href} className="overflow-hidden border-b border-border py-1" style={{ ["--i" as string]: i }}>
+            <li key={n.href} className="overflow-hidden border-b border-[#dfe6f1] py-1" style={{ ["--i" as string]: i }}>
               <Link href={n.href} className="flex min-h-16 items-baseline justify-between gap-4" data-menu-item="">
                 <span className="display-thai text-[2.6rem] font-semibold leading-[1.25]">{n.label}</span>
-                <Mono className="text-muted-foreground">{`0${i + 1} — ${n.en}`}</Mono>
+                <Mono className="text-primary">{`0${i + 1} — ${n.en}`}</Mono>
               </Link>
             </li>
           ))}

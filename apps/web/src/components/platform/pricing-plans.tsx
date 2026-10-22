@@ -29,10 +29,10 @@ export function PricingPlans({ plans, popular = "pro", trialDays = 14 }: { plans
   return (
     <div>
       <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
-        <div role="radiogroup" aria-label="รอบการชำระเงิน" className="relative inline-grid grid-cols-2 rounded-full border border-border bg-card p-1">
+        <div role="radiogroup" aria-label="รอบการชำระเงิน" className="pf-toggle relative inline-grid grid-cols-2 rounded-full p-1">
           <span
             aria-hidden="true"
-            className="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-foreground transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            className="pf-toggle__pill absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
             style={{ transform: yearly ? "translateX(100%)" : "none" }}
           />
           {[
@@ -48,14 +48,14 @@ export function PricingPlans({ plans, popular = "pro", trialDays = 14 }: { plans
                 setYearly(o.v);
                 setToggled(true);
               }}
-              className={`relative z-10 min-h-11 rounded-full px-6 text-sm font-semibold transition-colors duration-300 ${yearly === o.v ? "text-background" : "text-foreground"}`}
+              className={`relative z-10 min-h-11 rounded-full px-6 text-sm font-semibold transition-colors duration-300 ${yearly === o.v ? "text-white" : "text-foreground"}`}
             >
               {o.l}
             </button>
           ))}
         </div>
         <p className="text-sm text-muted-foreground">
-          <span className="font-semibold text-primary">จ่ายรายปีประหยัดกว่า 2 เดือน</span> · ทดลองฟรี {trialDays} วัน ไม่ต้องใส่บัตร
+          <span className="font-semibold text-[#d11a63]">จ่ายรายปีประหยัดกว่า 2 เดือน</span> · ทดลองฟรี {trialDays} วัน ไม่ต้องใส่บัตร
         </p>
       </div>
 
@@ -66,11 +66,11 @@ export function PricingPlans({ plans, popular = "pro", trialDays = 14 }: { plans
             <div className="flex h-full flex-col p-7 md:p-9">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="font-accent text-step-2 font-semibold tracking-[-0.02em]">{p.name}</h3>
-                {hot ? <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">ยอดนิยม</span> : null}
+                {hot ? <span className="pf-badge">★ แนะนำ</span> : null}
               </div>
               {p.description ? <p className="mt-2 text-sm text-muted-foreground">{p.description}</p> : null}
               <div className="mt-8 flex items-end gap-2">
-                <span className="font-accent text-[clamp(3rem,2.2rem+2.6vw,4.5rem)] font-semibold leading-none tracking-[-0.04em]">
+                <span className={`font-accent text-[clamp(3rem,2.2rem+2.6vw,4.5rem)] font-semibold leading-none tracking-[-0.04em] ${hot ? "pf-odo-grad" : ""}`}>
                   <OdometerClient key={yearly ? "y" : "m"} formatted={yearly ? p.yearly : p.monthly} prefix="฿" duration={1.1} trigger={toggled ? "mount" : "inView"} />
                 </span>
                 <span className="pb-1.5 text-muted-foreground">{yearly ? "/ปี" : "/เดือน"}</span>
@@ -79,7 +79,7 @@ export function PricingPlans({ plans, popular = "pro", trialDays = 14 }: { plans
               <ul className="mt-8 flex-1 space-y-3 border-t border-border pt-6 text-[0.95rem]">
                 {p.features.map((f) => (
                   <li key={f} className="flex items-start gap-3">
-                    <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-primary/12 text-primary">
+                    <span className="pf-check mt-0.5 grid size-5 shrink-0 place-items-center rounded-full">
                       <Check className="size-3.5" strokeWidth={2.5} />
                     </span>
                     {f}
@@ -97,13 +97,20 @@ export function PricingPlans({ plans, popular = "pro", trialDays = 14 }: { plans
             </div>
           );
           return (
-            <TiltCard key={p.key} max={4} glare={false} className="h-full">
+            <TiltCard key={p.key} max={6} glare={false} className={`h-full ${hot ? "lg:-translate-y-3" : ""}`}>
+              {hot ? <div className="pointer-events-none absolute -inset-4 -z-10 rounded-[40px] bg-[linear-gradient(120deg,#ff9f5a,#fb8464_30%,#ff5470_65%,#ff2e7e)] opacity-30 blur-2xl" aria-hidden="true" /> : null}
               {hot ? (
-                <GradientBorder className="h-full rounded-[1.75rem] bg-card shadow-[0_40px_80px_-40px_rgb(194_65_12/0.45)]" width={2}>
+                <GradientBorder
+                  className="pf-plan h-full"
+                  data-hot="true"
+                  width={2}
+                  speed={5}
+                  colors={["#ff9f5a", "#fb8464", "#ff5470", "#ff2e7e", "#ff5470", "#0ec0dc"]}
+                >
                   {body}
                 </GradientBorder>
               ) : (
-                <GlowCard className="h-full rounded-[1.75rem] border border-border bg-card">{body}</GlowCard>
+                <GlowCard className="pf-plan h-full">{body}</GlowCard>
               )}
             </TiltCard>
           );

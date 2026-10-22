@@ -23,7 +23,7 @@ export async function PricingSection({ index = "08", heading = "h2", id = "prici
   const links = platformLinks();
   if (paid.length === 0) return null;
   return (
-    <section id={id} data-tone="paper" className="relative scroll-mt-[var(--header-h)] px-[var(--gutter)] py-[var(--section-y)]" aria-labelledby={`${id}-title`}>
+    <section id={id} data-tone="paper" data-hue="mint" className="relative scroll-mt-[var(--header-h)] px-[var(--gutter)] py-[var(--section-y)]" aria-labelledby={`${id}-title`}>
       <div className="grid gap-8 md:grid-cols-12 md:items-end">
         <div className="md:col-span-8">
           <SectionIndex n={index} label="Pricing — ราคาที่ร้านเล็กจ่ายไหว" />
@@ -37,14 +37,14 @@ export async function PricingSection({ index = "08", heading = "h2", id = "prici
         <PricingPlans plans={toPlanCards(paid)} />
       </div>
       {enterprise ? (
-        <div className="mt-5 grid items-center gap-6 rounded-[1.75rem] border border-border bg-card p-7 md:grid-cols-12 md:p-9">
+        <div className="pf-plan mt-5 grid items-center gap-6 p-7 md:grid-cols-12 md:p-9">
           <div className="md:col-span-3">
             <p className="font-accent text-step-2 font-semibold tracking-[-0.02em]">{enterprise.name}</p>
             <Mono className="mt-1 block text-muted-foreground">For chains &amp; brands</Mono>
           </div>
           <ul className="flex flex-wrap gap-2 md:col-span-6">
             {enterprise.features.map((f) => (
-              <li key={f} className="rounded-full border border-border px-3.5 py-1.5 text-sm">
+              <li key={f} className="rounded-full border border-border bg-white/70 px-3.5 py-1.5 text-sm">
                 {f}
               </li>
             ))}

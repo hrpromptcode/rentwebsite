@@ -23,7 +23,7 @@ export function CompareTable({ plans, rows, caption }: { plans: { key: string; n
             role="tab"
             aria-selected={i === col}
             onClick={() => setCol(i)}
-            className="min-h-11 rounded-full text-sm font-semibold transition-colors aria-selected:bg-foreground aria-selected:text-background"
+            className="min-h-11 rounded-full text-sm font-semibold transition-colors aria-selected:bg-[linear-gradient(120deg,#0b78b4,#1561b7_55%,#194fa9)] aria-selected:text-white"
           >
             {p.name}
           </button>
@@ -44,7 +44,7 @@ export function CompareTable({ plans, rows, caption }: { plans: { key: string; n
               >
                 <span className="inline-flex items-center gap-2">
                   {p.name}
-                  {p.hot ? <span className="rounded-full bg-primary px-2 py-0.5 font-body text-[0.7rem] text-primary-foreground">ยอดนิยม</span> : null}
+                  {p.hot ? <span className="pf-badge font-body !text-[0.7rem]">แนะนำ</span> : null}
                 </span>
               </th>
             ))}
